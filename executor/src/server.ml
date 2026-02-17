@@ -1,7 +1,8 @@
 open Lwt.Syntax
 
 let doc_root =
-  Sys.getenv_opt "DOC_ROOT" |> Option.value ~default:"./_build/default/ui/src/client/"
+  Sys.getenv_opt "DOC_ROOT"
+  |> Option.value ~default:"./_build/default/ui/src/app/"
 
 module Config = struct
   type inventory_item = { id : string; name : string; price : float }
@@ -32,11 +33,11 @@ let stream_react_app response_stream react_element =
   Lwt.return ()
 
 let handle_frontend route_root =
-  Dream.stream ~headers:[ ("Content-Type", "text/html") ]
+  Dream.stream
+    ~headers:[ ("Content-Type", "text/html") ]
     (fun response_stream ->
       let app_element = EntryServer.handler in
-      stream_react_app response_stream app_element
-    )
+      stream_react_app response_stream app_element)
 
 (*
   let read_whole_file file_path =

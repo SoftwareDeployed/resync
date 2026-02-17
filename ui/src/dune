@@ -1,4 +1,5 @@
 (melange.emit
+ (package executor)
  (module_systems
   (es6 "re.js"))
  (target app)
@@ -37,7 +38,7 @@
    %{script}
    %{entrypoints}
    %{document}
-   --output=client/dist
+   --output=app/dist
    --extract=true
    --env=%{env:DEMO_ENV='production'})))
 
