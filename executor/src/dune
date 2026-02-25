@@ -3,6 +3,7 @@
  (name server)
  (public_name server)
  (libraries
+  caqti-driver-postgresql
   common_native
   dream
   server-reason-react.url_native

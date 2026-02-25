@@ -4,6 +4,9 @@ let doc_root =
   Sys.getenv_opt "DOC_ROOT"
   |> Option.value ~default:"./_build/default/ui/src/app/"
 
+let db_uri = Sys.getenv_opt "DB_URL"
+|> Option.value ~default:"postgres://executor:executor-password@127.0.0.1:5432/executor_db"
+
 module Config = struct
   type inventory_item = { id : string; name : string; price : float }
 
@@ -13,13 +16,11 @@ module Config = struct
   }
 end
 
-(*
-let get_config premise_id =
-  let* premise = Database.Premise.get_premise premise_id in  
-  let* inventory = Database.Inventory.get_list premise_id in
-  let response = Config.{ inventory; premise } in
-  Lwt.return response
-*)
+(* let get_config premise_id = *)
+  (* let* premise = Database.Premise.get_premise premise_id in *)  
+  (* let* inventory = Database.Inventory.get_list premise_id in *)
+  (* let response = Config.{ inventory; premise } in *)
+  (* Lwt.return response *)
 
 let stream_react_app response_stream react_element =
   let* stream, _abort = ReactDOM.renderToStream react_element in
@@ -32,11 +33,13 @@ let stream_react_app response_stream react_element =
   in
   Lwt.return ()
 
-let handle_frontend route_root =
+let handle_frontend request route_root =
+  let* premise = Dream.sql request (Database.Premise.get_route_premise route_root) in
+  let (premise_id, _, _, _) = Option.value premise ~default:("", "", "", 0.0) in 
   Dream.stream
     ~headers:[ ("Content-Type", "text/html") ]
     (fun response_stream ->
-      let app_element = EntryServer.handler in
+      let app_element = EntryServer.handler premise_id in
       stream_react_app response_stream app_element)
 
 (*
@@ -89,6 +92,8 @@ let websocket_handler req ws =
 
 let () =
   Dream.run ~port:8899 @@ Dream.logger
+  @@ Dream.sql_pool ~size:50 db_uri
+  (* @@ Dream.sql_sessions *)
   @@ Dream.router
        [
          (*
@@ -106,9 +111,9 @@ let () =
              Dream.from_filesystem doc_root "Index.re.js" req);
          Dream.get "/style.css" (fun req ->
              Dream.from_filesystem doc_root "Index.re.css" req);
-         Dream.get "/" (fun _req ->
+         Dream.get "/" (fun req ->
              let route_root = "/" in
-             handle_frontend route_root);
+             handle_frontend req route_root);
          (*
   Dream.get "/config/:premise_id" (fun req ->
     let premise_id = Dream.param req "premise_id" in

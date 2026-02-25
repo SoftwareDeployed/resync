@@ -30,18 +30,7 @@ let get_route_premise = (route_root: string) => {
 
   (module Db: DB) => {
     let%lwt premise_or_error = Db.find_opt(query, route_root);
-    let%lwt premise_opt = Caqti_lwt.or_fail(premise_or_error);
-
-    premise_opt
-    |> Belt.Option.map(((id, name, description, updated_at_seconds)) => {
-         {
-           id,
-           name,
-           description,
-           updated_at: Js.Date.fromFloat(updated_at_seconds *. 1000.0),
-         };
-       })
-    |> Lwt.return;
+    Caqti_lwt.or_fail(premise_or_error);
   };
 };
 

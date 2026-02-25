@@ -40,6 +40,7 @@
  (depends
   (ocaml
    (= "5.4.0"))
+  caqti-driver-postgresql
   dream
   lwt
   melange
