@@ -11,9 +11,9 @@ let make = (~openDate: option(Js.Date.t)=?, ~closeDate: option(Js.Date.t)=?) => 
     Js.Date.make()
     |> Js.Date.setHours(
          ~hours=0.0,
-         //~minutes=0.0,
-         //~seconds=0.0,
-         //~milliseconds=0.0,
+         ~minutes=0.0,
+         ~seconds=0.0,
+         ~milliseconds=0.0,
        )
     |> Js.Date.fromFloat;
   let openDate =
