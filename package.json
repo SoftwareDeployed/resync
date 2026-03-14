@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
    "dev:serve": "dune exec -w executor/src/server.exe",
+   "dev:watch": "watchexec --no-vcs-ignore -w ./_build/default/ui/src/.build_stamp -r -c -- ./_build/default/executor/src/server.exe",
    "dev": "pnpm \"/(.*:watch$|^dev:serve$)/\"",
    "dune:watch": "/bin/zsh -i -c 'dune build --force -w'",
    "watch": "pnpm run \"/.*:watch$/\""
