@@ -1,6 +1,7 @@
 [@platform js]
 module Socket = {
-  [@mel.scope ("process", "env")] external base_url: string = "API_BASE_URL";
+  let base_url = "http://localhost:8899";
+  //[@mel.scope ("process", "env")] external base_url: string = "API_BASE_URL";
   external globalThis: Js.Dict.t(int) = "globalThis";
   external setInterval: (. unit => unit, int) => int = "setInterval";
 

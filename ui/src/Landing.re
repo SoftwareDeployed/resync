@@ -5,7 +5,7 @@ let str = React.string;
 [@react.component]
 let make =
   leaf(() => {
-    let main_store = Store.useStore();
+    let main_store = StoreContext.useStore();
     let _unit = main_store.unit;
     let today =
       Js.Date.make()

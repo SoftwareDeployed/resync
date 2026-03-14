@@ -7,15 +7,6 @@ let doc_root =
 let db_uri = Sys.getenv_opt "DB_URL"
 |> Option.value ~default:"postgres://executor:executor-password@127.0.0.1:5432/executor_db"
 
-module Config = struct
-  type inventory_item = { id : string; name : string; price : float }
-
-  type output = {
-    inventory : inventory_item array;
-    premise : PeriodList.Premise.t option;
-  }
-end
-
 (* let get_config premise_id = *)
   (* let* premise = Database.Premise.get_premise premise_id in *)  
   (* let* inventory = Database.Inventory.get_list premise_id in *)
@@ -34,12 +25,27 @@ let stream_react_app response_stream react_element =
   Lwt.return ()
 
 let handle_frontend request route_root =
+(*
+            premise.id,
+            premise.name,
+            premise.description,
+            EXTRACT(EPOCH FROM premise.updated_at) AS updated_at
+            *)
   let* premise = Dream.sql request (Database.Premise.get_route_premise route_root) in
-  let (premise_id, _, _, _) = Option.value premise ~default:("", "", "", 0.0) in 
+  let (premise_id, name, description, updated_at) = Option.value premise ~default:("", "", "", 0.0) in
+  let config: Config.t = {
+    inventory = [||];
+    premise = Some({
+      id = premise_id;
+      name = name;
+      description = description;
+      updated_at = updated_at
+    })
+  } in 
   Dream.stream
     ~headers:[ ("Content-Type", "text/html") ]
     (fun response_stream ->
-      let app_element = EntryServer.handler premise_id in
+      let app_element = EntryServer.handler config in
       stream_react_app response_stream app_element)
 
 (*
@@ -91,7 +97,7 @@ let websocket_handler req ws =
 *)
 
 let () =
-  Dream.run ~port:8899 @@ Dream.logger
+  Dream.run ~port:8899 @@ Dream.livereload @@ Dream.logger
   @@ Dream.sql_pool ~size:50 db_uri
   (* @@ Dream.sql_sessions *)
   @@ Dream.router

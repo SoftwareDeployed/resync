@@ -10,30 +10,97 @@ let empty: Config.t = {
   premise: None,
 };
 
+/* JSON deserialization helpers for client-side hydration */
+let period_from_json = (json: Js.Json.t) => {
+  let dict: Js.Dict.t(Js.Json.t) = Obj.magic(json);
+  {
+    Config.Pricing.id: (Obj.magic(Js.Dict.unsafeGet(dict, "id")): int),
+    unit: (Obj.magic(Js.Dict.unsafeGet(dict, "unit")): string),
+    label: (Obj.magic(Js.Dict.unsafeGet(dict, "label")): string),
+    price: (Obj.magic(Js.Dict.unsafeGet(dict, "price")): int),
+    max_value: (Obj.magic(Js.Dict.unsafeGet(dict, "max_value")): int),
+    min_value: (Obj.magic(Js.Dict.unsafeGet(dict, "min_value")): int),
+  };
+};
+
+let inventory_item_from_json = (json: Js.Json.t) => {
+  let dict: Js.Dict.t(Js.Json.t) = Obj.magic(json);
+  {
+    Config.InventoryItem.description: (
+      Obj.magic(Js.Dict.unsafeGet(dict, "description")): string
+    ),
+    id: (Obj.magic(Js.Dict.unsafeGet(dict, "id")): int),
+    name: (Obj.magic(Js.Dict.unsafeGet(dict, "name")): string),
+    quantity: (Obj.magic(Js.Dict.unsafeGet(dict, "quantity")): int),
+    premise_id: (Obj.magic(Js.Dict.unsafeGet(dict, "premise_id")): string),
+    period_list:
+      Array.map(
+        period_from_json,
+        Obj.magic(Js.Dict.unsafeGet(dict, "period_list")): array(Js.Json.t),
+      ),
+  };
+};
+
+let premise_from_json = (json: Js.Json.t) => {
+  let dict: Js.Dict.t(Js.Json.t) = Obj.magic(json);
+  let timestamp: float = Obj.magic(Js.Dict.unsafeGet(dict, "updated_at"));
+  {
+    PeriodList.Premise.id: (
+      Obj.magic(Js.Dict.unsafeGet(dict, "id")): string
+    ),
+    name: (Obj.magic(Js.Dict.unsafeGet(dict, "name")): string),
+    description: (Obj.magic(Js.Dict.unsafeGet(dict, "description")): string),
+    updated_at: Js.Date.fromFloat(timestamp),
+  };
+};
+
+let config_from_json = (json: Js.Json.t) => {
+  let dict: Js.Dict.t(Js.Json.t) = Obj.magic(json);
+  let premise_json = Js.Dict.get(dict, "premise");
+  {
+    Config.inventory:
+      Array.map(
+        inventory_item_from_json,
+        Obj.magic(Js.Dict.unsafeGet(dict, "inventory")): array(Js.Json.t),
+      ),
+    premise:
+      switch (premise_json) {
+      | None => None
+      | Some(p) =>
+        if (p == Js.Json.null) {
+          None;
+        } else {
+          Some(premise_from_json(p));
+        }
+      },
+  };
+};
+
 let domExecutorConfig =
   switch%platform (Runtime.platform) {
-  | Client => Some(empty)
+  | Client =>
+    try({
+      let element = [%raw {| document.getElementById("initial-config") |}];
+      switch (Js.Nullable.toOption(element)) {
+      | Some(_) =>
+        let text = [%raw
+          {| document.getElementById("initial-config").textContent |}
+        ];
+        let json = text->Js.Json.parseExn;
+        let config = config_from_json(json);
+        Some(config);
+      | None => Some(empty)
+      };
+    }) {
+    | _ => Some(empty)
+    }
   | Server => None
   };
 
 let initialExecutorConfig =
   switch (domExecutorConfig) {
   | None => empty
-  | Some(config) => {
-      inventory: config.inventory,
-      premise: None,
-      /*switch (config.premise) {
-        | Some(premise_in) =>
-          Some({
-            id: premise_in.id, //->Js.Dict.unsafeGet("id"),
-            name: premise_in.name, //->Js.Dict.unsafeGet("name"),
-            description: premise_in.description, //->Js.Dict.unsafeGet("description"),
-            updated_at: premise_in.updated_at // ->Js.Dict.unsafeGet("updated_at")
-            //|> Js.Date.fromString,
-          })
-        | None => None
-        },*/
-    }
+  | Some(config) => config
   };
 
 let state =

@@ -77,29 +77,29 @@ let derivePeriodList = (config: Config.t) => {
   periods;
 };
 
-let%browser_only makeStore = initialExecutorConfig =>
+// Create a plain Store.t record (no Tilia wrapping) - used on server
+let createPlainStore = (~config: Config.t, ~unit: PeriodList.Unit.t) => {
+  premise_id: config.premise->Belt.Option.map(p => p.id)->Belt.Option.getWithDefault(""),
+  config: config,
+  period_list: derivePeriodList(config),
+  unit: unit,
+};
+
+// Default/empty store value
+let empty: t = {
+  premise_id: "",
+  config: Config.SSR.empty,
+  period_list: [||],
+  unit: PeriodList.Unit.defaultState,
+};
+
+// Create a Tilia-wrapped store with reactive derived fields - used on client
+let%browser_only makeStore = (~config: Config.t, ~unit: PeriodList.Unit.t) =>
   Tilia.Core.carve(({ derived }) => {
     {
       premise_id: derived(store => store->deriveConfig->derivePremiseId),
-      config: initialExecutorConfig,
+      config: config,
       period_list: derived(store => store->deriveConfig->derivePeriodList),
-      unit: PeriodList.Unit.defaultState /*PeriodList.Unit.signal->lift,*/
+      unit: unit,
     }
   });
-
-// This store is isomorphic - works on both server and client
-// On server, reads from ConfigContext
-// On client, uses Tilia for state management
-let useStore = () =>
-  switch%platform (Runtime.platform) {
-  | Client => makeStore(PremiseContainer.state)
-  | Server => {
-      let config = React.useContext(ConfigContext.context);
-      {
-        premise_id: config.premise->Belt.Option.map(p => p.id)->Belt.Option.getWithDefault(""),
-        config: config,
-        period_list: derivePeriodList(config),
-        unit: PeriodList.Unit.defaultState,
-      };
-    }
-  };

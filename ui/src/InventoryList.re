@@ -2,7 +2,7 @@ let str = React.string;
 
 [@react.component]
 let make = (~openDate: option(Js.Date.t)=?, ~closeDate: option(Js.Date.t)=?) => {
-  let main_store = Store.useStore();
+  let main_store = StoreContext.useStore();
   let config: Config.t = main_store.config;
   let unit: PeriodList.Unit.t = main_store.unit;
   let items = config.inventory;
