@@ -2,7 +2,7 @@ let str = React.string;
 
 [@react.component]
 let make = () => {
-  let main_store = Store.getStore();
+  let main_store = Store.useStore();
   let config: Config.t = main_store.config;
   let cart = Store.CartStore.state;
   let count = cart.items->Js.Dict.keys->Array.length;

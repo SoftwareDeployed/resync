@@ -23,10 +23,12 @@ let getRootlessPath = (route_root, path) =>
 
 [@react.component]
 let make =
-    //~route_root: option(string)=?,
-    (~server_url: option(ReasonReactRouter.url)=?) => {
+    (
+      ~route_root: option(string)=?,
+      ~server_url: option(ReasonReactRouter.url)=?,
+    ) => {
   let initial_url = ReasonReactRouter.useUrl(~serverUrl=?server_url, ());
-  let (_url, set_url) = React.useState(() => initial_url);
+  let (url, set_url) = React.useState(() => initial_url);
   Js.log(initial_url.path->Belt.List.head->Belt.Option.getWithDefault("/"));
   React.useEffect0(() => {
     let watcher_id =
@@ -35,20 +37,20 @@ let make =
     // Cleanup function to unsubscribe when the component unmounts
     Some(() => ReasonReactRouter.unwatchUrl(watcher_id));
   });
-  <Landing />;
-  /*let main_store = Store.getStore();
-    switch (main_store.config.premise) {
-    | None => <NotFound />
-    | Some(_) =>
-      let rootless_path =
-        switch (route_root) {
-        | Some(route_root) => getRootlessPath(route_root, url.path)
-        | None => Some([""])
-        };
-      switch (rootless_path) {
-      | Some(["item", _])
-      | Some([""]) => <Landing />
-      | _ => <NotFound />
+  let main_store = Store.useStore();
+  Js.log(Obj.magic(main_store));
+  switch (main_store.config.premise) {
+  | None => <NotFound />
+  | Some(_) =>
+    let rootless_path =
+      switch (route_root) {
+      | Some(route_root) => getRootlessPath(route_root, url.path)
+      | None => Some([""])
       };
-    };*/
+    switch (rootless_path) {
+    | Some(["item", _])
+    | Some([""]) => <Landing />
+    | _ => <NotFound />
+    };
+  };
 };

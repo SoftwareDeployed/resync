@@ -1,2 +1,7 @@
-let handler = premise_id =>
-  <Document> <DebugText text=premise_id /> <App /> </Document>;
+let handler = (config: Config.t) =>
+  <ConfigContext.Provider value=config>
+    <Document initialConfig=config>
+      <DebugText text={(config.premise |> Belt.Option.getUnsafe).id} />
+      <App />
+    </Document>
+  </ConfigContext.Provider>;

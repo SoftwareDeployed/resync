@@ -2,7 +2,7 @@ let str = React.string;
 
 [@react.component]
 let make = () => {
-  let main_store = Store.getStore();
+  let main_store = Store.useStore();
   let%browser_only select_unit = (period: Config.Pricing.period, e) => {
     let inputEl = e->React.Event.Form.currentTarget;
     if (inputEl##checked == true) {

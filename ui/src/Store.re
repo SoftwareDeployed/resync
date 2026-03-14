@@ -87,18 +87,19 @@ let%browser_only makeStore = initialExecutorConfig =>
     }
   });
 
-let makeServerStore = () => PremiseContainer.empty;
-
-// This store needs to isomorphic so that it's in the context of the user's session on the server
-// There may be a better way to do this, but for now I make main_store an option.
-// Then I use getStore in my components to get the store based on the execution context.
-let getStore = () =>
+// This store is isomorphic - works on both server and client
+// On server, reads from ConfigContext
+// On client, uses Tilia for state management
+let useStore = () =>
   switch%platform (Runtime.platform) {
   | Client => makeStore(PremiseContainer.state)
   | Server => {
-      premise_id: "",
-      config: PremiseContainer.empty,
-      period_list: [||],
-      unit: PeriodList.Unit.defaultState,
+      let config = React.useContext(ConfigContext.context);
+      {
+        premise_id: config.premise->Belt.Option.map(p => p.id)->Belt.Option.getWithDefault(""),
+        config: config,
+        period_list: derivePeriodList(config),
+        unit: PeriodList.Unit.defaultState,
+      };
     }
   };
