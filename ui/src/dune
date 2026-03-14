@@ -21,23 +21,12 @@
   melange.dom
   melange.js))
 
-; Rule to generate build stamp when UI files change
+; Rule that runs esbuild and creates stamp AFTER successful completion
 (rule
  (targets .build_stamp)
  (deps
-  (source_tree .)
-  ../build.mjs)
- (action
-  (with-stdout-to .build_stamp
-   (system "date +%s"))))
-
-; Rule that runs esbuild when stamp or dependencies change
-(rule
- (alias app)
- (deps
   (package executor)
   (alias_rec melange)
-  .build_stamp
   (:script ../build.mjs)
   (:entrypoints app/ui/src/Index.re.js)
   (:document app/ui/src/Document.re.js)
@@ -45,13 +34,21 @@
   (file ../package.json)
   (source_tree ../../_opam/lib/server-reason-react/esbuild-plugin))
  (action
-  (run
-   node
-   %{script}
-   %{entrypoints}
-   %{document}
-   --output=app/dist
-   --extract=true
-   --env=%{env:DEMO_ENV='production'})))
+  (progn
+   (run
+    node
+    %{script}
+    %{entrypoints}
+    %{document}
+    --output=app/dist
+    --extract=true
+    --env=%{env:DEMO_ENV='production'})
+   (with-stdout-to .build_stamp
+    (system "date +%s")))))
+
+; Alias for the app
+(alias
+ (name app)
+ (deps .build_stamp))
 
 (include_subdirs qualified)
