@@ -1,2 +1,2 @@
 let handler = premise_id =>
-  <Document> <pre> {React.string(premise_id)} </pre> <App /> </Document>;
+  <Document> <DebugText text=premise_id /> <App /> </Document>;

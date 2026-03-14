@@ -25,7 +25,11 @@
    lwt_ppx))
  (modes native))
 
+; Copy UI source files - these are the actual dependencies
 (copy_files
  (files "../../ui/src/*.re"))
+
+(copy_files
+ (files "../../ui/src/.build_stamp"))
 
 (include_subdirs qualified)

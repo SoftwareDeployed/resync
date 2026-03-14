@@ -21,11 +21,23 @@
   melange.dom
   melange.js))
 
+; Rule to generate build stamp when UI files change
+(rule
+ (targets .build_stamp)
+ (deps
+  (source_tree .)
+  ../build.mjs)
+ (action
+  (with-stdout-to .build_stamp
+   (system "date +%s"))))
+
+; Rule that runs esbuild when stamp or dependencies change
 (rule
  (alias app)
  (deps
   (package executor)
   (alias_rec melange)
+  .build_stamp
   (:script ../build.mjs)
   (:entrypoints app/ui/src/Index.re.js)
   (:document app/ui/src/Document.re.js)

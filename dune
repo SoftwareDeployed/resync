@@ -1,0 +1,24 @@
+; Root dune file for build orchestration
+
+; Alias for building the UI/app
+(alias
+ (name app)
+ (deps
+  (alias_rec ui/app)))
+
+; Alias for building the server
+; References the server executable which depends on executor/src/.build_stamp
+(alias
+ (name server)
+ (deps
+  (file executor/src/server.exe)))
+
+; Default alias builds both
+(alias
+ (name default)
+ (deps
+  (alias app)
+  (alias server)))
+
+; Directories to include in the build
+(dirs common executor ui)
