@@ -12,11 +12,12 @@
   server-reason-react.url_native
   server-reason-react.react
   server-reason-react.reactDom
-  server-reason-react.html
-  server-reason-react.js
-  universal_reason_react_components_native
-  universal_reason_react_store_native
-  lwt.unix
+   server-reason-react.html
+   server-reason-react.js
+   universal_reason_react_components_native
+   universal_reason_react_lucide_icons_native
+   universal_reason_react_store_native
+   lwt.unix
   str
   unix
   server-reason-react.belt

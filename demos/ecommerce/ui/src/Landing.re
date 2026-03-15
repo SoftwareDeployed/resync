@@ -54,34 +54,28 @@ let make =
           <span> "Cloud Hardware Rental"->str </span>
         </h1>
       </Card>
-      <ClientOnly>
-        {() =>
-           <Icon.MonitorCloud
-             size=48
-             className="text-slate-400 mr-2 my-auto inline content-start"
-           />}
-      </ClientOnly>
+      <Lucide.Icon
+        name="monitor-cloud"
+        size=48
+        className="text-slate-400 mr-2 my-auto inline content-start"
+      />
       <Card
         className="grid grid-cols-[auto_1fr] bg-white/20 gap-4 place-items-start items-center">
         <span className="align-middle text-lg">
-          <ClientOnly>
-            {() =>
-               <Icon.Clock
-                 className="text-slate-400 mr-2 my-auto inline content-start"
-                 size=48
-               />}
-          </ClientOnly>
+          <Lucide.Icon
+            name="clock"
+            className="text-slate-400 mr-2 my-auto inline content-start"
+            size=48
+          />
           "Select your reservation type: "->str
         </span>
         <ReservationTypeSelection />
         <div className="col-span-full grid grid-cols-subgrid relative">
-          <ClientOnly>
-            {() =>
-               <Icon.Calendar
-                 size=48
-                 className="absolute left-0 top-0 bottom-0 my-auto text-slate-400"
-               />}
-          </ClientOnly>
+          <Lucide.Icon
+            name="calendar"
+            size=48
+            className="absolute left-0 top-0 bottom-0 my-auto text-slate-400"
+          />
           <span className="align-middle text-lg pl-14">
             "Select your reservation start time: "->str
           </span>

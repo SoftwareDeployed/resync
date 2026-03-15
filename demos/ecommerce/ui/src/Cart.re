@@ -10,7 +10,7 @@ let make =
 
   <h1 className="block font-bold align-middle text-gray-700 m-2 text-3xl">
     <span className="m-2 align-middle text-3xl font-light">
-      <ClientOnly> {() => <Icon.CartIcon size=24 />} </ClientOnly>
+      <Lucide.Icon name="shopping-cart" size=24 />
     </span>
     <ClientOnly>
       {() => {

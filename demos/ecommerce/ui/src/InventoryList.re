@@ -65,13 +65,11 @@ let make =
   <Card
     className="m-0 p-0 bg-white/30 border-2 border-b-4 border-r-4 border-gray-200/60">
     <h1 className="block align-middle text-lg content-center">
-      <ClientOnly>
-        {() =>
-           <Icon.SearchIcon
-             size=48
-             className="text-slate-400 mr-2 my-auto inline content-start"
-           />}
-      </ClientOnly>
+      <Lucide.Icon
+        name="search"
+        size=48
+        className="text-slate-400 mr-2 my-auto inline content-start"
+      />
       <span className="align-middle"> heading->str </span>
     </h1>
     <Card
