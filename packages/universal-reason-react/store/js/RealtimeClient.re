@@ -6,7 +6,7 @@ module Socket = {
   let subscribe = (
     ~set: 'config => unit,
     ~get: unit => 'config,
-    ~premiseId: string,
+    ~subscription: string,
     ~updatedAt: float,
     ~parsePatch: Js.Json.t => option('patch),
     ~applyPatch: ('config, 'patch) => 'config,
@@ -17,7 +17,7 @@ module Socket = {
   ) => {
     let _ = set;
     let _ = get;
-    let _ = premiseId;
+    let _ = subscription;
     let _ = updatedAt;
     let _ = parsePatch;
     let _ = applyPatch;
@@ -46,7 +46,7 @@ module Socket = {
   let rec subscribe = (
     ~set: 'config => unit,
     ~get: unit => 'config,
-    ~premiseId: string,
+    ~subscription: string,
     ~updatedAt: float,
     ~parsePatch: Js.Json.t => option('patch),
     ~applyPatch: ('config, 'patch) => 'config,
@@ -58,8 +58,8 @@ module Socket = {
     let url =
       Webapi.Url.makeWith(
         eventUrl
-        ++ "?premise_id="
-        ++ premiseId
+        ++ "?subscription="
+        ++ subscription
         ++ "&ts="
         ++ updatedAt->Float.to_string,
         ~base=baseUrl,
@@ -85,7 +85,7 @@ module Socket = {
         ws->WebSocket.send_string("ping");
         setLastPingTs(Js.Date.fromString("now")->Js.Date.getTime);
       };
-    let select = () => ws->WebSocket.send_string("select " ++ premiseId);
+    let select = () => ws->WebSocket.send_string("select " ++ subscription);
 
     Tilia.Core.observe(() => {
       let elapsed = state.last_pong -. state.last_ping;
@@ -94,7 +94,7 @@ module Socket = {
         subscribe(
           ~set,
           ~get,
-          ~premiseId,
+          ~subscription,
           ~updatedAt=Js.Date.now(),
           ~parsePatch,
           ~applyPatch,
@@ -120,7 +120,7 @@ module Socket = {
         subscribe(
           ~set,
           ~get,
-          ~premiseId,
+          ~subscription,
           ~updatedAt=state.updated_at,
           ~parsePatch,
           ~applyPatch,
@@ -138,17 +138,24 @@ module Socket = {
         if (data === "pong") {
           setLastPongTs(Js.Date.fromString("now")->Js.Date.getTime);
         } else {
-          let json = Js.Json.parseExn(data);
-          switch (parsePatch(json)) {
-          | Some(patch) =>
-            let current = get();
-            let next = applyPatch(current, patch);
-            setUpdatedTs(updatedAtOf(next));
-            set(next);
-          | None =>
-            let snapshot = decodeSnapshot(data);
-            setUpdatedTs(updatedAtOf(snapshot));
-            set(snapshot);
+          let parsedJson =
+            try(Some(Js.Json.parseExn(data))) {
+            | _ => None
+            };
+          switch (parsedJson) {
+          | Some(json) =>
+            switch (parsePatch(json)) {
+            | Some(patch) =>
+              let current = get();
+              let next = applyPatch(current, patch);
+              setUpdatedTs(updatedAtOf(next));
+              set(next);
+            | None =>
+              let snapshot = decodeSnapshot(data);
+              setUpdatedTs(updatedAtOf(snapshot));
+              set(snapshot);
+            }
+          | None => ()
           };
         };
       },

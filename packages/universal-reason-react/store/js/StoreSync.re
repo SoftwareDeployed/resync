@@ -1,8 +1,10 @@
 module type Schema = {
   type config;
   type patch;
+  type subscription;
 
-  let channelOfConfig: config => option(string);
+  let subscriptionOfConfig: config => option(subscription);
+  let encodeSubscription: subscription => string;
   let updatedAtOf: config => float;
   let decodeSnapshot: string => config;
   let parsePatch: Js.Json.t => option(patch);
@@ -24,12 +26,12 @@ module Make = (Schema: Schema) => {
   type patch = Schema.patch;
 
   let subscribe = (~set: config => unit, ~get: unit => config, ~config: config) => {
-    switch (Schema.channelOfConfig(config)) {
-    | Some(channel) =>
+    switch (Schema.subscriptionOfConfig(config)) {
+    | Some(subscription) =>
       RealtimeClient.Socket.subscribe(
         ~set,
         ~get,
-        ~premiseId=channel,
+        ~subscription=Schema.encodeSubscription(subscription),
         ~updatedAt=Schema.updatedAtOf(config),
         ~parsePatch=Schema.parsePatch,
         ~applyPatch=Schema.applyPatch,

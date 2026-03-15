@@ -4,6 +4,7 @@ module type Schema = {
   type payload;
   type projections;
   type store;
+  type subscription;
 
   let emptyStore: store;
   let stateElementId: string;
@@ -16,7 +17,8 @@ module type Schema = {
   let encodeState: payload => string;
   let decodeState: Js.Json.t => payload;
 
-  let channelOfConfig: config => option(string);
+  let subscriptionOfConfig: config => option(subscription);
+  let encodeSubscription: subscription => string;
   let updatedAtOf: config => float;
   let decodeSnapshot: string => config;
   let parsePatch: Js.Json.t => option(patch);
@@ -42,8 +44,10 @@ module Make = (Schema: Schema) => {
   module Sync = StoreSync.Make({
     type config = Schema.config;
     type patch = Schema.patch;
+    type subscription = Schema.subscription;
 
-    let channelOfConfig = Schema.channelOfConfig;
+    let subscriptionOfConfig = Schema.subscriptionOfConfig;
+    let encodeSubscription = Schema.encodeSubscription;
     let updatedAtOf = Schema.updatedAtOf;
     let decodeSnapshot = Schema.decodeSnapshot;
     let parsePatch = Schema.parsePatch;

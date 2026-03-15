@@ -78,13 +78,21 @@ let get_config_json request premise_id =
   let* config = get_config request premise_id in
   Lwt.return (Config.to_yojson config |> Yojson.Safe.to_string)
 
+let resolve_subscription request selection =
+  match RealtimeSubscription.decode_channel selection with
+  | None -> Lwt.return_none
+  | Some premise_id ->
+      let* premise = Dream.sql request (Database.Premise.get_premise premise_id) in
+      Lwt.return (Option.map (fun _ -> premise_id) premise)
+
 let realtime_adapter =
   Adapter.pack
     (module Pgnotify_adapter : Adapter.S with type t = Pgnotify_adapter.t)
     (Pgnotify_adapter.create ~db_uri ())
 
 let realtime_middleware =
-  Middleware.create ~adapter:realtime_adapter ~load_snapshot:get_config_json
+  Middleware.create ~adapter:realtime_adapter
+    ~resolve_subscription ~load_snapshot:get_config_json
 
 let () =
   let () =

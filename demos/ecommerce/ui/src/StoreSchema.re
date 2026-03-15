@@ -1,4 +1,5 @@
 type config = Config.t;
+type subscription = RealtimeSubscription.t;
 
 type patch = {
   type_: string,
@@ -323,11 +324,13 @@ let applyPatch = (currentConfig: config, patch: patch): config => {
   };
 };
 
-let channelOfConfig = (config: config) =>
+let subscriptionOfConfig = (config: config): option(subscription) =>
   switch (config.premise) {
-  | Some(premise) => Some(premise.id)
+  | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
   | None => None
   };
+
+let encodeSubscription = RealtimeSubscription.encode;
 
 let updatedAtOf = (config: config) =>
   switch (config.premise) {

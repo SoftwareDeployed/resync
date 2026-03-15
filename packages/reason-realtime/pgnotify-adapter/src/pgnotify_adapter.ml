@@ -79,6 +79,27 @@ let run_command t query =
       with Postgresql.Error error ->
         Lwt.fail_with (Postgresql.string_of_error error))
 
+let validate_channel channel =
+  if String.length channel = 0 then
+    Lwt.fail_with "Invalid PostgreSQL channel name: empty"
+  else if String.contains channel '\000' then
+    Lwt.fail_with "Invalid PostgreSQL channel name: contains NUL byte"
+  else
+    Lwt.return_unit
+
+let quote_identifier identifier =
+  let buffer = Buffer.create (String.length identifier + 2) in
+  Buffer.add_char buffer '"';
+  String.iter
+    (fun char ->
+      if char = '"' then
+        Buffer.add_string buffer "\"\""
+      else
+        Buffer.add_char buffer char)
+    identifier;
+  Buffer.add_char buffer '"';
+  Buffer.contents buffer
+
 let parse_payload payload =
   let json = Yojson.Safe.from_string payload in
   let open Yojson.Safe.Util in
@@ -159,6 +180,7 @@ let stop t =
       Lwt.return_unit
 
 let subscribe t ~channel ~handler =
+  let* () = validate_channel channel in
   let current =
     match Hashtbl.find_opt t.handlers channel with
     | Some handlers -> handlers
@@ -167,10 +189,11 @@ let subscribe t ~channel ~handler =
   let first_subscription = current = [] in
   Hashtbl.replace t.handlers channel (handler :: current);
   if first_subscription then
-    run_command t (Printf.sprintf "LISTEN \"%s\"" channel)
+    run_command t (Printf.sprintf "LISTEN %s" (quote_identifier channel))
   else
     Lwt.return_unit
 
 let unsubscribe t ~channel =
+  let* () = validate_channel channel in
   Hashtbl.remove t.handlers channel;
-  run_command t (Printf.sprintf "UNLISTEN \"%s\"" channel)
+  run_command t (Printf.sprintf "UNLISTEN %s" (quote_identifier channel))
