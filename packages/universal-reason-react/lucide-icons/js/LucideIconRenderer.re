@@ -280,6 +280,12 @@ module Impl = {
 
 [@platform js]
 module Impl = {
+  type jsValue;
+
+  external jsString: string => jsValue = "%identity";
+  external jsBool: bool => jsValue = "%identity";
+  external domPropsOfDict: Js.Dict.t(jsValue) => ReactDOM.domProps = "%identity";
+
   [@mel.obj]
   external makeElementProps:
     (
@@ -304,25 +310,47 @@ module Impl = {
     ) =>
     ReactDOM.domProps = "";
 
-  [@mel.obj]
-  external makeSvgProps:
-    (
-      ~xmlns: string,
-      ~viewBox: string,
-      ~fill: string,
-      ~stroke: string,
-      ~strokeLinecap: string,
-      ~strokeLinejoin: string,
-      ~width: string,
-      ~height: string,
-      ~strokeWidth: string,
-      ~className: string,
-      ~ariaHidden: bool=?,
-      ~ariaLabel: string=?,
-      ~title: string=?,
-      unit
-    ) =>
-    ReactDOM.domProps = "";
+  let makeSvgProps = (
+    ~xmlns,
+    ~viewBox,
+    ~fill,
+    ~stroke,
+    ~strokeLinecap,
+    ~strokeLinejoin,
+    ~width,
+    ~height,
+    ~strokeWidth,
+    ~className,
+    ~ariaHidden=?,
+    ~ariaLabel=?,
+    ~title=?,
+    (),
+  ) => {
+    let props: Js.Dict.t(jsValue) = Js.Dict.empty();
+    Js.Dict.set(props, "xmlns", jsString(xmlns));
+    Js.Dict.set(props, "viewBox", jsString(viewBox));
+    Js.Dict.set(props, "fill", jsString(fill));
+    Js.Dict.set(props, "stroke", jsString(stroke));
+    Js.Dict.set(props, "strokeLinecap", jsString(strokeLinecap));
+    Js.Dict.set(props, "strokeLinejoin", jsString(strokeLinejoin));
+    Js.Dict.set(props, "width", jsString(width));
+    Js.Dict.set(props, "height", jsString(height));
+    Js.Dict.set(props, "strokeWidth", jsString(strokeWidth));
+    Js.Dict.set(props, "className", jsString(className));
+    switch (ariaHidden) {
+    | Some(value) => Js.Dict.set(props, "aria-hidden", jsBool(value))
+    | None => ()
+    };
+    switch (ariaLabel) {
+    | Some(value) => Js.Dict.set(props, "aria-label", jsString(value))
+    | None => ()
+    };
+    switch (title) {
+    | Some(value) => Js.Dict.set(props, "title", jsString(value))
+    | None => ()
+    };
+    domPropsOfDict(props);
+  };
 
   let renderChild = (child: Types.child): React.element => {
     let resolved = resolveAttrs(child.attrs);
