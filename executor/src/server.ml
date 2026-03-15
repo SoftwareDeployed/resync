@@ -25,22 +25,21 @@ let stream_react_app response_stream react_element =
   Lwt.return ()
 
 let handle_frontend request route_root =
-(*
-            premise.id,
-            premise.name,
-            premise.description,
-            EXTRACT(EPOCH FROM premise.updated_at) AS updated_at
-            *)
   let* premise = Dream.sql request (Database.Premise.get_route_premise route_root) in
-  let (premise_id, name, description, updated_at) = Option.value premise ~default:("", "", "", 0.0) in
+  let premise_id = 
+    match premise with
+    | None -> ""
+    | Some(p) -> p.id
+  in
+  let* inventory = 
+    if premise_id = "" then
+      Lwt.return [||]
+    else
+      Dream.sql request (Database.Inventory.get_list premise_id)
+  in
   let config: Config.t = {
-    inventory = [||];
-    premise = Some({
-      id = premise_id;
-      name = name;
-      description = description;
-      updated_at = updated_at
-    })
+    inventory = inventory;
+    premise = premise
   } in 
   Dream.stream
     ~headers:[ ("Content-Type", "text/html") ]
@@ -71,47 +70,42 @@ let handle_frontend request route_root =
   Dream.respond ~headers:["Content-Type", "application/json"] json
   *)
 
-(*
-let websocket_handler req ws =
-  let open Dream_websocket in
-  let state = ref (Some ws) in
-  let send msg = match !state with
-    | Some ws -> send ws msg
-    | None -> ()
+(* Fetch config for a premise from database *)
+let get_config request premise_id =
+  let* premise = Dream.sql request (Database.Premise.get_premise premise_id) in
+  let* inventory = Dream.sql request (Database.Inventory.get_list premise_id) in
+  let config: Config.t = {
+    inventory = inventory;
+    premise = premise
+  } in
+  Lwt.return config
+
+(* WebSocket handler for real-time updates *)
+let websocket_handler request websocket =
+  let rec loop () =
+    match%lwt Dream.receive websocket with
+    | None -> Lwt.return ()
+    | Some msg ->
+        let* () = Database.Bus.handle_message request get_config websocket msg in
+        loop ()
   in
-  let receive msg = match msg with
-    | "ping" -> send "pong"
-    | msg when String.starts_with ~prefix:"select " msg ->
-      let premise_id = String.sub 7 (String.length msg - 7) |> String.trim in
-      Database.Bus.with_listener premise_id
-        ~on_message:(fun _message ->
-          let* config = get_config premise_id in
-          let json = Yojson.Safe.to_string config in
-          send json
-        );
-      ()
-    | _ -> ()
-  in
-  let finally () = state := None in
-  Dream_websocket.websocket ~finally receive
-*)
+  loop ()
 
 let () =
+  (* Initialize the dedicated PostgreSQL notification connection *)
+  let () = 
+    match Lwt_main.run (Database.PgNotifier.connect db_uri) with
+    | Ok () -> 
+        Database.PgNotifier.start ()
+    | Error (`Msg msg) -> 
+        Printf.eprintf "Failed to connect notification listener: %s\n" msg
+  in
   Dream.run ~port:8899 @@ Dream.livereload @@ Dream.logger
   @@ Dream.sql_pool ~size:50 db_uri
   (* @@ Dream.sql_sessions *)
   @@ Dream.router
        [
-         (*
-  |> Dream.get "/ws" websocket_handler  
-(fun _ ->
-        Dream.websocket (fun websocket ->
-          match%lwt Dream.receive websocket with
-          | Some "Hello?" ->
-            Dream.send websocket "Good-bye!"
-          | _ ->
-            Dream.close_websocket websocket));  |> Dream.get "/" handle_frontend
-          *)
+         Dream.get "_events" (fun req -> Dream.websocket (fun ws -> websocket_handler req ws));
          Dream.get "/static/**" (Dream.static doc_root);
          Dream.get "/app.js" (fun req ->
              Dream.from_filesystem doc_root "Index.re.js" req);

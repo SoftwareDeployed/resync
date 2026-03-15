@@ -46,13 +46,18 @@ let make = (~openDate: option(Js.Date.t)=?, ~closeDate: option(Js.Date.t)=?) => 
       ++ Js.Date.toLocaleDateString(closeDate)
     };
 
+  let selected_unit = PeriodList.Unit.tToJs(unit);
+
   let items_by_unit =
     items
-    |> Js.Array.filter(~f=(i: Config.InventoryItem.t) =>
-         i.period_list
-         ->Js.Array.find(~f=pl => pl.unit === PeriodList.Unit.tToJs(unit))
-         ->Belt.Option.mapWithDefault(false, _ => true)
-       );
+    |> Array.to_list
+    |> List.filter((i: Config.InventoryItem.t) =>
+         Array.exists(
+           (period: Config.Pricing.period) => period.unit == selected_unit,
+           i.period_list,
+         )
+        )
+    |> Array.of_list;
 
   <Card
     className="m-0 p-0 bg-white/30 border-2 border-b-4 border-r-4 border-gray-200/60">
@@ -69,10 +74,10 @@ let make = (~openDate: option(Js.Date.t)=?, ~closeDate: option(Js.Date.t)=?) => 
     <Card
       className="border-none shadow-none shadow-transparent m-0 p-0 place-content-start grid lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-1 gap-4">
       {items_by_unit
-       ->Js.Array.map(~f=(item: Config.InventoryItem.t) =>
-           <InventoryItem key={Int.to_string(item.id)} item />
-         )
-       ->React.array}
+       |> Array.map((item: Config.InventoryItem.t) =>
+            <InventoryItem key={item.id} item />
+          )
+       |> React.array}
     </Card>
   </Card>;
 };

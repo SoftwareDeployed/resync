@@ -1,6 +1,5 @@
 let handler = (config: Config.t) => {
-  // Create the store record with derived fields (plain record, no Tilia on server)
-  let store = Store.createPlainStore(~config, ~unit=PeriodList.Unit.defaultState);
+  let store = Store.createStore(~config, ~unit=PeriodList.Unit.defaultState);
   
   <StoreContext.Provider value=store>
     <Document config unit={PeriodList.Unit.defaultState}>

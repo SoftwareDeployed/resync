@@ -12,19 +12,17 @@ let make =
         Js.Exn.raiseError("The item property is required on InventoryItem")
       };
     let image =
-      "https://random.danielpetrica.com/api/random?" ++ item.id->Int.to_string;
+      "https://random.danielpetrica.com/api/random?" ++ item.id;
     let%browser_only select_item = e => {
       e->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
-      ReasonReactRouter.replace("/item/" ++ Int.to_string(item.id));
+      ReasonReactRouter.replace("/item/" ++ item.id);
     };
-    <a
-      id={"item-" ++ Int.to_string(item.id)}
-      onClick=select_item
-      href={"/item/" ++ Int.to_string(item.id)}
-      className="flex flex-1 flex-col grow border-2">
-      <button
-        className="relative m-[1.5] flex flex-1 flex-col grow"
-        onClick={_ => Store.CartStore.add_to_cart(item)}>
+    <div className="flex flex-1 flex-col grow border-2">
+      <a
+        id={"item-" ++ item.id}
+        onClick=select_item
+        href={"/item/" ++ item.id}
+        className="relative m-[1.5] flex flex-1 flex-col grow">
         <div className="rounded-sm shadow-sm m-0 p-0">
           <img className="p-[1.5] w-full aspect-square" src=image />
         </div>
@@ -37,6 +35,11 @@ let make =
           <p className="text-xs text-left m-2"> item.description->str </p>
           <Pricing period_list={item.period_list} />
         </div>
+      </a>
+      <button
+        className="mx-[1.5] mb-[1.5] rounded-sm bg-slate-500 px-3 py-2 text-sm text-white hover:bg-slate-700"
+        onClick={_ => Store.CartStore.add_to_cart(item)}>
+        "Add to cart"->str
       </button>
-    </a>;
+    </div>;
   });

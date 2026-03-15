@@ -6,10 +6,13 @@ let make = (~period_list: Config.Pricing.period_list) => {
     ->React.string;
   };
 
+  let key_for_period = (p: Config.Pricing.period) =>
+    p.unit ++ ":" ++ p.label ++ ":" ++ Int.to_string(p.id);
+
   let list_items =
     period_list
     |> Array.map((p: Config.Pricing.period) => {
-         <React.Fragment key={Int.to_string(p.id)}>
+         <React.Fragment key={key_for_period(p)}>
            <div className="border-1 border-black/30 p-1">
              <p className="text-left text-sm"> {React.string(p.label)} </p>
            </div>

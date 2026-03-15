@@ -26,7 +26,7 @@ async function build(entryPoints, { env, output, extract, mockWebpackRequire }) 
 		);
 	}
 
-	const isDev = env === "development";
+	const isDev = true; //env === "development";
 
 	try {
 		const result = await Esbuild.build({

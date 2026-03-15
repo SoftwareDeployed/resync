@@ -13,7 +13,7 @@ module Pricing = {
 module InventoryItem = {
   type t = {
     description: string,
-    id: int,
+    id: string,
     name: string,
     quantity: int,
     premise_id: string,
@@ -46,7 +46,7 @@ let period_to_yojson = (p: Pricing.period) =>
 let inventory_item_to_yojson = (item: InventoryItem.t) =>
   `Assoc([
     ("description", `String(item.description)),
-    ("id", `Int(item.id)),
+    ("id", `String(item.id)),
     ("name", `String(item.name)),
     ("quantity", `Int(item.quantity)),
     ("premise_id", `String(item.premise_id)),

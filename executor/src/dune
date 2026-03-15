@@ -6,6 +6,7 @@
   caqti-driver-postgresql
   common_native
   dream
+  postgresql
   server-reason-react.url_native
   server-reason-react.react
   server-reason-react.reactDom

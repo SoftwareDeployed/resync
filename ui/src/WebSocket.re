@@ -1,8 +1,4 @@
 type ws_protocols = option(array(string));
-type ws_events =
-  | [@mel.string "open"] Open
-  | [@mel.string "close"] Close
-  | [@mel.string "message"] Message;
 type ws_event = {. data: string};
 [@mel.new]
 external makeWithProtocols: (. string, ws_protocols) => 'a = "WebSocket";
@@ -10,6 +6,16 @@ external makeWithProtocols: (. string, ws_protocols) => 'a = "WebSocket";
 [@mel.send] external close: unit => unit = "close";
 [@mel.send] external send_string: ('a, string) => unit = "send";
 [@mel.get] external readyState: 'a => int = "readyState";
+
+// Type for event names
+type event_name = string;
+
 [@mel.send]
-external addEventListener: (. 'a, ws_events, ws_event => unit) => unit =
-  "addEventListener";
+external addEventListener: ('a, event_name, 'b) => unit = "addEventListener";
+
+// Helper functions with explicit string arguments
+let onOpen = (ws, callback) => addEventListener(ws, "open", callback);
+
+let onClose = (ws, callback) => addEventListener(ws, "close", callback);
+
+let onMessage = (ws, callback) => addEventListener(ws, "message", callback);

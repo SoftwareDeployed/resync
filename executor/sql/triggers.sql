@@ -4,6 +4,7 @@ DECLARE
     channel_name TEXT;
     rec RECORD;
     record_id JSONB;
+    row_data JSONB;
 BEGIN
     -- Determine ID for payload
     IF TG_TABLE_NAME = 'inventory_period_map' THEN
@@ -20,11 +21,19 @@ BEGIN
         END IF;
     END IF;
 
-    -- Build Payload
+    -- Build row data for INSERT/UPDATE operations
+    IF TG_OP = 'DELETE' THEN
+        row_data := NULL;
+    ELSE
+        row_data := to_jsonb(NEW);
+    END IF;
+
+    -- Build Payload with full row data
     payload := json_build_object(
         'table', TG_TABLE_NAME,
         'id', record_id,
-        'action', TG_OP
+        'action', TG_OP,
+        'data', row_data
     );
 
     -- Determine channel name (premise_id) and notify
@@ -45,9 +54,11 @@ BEGIN
         ELSE
             channel_name := NEW.premise_id::text;
         END IF;
-        -- Add updated at timestamp, will trigger notification
+        -- Send notification for inventory change
+        PERFORM pg_notify(channel_name, payload::text);
+        -- Update premise timestamp (this will trigger premise notification too, but we ignore it)
         UPDATE premise SET updated_at = NOW() where id = channel_name::UUID;
-        IF OLD.premise_id::text != NEW.premise_id::text THEN
+        IF TG_OP != 'DELETE' AND OLD.premise_id::text != NEW.premise_id::text THEN
             UPDATE premise SET updated_at = NOW() where id = OLD.premise_id;
             PERFORM pg_notify(OLD.premise_id::text, payload::text);
         END IF;
