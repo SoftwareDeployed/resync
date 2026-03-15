@@ -1,10 +1,12 @@
+open Tilia.React;
+
 let str = React.string;
 
 [@react.component]
-let make = () => {
-  let main_store = StoreContext.useStore();
-  let config: Config.t = main_store.config;
-  let _items = config.inventory;
+let make =
+  leaf(() => {
+  useTilia();
+  let cart_store = CartStore.Context.useStore();
 
   <h1 className="block font-bold align-middle text-gray-700 m-2 text-3xl">
     <span className="m-2 align-middle text-3xl font-light">
@@ -12,8 +14,7 @@ let make = () => {
     </span>
     <ClientOnly>
       {() => {
-        let cart = Store.CartStore.state;
-        let count = cart.items->Js.Dict.keys->Array.length;
+        let count = cart_store.item_count;
         <>
           {str("Selected equipment (")}
           {str(Int.to_string(count))}
@@ -22,4 +23,4 @@ let make = () => {
       }}
     </ClientOnly>
   </h1>;
-};
+});

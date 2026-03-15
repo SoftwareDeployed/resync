@@ -14,13 +14,20 @@ let%browser_only _ =
   switch (rootElement) {
   | Some(domNode) =>
     let store = StoreHydration.hydrateStore();
+    let cartStore = CartStore.hydrateStore();
 
     let appWithProvider =
       React.createElement(
         StoreContext.Provider.make,
         {
           "value": store,
-          "children": <App />,
+          "children": React.createElement(
+            CartStore.Context.Provider.make,
+            {
+              "value": cartStore,
+              "children": <App />,
+            },
+          ),
         },
       );
 

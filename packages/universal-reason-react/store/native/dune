@@ -1,7 +1,7 @@
 (library
  (name universal_reason_react_store_native)
  (public_name executor.universal_reason_react_store_native)
- (modules Hydration RealtimeClient StoreRuntime StoreState StoreSync Tilia WebSocket)
+ (modules Hydration RealtimeClient StoreCore StorePersist StoreRuntime StoreState StoreSync Tilia WebSocket)
  (wrapped false)
  (libraries
   server-reason-react.react

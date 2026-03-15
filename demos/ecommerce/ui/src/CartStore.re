@@ -1,40 +1,76 @@
-module Reservation = {
-  type t = {
-    date: Js.Date.t,
-    units: int,
-    unit_type: PeriodList.Unit.t,
-  };
-};
+module Core = StoreCore.Make(CartStoreSchema);
 
-module CartItem = {
-  type t = {
-    reservation: option(Reservation.t),
-    inventory_id: string,
-    quantity: int,
-  };
-};
+let setItemsRef = ref((_items: Js.Dict.t(CartStoreSchema.CartItem.t)) => ());
 
-type t = {items: Js.Dict.t(CartItem.t)};
-
-let state =
+let log = (label: string, value: 'a) =>
   switch%platform (Runtime.platform) {
-  | Server => {items: Js.Dict.fromArray([||])}
-  | Client => Tilia.Core.make({items: Js.Dict.fromArray([||])})
+  | Client => Js.log2(label, value)
+  | Server => ()
   };
 
-let add_to_cart = (item: Config.InventoryItem.t) => {
-  let cart_item =
-    switch (state.items->Js.Dict.get(item.id)) {
-    | Some(item) => {
-        ...item,
-        quantity: item.quantity + 1,
-      }
-    | None => {
-        reservation: None,
-        inventory_id: item.id,
-        quantity: 1,
-      }
-    };
+let sourceItems = (config: CartStoreSchema.config): CartStoreSchema.config =>
+  switch%platform (Runtime.platform) {
+  | Client => {
+      log("[cart] sourceItems init count", config.items->Js.Dict.keys->Array.length);
+      {
+        items:
+          Tilia.Core.source(. config.items, (. _items, setItems) => {
+            setItemsRef := nextItems => {
+              log("[cart] sourceItems next count", nextItems->Js.Dict.keys->Array.length);
+              setItems(nextItems);
+            };
+          }),
+      };
+    }
+  | Server => config
+  };
 
-  state.items->Js.Dict.set(item.id, cart_item);
+module Persist = StorePersist.Make({
+  type payload = CartStoreSchema.payload;
+  type store = CartStoreSchema.store;
+
+  let storageKey = CartStoreSchema.storageKey;
+  let emptyStore = CartStoreSchema.emptyStore;
+  let makeStore = payload => Core.buildStore(~configTransform=sourceItems, payload);
+  let payloadOfStore = CartStoreSchema.payloadOfStore;
+  let decodePersisted = CartStoreSchema.decodePersisted;
+  let encodePersisted = CartStoreSchema.encodePersisted;
+});
+
+include Core;
+
+let createStore = (config: CartStoreSchema.config) =>
+  Core.createStore(~configTransform=sourceItems, config);
+
+let hydrateStore = () => {
+  let store = Persist.hydrateStore();
+  log("[cart] hydrated count", store.items->Js.Dict.keys->Array.length);
+  store;
+};
+
+let copyItems = (items: Js.Dict.t(CartStoreSchema.CartItem.t)) => {
+  let nextItems = Js.Dict.empty();
+  items
+  ->Js.Dict.keys
+  ->Belt.Array.forEach(key =>
+      switch (items->Js.Dict.get(key)) {
+      | Some(item) => nextItems->Js.Dict.set(key, item)
+      | None => ()
+      }
+    );
+  nextItems;
+};
+
+let add_to_cart = (store: t, item: Config.InventoryItem.t) => {
+  let beforeCount = store.items->Js.Dict.keys->Array.length;
+  let nextItems = copyItems(store.items);
+  let nextStore: CartStoreSchema.payload = {items: nextItems};
+  CartStoreSchema.addItem(nextStore, item);
+  let afterCount = nextItems->Js.Dict.keys->Array.length;
+  log("[cart] add_to_cart item", item.id);
+  log("[cart] add_to_cart before count", beforeCount);
+  log("[cart] add_to_cart after count", afterCount);
+  setItemsRef.contents(nextItems);
+  log("[cart] persisting payload", nextItems);
+  Persist.persistPayload({items: nextItems});
 };

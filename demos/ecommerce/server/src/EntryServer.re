@@ -3,6 +3,8 @@ let handler = (config: Config.t) => {
   let serializedState = Store.serializeState(config);
 
   <StoreContext.Provider value=store>
-    <Document serializedState=serializedState> <App /> </Document>
+    <CartStore.Context.Provider value=CartStore.empty>
+      <Document serializedState=serializedState> <App /> </Document>
+    </CartStore.Context.Provider>
   </StoreContext.Provider>;
 };

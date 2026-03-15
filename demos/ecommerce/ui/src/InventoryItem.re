@@ -9,14 +9,34 @@ let make =
       switch (item) {
       | Some(item) => item
       | None =>
-        Js.Exn.raiseError("The item property is required on InventoryItem")
+          Js.Exn.raiseError("The item property is required on InventoryItem")
       };
+    let cart_store = CartStore.Context.useStore();
     let image =
       "https://random.danielpetrica.com/api/random?" ++ item.id;
     let%browser_only select_item = e => {
       e->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
       ReasonReactRouter.replace("/item/" ++ item.id);
     };
+    let%browser_only add_to_cart_click = e => {
+      e->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
+      Js.log2("[cart] add button click", item.id);
+      CartStore.add_to_cart(cart_store, item);
+    };
+    let add_to_cart_button =
+      switch%platform (Runtime.platform) {
+      | Client =>
+        <button
+          className="mx-[1.5] mb-[1.5] rounded-sm bg-slate-500 px-3 py-2 text-sm text-white hover:bg-slate-700"
+          onClick=add_to_cart_click>
+          "Add to cart"->str
+        </button>
+      | Server =>
+        <button
+          className="mx-[1.5] mb-[1.5] rounded-sm bg-slate-500 px-3 py-2 text-sm text-white hover:bg-slate-700">
+          "Add to cart"->str
+        </button>
+      };
     <div className="flex flex-1 flex-col grow border-2">
       <a
         id={"item-" ++ item.id}
@@ -36,10 +56,6 @@ let make =
           <Pricing period_list={item.period_list} />
         </div>
       </a>
-      <button
-        className="mx-[1.5] mb-[1.5] rounded-sm bg-slate-500 px-3 py-2 text-sm text-white hover:bg-slate-700"
-        onClick={_ => Store.CartStore.add_to_cart(item)}>
-        "Add to cart"->str
-      </button>
+      add_to_cart_button
     </div>;
   });

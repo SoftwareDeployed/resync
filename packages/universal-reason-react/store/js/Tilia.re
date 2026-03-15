@@ -3,6 +3,8 @@ module Core = {
   let make = value => value;
   let source = (. value, _setup) => value;
   let computed = compute => compute();
+  type deriver('p) = {derived: 'a. ('p => 'a) => 'a};
+  let carve = _ => Obj.magic(());
 };
 
 [@platform js]
@@ -33,6 +35,7 @@ module Core = {
 [@platform native]
 module React = {
   let leaf = c => c;
+  let useTilia = () => ();
 };
 
 [@platform js]

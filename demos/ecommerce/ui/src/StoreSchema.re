@@ -27,6 +27,89 @@ type store = {
 
 let stateElementId = "initial-store";
 
+module Codec = {
+  let period_from_json = (json: Js.Json.t) => {
+    let dict: Js.Dict.t(Js.Json.t) = Obj.magic(json);
+    {
+      Config.Pricing.id: (Obj.magic(Js.Dict.unsafeGet(dict, "id")): int),
+      unit: (Obj.magic(Js.Dict.unsafeGet(dict, "unit")): string),
+      label: (Obj.magic(Js.Dict.unsafeGet(dict, "label")): string),
+      price: (Obj.magic(Js.Dict.unsafeGet(dict, "price")): int),
+      max_value: (Obj.magic(Js.Dict.unsafeGet(dict, "max_value")): int),
+      min_value: (Obj.magic(Js.Dict.unsafeGet(dict, "min_value")): int),
+    };
+  };
+
+  let inventory_item_from_json = (json: Js.Json.t) => {
+    let dict: Js.Dict.t(Js.Json.t) = Obj.magic(json);
+    {
+      Config.InventoryItem.description: (
+        Obj.magic(Js.Dict.unsafeGet(dict, "description")): string
+      ),
+      id: (Obj.magic(Js.Dict.unsafeGet(dict, "id")): string),
+      name: (Obj.magic(Js.Dict.unsafeGet(dict, "name")): string),
+      quantity: (Obj.magic(Js.Dict.unsafeGet(dict, "quantity")): int),
+      premise_id: (Obj.magic(Js.Dict.unsafeGet(dict, "premise_id")): string),
+      period_list:
+        Array.map(
+          period_from_json,
+          Obj.magic(Js.Dict.unsafeGet(dict, "period_list")): array(Js.Json.t),
+        ),
+    };
+  };
+
+  let premise_from_json = (json: Js.Json.t) => {
+    let dict: Js.Dict.t(Js.Json.t) = Obj.magic(json);
+    let timestamp: float = Obj.magic(Js.Dict.unsafeGet(dict, "updated_at"));
+    {
+      PeriodList.Premise.id: (
+        Obj.magic(Js.Dict.unsafeGet(dict, "id")): string
+      ),
+      name: (Obj.magic(Js.Dict.unsafeGet(dict, "name")): string),
+      description: (Obj.magic(Js.Dict.unsafeGet(dict, "description")): string),
+      updated_at: Js.Date.fromFloat(timestamp),
+    };
+  };
+
+  let config_from_json = (json: Js.Json.t) => {
+    let dict: Js.Dict.t(Js.Json.t) = Obj.magic(json);
+    let premise_json = Js.Dict.get(dict, "premise");
+    let inventory_json = Js.Dict.unsafeGet(dict, "inventory");
+    {
+      Config.inventory:
+        Array.map(
+          inventory_item_from_json,
+          Obj.magic(inventory_json): array(Js.Json.t),
+        ),
+      premise:
+        switch (premise_json) {
+        | None => None
+        | Some(p) =>
+          switch%platform (Runtime.platform) {
+          | Client =>
+            if (p == Js.Json.null) {
+              None;
+            } else {
+              Some(premise_from_json(p));
+            }
+          | Server => None
+          }
+        },
+    };
+  };
+
+  let config_from_string = (data: string) =>
+    switch%platform (Runtime.platform) {
+    | Client => data->Js.Json.parseExn->config_from_json
+    | Server =>
+        let _ = data;
+        {
+          Config.inventory: [||],
+          premise: None,
+        }
+    };
+};
+
 let derivePeriodList = (config: Config.t) => {
   let seen = ref([]);
   let periods = ref([]);
@@ -59,13 +142,25 @@ let project = (config: config): projections => {
   period_list: derivePeriodList(config),
 };
 
-let makeStore = (~config: config, ~payload: payload, ~projections: projections): store =>
-  Tilia.Core.make({
-    config,
-    premise_id: projections.premise_id,
-    period_list: projections.period_list,
-    unit: payload.unit,
-  });
+let makeStore = (~config: config, ~payload: payload): store =>
+  switch%platform (Runtime.platform) {
+  | Client =>
+    Tilia.Core.carve(derive => {
+      config,
+      premise_id: derive.derived(store => project(store.config).premise_id),
+      period_list: derive.derived(store => project(store.config).period_list),
+      unit: payload.unit,
+    })
+  | Server => {
+      let projections = project(config);
+      {
+        premise_id: projections.premise_id,
+        config,
+        period_list: projections.period_list,
+        unit: payload.unit,
+      };
+    }
+  };
 
 let unit_from_string = (s: string) =>
   switch (PeriodList.Unit.tFromJs(s)) {
@@ -75,7 +170,7 @@ let unit_from_string = (s: string) =>
 
 let decodeState = (json: Js.Json.t): payload => {
   let dict: Js.Dict.t(Js.Json.t) = Obj.magic(json);
-  let config = ConfigDecoding.config_from_json(json);
+  let config = Codec.config_from_json(json);
   let unit =
     switch (Js.Dict.get(dict, "unit")) {
     | Some(unitJson) => unit_from_string(Obj.magic(unitJson): string)
@@ -240,6 +335,6 @@ let updatedAtOf = (config: config) =>
   | None => Js.Date.now()
   };
 
-let decodeSnapshot = (data: string): config => ConfigDecoding.config_from_string(data);
+let decodeSnapshot = (data: string): config => Codec.config_from_string(data);
 let eventUrl = Constants.event_url;
 let baseUrl = RealtimeClient.Socket.defaultBaseUrl;
