@@ -1,0 +1,10 @@
+(library
+ (name reason_realtime_pgnotify_adapter)
+ (public_name executor.reason_realtime_pgnotify_adapter)
+ (modules Pgnotify_adapter)
+ (wrapped false)
+ (libraries
+  lwt.unix
+  postgresql
+  server-reason-react.url_native
+  yojson))

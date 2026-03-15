@@ -1,0 +1,8 @@
+{
+  "name": "@demos/ecommerce",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --dir ../../ dev",
+    "build": "dune build @app @server"
+  }
+}

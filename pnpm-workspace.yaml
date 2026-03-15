@@ -12,8 +12,10 @@ onlyBuiltDependencies:
   - rescript-embed-lang
 
 overrides:
-  common: link:common
+  common: link:packages/shared-types
 
 workspaces:
-  - executor/*
-  - executor-ui/*
+  - packages/*
+  - packages/*/*
+  - demos/*
+  - demos/*/*

@@ -4,14 +4,14 @@
 (alias
  (name app)
  (deps
-  (alias_rec ui/app)))
+  (alias_rec demos/ecommerce/ui/app)))
 
 ; Alias for building the server
 ; References the server executable which depends on executor/src/.build_stamp
 (alias
  (name server)
  (deps
-  (file executor/src/server.exe)))
+  (file demos/ecommerce/server/src/server.exe)))
 
 ; Default alias builds both
 (alias
@@ -21,4 +21,4 @@
   (alias server)))
 
 ; Directories to include in the build
-(dirs common executor ui)
+(dirs packages demos)

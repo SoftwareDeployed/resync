@@ -1,0 +1,18 @@
+(library
+ (name universal_reason_react_store_native)
+ (public_name executor.universal_reason_react_store_native)
+ (modules Hydration RealtimeClient StoreRuntime StoreState StoreSync Tilia WebSocket)
+ (wrapped false)
+ (libraries
+  server-reason-react.react
+  server-reason-react.js)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.ppx
+   server-reason-react.melange_ppx
+   melange-json-native.ppx))
+ (modes native))
+
+(copy_files
+ (files ../js/*.re))

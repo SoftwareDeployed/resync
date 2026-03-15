@@ -1,0 +1,5 @@
+{
+  "name": "@reason-realtime/pgnotify-adapter",
+  "type": "module",
+  "private": true
+}
