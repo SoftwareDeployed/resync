@@ -1,0 +1,26 @@
+let get = name =>
+  switch (name) {
+  | "verified" => Some(LucideGeneratedNodes_B.badge_check)
+  | "variable" => Some(LucideGeneratedNodes_V.variable)
+  | "vault" => Some(LucideGeneratedNodes_V.vault)
+  | "vector-square" => Some(LucideGeneratedNodes_V.vector_square)
+  | "vegan" => Some(LucideGeneratedNodes_V.vegan)
+  | "venetian-mask" => Some(LucideGeneratedNodes_V.venetian_mask)
+  | "venus-and-mars" => Some(LucideGeneratedNodes_V.venus_and_mars)
+  | "venus" => Some(LucideGeneratedNodes_V.venus)
+  | "vibrate-off" => Some(LucideGeneratedNodes_V.vibrate_off)
+  | "vibrate" => Some(LucideGeneratedNodes_V.vibrate)
+  | "video-off" => Some(LucideGeneratedNodes_V.video_off)
+  | "video" => Some(LucideGeneratedNodes_V.video)
+  | "videotape" => Some(LucideGeneratedNodes_V.videotape)
+  | "view" => Some(LucideGeneratedNodes_V.view)
+  | "voicemail" => Some(LucideGeneratedNodes_V.voicemail)
+  | "volleyball" => Some(LucideGeneratedNodes_V.volleyball)
+  | "volume-1" => Some(LucideGeneratedNodes_V.volume_1)
+  | "volume-2" => Some(LucideGeneratedNodes_V.volume_2)
+  | "volume-off" => Some(LucideGeneratedNodes_V.volume_off)
+  | "volume-x" => Some(LucideGeneratedNodes_V.volume_x)
+  | "volume" => Some(LucideGeneratedNodes_V.volume)
+  | "vote" => Some(LucideGeneratedNodes_V.vote)
+  | _ => None
+  };
