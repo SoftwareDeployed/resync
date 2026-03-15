@@ -1,7 +1,10 @@
+open Tilia.React;
+
 let str = React.string;
 
 [@react.component]
-let make = (~openDate: option(Js.Date.t)=?, ~closeDate: option(Js.Date.t)=?) => {
+let make =
+    leaf((~openDate: option(Js.Date.t)=?, ~closeDate: option(Js.Date.t)=?) => {
   let main_store = StoreContext.useStore();
   let config: Config.t = main_store.config;
   let unit: PeriodList.Unit.t = main_store.unit;
@@ -75,9 +78,9 @@ let make = (~openDate: option(Js.Date.t)=?, ~closeDate: option(Js.Date.t)=?) => 
       className="border-none shadow-none shadow-transparent m-0 p-0 place-content-start grid lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-1 gap-4">
       {items_by_unit
        |> Array.map((item: Config.InventoryItem.t) =>
-            <InventoryItem key={item.id} item />
-          )
+             <InventoryItem key={item.id} item />
+           )
        |> React.array}
     </Card>
   </Card>;
-};
+});

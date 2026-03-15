@@ -85,16 +85,22 @@ let empty: t = {
 
 let%browser_only makeStore = (~config: Config.t) => {
   Js.log2("making store with config:", config);
+  let currentConfig = ref(config);
   Tilia.Core.make({
     config:
       Tilia.Core.source(. config, (. _config, set) => {
+        let setConfig = nextConfig => {
+          currentConfig := nextConfig;
+          set(nextConfig);
+        };
+
         switch (config.premise) {
         | None => ()
         | Some(premise) =>
           let premiseId = premise.id;
           let updatedAt = premise.updated_at->Js.Date.getTime;
-          let getConfig = () => config;
-          Client.Socket.subscribe(set, getConfig, premiseId, updatedAt);
+          let getConfig = () => currentConfig.contents;
+          Client.Socket.subscribe(setConfig, getConfig, premiseId, updatedAt);
         }
       }),
     premise_id:
