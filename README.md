@@ -1,72 +1,144 @@
 # executor
 
-## Preamble
+`executor` is an early alpha monorepo for building universal Reason React applications on top of a Dream server, with optional realtime sync and optional client persistence.
 
-Written using ReasonML and React. This is a work in progress. In it's current state, it should not be used by anyone. Any or all of this document is subject to change. 
+The repository currently ships with an ecommerce demo that exercises the shared packages.
 
-## Who is Executor for? 
+## Status
 
-Some example use cases:
-- Hardware Cloud Equipment Rental
-- Apartment / Room Rental
-- Cloud Server
-- Website Subscription
+This project is still a prototype.
 
-## Prototype Phase
+- APIs, package boundaries, and schemas are still moving
+- the ecommerce app is a demo, not a production-ready product
+- expect refactors while the core abstractions settle
 
-This software is currently in the prototype phase and is not ready to be used in production. The software design, APIs, and database schemas may completely change by a beta release.
+## Repository layout
 
-## Running with Bun runtime
+```text
+packages/
+  reason-realtime/
+    dream-middleware/      Dream websocket middleware with pluggable adapters
+    pgnotify-adapter/      PostgreSQL LISTEN/NOTIFY adapter
+  shared-types/            Shared domain types for native + Melange builds
+  universal-reason-react/
+    components/            Universal document components for SSR + hydration
+    store/                 Composable store layers: core, state, sync, persist
 
-To install dependencies (not using Bun package manager):
+demos/
+  ecommerce/
+    server/                Dream server demo
+    ui/                    Reason React / Melange frontend demo
+```
+
+## What is in the store package?
+
+`packages/universal-reason-react/store` is designed so stores do not have to use realtime sync.
+
+Current layers:
+
+- `StoreCore` - schema-driven store construction, projections, and React context
+- `StoreState` - SSR serialization and hydration
+- `StoreSync` - realtime websocket sync for schema-backed stores
+- `StorePersist` - client persistence adapters, currently `localStorage`
+
+The ecommerce demo uses these layers in two different ways:
+
+- inventory store = core + state + sync
+- cart store = core + persist
+
+## Realtime architecture
+
+Realtime support is split into packages under `packages/reason-realtime`.
+
+- `dream-middleware` exposes the Dream websocket middleware and adapter interface
+- `pgnotify-adapter` is the first adapter and uses PostgreSQL `LISTEN/NOTIFY`
+
+The ecommerce demo uses this stack to stream inventory updates into the client store.
+
+## Universal rendering
+
+Universal document helpers live in `packages/universal-reason-react/components`.
+
+These packages are used by the ecommerce demo for:
+
+- server-rendered HTML shell generation
+- client hydration
+- injected scripts and serialized store state
+
+## Tech stack
+
+- OCaml / Reason syntax
+- Dream
+- server-reason-react
+- Melange
+- React
+- Tilia
+- PostgreSQL
+- pnpm
+- esbuild
+
+## Running the ecommerce demo
+
+Install JavaScript dependencies from the repo root:
 
 ```bash
 pnpm install
 ```
 
-## Development server
+Start PostgreSQL:
 
-1. Install dependencies using pnpm: `pnpm install`
-2. Start the ReasonML watch and Bun dev server: `pnpm dev`
-3. Visit `http://localhost:8899` to interact with the app rendered on the server and hydrated in the browser.
+```bash
+docker compose -f demos/ecommerce/server/docker-compose.yml up -d
+```
 
-## Backend Vision
+Run the app from the repo root:
 
-This backend will drive most of the frontend components. The idea is that you set it in the backend, and the frontend just works based on the backend provisioning. 
+```bash
+pnpm dev
+```
 
-OpenLessor Executor uses a multi-tenancy model. Each database item is scoped to a tenant ID. You can find the Postgres schemas in the schemas directory of this repository.
+Open:
 
-The parent database table is the tenant table. All data in the database is a child of the tenant table. Currently, a tenant has inventory assigned to it.
+```text
+http://localhost:8899
+```
 
-Inventory will have child data as well. This child data will dictate: Time model, Billing model, and Provisioning model. Here's an example, we will mostly use a familiar concept of renting housing:
-- Create a tenant called "Fair Lane Apartments"
-- The tenant has inventory of every unit available
-- Each inventory has customized metadata attached to it. For example, unit number, number of rooms, square footage, etc.
-- Each inventory has conditions attached to it. This is mostly to due with availability of inventory. More on this later.
-- Each inventory has a Time model; for example an apartment can be rented by the Month.
-- Each inventory has a Billing model; for example an apartment can be paid for by electronic ACH. This also would allow applicable fees, deposits, etc. to be applied throughout the rental process. For example, you can set an application fee to be applied that is non-refundable when someone applies to the apartment. And you can require something like first month rent and a deposit is required to move in.
-- Each inventory has a Provisioning model. For example, a tangible good like an apartment would be provisioned using a signed lease. While a digital good like a cloud server would be provisioned by executing a software routine like a HTTP POST or SSH workflow.
-- You can assign a "lease holder" to each inventory.
+You can also run the demo from its own directory:
 
-This can be applied to anything billed on a recurring model. More to come on vision as the software progresses. Most of the business logic of OpenLessor will live in Executor.
+```bash
+cd demos/ecommerce
+pnpm dev
+```
+
+## Build
+
+Build the demo app and server from the repo root:
+
+```bash
+dune build @app @server
+```
+
+## Default development configuration
+
+The ecommerce demo currently defaults to:
+
+- `DB_URL=postgres://executor:executor-password@127.0.0.1:5432/executor_db`
+- `DOC_ROOT=./_build/default/demos/ecommerce/ui/src/app/`
+- server port `8899`
+
+## Demo behavior
+
+- inventory is rendered on the server and hydrated in the browser
+- inventory realtime updates come from PostgreSQL notifications over websockets
+- the cart is client-side and persisted to `localStorage`
+- the demo still uses `reason-react-day-picker` in the storefront UI
+
+## Notes for contributors
+
+- the current build flow is Dune + Melange + esbuild
+- the universal packages intentionally keep separate `js/` and `native/` layouts to preserve the existing build pipeline
+- the repo is mid-refactor, so README details should follow the code and scripts in the repo rather than older planning notes
 
 ## Vision
 
-OpenLessor will be an open source project for omnichannel commerce, lease management, and subscription management. It will offer multiple billing types based on time units such as minutes, days, weeks, and months. I am currently working on this in my freetime and my hope is that the project will slowly progress over time. This is the fullstack monorepository for OpenLessor. It currently runs using the Bun JavaScript runtime. Tech stack:
-
-- PostgreSQL - pgtyped-ReasonML
-- Bun JavaScript runtime
-- ReasonML / ReasonML-bun
-
-A key principal of OpenLessor will be performance first. That's why we adapt the latest bleeding edge technology when developing the stack.
-
-# Fully Customizable Vision
-
-Not only should performance be blazing fast, but also integration...
-
-The end goal of OpenLessor is to create a completely customizable software that can be easily integrated into your organization.
-
-## Created by Brian Kaplan @ Software Deployed
-[https://softwaredeployed.com](https://softwaredeployed.com)
-
-If you wish to contact me, a contact form is available on the website linked above.
+The long-term goal is to make the Dream + universal Reason React + store stack reusable across multiple apps, with demos living beside the shared packages instead of inside one application tree.
