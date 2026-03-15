@@ -4,14 +4,17 @@ let doc_root =
   Sys.getenv_opt "DOC_ROOT"
   |> Option.value ~default:"./_build/default/demos/ecommerce/ui/src/app/"
 
-let db_uri = Sys.getenv_opt "DB_URL"
-|> Option.value ~default:"postgres://executor:executor-password@127.0.0.1:5432/executor_db"
+let db_uri =
+  Sys.getenv_opt "DB_URL"
+  |> Option.value
+       ~default:
+         "postgres://executor:executor-password@127.0.0.1:5432/executor_db"
 
 (* let get_config premise_id = *)
-  (* let* premise = Database.Premise.get_premise premise_id in *)  
-  (* let* inventory = Database.Inventory.get_list premise_id in *)
-  (* let response = Config.{ inventory; premise } in *)
-  (* Lwt.return response *)
+(* let* premise = Database.Premise.get_premise premise_id in *)
+(* let* inventory = Database.Inventory.get_list premise_id in *)
+(* let response = Config.{ inventory; premise } in *)
+(* Lwt.return response *)
 
 let stream_react_app response_stream react_element =
   let* () = Dream.write response_stream "<!DOCTYPE html>" in
@@ -26,22 +29,15 @@ let stream_react_app response_stream react_element =
   Lwt.return ()
 
 let handle_frontend request route_root =
-  let* premise = Dream.sql request (Database.Premise.get_route_premise route_root) in
-  let premise_id = 
-    match premise with
-    | None -> ""
-    | Some(p) -> p.id
+  let* premise =
+    Dream.sql request (Database.Premise.get_route_premise route_root)
   in
-  let* inventory = 
-    if premise_id = "" then
-      Lwt.return [||]
-    else
-      Dream.sql request (Database.Inventory.get_list premise_id)
+  let premise_id = match premise with None -> "" | Some p -> p.id in
+  let* inventory =
+    if premise_id = "" then Lwt.return [||]
+    else Dream.sql request (Database.Inventory.get_list premise_id)
   in
-  let config: Config.t = {
-    inventory = inventory;
-    premise = premise
-  } in 
+  let config : Config.t = { inventory; premise } in
   Dream.stream
     ~headers:[ ("Content-Type", "text/html") ]
     (fun response_stream ->
@@ -75,15 +71,12 @@ let handle_frontend request route_root =
 let get_config request premise_id =
   let* premise = Dream.sql request (Database.Premise.get_premise premise_id) in
   let* inventory = Dream.sql request (Database.Inventory.get_list premise_id) in
-  let config: Config.t = {
-    inventory = inventory;
-    premise = premise
-  } in
+  let config : Config.t = { inventory; premise } in
   Lwt.return config
 
 let get_config_json request premise_id =
   let* config = get_config request premise_id in
-  Lwt.return (Config.to_yojson(config) |> Yojson.Safe.to_string)
+  Lwt.return (Config.to_yojson config |> Yojson.Safe.to_string)
 
 let realtime_adapter =
   Adapter.pack
@@ -94,13 +87,14 @@ let realtime_middleware =
   Middleware.create ~adapter:realtime_adapter ~load_snapshot:get_config_json
 
 let () =
-  let () = 
+  let () =
     match Lwt_main.run (Adapter.start realtime_adapter) with
     | () -> ()
     | exception Failure msg ->
         Printf.eprintf "Failed to connect notification listener: %s\n" msg
   in
-  Dream.run ~port:8899 @@ Dream.livereload @@ Dream.logger
+  Dream.run ~port:8899 (*@@ Dream.livereload*)
+  @@ Dream.logger
   @@ Dream.sql_pool ~size:50 db_uri
   (* @@ Dream.sql_sessions *)
   @@ Dream.router
@@ -108,7 +102,7 @@ let () =
          Middleware.route "_events" realtime_middleware;
          Dream.get "/static/**" (Dream.static doc_root);
          Dream.get "/app.js" (fun req ->
-              Dream.from_filesystem doc_root "Index.re.js" req);
+             Dream.from_filesystem doc_root "Index.re.js" req);
          Dream.get "/style.css" (fun req ->
              Dream.from_filesystem doc_root "Index.re.css" req);
          Dream.get "/" (fun req ->
