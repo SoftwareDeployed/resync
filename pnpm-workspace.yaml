@@ -12,7 +12,7 @@ onlyBuiltDependencies:
   - rescript-embed-lang
 
 overrides:
-  common: link:packages/shared-types
+  common: link:demos/ecommerce/shared
 
 workspaces:
   - packages/*

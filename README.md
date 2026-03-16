@@ -19,7 +19,6 @@ packages/
   reason-realtime/
     dream-middleware/      Dream websocket middleware with pluggable adapters
     pgnotify-adapter/      PostgreSQL LISTEN/NOTIFY adapter
-  shared-types/            Shared domain types for native + Melange builds
   universal-reason-react/
     components/            Universal document components for SSR + hydration
     lucide-icons/          Universal Lucide icon rendering for SSR + hydration
@@ -28,6 +27,7 @@ packages/
 demos/
   ecommerce/
     server/                Dream server demo
+    shared/                Shared ecommerce domain types for native + Melange
     ui/                    Reason React / Melange frontend demo
 ```
 
