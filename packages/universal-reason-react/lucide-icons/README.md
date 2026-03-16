@@ -1,15 +1,15 @@
 # universal-reason-react/lucide-icons
 
-Universal Lucide icon rendering for Reason React.
+Universal Lucide icon components for Reason React.
 
-This package generates a pure Reason icon registry from `lucide-react` and
-renders the same SVG structure on both Melange and native/server builds.
+This package generates a Reason component for each Lucide icon from
+`lucide-react` and renders the same SVG structure on both Melange and
+native/server builds.
 
 ## Usage
 
 ```reason
-<Lucide.Icon
-  name="search"
+<Lucide.IconSearch
   size=24
   className="text-slate-400"
   color="currentColor"
@@ -19,7 +19,6 @@ renders the same SVG structure on both Melange and native/server builds.
 
 ## Props
 
-- `name`: Lucide icon name in kebab-case, including upstream aliases
 - `size`: icon width and height, defaults to `24`
 - `color`: stroke color, defaults to `currentColor`
 - `className`: additional classes merged onto `lucide`
@@ -27,13 +26,10 @@ renders the same SVG structure on both Melange and native/server builds.
 - `absoluteStrokeWidth`: matches Lucide's absolute stroke width behavior
 - `title`: optional accessibility title
 - `ariaLabel`: optional accessibility label
-- `fallback`: optional element rendered when `name` is invalid
 
 ## Generated Files
 
-- `js/LucideGeneratedNodes_*` contain canonical icon node data
-- `js/LucideGeneratedLookup_*` contain alias and name lookup tables
-- `js/LucideGeneratedNames.re` contains the full supported name list
+- `js/LucideGeneratedIcons.re` contains generated icon component modules
 
 ## Regenerating
 

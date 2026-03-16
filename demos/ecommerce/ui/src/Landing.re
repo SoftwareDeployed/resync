@@ -54,8 +54,7 @@ let make =
       <Card className="bg-slate-200/40 border-slate-200/40 border">
         <h1 className="text-xl">
           <span>
-            <Lucide.Icon
-              name="monitor-cloud"
+            <Lucide.IconMonitorCloud
               size=48
               className="text-slate-400 mr-2 my-auto inline content-start"
             />
@@ -66,8 +65,7 @@ let make =
       <Card
         className="grid grid-cols-[auto_1fr] bg-white/20 gap-4 place-items-start items-center">
         <span className="align-middle text-lg">
-          <Lucide.Icon
-            name="clock"
+          <Lucide.IconClock
             className="text-slate-400 mr-2 my-auto inline content-start"
             size=48
           />
@@ -76,8 +74,7 @@ let make =
         <ReservationTypeSelection />
         <div className="col-span-full grid grid-cols-subgrid relative">
           <span className="align-top text-lg">
-            <Lucide.Icon
-              name="calendar"
+            <Lucide.IconCalendar
               size=48
               className="mr-2 inline content-start my-auto text-slate-400"
             />
