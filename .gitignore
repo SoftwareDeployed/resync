@@ -1,3 +1,4 @@
+.envrc
 _opam
 dune.lock
 dev-tools.locks
