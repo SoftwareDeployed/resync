@@ -1,0 +1,12 @@
+(library
+ (name common_native)
+ (public_name resync.common_native)
+ (modules Config Constants PeriodList)
+ (wrapped false)
+ (libraries server-reason-react.js str)
+ (preprocess
+  (pps server-reason-react.melange_ppx))
+ (modes native))
+
+(copy_files
+ (files ../js/*.re))

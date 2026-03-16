@@ -1,0 +1,9 @@
+(library
+ (name common_js)
+ (public_name resync.common_js)
+ (modules Config Constants PeriodList)
+ (wrapped false)
+ (libraries melange.js)
+ (modes melange)
+ (preprocess
+  (pps melange.ppx)))

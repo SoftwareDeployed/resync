@@ -1,0 +1,41 @@
+(executable
+ (flags :standard -w -26-27)
+ (name server)
+ (public_name server)
+ (libraries
+  caqti-driver-postgresql
+  common_native
+  dream
+  reason_realtime_dream_middleware
+  reason_realtime_pgnotify_adapter
+  postgresql
+  server-reason-react.url_native
+  server-reason-react.react
+  server-reason-react.reactDom
+   server-reason-react.html
+   server-reason-react.js
+   universal_reason_react_components_native
+   universal_reason_react_lucide_icons_native
+   universal_reason_react_store_native
+   lwt.unix
+  str
+  unix
+  server-reason-react.belt
+  yojson)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.ppx
+   server-reason-react.melange_ppx
+   melange-json-native.ppx
+   lwt_ppx))
+ (modes native))
+
+; Copy UI source files - these are the actual dependencies
+(copy_files
+ (files "../../ui/src/*.re"))
+
+(copy_files
+ (files "../../ui/src/.build_stamp"))
+
+(include_subdirs qualified)

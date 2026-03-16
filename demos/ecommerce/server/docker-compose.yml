@@ -1,0 +1,22 @@
+name: executor
+
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: executor-postgres
+    restart: unless-stopped
+    command: postgres -c 'max_connections=200'
+    environment:
+      POSTGRES_USER: executor
+      POSTGRES_PASSWORD: executor-password
+      POSTGRES_DB: executor_db
+      POSTGRES_HOST_AUTH_METHOD: md5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
+volumes:
+  postgres-data:

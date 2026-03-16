@@ -1,11 +1,11 @@
-(lang dune 3.20)
+(lang dune 3.21)
 
-(name executor)
+(name resync)
 
 (generate_opam_files true)
 
 (source
- (github Software-Deployed/executor))
+ (github Software-Deployed/resync))
 
 (authors "Brian Kaplan <brian@equalslashed.net>")
 
@@ -34,12 +34,15 @@
   (name reason-react-day-picker)))
 
 (package
- (name executor)
- (synopsis "Realtime e-commerce platform")
- (description "E-commerce with real time transactions and synchronization")
+ (name resync)
+ (synopsis "Realtime Universal Reason React")
+ (description "Tools for creating a realtime universal reason react application")
  (depends
   (ocaml
    (= "5.4.0"))
+  caqti-driver-postgresql
+  dream
+  lwt
   melange
   ocaml-lsp-server
   ocamlformat

@@ -1,0 +1,9 @@
+{
+  "name": "@universal-reason-react/lucide-icons",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "generate": "node scripts/generate-lucide-icons.mjs",
+    "check:generated": "node scripts/generate-lucide-icons.mjs --check"
+  }
+}

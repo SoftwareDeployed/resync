@@ -1,19 +1,23 @@
-(melange.emit
- (runtime_deps ui/index.html ui/src/style.css ui/src/tailwind.css)
- (package executor)
- (promote (until-clean))
- (target lib)
- (libraries executor ui common)
- (module_systems
-  (es6 mjs))
- (preprocess
-  (pps melange.ppx)))
+; Root dune file for build orchestration
 
-(rule
- (alias melange-post-build)
+; Alias for building the UI/app
+(alias
+ (name app)
  (deps
-  (source_tree executor/src)
-  (source_tree ui/src)
-  (source_tree common/src))
- (action
-  (system "bun ../../build.js")))
+  (alias_rec demos/ecommerce/ui/app)))
+
+; Alias for building the server
+(alias
+ (name server)
+ (deps
+  (file demos/ecommerce/server/src/server.exe)))
+
+; Default alias builds both
+(alias
+ (name default)
+ (deps
+  (alias app)
+  (alias server)))
+
+; Directories to include in the build
+(dirs packages demos)

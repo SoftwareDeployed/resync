@@ -1,0 +1,36 @@
+{
+  "name": "store-ui",
+  "module": "src/Index.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "NODE_ENV=development node server.mjs",
+    "preview": "NODE_ENV=production node server.mjs",
+    "start": "NODE_ENV=production node server.mjs",
+    "clean": "rescript clean",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bun-plugin-tailwind": "^0.1.2",
+    "esbuild": "^0.27.2",
+    "esbuild-plugin-tailwindcss": "^2.1.0",
+    "rescript-embed-lang": "^0.5.5",
+    "tailwindcss": "^4.1.17"
+  },
+  "peerDependencies": {
+    "react": "19.2.0",
+    "rescript": "12.0.0"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@rescript/react": "^0.14.0",
+    "@rescript/webapi": "0.1.0-experimental-2090589",
+    "@tilia/react": "5.0.0-beta.20251218T180640",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.555.0",
+    "react-day-picker": "^9.13.0",
+    "react-dom": "^19.2.1",
+    "rescript-bun": "^2.1.0"
+  }
+}

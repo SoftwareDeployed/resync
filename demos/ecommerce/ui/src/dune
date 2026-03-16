@@ -1,0 +1,60 @@
+(melange.emit
+ (package resync)
+ (module_systems
+  (es6 "re.js"))
+ (target app)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -melange
+   server-reason-react.browser_ppx
+   -js
+   melange.ppx
+   reason-react-ppx))
+ (runtime_deps style.css)
+ (libraries
+  reason-react-day-picker
+  common_js
+  universal_reason_react_components_js
+  universal_reason_react_lucide_icons_js
+  universal_reason_react_store_js
+  melange.belt
+  melange-webapi
+  reason-react
+  melange.dom
+  melange.js))
+
+; Rule that runs esbuild and creates stamp AFTER successful completion
+
+(rule
+ (targets .build_stamp)
+ (deps
+  (package resync)
+  (alias_rec melange)
+  (:script ../build.mjs)
+  (:entrypoints app/demos/ecommerce/ui/src/Index.re.js)
+  (source_tree ../../../../node_modules)
+  (file ../package.json)
+  (source_tree ../../../../_opam/lib/server-reason-react/esbuild-plugin)
+  (universe))
+ ; Always check if this rule needs to run
+ (action
+  (progn
+   (run
+    node
+    %{script}
+    %{entrypoints}
+    --output=app/dist
+    --extract=true
+    --env=%{env:DEMO_ENV='production'})
+   (with-stdout-to
+    .build_stamp
+    (system "date +%s")))))
+
+; Alias for the app
+
+(alias
+ (name app)
+ (deps .build_stamp))
+
+(include_subdirs qualified)

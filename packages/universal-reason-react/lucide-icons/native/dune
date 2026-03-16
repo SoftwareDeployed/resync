@@ -1,0 +1,17 @@
+(library
+ (name universal_reason_react_lucide_icons_native)
+ (public_name resync.universal_reason_react_lucide_icons_native)
+ (wrapped false)
+ (libraries
+  server-reason-react.react
+  server-reason-react.html
+  server-reason-react.js)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.ppx
+   server-reason-react.melange_ppx))
+ (modes native))
+
+(copy_files
+ (files ../js/*.re))
