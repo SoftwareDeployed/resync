@@ -1,6 +1,6 @@
-# executor
+# resync
 
-`executor` is an early alpha monorepo for building universal Reason React applications on top of a Dream server, with optional realtime sync and optional client persistence.
+`resync` is an early alpha monorepo for building universal Reason React applications with synchronized store state, realtime delivery, and optional client persistence on top of a Dream server.
 
 The repository currently ships with an ecommerce demo that exercises the shared packages.
 
@@ -22,6 +22,7 @@ packages/
   shared-types/            Shared domain types for native + Melange builds
   universal-reason-react/
     components/            Universal document components for SSR + hydration
+    lucide-icons/          Universal Lucide icon rendering for SSR + hydration
     store/                 Composable store layers: core, state, sync, persist
 
 demos/
@@ -55,14 +56,23 @@ Realtime support is split into packages under `packages/reason-realtime`.
 
 The ecommerce demo uses this stack to stream inventory updates into the client store.
 
+Current Dune public libraries publish under the `resync.*` namespace, including:
+
+- `resync.reason_realtime_*`
+- `resync.common_*`
+- `resync.universal_reason_react_*`
+
 ## Universal rendering
 
 Universal document helpers live in `packages/universal-reason-react/components`.
+
+Universal icon rendering lives in `packages/universal-reason-react/lucide-icons`.
 
 These packages are used by the ecommerce demo for:
 
 - server-rendered HTML shell generation
 - client hydration
+- matching Lucide SVG output on server and client
 - injected scripts and serialized store state
 
 ## Tech stack
@@ -89,6 +99,19 @@ Start PostgreSQL:
 
 ```bash
 docker compose -f demos/ecommerce/server/docker-compose.yml up -d
+```
+
+Configure the database connection before starting the server. The server now
+fails fast unless either `DB_URL` is set or `ALLOW_DEV_DB=true` is present:
+
+```bash
+export DB_URL=postgres://executor:executor-password@127.0.0.1:5432/executor_db
+```
+
+Or, to opt into the local development fallback explicitly:
+
+```bash
+export ALLOW_DEV_DB=true
 ```
 
 Run the app from the repo root:
@@ -120,10 +143,11 @@ dune build @app @server
 
 ## Default development configuration
 
-The ecommerce demo currently defaults to:
+The ecommerce demo currently uses:
 
-- `DB_URL=postgres://executor:executor-password@127.0.0.1:5432/executor_db`
 - `DOC_ROOT=./_build/default/demos/ecommerce/ui/src/app/`
+- `DB_URL` required unless `ALLOW_DEV_DB=true`
+- when `ALLOW_DEV_DB=true`, the local development fallback is `postgres://executor:executor-password@127.0.0.1:5432/executor_db`
 - server port `8899`
 
 ## Demo behavior
