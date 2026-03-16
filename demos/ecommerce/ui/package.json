@@ -1,5 +1,5 @@
 {
-  "name": "executor-ui",
+  "name": "store-ui",
   "module": "src/Index.js",
   "type": "module",
   "private": true,

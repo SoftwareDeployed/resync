@@ -1,6 +1,6 @@
 (library
  (name universal_reason_react_lucide_icons_js)
- (public_name executor.universal_reason_react_lucide_icons_js)
+ (public_name resync.universal_reason_react_lucide_icons_js)
  (wrapped false)
  (libraries reason-react melange.js)
  (modes melange)

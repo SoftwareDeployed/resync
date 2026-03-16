@@ -1,5 +1,5 @@
 {
-  "name": "executor",
+  "name": "store-backend",
   "module": "src/Index.js",
   "type": "module",
   "private": true,

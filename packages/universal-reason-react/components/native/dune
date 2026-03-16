@@ -1,6 +1,6 @@
 (library
  (name universal_reason_react_components_native)
- (public_name executor.universal_reason_react_components_native)
+ (public_name resync.universal_reason_react_components_native)
  (modules Document DocumentHead DocumentHtml DocumentMain DocumentNextScript)
  (wrapped false)
  (libraries

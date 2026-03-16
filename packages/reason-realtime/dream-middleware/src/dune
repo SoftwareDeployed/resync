@@ -1,6 +1,6 @@
 (library
  (name reason_realtime_dream_middleware)
- (public_name executor.reason_realtime_dream_middleware)
+ (public_name resync.reason_realtime_dream_middleware)
  (modules Adapter Middleware)
  (wrapped false)
  (libraries dream lwt.unix))

@@ -1,6 +1,6 @@
 (library
  (name universal_reason_react_lucide_icons_native)
- (public_name executor.universal_reason_react_lucide_icons_native)
+ (public_name resync.universal_reason_react_lucide_icons_native)
  (wrapped false)
  (libraries
   server-reason-react.react

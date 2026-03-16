@@ -1,5 +1,5 @@
 {
-  "name": "executor-reason",
+  "name": "resync",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -19,8 +19,8 @@
     "@fontsource/inter": "^5.2.8",
     "@tilia/react": "5.0.0-beta.20251218T180640",
     "common": "link:packages/shared-types",
-    "executor": "link:demos/ecommerce/server",
-    "executor-ui": "link:demos/ecommerce/ui",
+    "store-backend": "link:demos/ecommerce/server",
+    "store-ui": "link:demos/ecommerce/ui",
     "lucide-react": "^0.555.0",
     "pg": "^8.16.3",
     "pg-listener": "^1.1.3",

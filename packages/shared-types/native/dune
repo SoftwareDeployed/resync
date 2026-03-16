@@ -1,6 +1,6 @@
 (library
  (name common_native)
- (public_name executor.common_native)
+ (public_name resync.common_native)
  (modules Config Constants PeriodList)
  (wrapped false)
  (libraries server-reason-react.js str)

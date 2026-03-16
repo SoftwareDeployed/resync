@@ -7,7 +7,6 @@
   (alias_rec demos/ecommerce/ui/app)))
 
 ; Alias for building the server
-; References the server executable which depends on executor/src/.build_stamp
 (alias
  (name server)
  (deps
