@@ -9,7 +9,6 @@ let make =
   let config: Config.t = main_store.config;
   let unit: PeriodList.Unit.t = main_store.unit;
   let items = config.inventory;
-  let filterType = "all";
   let today =
     Js.Date.make()
     |> Js.Date.setHours(
@@ -29,20 +28,21 @@ let make =
     | Some(date) => date
     | _ => today
     };
+  let is_same_day_selection =
+    Float.equal(Js.Date.getTime(openDate), Js.Date.getTime(closeDate));
   let heading =
-    switch (unit, openDate == closeDate) {
-    | (`Day | `Minute | `Month | `Second | `Week | `Year, true)
-    | (`Hour, true) =>
+    switch (unit, is_same_day_selection) {
+    | (_, true) =>
       "Showing "
-      ++ filterType
+      ++ "all"
       ++ " equipment available "
       ++ (
-        Js.Date.toDateString(openDate) == Js.Date.toDateString(today)
+        String.equal(Js.Date.toDateString(openDate), Js.Date.toDateString(today))
           ? "today" : Js.Date.toLocaleDateString(openDate)
       )
     | (_, false) =>
       "Showing "
-      ++ filterType
+      ++ "all"
       ++ " equipment available from "
       ++ Js.Date.toLocaleDateString(openDate)
       ++ " to "
@@ -53,13 +53,18 @@ let make =
 
   let items_by_unit =
     items
-    |> Array.to_list
-    |> List.filter((i: Config.InventoryItem.t) =>
-         Array.exists(
-           (period: Config.Pricing.period) => period.unit == selected_unit,
-           i.period_list,
-         )
-        )
+    |> Array.fold_left((matching, item: Config.InventoryItem.t) =>
+         if (
+           Array.exists(
+             (period: Config.Pricing.period) => period.unit == selected_unit,
+             item.period_list,
+           )
+         ) {
+           [item, ...matching];
+         } else {
+           matching;
+         }, [])
+    |> List.rev
     |> Array.of_list;
 
   <Card

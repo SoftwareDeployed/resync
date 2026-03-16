@@ -5,10 +5,18 @@ let doc_root =
   |> Option.value ~default:"./_build/default/demos/ecommerce/ui/src/app/"
 
 let db_uri =
-  Sys.getenv_opt "DB_URL"
-  |> Option.value
-       ~default:
-         "postgres://executor:executor-password@127.0.0.1:5432/executor_db"
+  match (Sys.getenv_opt "DB_URL", Sys.getenv_opt "ALLOW_DEV_DB") with
+  | Some(uri), _ -> uri
+  | None, Some(value) -> (
+      match String.lowercase_ascii value with
+      | "1" | "true" | "yes" ->
+          "postgres://executor:executor-password@127.0.0.1:5432/executor_db"
+      | _ ->
+          failwith
+            "DB_URL is required unless ALLOW_DEV_DB is explicitly enabled")
+  | None, None ->
+      failwith
+        "DB_URL is required unless ALLOW_DEV_DB is explicitly enabled"
 
 (* let get_config premise_id = *)
 (* let* premise = Database.Premise.get_premise premise_id in *)

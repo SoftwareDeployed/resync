@@ -82,6 +82,8 @@ let run_command t query =
 let validate_channel channel =
   if String.length channel = 0 then
     Lwt.fail_with "Invalid PostgreSQL channel name: empty"
+  else if String.length channel > 63 then
+    Lwt.fail_with "Invalid PostgreSQL channel name: exceeds maximum length (63)"
   else if String.contains channel '\000' then
     Lwt.fail_with "Invalid PostgreSQL channel name: contains NUL byte"
   else
@@ -112,28 +114,32 @@ let parse_payload payload =
   { table_; id; action; data }
 
 let notification_to_message payload =
-  let payload = parse_payload payload in
-  match (payload.table_, payload.action) with
-  | "inventory", ("INSERT" | "UPDATE") ->
-      Some
-        (`Assoc
-          [ ("type", `String "patch");
-            ("table", `String "inventory");
-            ("action", `String payload.action);
-            ( "data",
-              match payload.data with Some data -> data | None -> `Null );
-          ]
-        |> Yojson.Safe.to_string)
-  | "inventory", "DELETE" ->
-      Some
-        (`Assoc
-          [ ("type", `String "patch");
-            ("table", `String "inventory");
-            ("action", `String "DELETE");
-            ("id", payload.id);
-          ]
-        |> Yojson.Safe.to_string)
-  | _ -> None
+  try
+    let payload = parse_payload payload in
+    match (payload.table_, payload.action) with
+    | "inventory", ("INSERT" | "UPDATE") ->
+        Some
+          (`Assoc
+            [ ("type", `String "patch");
+              ("table", `String "inventory");
+              ("action", `String payload.action);
+              ( "data",
+                match payload.data with Some data -> data | None -> `Null );
+            ]
+          |> Yojson.Safe.to_string)
+    | "inventory", "DELETE" ->
+        Some
+          (`Assoc
+            [ ("type", `String "patch");
+              ("table", `String "inventory");
+              ("action", `String "DELETE");
+              ("id", payload.id);
+            ]
+          |> Yojson.Safe.to_string)
+    | _ -> None
+  with
+  | Yojson.Json_error _ -> None
+  | Yojson.Safe.Util.Type_error _ -> None
 
 let dispatch t channel payload =
   match (Hashtbl.find_opt t.handlers channel, notification_to_message payload) with

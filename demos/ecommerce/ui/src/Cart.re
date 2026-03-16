@@ -12,15 +12,13 @@ let make =
     <span className="m-2 align-middle text-3xl font-light">
       <Lucide.Icon name="shopping-cart" size=24 />
     </span>
+    {str("Selected equipment (")}
     <ClientOnly>
       {() => {
         let count = cart_store.item_count;
-        <>
-          {str("Selected equipment (")}
-          {str(Int.to_string(count))}
-          {str(")")}
-        </>;
+        str(Int.to_string(count));
       }}
     </ClientOnly>
+    {str(")")}
   </h1>;
 });
