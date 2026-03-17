@@ -28,8 +28,8 @@ module type Schema = {
   let emptyStore: store;
   let makeStore: payload => store;
   let payloadOfStore: store => payload;
-  let decodePersisted: string => payload;
-  let encodePersisted: payload => string;
+  let payload_of_json: StoreJson.json => payload;
+  let payload_to_json: payload => StoreJson.json;
 };
 
 module Make = (Schema: Schema) => {
@@ -41,7 +41,7 @@ module Make = (Schema: Schema) => {
     | Client =>
       try({
         switch (localStorage->getItem(Schema.storageKey)->Js.Nullable.toOption) {
-        | Some(value) => Some(Schema.decodePersisted(value))
+        | Some(value) => StoreJson.tryDecodeString(Schema.payload_of_json, value)
         | None => None
         };
       }) {
@@ -60,7 +60,12 @@ module Make = (Schema: Schema) => {
     let _ = payload;
     switch%platform (Runtime.platform) {
     | Client =>
-      try(localStorage->setItem(Schema.storageKey, Schema.encodePersisted(payload))) {
+      try(
+        localStorage->setItem(
+          Schema.storageKey,
+          StoreJson.stringify(Schema.payload_to_json, payload),
+        ),
+      ) {
       | _ => ()
       }
     | Server => ()

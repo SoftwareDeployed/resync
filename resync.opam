@@ -15,6 +15,8 @@ depends: [
   "dream"
   "lwt"
   "melange"
+  "melange-json"
+  "melange-json-native"
   "ocaml-lsp-server"
   "ocamlformat"
   "reason"

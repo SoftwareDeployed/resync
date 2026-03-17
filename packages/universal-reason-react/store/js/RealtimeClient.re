@@ -8,9 +8,9 @@ module Socket = {
     ~get: unit => 'config,
     ~subscription: string,
     ~updatedAt: float,
-    ~parsePatch: Js.Json.t => option('patch),
+    ~parsePatch: StoreJson.json => option('patch),
     ~applyPatch: ('config, 'patch) => 'config,
-    ~decodeSnapshot: string => 'config,
+    ~decodeSnapshot: StoreJson.json => 'config,
     ~updatedAtOf: 'config => float,
     ~eventUrl: string,
     ~baseUrl: string,
@@ -48,9 +48,9 @@ module Socket = {
     ~get: unit => 'config,
     ~subscription: string,
     ~updatedAt: float,
-    ~parsePatch: Js.Json.t => option('patch),
+    ~parsePatch: StoreJson.json => option('patch),
     ~applyPatch: ('config, 'patch) => 'config,
-    ~decodeSnapshot: string => 'config,
+    ~decodeSnapshot: StoreJson.json => 'config,
     ~updatedAtOf: 'config => float,
     ~eventUrl: string,
     ~baseUrl: string,
@@ -138,10 +138,7 @@ module Socket = {
         if (data === "pong") {
           setLastPongTs(Js.Date.fromString("now")->Js.Date.getTime);
         } else {
-          let parsedJson =
-            try(Some(Js.Json.parseExn(data))) {
-            | _ => None
-            };
+          let parsedJson = StoreJson.tryParse(data);
           switch (parsedJson) {
           | Some(json) =>
             switch (parsePatch(json)) {
@@ -151,7 +148,7 @@ module Socket = {
               setUpdatedTs(updatedAtOf(next));
               set(next);
             | None =>
-              let snapshot = decodeSnapshot(data);
+              let snapshot = decodeSnapshot(json);
               setUpdatedTs(updatedAtOf(snapshot));
               set(snapshot);
             }

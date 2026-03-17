@@ -33,8 +33,8 @@ module Persist = StorePersist.Make({
   let emptyStore = CartStoreSchema.emptyStore;
   let makeStore = payload => Core.buildStore(~configTransform=sourceItems, payload);
   let payloadOfStore = CartStoreSchema.payloadOfStore;
-  let decodePersisted = CartStoreSchema.decodePersisted;
-  let encodePersisted = CartStoreSchema.encodePersisted;
+  let payload_of_json = CartStoreSchema.payload_of_json;
+  let payload_to_json = CartStoreSchema.payload_to_json;
 });
 
 include Core;

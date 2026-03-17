@@ -3,7 +3,12 @@
  (public_name resync.common_js)
  (modules Config Constants PeriodList)
  (wrapped false)
- (libraries melange.js)
+ (libraries
+  melange-json
+  universal_reason_react_store_js
+  melange.js)
  (modes melange)
  (preprocess
-  (pps melange.ppx)))
+  (pps
+   melange.ppx
+   melange-json.ppx)))

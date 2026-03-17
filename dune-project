@@ -41,10 +41,12 @@
   (ocaml
    (= "5.4.0"))
   caqti-driver-postgresql
-  dream
-  lwt
-  melange
-  ocaml-lsp-server
+   dream
+   lwt
+   melange
+   melange-json
+   melange-json-native
+   ocaml-lsp-server
   ocamlformat
   reason
   melange-webapi

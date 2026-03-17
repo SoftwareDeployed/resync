@@ -3,9 +3,15 @@
  (public_name resync.common_native)
  (modules Config Constants PeriodList)
  (wrapped false)
- (libraries server-reason-react.js str)
+ (libraries
+  melange-json-native
+  server-reason-react.js
+  universal_reason_react_store_native
+  str)
  (preprocess
-  (pps server-reason-react.melange_ppx))
+  (pps
+   server-reason-react.melange_ppx
+   melange-json-native.ppx))
  (modes native))
 
 (copy_files

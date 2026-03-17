@@ -6,6 +6,7 @@
   caqti-driver-postgresql
   common_native
   dream
+  melange-json-native
   reason_realtime_dream_middleware
   reason_realtime_pgnotify_adapter
   postgresql

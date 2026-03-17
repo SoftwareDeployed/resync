@@ -6,8 +6,8 @@ module type Schema = {
   let subscriptionOfConfig: config => option(subscription);
   let encodeSubscription: subscription => string;
   let updatedAtOf: config => float;
-  let decodeSnapshot: string => config;
-  let parsePatch: Js.Json.t => option(patch);
+  let config_of_json: StoreJson.json => config;
+  let patch_of_json: StoreJson.json => patch;
   let applyPatch: (config, patch) => config;
   let eventUrl: string;
   let baseUrl: string;
@@ -25,6 +25,8 @@ module Make = (Schema: Schema) => {
   type config = Schema.config;
   type patch = Schema.patch;
 
+  let parsePatch = json => StoreJson.tryDecode(Schema.patch_of_json, json);
+
   let subscribe = (~set: config => unit, ~get: unit => config, ~config: config) => {
     switch (Schema.subscriptionOfConfig(config)) {
     | Some(subscription) =>
@@ -33,9 +35,9 @@ module Make = (Schema: Schema) => {
         ~get,
         ~subscription=Schema.encodeSubscription(subscription),
         ~updatedAt=Schema.updatedAtOf(config),
-        ~parsePatch=Schema.parsePatch,
+        ~parsePatch,
         ~applyPatch=Schema.applyPatch,
-        ~decodeSnapshot=Schema.decodeSnapshot,
+        ~decodeSnapshot=Schema.config_of_json,
         ~updatedAtOf=Schema.updatedAtOf,
         ~eventUrl=Schema.eventUrl,
         ~baseUrl=Schema.baseUrl,

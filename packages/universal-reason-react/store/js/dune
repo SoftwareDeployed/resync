@@ -1,19 +1,21 @@
 (library
  (name universal_reason_react_store_js)
  (public_name resync.universal_reason_react_store_js)
- (modules Hydration RealtimeClient StoreCore StorePersist StoreRuntime StoreState StoreSync Tilia WebSocket)
+ (modules Hydration RealtimeClient StoreCore StoreJson StorePersist StoreRuntime StoreState StoreSync Tilia WebSocket)
  (wrapped false)
  (libraries
+  melange-json
   melange-webapi
   reason-react
   melange.dom
-  melange.js)
+   melange.js)
  (modes melange)
  (preprocess
   (pps
    server-reason-react.ppx
    -melange
-   server-reason-react.browser_ppx
-   -js
-   melange.ppx
-   reason-react-ppx)))
+    server-reason-react.browser_ppx
+    -js
+    melange.ppx
+    melange-json.ppx
+    reason-react-ppx)))

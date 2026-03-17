@@ -14,14 +14,15 @@ module type Schema = {
   let project: config => projections;
   let makeStore: (~config: config, ~payload: payload) => store;
 
-  let encodeState: payload => string;
-  let decodeState: Js.Json.t => payload;
+  let config_of_json: StoreJson.json => config;
+  let config_to_json: config => StoreJson.json;
+  let payload_of_json: StoreJson.json => payload;
+  let payload_to_json: payload => StoreJson.json;
+  let patch_of_json: StoreJson.json => patch;
 
   let subscriptionOfConfig: config => option(subscription);
   let encodeSubscription: subscription => string;
   let updatedAtOf: config => float;
-  let decodeSnapshot: string => config;
-  let parsePatch: Js.Json.t => option(patch);
   let applyPatch: (config, patch) => config;
   let eventUrl: string;
   let baseUrl: string;
@@ -49,8 +50,8 @@ module Make = (Schema: Schema) => {
     let subscriptionOfConfig = Schema.subscriptionOfConfig;
     let encodeSubscription = Schema.encodeSubscription;
     let updatedAtOf = Schema.updatedAtOf;
-    let decodeSnapshot = Schema.decodeSnapshot;
-    let parsePatch = Schema.parsePatch;
+    let config_of_json = Schema.config_of_json;
+    let patch_of_json = Schema.patch_of_json;
     let applyPatch = Schema.applyPatch;
     let eventUrl = Schema.eventUrl;
     let baseUrl = Schema.baseUrl;
@@ -65,8 +66,8 @@ module Make = (Schema: Schema) => {
 
     let emptyStore = Schema.emptyStore;
     let makeStore = buildStore;
-    let decodeState = Schema.decodeState;
-    let encodeState = Schema.encodeState;
+    let payload_of_json = Schema.payload_of_json;
+    let payload_to_json = Schema.payload_to_json;
     let stateElementId = Schema.stateElementId;
   });
 
@@ -81,6 +82,7 @@ module Make = (Schema: Schema) => {
   let hydrateStore = State.hydrateStore;
   let serializeState = (config: config) =>
     config->Schema.payloadOfConfig->State.serializeState;
+  let serializeSnapshot = (config: config) => StoreJson.stringify(Schema.config_to_json, config);
 
   module Context = Core.Context;
 };

@@ -84,7 +84,7 @@ let get_config request premise_id =
 
 let get_config_json request premise_id =
   let* config = get_config request premise_id in
-  Lwt.return (Config.to_yojson config |> Yojson.Safe.to_string)
+  Lwt.return (Store.serializeSnapshot config)
 
 let resolve_subscription request selection =
   match RealtimeSubscription.decode_channel selection with

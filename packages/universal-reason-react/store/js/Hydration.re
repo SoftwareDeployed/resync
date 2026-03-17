@@ -10,20 +10,16 @@ let textContent = _element => Js.Nullable.null;
 [@platform js]
 [@mel.get] external textContent: element => Js.Nullable.t(string) = "textContent";
 
-let parseState = (~stateElementId: string, ~decodeState: Js.Json.t => 'state) =>
+let parseState = (~stateElementId: string, ~decodeState: StoreJson.json => 'state) =>
   switch%platform (Runtime.platform) {
   | Client =>
-    try({
-      switch (stateElementId->getElementById->Js.Nullable.toOption) {
-      | Some(element) =>
-        switch (element->textContent->Js.Nullable.toOption) {
-        | Some(text) => Some(text->Js.Json.parseExn->decodeState)
-        | None => None
-        }
+    switch (stateElementId->getElementById->Js.Nullable.toOption) {
+    | Some(element) =>
+      switch (element->textContent->Js.Nullable.toOption) {
+      | Some(text) => StoreJson.tryDecodeString(decodeState, text)
       | None => None
-      };
-    }) {
-    | _ => None
+      }
+    | None => None
     }
   | Server =>
       let _ = stateElementId;
@@ -34,7 +30,7 @@ let parseState = (~stateElementId: string, ~decodeState: Js.Json.t => 'state) =>
 let hydrateStore = (
   ~emptyStore: 'store,
   ~makeStore: 'state => 'store,
-  ~decodeState: Js.Json.t => 'state,
+  ~decodeState: StoreJson.json => 'state,
   ~stateElementId: string,
 ) =>
   switch%platform (Runtime.platform) {
