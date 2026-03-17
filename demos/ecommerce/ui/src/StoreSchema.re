@@ -79,7 +79,11 @@ let derivePeriodList = (config: Config.t) => {
 
 let payloadOfConfig = (config: config): payload => {
   config,
-  unit: PeriodList.Unit.defaultState,
+  unit:
+    switch%platform (Runtime.platform) {
+    | Server => PeriodList.Unit.defaultState
+    | Client => PeriodList.Unit.signal->Tilia.Core.lift
+    },
 };
 
 let configOfPayload = (payload: payload) => payload.config;
@@ -96,15 +100,16 @@ let project = (config: config): projections => {
 let makeStore = (~config: config, ~payload: payload): store =>
   switch%platform (Runtime.platform) {
   | Client =>
+    let _ = payload;
     Tilia.Core.carve(derive =>
       {
         config,
         premise_id: derive.derived(store => project(store.config).premise_id),
         period_list:
           derive.derived(store => project(store.config).period_list),
-        unit: payload.unit,
+        unit: PeriodList.Unit.signal->Tilia.Core.lift,
       }
-    )
+    );
   | Server =>
     let projections = project(config);
     {
