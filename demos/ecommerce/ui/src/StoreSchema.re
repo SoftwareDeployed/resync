@@ -12,21 +12,26 @@ type inventory_patch_data = {
   name: string,
   quantity: int,
   premise_id: string,
-  [@json.option] period_list: option(Config.Pricing.period_list),
+  [@json.option]
+  period_list: option(Config.Pricing.period_list),
 };
 
 [@deriving json]
 type patch = {
-  [@json.key "type"] type_: string,
-  [@json.key "table"] table_: string,
+  [@json.key "type"]
+  type_: string,
+  [@json.key "table"]
+  table_: string,
   action: string,
-  [@json.option] data: option(inventory_patch_data),
-  [@json.option] id: option(string),
+  [@json.option]
+  data: option(inventory_patch_data),
+  [@json.option]
+  id: option(string),
 };
 
 [@deriving json]
 type payload = {
-  config: config,
+  config,
   unit: PeriodList.Unit.t,
 };
 
@@ -47,24 +52,27 @@ let stateElementId = "initial-store";
 let derivePeriodList = (config: Config.t) => {
   config.inventory
   |> Array.to_list
-  |> List.map((inv: Config.InventoryItem.t) => Array.to_list(inv.period_list))
+  |> List.map((inv: Config.InventoryItem.t) =>
+       Array.to_list(inv.period_list)
+     )
   |> List.concat
-  |> List.fold_left(((periods: list(Config.Pricing.period)), (period: Config.Pricing.period)) => {
-       let current_unit = period.unit;
-       if (
-         List.exists(
-           (existing: Config.Pricing.period) => {
-             let existing_unit = existing.unit;
-             existing_unit == current_unit;
-           },
-           periods,
-         )
-       ) {
-         periods;
-       } else {
-         [period, ...periods];
-       };
-     }, ([]: list(Config.Pricing.period)))
+  |> List.fold_left(
+       (periods: list(Config.Pricing.period), period: Config.Pricing.period) => {
+         let current_unit = period.unit;
+         if (List.exists(
+               (existing: Config.Pricing.period) => {
+                 let existing_unit = existing.unit;
+                 existing_unit == current_unit;
+               },
+               periods,
+             )) {
+           periods;
+         } else {
+           [period, ...periods];
+         };
+       },
+       []: list(Config.Pricing.period),
+     )
   |> List.rev
   |> Array.of_list;
 };
@@ -88,21 +96,23 @@ let project = (config: config): projections => {
 let makeStore = (~config: config, ~payload: payload): store =>
   switch%platform (Runtime.platform) {
   | Client =>
-    Tilia.Core.carve(derive => {
-      config,
-      premise_id: derive.derived(store => project(store.config).premise_id),
-      period_list: derive.derived(store => project(store.config).period_list),
-      unit: payload.unit,
-    })
-  | Server => {
-      let projections = project(config);
+    Tilia.Core.carve(derive =>
       {
-        premise_id: projections.premise_id,
         config,
-        period_list: projections.period_list,
+        premise_id: derive.derived(store => project(store.config).premise_id),
+        period_list:
+          derive.derived(store => project(store.config).period_list),
         unit: payload.unit,
-      };
-    }
+      }
+    )
+  | Server =>
+    let projections = project(config);
+    {
+      premise_id: projections.premise_id,
+      config,
+      period_list: projections.period_list,
+      unit: payload.unit,
+    };
   };
 
 let emptyStore: store = {
@@ -113,13 +123,20 @@ let emptyStore: store = {
 };
 
 let find_existing_period_list = (currentConfig: config, itemId: string) => {
-  switch (Js.Array.find(~f=(i: Config.InventoryItem.t) => i.id === itemId, currentConfig.inventory)) {
+  switch (
+    Js.Array.find(
+      ~f=(i: Config.InventoryItem.t) => i.id === itemId,
+      currentConfig.inventory,
+    )
+  ) {
   | Some(existingItem) => existingItem.period_list
   | None => [||]
   };
 };
 
-let item_of_patch = (currentConfig: config, item: inventory_patch_data): Config.InventoryItem.t => {
+let item_of_patch =
+    (currentConfig: config, item: inventory_patch_data)
+    : Config.InventoryItem.t => {
   let period_list =
     switch (item.period_list) {
     | Some(period_list) => period_list
@@ -144,7 +161,9 @@ let applyPatch = (currentConfig: config, patch: patch): config => {
       let itemWithPeriod = item_of_patch(currentConfig, newItem);
       let exists =
         currentConfig.inventory
-        |> Js.Array.some(~f=(i: Config.InventoryItem.t) => i.id === newItem.id);
+        |> Js.Array.some(~f=(i: Config.InventoryItem.t) =>
+             i.id === newItem.id
+           );
       let newInventory =
         if (exists) {
           currentConfig.inventory

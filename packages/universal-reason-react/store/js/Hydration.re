@@ -1,16 +1,13 @@
 type element;
 
-[@platform native]
-let getElementById = _id => Js.Nullable.null;
-[@platform js]
-[@mel.scope "document"] external getElementById: string => Js.Nullable.t(element) = "getElementById";
+[@mel.scope "document"]
+external getElementById: string => Js.Nullable.t(element) = "getElementById";
 
-[@platform native]
-let textContent = _element => Js.Nullable.null;
-[@platform js]
-[@mel.get] external textContent: element => Js.Nullable.t(string) = "textContent";
+[@mel.get]
+external textContent: element => Js.Nullable.t(string) = "textContent";
 
-let parseState = (~stateElementId: string, ~decodeState: StoreJson.json => 'state) =>
+let parseState =
+    (~stateElementId: string, ~decodeState: StoreJson.json => 'state) =>
   switch%platform (Runtime.platform) {
   | Client =>
     switch (stateElementId->getElementById->Js.Nullable.toOption) {
@@ -22,17 +19,18 @@ let parseState = (~stateElementId: string, ~decodeState: StoreJson.json => 'stat
     | None => None
     }
   | Server =>
-      let _ = stateElementId;
-      let _ = decodeState;
-      None
+    let _ = stateElementId;
+    let _ = decodeState;
+    None;
   };
 
-let hydrateStore = (
-  ~emptyStore: 'store,
-  ~makeStore: 'state => 'store,
-  ~decodeState: StoreJson.json => 'state,
-  ~stateElementId: string,
-) =>
+let hydrateStore =
+    (
+      ~emptyStore: 'store,
+      ~makeStore: 'state => 'store,
+      ~decodeState: StoreJson.json => 'state,
+      ~stateElementId: string,
+    ) =>
   switch%platform (Runtime.platform) {
   | Client =>
     switch (parseState(~stateElementId, ~decodeState)) {

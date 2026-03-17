@@ -1,24 +1,16 @@
 type storage;
 
-[@platform native]
-let localStorage = Obj.magic(());
-[@platform js]
-[@mel.scope "window"] external localStorage: storage = "localStorage";
+[@platform js] [@mel.scope "window"]
+external localStorage: storage = "localStorage";
 
-[@platform native]
-let getItem = (_storage, _key) => Js.Nullable.null;
-[@platform js]
-[@mel.send] external getItem: (storage, string) => Js.Nullable.t(string) = "getItem";
+[@platform js] [@mel.send]
+external getItem: (storage, string) => Js.Nullable.t(string) = "getItem";
 
-[@platform native]
-let setItem = (_storage, _key, _value) => ();
-[@platform js]
-[@mel.send] external setItem: (storage, string, string) => unit = "setItem";
+[@platform js] [@mel.send]
+external setItem: (storage, string, string) => unit = "setItem";
 
-[@platform native]
-let removeItem = (_storage, _key) => ();
-[@platform js]
-[@mel.send] external removeItem: (storage, string) => unit = "removeItem";
+[@platform js] [@mel.send]
+external removeItem: (storage, string) => unit = "removeItem";
 
 module type Schema = {
   type payload;
@@ -36,18 +28,15 @@ module Make = (Schema: Schema) => {
   type payload = Schema.payload;
   type store = Schema.store;
 
-  let readPayload = () =>
-    switch%platform (Runtime.platform) {
-    | Client =>
-      try({
-        switch (localStorage->getItem(Schema.storageKey)->Js.Nullable.toOption) {
-        | Some(value) => StoreJson.tryDecodeString(Schema.payload_of_json, value)
-        | None => None
-        };
-      }) {
-      | _ => None
+  let%browser_only readPayload = () =>
+    try(
+      switch (localStorage->getItem(Schema.storageKey)->Js.Nullable.toOption) {
+      | Some(value) =>
+        StoreJson.tryDecodeString(Schema.payload_of_json, value)
+      | None => None
       }
-    | Server => None
+    ) {
+    | _ => None
     };
 
   let hydrateStore = () =>
@@ -64,7 +53,7 @@ module Make = (Schema: Schema) => {
         localStorage->setItem(
           Schema.storageKey,
           StoreJson.stringify(Schema.payload_to_json, payload),
-        ),
+        )
       ) {
       | _ => ()
       }
@@ -72,7 +61,8 @@ module Make = (Schema: Schema) => {
     };
   };
 
-  let persistStore = (store: store) => store->Schema.payloadOfStore->persistPayload;
+  let persistStore = (store: store) =>
+    store->Schema.payloadOfStore->persistPayload;
 
   let clear = () =>
     switch%platform (Runtime.platform) {

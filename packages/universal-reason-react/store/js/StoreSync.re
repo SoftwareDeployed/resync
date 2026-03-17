@@ -17,7 +17,8 @@ module type S = {
   type config;
   type patch;
 
-  let subscribe: (~set: config => unit, ~get: unit => config, ~config: config) => unit;
+  let subscribe:
+    (~set: config => unit, ~get: unit => config, ~config: config) => unit;
   let source: config => config;
 };
 
@@ -27,7 +28,12 @@ module Make = (Schema: Schema) => {
 
   let parsePatch = json => StoreJson.tryDecode(Schema.patch_of_json, json);
 
-  let subscribe = (~set: config => unit, ~get: unit => config, ~config: config) => {
+  let%browser_only subscribe =
+                   (
+                     ~set: config => unit,
+                     ~get: unit => config,
+                     ~config: config,
+                   ) => {
     switch (Schema.subscriptionOfConfig(config)) {
     | Some(subscription) =>
       RealtimeClient.Socket.subscribe(
@@ -50,14 +56,21 @@ module Make = (Schema: Schema) => {
     switch%platform (Runtime.platform) {
     | Client =>
       let currentConfig = ref(config);
-      Tilia.Core.source(. config, (. _config, set) => {
-        let setConfig = nextConfig => {
-          currentConfig := nextConfig;
-          set(nextConfig);
-        };
+      Tilia.Core.source(.
+        config,
+        (. _config, set) => {
+          let setConfig = nextConfig => {
+            currentConfig := nextConfig;
+            set(nextConfig);
+          };
 
-        subscribe(~set=setConfig, ~get=() => currentConfig.contents, ~config);
-      })
+          subscribe(
+            ~set=setConfig,
+            ~get=() => currentConfig.contents,
+            ~config,
+          );
+        },
+      );
     | Server => config
     };
 };

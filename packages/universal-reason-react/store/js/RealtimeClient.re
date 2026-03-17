@@ -1,60 +1,33 @@
+[@platform native]
 module Socket = {
-  [@platform native]
   let defaultBaseUrl = "http://localhost:8899";
+};
 
-  [@platform native]
-  let subscribe = (
-    ~set: 'config => unit,
-    ~get: unit => 'config,
-    ~subscription: string,
-    ~updatedAt: float,
-    ~parsePatch: StoreJson.json => option('patch),
-    ~applyPatch: ('config, 'patch) => 'config,
-    ~decodeSnapshot: StoreJson.json => 'config,
-    ~updatedAtOf: 'config => float,
-    ~eventUrl: string,
-    ~baseUrl: string,
-  ) => {
-    let _ = set;
-    let _ = get;
-    let _ = subscription;
-    let _ = updatedAt;
-    let _ = parsePatch;
-    let _ = applyPatch;
-    let _ = decodeSnapshot;
-    let _ = updatedAtOf;
-    let _ = eventUrl;
-    let _ = baseUrl;
-    ();
-  };
-
-  [@platform js]
+[@platform js]
+module Socket = {
   let defaultBaseUrl = "http://localhost:8899";
-  [@platform js]
   external globalThis: Js.Dict.t(int) = "globalThis";
-  [@platform js]
   external setInterval: (. unit => unit, int) => int = "setInterval";
 
-  [@platform js]
   type websocket_state = {
     last_ping: float,
     last_pong: float,
     updated_at: float,
   };
 
-  [@platform js]
-  let rec subscribe = (
-    ~set: 'config => unit,
-    ~get: unit => 'config,
-    ~subscription: string,
-    ~updatedAt: float,
-    ~parsePatch: StoreJson.json => option('patch),
-    ~applyPatch: ('config, 'patch) => 'config,
-    ~decodeSnapshot: StoreJson.json => 'config,
-    ~updatedAtOf: 'config => float,
-    ~eventUrl: string,
-    ~baseUrl: string,
-  ) => {
+  let rec subscribe =
+          (
+            ~set: 'config => unit,
+            ~get: unit => 'config,
+            ~subscription: string,
+            ~updatedAt: float,
+            ~parsePatch: StoreJson.json => option('patch),
+            ~applyPatch: ('config, 'patch) => 'config,
+            ~decodeSnapshot: StoreJson.json => 'config,
+            ~updatedAtOf: 'config => float,
+            ~eventUrl: string,
+            ~baseUrl: string,
+          ) => {
     let url =
       Webapi.Url.makeWith(
         eventUrl
@@ -114,23 +87,20 @@ module Socket = {
     };
 
     WebSocket.onOpen(ws, () => select());
-    WebSocket.onClose(
-      ws,
-      () => {
-        subscribe(
-          ~set,
-          ~get,
-          ~subscription,
-          ~updatedAt=state.updated_at,
-          ~parsePatch,
-          ~applyPatch,
-          ~decodeSnapshot,
-          ~updatedAtOf,
-          ~eventUrl,
-          ~baseUrl,
-        );
-      },
-    );
+    WebSocket.onClose(ws, () => {
+      subscribe(
+        ~set,
+        ~get,
+        ~subscription,
+        ~updatedAt=state.updated_at,
+        ~parsePatch,
+        ~applyPatch,
+        ~decodeSnapshot,
+        ~updatedAtOf,
+        ~eventUrl,
+        ~baseUrl,
+      )
+    });
     WebSocket.onMessage(
       ws,
       event => {

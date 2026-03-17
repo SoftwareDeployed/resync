@@ -10,5 +10,6 @@
  (modes melange)
  (preprocess
   (pps
+   server-reason-react.browser_ppx -js
    melange.ppx
    melange-json.ppx)))

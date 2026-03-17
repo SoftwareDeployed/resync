@@ -1,7 +1,7 @@
 open Melange_json.Primitives;
 
 module Unit = {
-  [@deriving(jsConverter, json)]
+  [@deriving (jsConverter, json)]
   type t = [
     | [@json.name "second"] [@mel.as "second"] `Second
     | [@json.name "minute"] [@mel.as "minute"] `Minute
@@ -14,8 +14,11 @@ module Unit = {
 
   // XXX: This default state should come from the server
   let defaultState: t = `Month;
-  let set = (_unit: t) => ();
-  //let (signal, set) = Tilia.signal(defaultState);
+  let (signal, set) =
+    switch%platform (Runtime.platform) {
+    | Client => Tilia.Core.signal(defaultState)
+    | Server => (defaultState, (_ => ()))
+    };
 };
 
 module Premise = {

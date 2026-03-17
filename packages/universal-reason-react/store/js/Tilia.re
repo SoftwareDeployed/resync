@@ -1,13 +1,3 @@
-[@platform native]
-module Core = {
-  let make = value => value;
-  let source = (. value, _setup) => value;
-  let computed = compute => compute();
-  type deriver('p) = {derived: 'a. ('p => 'a) => 'a};
-  let carve = _ => Obj.magic(());
-};
-
-[@platform js]
 module Core = {
   [@mel.module "tilia"] external make: 'a => 'a = "tilia";
   [@mel.module "tilia"]
