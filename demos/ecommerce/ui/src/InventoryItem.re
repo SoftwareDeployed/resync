@@ -12,12 +12,9 @@ let make =
           Js.Exn.raiseError("The item property is required on InventoryItem")
       };
     let cart_store = CartStore.Context.useStore();
+    let item_params = UniversalRouter.Params.ofList([("id", item.id)]);
     let image =
       "https://random.danielpetrica.com/api/random?" ++ item.id;
-    let%browser_only select_item = e => {
-      e->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
-      ReasonReactRouter.replace("/item/" ++ item.id);
-    };
     let%browser_only add_to_cart_click = e => {
       e->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
       Js.log2("[cart] add button click", item.id);
@@ -38,10 +35,11 @@ let make =
         </button>
       };
     <div className="flex flex-1 flex-col grow border-2">
-      <a
-        id={"item-" ++ item.id}
-        onClick=select_item
-        href={"/item/" ++ item.id}
+      <UniversalRouter.Link
+        id="item"
+        replace=true
+        params=item_params
+        elementId={"item-" ++ item.id}
         className="relative m-[1.5] flex flex-1 flex-col grow">
         <div className="rounded-sm shadow-sm m-0 p-0">
           <img className="p-[1.5] w-full aspect-square" src=image />
@@ -55,7 +53,7 @@ let make =
           <p className="text-xs text-left m-2"> item.description->str </p>
           <Pricing period_list={item.period_list} />
         </div>
-      </a>
+      </UniversalRouter.Link>
       add_to_cart_button
     </div>;
   });

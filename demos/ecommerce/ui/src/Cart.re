@@ -9,16 +9,22 @@ let make =
   let cart_store = CartStore.Context.useStore();
 
   <h1 className="block font-bold align-middle text-gray-700 m-2 text-3xl">
-    <span className="m-2 align-middle text-3xl font-light">
-      <Lucide.IconShoppingCart size=24 />
-    </span>
-    {str("Selected equipment (")}
-    <ClientOnly>
-      {() => {
-        let count = cart_store.item_count;
-        str(Int.to_string(count));
-      }}
-    </ClientOnly>
-    {str(")")}
+    <UniversalRouter.NavLink
+      id="cart"
+      exact=true
+      className="inline-flex items-center text-gray-700 transition-colors hover:text-slate-900"
+      activeClassName="text-slate-900">
+      <span className="m-2 align-middle text-3xl font-light">
+        <Lucide.IconShoppingCart size=24 />
+      </span>
+      {str("Selected equipment (")}
+      <ClientOnly>
+        {() => {
+          let count = cart_store.item_count;
+          str(Int.to_string(count));
+        }}
+      </ClientOnly>
+      {str(")")}
+    </UniversalRouter.NavLink>
   </h1>;
 });

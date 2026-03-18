@@ -86,10 +86,11 @@ let make =
       <InventoryList openDate closeDate />
       <Cart />
       <div className="w-full">
-        <button
-          className="mx-auto mt-4 bg-slate-500 hover:bg-slate-700 text-white py-2 px-4 rounded-sm">
+        <UniversalRouter.Link
+          id="cart"
+          className="mx-auto mt-4 inline-block bg-slate-500 hover:bg-slate-700 text-white py-2 px-4 rounded-sm text-center">
           "Book Reservation"->str
-        </button>
+        </UniversalRouter.Link>
       </div>
     </Container>;
   });

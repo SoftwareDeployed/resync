@@ -16,9 +16,10 @@
  (libraries
   reason-react-day-picker
    common_js
-   universal_reason_react_components_js
-   universal_reason_react_lucide_icons_js
-   universal_reason_react_store_js
+    universal_reason_react_components_js
+    universal_reason_react_lucide_icons_js
+    universal_reason_react_router_js
+    universal_reason_react_store_js
    melange-json
    melange.belt
    melange-webapi

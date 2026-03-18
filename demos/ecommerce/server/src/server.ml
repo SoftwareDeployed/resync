@@ -36,21 +36,51 @@ let stream_react_app response_stream react_element =
   in
   Lwt.return ()
 
-let handle_frontend request route_root =
-  let* premise =
-    Dream.sql request (Database.Premise.get_route_premise route_root)
-  in
-  let premise_id = match premise with None -> "" | Some p -> p.id in
+let handle_frontend request route_root premise =
+  let premise_id = premise.PeriodList.Premise.id in
   let* inventory =
     if premise_id = "" then Lwt.return [||]
     else Dream.sql request (Database.Inventory.get_list premise_id)
   in
-  let config : Config.t = { inventory; premise } in
+  let config : Config.t = { inventory; premise = Some premise } in
+  let server_path = UniversalRouterDream.requestPath request in
+  let server_search = UniversalRouterDream.requestSearch request in
   Dream.stream
     ~headers:[ ("Content-Type", "text/html") ]
     (fun response_stream ->
-      let app_element = EntryServer.handler config in
+      let app_element =
+        EntryServer.handler
+          ~routeRoot:route_root
+          ~serverPath:server_path
+          ~serverSearch:server_search
+          config
+      in
       stream_react_app response_stream app_element)
+
+let rec find_matching_frontend_route request candidate_roots =
+  match candidate_roots with
+  | [] -> Lwt.return_none
+  | route_root :: remaining_roots -> (
+      match
+        UniversalRouterDream.matchRequest ~router:Routes.router ~routeRoot:route_root
+          request
+      with
+      | None -> find_matching_frontend_route request remaining_roots
+      | Some _ ->
+          let* premise =
+            Dream.sql request (Database.Premise.get_route_premise route_root)
+          in
+          (match premise with
+          | Some premise -> Lwt.return_some (route_root, premise)
+          | None -> find_matching_frontend_route request remaining_roots))
+
+let frontend_handler request =
+  let request_path = UniversalRouterDream.requestPath request in
+  let candidate_roots = UniversalRouter.candidateRouteRoots(request_path) in
+  let* matched_route = find_matching_frontend_route request candidate_roots in
+  match matched_route with
+  | Some (route_root, premise) -> handle_frontend request route_root premise
+  | None -> Dream.empty `Not_Found
 
 (*
   let read_whole_file file_path =
@@ -121,9 +151,8 @@ let () =
              Dream.from_filesystem doc_root "Index.re.js" req);
          Dream.get "/style.css" (fun req ->
              Dream.from_filesystem doc_root "Index.re.css" req);
-         Dream.get "/" (fun req ->
-             let route_root = "/" in
-             handle_frontend req route_root);
+          Dream.get "/" frontend_handler;
+          Dream.get "/**" frontend_handler;
          (*
   Dream.get "/config/:premise_id" (fun req ->
     let premise_id = Dream.param req "premise_id" in
