@@ -24,7 +24,7 @@ module CartLayout = {
 module CartPage = {
   let make = (~params as _, ~query as _, ()) => {
     <Card>
-      <Cart />
+      <Cart showContents=true />
       <p className="m-2 text-sm text-slate-600">
         "Review your selected equipment before booking."->React.string
       </p>
