@@ -8,6 +8,7 @@
   StoreComputed
   StoreCore
   StoreJson
+  StorePatch
   StorePersist
   StoreRuntime
   StoreSignal

@@ -17,12 +17,11 @@ module Socket = {
 
   let rec subscribe =
           (
-            ~set: 'config => unit,
-            ~get: unit => 'config,
+            ~source: StoreSource.actions('config),
             ~subscription: string,
             ~updatedAt: float,
-            ~parsePatch: StoreJson.json => option('patch),
-            ~applyPatch: ('config, 'patch) => 'config,
+            ~decodePatch: StoreJson.json => option('patch),
+            ~updateOfPatch: 'patch => 'config => 'config,
             ~decodeSnapshot: StoreJson.json => 'config,
             ~updatedAtOf: 'config => float,
             ~eventUrl: string,
@@ -65,12 +64,11 @@ module Socket = {
       if (elapsed > timeout) {
         ws->WebSocket.close;
         subscribe(
-          ~set,
-          ~get,
+          ~source,
           ~subscription,
           ~updatedAt=Js.Date.now(),
-          ~parsePatch,
-          ~applyPatch,
+          ~decodePatch,
+          ~updateOfPatch,
           ~decodeSnapshot,
           ~updatedAtOf,
           ~eventUrl,
@@ -89,12 +87,11 @@ module Socket = {
     WebSocket.onOpen(ws, () => select());
     WebSocket.onClose(ws, () => {
       subscribe(
-        ~set,
-        ~get,
+        ~source,
         ~subscription,
         ~updatedAt=state.updated_at,
-        ~parsePatch,
-        ~applyPatch,
+        ~decodePatch,
+        ~updateOfPatch,
         ~decodeSnapshot,
         ~updatedAtOf,
         ~eventUrl,
@@ -111,16 +108,16 @@ module Socket = {
           let parsedJson = StoreJson.tryParse(data);
           switch (parsedJson) {
           | Some(json) =>
-            switch (parsePatch(json)) {
+            switch (decodePatch(json)) {
             | Some(patch) =>
-              let current = get();
-              let next = applyPatch(current, patch);
+              source.update(updateOfPatch(patch));
+              let next = source.get();
               setUpdatedTs(updatedAtOf(next));
-              set(next);
+              ()
             | None =>
               let snapshot = decodeSnapshot(json);
               setUpdatedTs(updatedAtOf(snapshot));
-              set(snapshot);
+              source.set(snapshot);
             }
           | None => ()
           };

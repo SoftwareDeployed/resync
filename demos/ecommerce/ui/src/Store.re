@@ -17,21 +17,31 @@ type inventory_patch_data = {
 };
 
 [@deriving json]
-type patch = {
-  [@json.key "type"]
-  type_: string,
-  [@json.key "table"]
-  table_: string,
-  action: string,
+type inventory_payload = {
+  description: string,
+  id: string,
+  name: string,
+  quantity: int,
+  premise_id: string,
   [@json.option]
-  data: option(inventory_patch_data),
-  [@json.option]
-  id: option(string),
+  period_list: option(Config.Pricing.period_list),
 };
 
 [@deriving json]
+type config_payload = {
+  [@json.option]
+  inventory: option(array(inventory_payload)),
+  [@json.option]
+  premise: option(PeriodList.Premise.t),
+};
+
+type patch =
+  | InventoryUpsert(inventory_patch_data)
+  | InventoryDelete(string);
+
+[@deriving json]
 type payload = {
-  config,
+  config: config_payload,
   unit: PeriodList.Unit.t,
 };
 
@@ -78,7 +88,21 @@ let derivePeriodList = (config: Config.t) => {
 };
 
 let payloadOfConfig = (config: config): payload => {
-  config,
+  config: {
+    inventory:
+      Some(
+        config.inventory
+        |> Array.map((item: Config.InventoryItem.t): inventory_payload => {
+             description: item.description,
+             id: item.id,
+             name: item.name,
+             quantity: item.quantity,
+             premise_id: item.premise_id,
+             period_list: Some(item.period_list),
+           }),
+      ),
+    premise: config.premise,
+  },
   unit:
     switch%platform (Runtime.platform) {
     | Server => PeriodList.Unit.defaultState
@@ -86,7 +110,27 @@ let payloadOfConfig = (config: config): payload => {
     },
 };
 
-let configOfPayload = (payload: payload) => payload.config;
+let configOfPayload = (payload: payload): config => {
+  inventory:
+    switch (payload.config.inventory) {
+    | Some(inventory) =>
+      inventory
+      |> Array.map((item: inventory_payload): Config.InventoryItem.t => {
+           description: item.description,
+           id: item.id,
+           name: item.name,
+           quantity: item.quantity,
+           premise_id: item.premise_id,
+           period_list:
+             switch (item.period_list) {
+             | Some(periodList) => periodList
+             | None => [||]
+             },
+         })
+    | None => [||]
+    },
+  premise: payload.config.premise,
+};
 
 let project = (config: config): projections => {
   premise_id:
@@ -97,20 +141,41 @@ let project = (config: config): projections => {
   period_list: derivePeriodList(config),
 };
 
-let makeClientStore = (~config: config, ~payload as _, ~derive: Tilia.Core.deriver(store)): store => {
-  config,
-  premise_id: derive.derived(store => project(store.config).premise_id),
-  period_list: derive.derived(store => project(store.config).period_list),
-  unit: PeriodList.Unit.value,
-};
-
-let makeServerStore = (~config: config, ~payload: payload): store => {
-  let projections = project(config);
+let makeStore =
+    (
+      ~config: config,
+      ~payload: payload,
+      ~derive: option(Tilia.Core.deriver(store))=?,
+      (),
+    ):
+    store => {
   {
-    premise_id: projections.premise_id,
+    premise_id:
+      StoreBuilder.projected(
+        ~derive?,
+        ~project,
+        ~serverSource=config,
+        ~fromStore=store => store.config,
+        ~select=projections => projections.premise_id,
+        (),
+      ),
     config,
-    period_list: projections.period_list,
-    unit: payload.unit,
+    period_list:
+      StoreBuilder.projected(
+        ~derive?,
+        ~project,
+        ~serverSource=config,
+        ~fromStore=store => store.config,
+        ~select=projections => projections.period_list,
+        (),
+      ),
+    unit:
+      StoreBuilder.current(
+        ~derive?,
+        ~client=PeriodList.Unit.value,
+        ~server=() => payload.unit,
+        (),
+      ),
   };
 };
 
@@ -152,45 +217,53 @@ let item_of_patch =
   };
 };
 
-let applyPatch = (currentConfig: config, patch: patch): config => {
-  switch (patch.type_, patch.table_, patch.action) {
-  | ("patch", "inventory", "INSERT" | "UPDATE") =>
-    switch (patch.data) {
-    | Some(newItem) =>
-      let itemWithPeriod = item_of_patch(currentConfig, newItem);
-      let exists =
-        currentConfig.inventory
-        |> Js.Array.some(~f=(i: Config.InventoryItem.t) => i.id === newItem.id);
-      let newInventory =
-        if (exists) {
-          currentConfig.inventory
-          |> Js.Array.map(~f=(i: Config.InventoryItem.t) =>
-               i.id === itemWithPeriod.id ? itemWithPeriod : i
-             );
-        } else {
-          Array.append(currentConfig.inventory, [|itemWithPeriod|]);
-        };
-      {
-        ...currentConfig,
-        inventory: newInventory,
-      };
-    | None => currentConfig
-    }
-  | ("patch", "inventory", "DELETE") =>
-    switch (patch.id) {
-    | Some(id) =>
-      let newInventory =
-        currentConfig.inventory
-        |> Js.Array.filter(~f=(i: Config.InventoryItem.t) => i.id !== id);
-      {
-        ...currentConfig,
-        inventory: newInventory,
-      };
-    | None => currentConfig
-    }
-  | _ => currentConfig
+let decodePatch =
+  StorePatch.compose([
+    StorePatch.Pg.decodeAs(
+      ~table="inventory",
+      ~decodeRow=inventory_patch_data_of_json,
+      ~insert=data => InventoryUpsert(data),
+      ~update=data => InventoryUpsert(data),
+      ~delete=id => InventoryDelete(id),
+      (),
+    ),
+  ]);
+
+let updateInventory = (currentConfig: config, newItem: inventory_patch_data): config => {
+  let itemWithPeriod = item_of_patch(currentConfig, newItem);
+  let exists =
+    currentConfig.inventory
+    |> Js.Array.some(~f=(i: Config.InventoryItem.t) => i.id === newItem.id);
+  let newInventory =
+    if (exists) {
+      currentConfig.inventory
+      |> Js.Array.map(~f=(i: Config.InventoryItem.t) =>
+           i.id === itemWithPeriod.id ? itemWithPeriod : i
+         );
+    } else {
+      Array.append(currentConfig.inventory, [|itemWithPeriod|]);
+    };
+  {
+    ...currentConfig,
+    inventory: newInventory,
   };
 };
+
+let deleteInventory = (currentConfig: config, id: string): config => {
+  let newInventory =
+    currentConfig.inventory
+    |> Js.Array.filter(~f=(i: Config.InventoryItem.t) => i.id !== id);
+  {
+    ...currentConfig,
+    inventory: newInventory,
+  };
+};
+
+let updateOfPatch = patch =>
+  switch (patch) {
+  | InventoryUpsert(newItem) => currentConfig => updateInventory(currentConfig, newItem)
+  | InventoryDelete(id) => currentConfig => deleteInventory(currentConfig, id)
+  };
 
 let subscriptionOfConfig = (config: config): option(subscription) =>
   switch (config.premise) {
@@ -220,17 +293,16 @@ module Runtime = StoreBuilder.Runtime.Make({
   let stateElementId = stateElementId;
   let payloadOfConfig = payloadOfConfig;
   let configOfPayload = configOfPayload;
-  let makeClientStore = makeClientStore;
-  let makeServerStore = makeServerStore;
+  let makeStore = makeStore;
   let config_of_json = config_of_json;
   let config_to_json = config_to_json;
   let payload_of_json = payload_of_json;
   let payload_to_json = payload_to_json;
-  let patch_of_json = patch_of_json;
+  let decodePatch = decodePatch;
   let subscriptionOfConfig = subscriptionOfConfig;
   let encodeSubscription = encodeSubscription;
   let updatedAtOf = updatedAtOf;
-  let applyPatch = applyPatch;
+  let updateOfPatch = updateOfPatch;
   let eventUrl = eventUrl;
   let baseUrl = baseUrl;
 });

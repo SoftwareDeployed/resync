@@ -1,3 +1,30 @@
+let derived = (~derive: option(Tilia.Core.deriver('store))=?, ~client, ~server, ()) =>
+  switch (derive) {
+  | Some(derive) => derive.derived(client)
+  | None => server()
+  };
+
+let current = (~derive: option(Tilia.Core.deriver('store))=?, ~client, ~server, ()) =>
+  switch (derive) {
+  | Some(_) => client
+  | None => server()
+  };
+
+let projected = (
+  ~derive: option(Tilia.Core.deriver('store))=?,
+  ~project,
+  ~serverSource,
+  ~fromStore,
+  ~select,
+  (),
+) =>
+  derived(
+    ~derive?,
+    ~client=store => select(project(fromStore(store))),
+    ~server=() => select(project(serverSource)),
+    (),
+  );
+
 module Runtime = {
   module type Exports = {
     type config;
@@ -24,21 +51,20 @@ module Runtime = {
     let payloadOfConfig: config => payload;
     let configOfPayload: payload => config;
 
-    let makeClientStore:
-      (~config: config, ~payload: payload, ~derive: Tilia.Core.deriver(store)) =>
+    let makeStore:
+      (~config: config, ~payload: payload, ~derive: Tilia.Core.deriver(store)=?, unit) =>
       store;
-    let makeServerStore: (~config: config, ~payload: payload) => store;
 
     let config_of_json: StoreJson.json => config;
     let config_to_json: config => StoreJson.json;
     let payload_of_json: StoreJson.json => payload;
     let payload_to_json: payload => StoreJson.json;
-    let patch_of_json: StoreJson.json => patch;
+    let decodePatch: StoreJson.json => option(patch);
 
     let subscriptionOfConfig: config => option(subscription);
     let encodeSubscription: subscription => string;
     let updatedAtOf: config => float;
-    let applyPatch: (config, patch) => config;
+    let updateOfPatch: patch => config => config;
     let eventUrl: string;
     let baseUrl: string;
   };
@@ -59,18 +85,18 @@ module Runtime = {
       let project = (_config: config) => ();
       let makeStore = (~config, ~payload) =>
         StoreComputed.make(
-          ~client=derive => Schema.makeClientStore(~config, ~payload, ~derive),
-          ~server=() => Schema.makeServerStore(~config, ~payload),
+          ~client=derive => Schema.makeStore(~config, ~payload, ~derive, ()),
+          ~server=() => Schema.makeStore(~config, ~payload, ()),
         );
       let config_of_json = Schema.config_of_json;
       let config_to_json = Schema.config_to_json;
       let payload_of_json = Schema.payload_of_json;
       let payload_to_json = Schema.payload_to_json;
-      let patch_of_json = Schema.patch_of_json;
+      let decodePatch = Schema.decodePatch;
       let subscriptionOfConfig = Schema.subscriptionOfConfig;
       let encodeSubscription = Schema.encodeSubscription;
       let updatedAtOf = Schema.updatedAtOf;
-      let applyPatch = Schema.applyPatch;
+      let updateOfPatch = Schema.updateOfPatch;
       let eventUrl = Schema.eventUrl;
       let baseUrl = Schema.baseUrl;
     });
@@ -105,10 +131,9 @@ module Persisted = {
     let payload_to_json: payload => StoreJson.json;
     let transformConfig: config => config;
 
-    let makeClientStore:
-      (~config: config, ~payload: payload, ~derive: Tilia.Core.deriver(store)) =>
+    let makeStore:
+      (~config: config, ~payload: payload, ~derive: Tilia.Core.deriver(store)=?, unit) =>
       store;
-    let makeServerStore: (~config: config, ~payload: payload) => store;
   };
 
   module Make = (Schema: Schema) => {
@@ -124,8 +149,8 @@ module Persisted = {
       let project = (_config: config) => ();
       let makeStore = (~config, ~payload) =>
         StoreComputed.make(
-          ~client=derive => Schema.makeClientStore(~config, ~payload, ~derive),
-          ~server=() => Schema.makeServerStore(~config, ~payload),
+          ~client=derive => Schema.makeStore(~config, ~payload, ~derive, ()),
+          ~server=() => Schema.makeStore(~config, ~payload, ()),
         );
     });
 

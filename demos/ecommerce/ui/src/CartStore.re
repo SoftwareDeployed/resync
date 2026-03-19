@@ -21,56 +21,79 @@ module CartItem = {
 [@deriving json]
 type config = {items: StoreJson.Dict.t(CartItem.t)};
 
+type items = StoreJson.Dict.t(CartItem.t);
+
 [@deriving json]
-type payload = config;
+type payload = {
+  [@json.option]
+  items: option(StoreJson.Dict.t(CartItem.t)),
+};
 
 type store = {
-  items: Js.Dict.t(CartItem.t),
+  items,
   item_count: int,
 };
 
 let storageKey = "ecommerce.cart";
 
+let defaultItems: items = Js.Dict.empty();
+
 let emptyPayload: payload = {
-  items: Js.Dict.fromArray([||]),
+  items: Some(defaultItems),
 };
 
-let payloadOfConfig = (config: config): payload => config;
-let configOfPayload = (payload: payload): config => payload;
-let payloadOfStore = (store: store): payload => {items: store.items};
+let payloadOfConfig = (config: config): payload => {items: Some(config.items)};
 
-let itemCount = (config: config) => config.items->Js.Dict.keys->Array.length;
-let itemCountOfItems = items => items->Js.Dict.keys->Array.length;
-
-let makeClientStore = (~config: config, ~payload as _, ~derive: Tilia.Core.deriver(store)): store => {
-  items: config.items,
-  item_count: derive.derived(store => itemCountOfItems(store.items)),
+let configOfPayload = (payload: payload): config => {
+  items:
+    switch (payload.items) {
+    | Some(items) => items
+    | None => defaultItems
+    },
 };
 
-let makeServerStore = (~config: config, ~payload as _): store => {
-  items: config.items,
-  item_count: itemCount(config),
+let payloadOfStore = (store: store): payload => {items: Some(store.items)};
+
+let emptyConfig = configOfPayload(emptyPayload);
+
+let itemCountOfItems = items =>
+  Array.fold_left(
+    (count, inventoryId) =>
+      count
+      + switch (items->Js.Dict.get(inventoryId)) {
+        | Some((cartItem: CartItem.t)) => cartItem.quantity
+        | None => 0
+        },
+    0,
+    items->Js.Dict.keys,
+  );
+
+let itemCount = (config: config) => itemCountOfItems(config.items);
+
+let makeStore =
+    (
+      ~config: config,
+      ~payload: payload,
+      ~derive: option(Tilia.Core.deriver(store))=?,
+      (),
+    ):
+    store => {
+  let _ = payload;
+  {
+    items: config.items,
+    item_count:
+      StoreBuilder.derived(
+        ~derive?,
+        ~client=store => itemCountOfItems(store.items),
+        ~server=() => itemCount(config),
+        (),
+      ),
+  };
 };
 
-let emptyStore = makeServerStore(~config=emptyPayload, ~payload=emptyPayload);
+let emptyStore = makeStore(~config=emptyConfig, ~payload=emptyPayload, ());
 
-let addItem = (config: config, item: Config.InventoryItem.t) => {
-  let cartItem =
-    switch (config.items->Js.Dict.get(item.id)) {
-    | Some(existing) => {
-        ...existing,
-        quantity: existing.quantity + 1,
-      }
-    | None => {
-        reservation: None,
-        inventory_id: item.id,
-        quantity: 1,
-      }
-    };
-  config.items->Js.Dict.set(item.id, cartItem);
-};
-
-let itemsSourceRef: ref(option(StoreSource.t(Js.Dict.t(CartItem.t)))) = ref(None);
+let itemsSourceRef: ref(option(StoreSource.t(items))) = ref(None);
 
 let log = (label: string, value: 'a) =>
   switch%platform (Runtime.platform) {
@@ -106,8 +129,7 @@ module Runtime = StoreBuilder.Persisted.Make({
   let payload_of_json = payload_of_json;
   let payload_to_json = payload_to_json;
   let transformConfig = transformConfig;
-  let makeClientStore = makeClientStore;
-  let makeServerStore = makeServerStore;
+  let makeStore = makeStore;
 });
 
 include (
@@ -128,7 +150,7 @@ let hydrateStore = () => {
   store;
 };
 
-let copyItems = (items: Js.Dict.t(CartItem.t)) => {
+let copyItems = (items: items) => {
   let nextItems = Js.Dict.empty();
   items
   ->Js.Dict.keys
@@ -141,36 +163,98 @@ let copyItems = (items: Js.Dict.t(CartItem.t)) => {
   nextItems;
 };
 
-let add_to_cart = (_store: t, item: Config.InventoryItem.t) => {
+let removeItemById = (items: items, inventoryId: string) => {
+  let nextItems = Js.Dict.empty();
+  items
+  ->Js.Dict.keys
+  ->Belt.Array.forEach(key =>
+      if (key != inventoryId) {
+        switch (items->Js.Dict.get(key)) {
+        | Some(item) => nextItems->Js.Dict.set(key, item)
+        | None => ()
+        };
+      }
+    );
+  nextItems;
+};
+
+let setItemQuantity = (items: items, ~inventoryId, ~quantity) => {
+  if (quantity <= 0) {
+    removeItemById(items, inventoryId);
+  } else {
+    let nextItems = copyItems(items);
+    let nextItem =
+      switch (nextItems->Js.Dict.get(inventoryId)) {
+      | Some(existing) => {
+          ...existing,
+          quantity,
+        }
+      | None => {
+          reservation: None,
+          inventory_id: inventoryId,
+          quantity,
+        }
+      };
+    nextItems->Js.Dict.set(inventoryId, nextItem);
+    nextItems;
+  };
+};
+
+let updateItems = (~store: t, ~label, reducer) => {
   let source = itemsSourceRef.contents;
   let currentItems =
     switch (source) {
     | Some(itemsSource) => itemsSource.get()
-    | None => _store.items
+    | None => store.items
     };
-  let beforeCount = currentItems->Js.Dict.keys->Array.length;
+  let beforeCount = itemCountOfItems(currentItems);
   let nextItems =
     switch (source) {
     | Some(itemsSource) => {
-        itemsSource.update(current => {
-          let next = copyItems(current);
-          let nextStore: payload = {items: next};
-          addItem(nextStore, item);
-          next;
-        });
+        itemsSource.update(current => reducer(copyItems(current)));
         itemsSource.get();
       }
-    | None => {
-        let next = copyItems(currentItems);
-        let nextStore: payload = {items: next};
-        addItem(nextStore, item);
-        next;
-      }
+    | None => reducer(copyItems(currentItems))
     };
-  let afterCount = nextItems->Js.Dict.keys->Array.length;
+  let afterCount = itemCountOfItems(nextItems);
+  log(label ++ " before count", beforeCount);
+  log(label ++ " after count", afterCount);
+  log(label ++ " persisting", nextItems);
+  Runtime.persistPayload({items: Some(nextItems)});
+};
+
+let increment_item = (store: t, inventoryId: string) => {
+  log("[cart] increment item", inventoryId);
+  updateItems(~store, ~label="[cart] increment", items => {
+    let nextQuantity =
+      switch (items->Js.Dict.get(inventoryId)) {
+      | Some((cartItem: CartItem.t)) => cartItem.quantity + 1
+      | None => 1
+      };
+    setItemQuantity(items, ~inventoryId, ~quantity=nextQuantity);
+  });
+};
+
+let decrement_item = (store: t, inventoryId: string) => {
+  log("[cart] decrement item", inventoryId);
+  updateItems(~store, ~label="[cart] decrement", items => {
+    let nextQuantity =
+      switch (items->Js.Dict.get(inventoryId)) {
+      | Some((cartItem: CartItem.t)) => cartItem.quantity - 1
+      | None => 0
+      };
+    setItemQuantity(items, ~inventoryId, ~quantity=nextQuantity);
+  });
+};
+
+let remove_item = (store: t, inventoryId: string) => {
+  log("[cart] remove item", inventoryId);
+  updateItems(~store, ~label="[cart] remove", items =>
+    removeItemById(items, inventoryId)
+  );
+};
+
+let add_to_cart = (store: t, item: Config.InventoryItem.t) => {
   log("[cart] add_to_cart item", item.id);
-  log("[cart] add_to_cart before count", beforeCount);
-  log("[cart] add_to_cart after count", afterCount);
-  log("[cart] persisting payload", nextItems);
-  Runtime.persistPayload({items: nextItems});
+  increment_item(store, item.id);
 };

@@ -7,8 +7,8 @@ module type Schema = {
   let encodeSubscription: subscription => string;
   let updatedAtOf: config => float;
   let config_of_json: StoreJson.json => config;
-  let patch_of_json: StoreJson.json => patch;
-  let applyPatch: (config, patch) => config;
+  let decodePatch: StoreJson.json => option(patch);
+  let updateOfPatch: patch => config => config;
   let eventUrl: string;
   let baseUrl: string;
 };
@@ -17,8 +17,7 @@ module type S = {
   type config;
   type patch;
 
-  let subscribe:
-    (~set: config => unit, ~get: unit => config, ~config: config) => unit;
+  let subscribe: (~source: StoreSource.actions(config), ~config: config) => unit;
   let source: config => config;
 };
 
@@ -26,23 +25,19 @@ module Make = (Schema: Schema) => {
   type config = Schema.config;
   type patch = Schema.patch;
 
-  let parsePatch = json => StoreJson.tryDecode(Schema.patch_of_json, json);
-
   let%browser_only subscribe =
                    (
-                     ~set: config => unit,
-                     ~get: unit => config,
+                     ~source: StoreSource.actions(config),
                      ~config: config,
                    ) => {
     switch (Schema.subscriptionOfConfig(config)) {
     | Some(subscription) =>
       RealtimeClient.Socket.subscribe(
-        ~set,
-        ~get,
+        ~source,
         ~subscription=Schema.encodeSubscription(subscription),
         ~updatedAt=Schema.updatedAtOf(config),
-        ~parsePatch,
-        ~applyPatch=Schema.applyPatch,
+        ~decodePatch=Schema.decodePatch,
+        ~updateOfPatch=Schema.updateOfPatch,
         ~decodeSnapshot=Schema.config_of_json,
         ~updatedAtOf=Schema.updatedAtOf,
         ~eventUrl=Schema.eventUrl,
@@ -57,10 +52,9 @@ module Make = (Schema: Schema) => {
     | Client =>
       let configSource =
         StoreSource.make(
-          ~mount=actions =>
+          ~mount=source =>
             subscribe(
-              ~set=actions.set,
-              ~get=actions.get,
+              ~source,
               ~config,
             ),
           config,

@@ -1,6 +1,8 @@
 open Tilia.React;
 
 let str = React.string;
+let cart_button_class =
+  "inline-flex h-8 w-8 items-center justify-center rounded-sm border border-slate-300 bg-white text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-100";
 
 module Count = {
   [@react.component]
@@ -44,13 +46,46 @@ module Contents = {
                     | None => cart_item.inventory_id
                     };
 
+                  let%browser_only decrement_item = event => {
+                    event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
+                    CartStore.decrement_item(cart_store, cart_item.inventory_id);
+                  };
+
+                  let%browser_only increment_item = event => {
+                    event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
+                    CartStore.increment_item(cart_store, cart_item.inventory_id);
+                  };
+
+                  let%browser_only remove_item = event => {
+                    event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
+                    CartStore.remove_item(cart_store, cart_item.inventory_id);
+                  };
+
                   <li
                     key=cart_item.inventory_id
-                    className="flex items-center justify-between rounded-sm border border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700">
-                    <span> label->str </span>
-                    <span className="font-medium">
-                      {("Qty " ++ Int.to_string(cart_item.quantity))->str}
-                    </span>
+                    className="flex items-center justify-between gap-3 rounded-sm border border-slate-200 bg-white/70 px-3 py-2 text-sm text-slate-700">
+                    <div className="flex min-w-0 flex-col">
+                      <span className="font-medium"> label->str </span>
+                      <span className="text-xs text-slate-500">
+                        {("Qty " ++ Int.to_string(cart_item.quantity))->str}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button className=cart_button_class onClick=decrement_item>
+                        "-"->str
+                      </button>
+                      <span className="min-w-8 text-center font-medium">
+                        {Int.to_string(cart_item.quantity)->str}
+                      </span>
+                      <button className=cart_button_class onClick=increment_item>
+                        "+"->str
+                      </button>
+                      <button
+                        className="ml-2 inline-flex items-center rounded-sm border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 transition-colors hover:border-red-300 hover:bg-red-100"
+                        onClick=remove_item>
+                        "Remove"->str
+                      </button>
+                    </div>
                   </li>
                 }
               )

@@ -18,12 +18,12 @@ module type Schema = {
   let config_to_json: config => StoreJson.json;
   let payload_of_json: StoreJson.json => payload;
   let payload_to_json: payload => StoreJson.json;
-  let patch_of_json: StoreJson.json => patch;
+  let decodePatch: StoreJson.json => option(patch);
 
   let subscriptionOfConfig: config => option(subscription);
   let encodeSubscription: subscription => string;
   let updatedAtOf: config => float;
-  let applyPatch: (config, patch) => config;
+  let updateOfPatch: patch => config => config;
   let eventUrl: string;
   let baseUrl: string;
 };
@@ -47,15 +47,15 @@ module Make = (Schema: Schema) => {
     type patch = Schema.patch;
     type subscription = Schema.subscription;
 
-    let subscriptionOfConfig = Schema.subscriptionOfConfig;
-    let encodeSubscription = Schema.encodeSubscription;
-    let updatedAtOf = Schema.updatedAtOf;
-    let config_of_json = Schema.config_of_json;
-    let patch_of_json = Schema.patch_of_json;
-    let applyPatch = Schema.applyPatch;
-    let eventUrl = Schema.eventUrl;
-    let baseUrl = Schema.baseUrl;
-  });
+      let subscriptionOfConfig = Schema.subscriptionOfConfig;
+      let encodeSubscription = Schema.encodeSubscription;
+      let updatedAtOf = Schema.updatedAtOf;
+      let config_of_json = Schema.config_of_json;
+      let decodePatch = Schema.decodePatch;
+      let updateOfPatch = Schema.updateOfPatch;
+      let eventUrl = Schema.eventUrl;
+      let baseUrl = Schema.baseUrl;
+    });
 
   let buildStore = (payload: Schema.payload) =>
     Core.buildStore(~configTransform=Sync.source, payload);

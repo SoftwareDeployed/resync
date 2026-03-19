@@ -1,16 +1,24 @@
 open Melange_json.Primitives;
 
 module Unit = {
-  [@deriving (jsConverter, json)]
+  [@deriving jsConverter]
   type t = [
-    | [@json.name "second"] [@mel.as "second"] `Second
-    | [@json.name "minute"] [@mel.as "minute"] `Minute
-    | [@json.name "hour"] [@mel.as "hour"] `Hour
-    | [@json.name "day"] [@mel.as "day"] `Day
-    | [@json.name "week"] [@mel.as "week"] `Week
-    | [@json.name "month"] [@mel.as "month"] `Month
-    | [@json.name "year"] [@mel.as "year"] `Year
+    | [@mel.as "second"] `Second
+    | [@mel.as "minute"] `Minute
+    | [@mel.as "hour"] `Hour
+    | [@mel.as "day"] `Day
+    | [@mel.as "week"] `Week
+    | [@mel.as "month"] `Month
+    | [@mel.as "year"] `Year
   ];
+
+  let of_json = json =>
+    switch (json->string_of_json->tFromJs) {
+    | Some(unit) => unit
+    | None => Melange_json.of_json_error(~json, "expected supported period unit")
+    };
+
+  let to_json = unit => unit->tToJs->string_to_json;
 
   // XXX: This default state should come from the server
   let defaultState: t = `Month;
