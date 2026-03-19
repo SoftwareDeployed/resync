@@ -732,17 +732,3 @@ let defaultReconnectInterval = 5000;  // 5 seconds
 let defaultMaxReconnectAttempts = 10;
 let defaultHeartbeatInterval = 30000;  // 30 seconds
 ```
-
-## Migration Notes
-
-### From v0.1.x to v0.2.x
-
-- `StoreBuilder.create` renamed to `StoreBuilder.Runtime.Make`
-- `UniversalRouter.link` replaced with `UniversalRouter.Link` component
-- `eventEndpoint` renamed to `eventUrl` in store config
-
-### From v0.2.x to v0.3.x
-
-- Added `~derive` parameter to projection functions
-- Changed `StorePatch.decode` signature to return `option`
-- Renamed `serializeState` to `state_to_json` convention
