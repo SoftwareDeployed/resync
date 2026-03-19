@@ -19,6 +19,19 @@ This setup is still a prototype. Expect the APIs to keep changing while the rout
 
 This document is AI-generated and should be treated as a draft until it has been reviewed and edited by a human.
 
+## Development environment
+
+For local development, set `DB_URL`, `API_BASE_URL`, and `DOC_ROOT` before starting the Dream server.
+Using `.envrc` is recommended.
+
+```bash
+export DB_URL="postgres://executor:executor-password@localhost:5432/executor_db" \
+API_BASE_URL="http://localhost:8899" \
+DOC_ROOT="./_build/default/demos/ecommerce/ui/src/app/"
+```
+
+The current server setup expects `DB_URL` and `DOC_ROOT` to be present.
+
 ## Mental model
 
 - `UniversalRouter` owns route matching, layouts, href generation, and document rendering.

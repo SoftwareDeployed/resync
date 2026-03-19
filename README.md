@@ -125,18 +125,16 @@ Start PostgreSQL:
 docker compose -f demos/ecommerce/server/docker-compose.yml up -d
 ```
 
-Configure the database connection before starting the server. The server now
-fails fast unless either `DB_URL` is set or `ALLOW_DEV_DB=true` is present:
+Before starting the server, set `DB_URL` and `DOC_ROOT`. For development,
+`.envrc` is recommended so the expected environment is loaded consistently:
 
 ```bash
-export DB_URL=postgres://executor:executor-password@127.0.0.1:5432/executor_db
+export DB_URL="postgres://executor:executor-password@localhost:5432/executor_db" \
+API_BASE_URL="http://localhost:8899" \
+DOC_ROOT="./_build/default/demos/ecommerce/ui/src/app/"
 ```
 
-Or, to opt into the local development fallback explicitly:
-
-```bash
-export ALLOW_DEV_DB=true
-```
+The server now fails fast unless `DB_URL` and `DOC_ROOT` are set.
 
 Run the app from the repo root:
 
@@ -170,8 +168,8 @@ dune build @app @server
 The ecommerce demo currently uses:
 
 - `DOC_ROOT=./_build/default/demos/ecommerce/ui/src/app/`
-- `DB_URL` required unless `ALLOW_DEV_DB=true`
-- when `ALLOW_DEV_DB=true`, the local development fallback is `postgres://executor:executor-password@127.0.0.1:5432/executor_db`
+- `DB_URL=postgres://executor:executor-password@localhost:5432/executor_db`
+- `API_BASE_URL=http://localhost:8899`
 - server port `8899`
 
 ## Demo behavior
