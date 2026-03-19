@@ -45,8 +45,8 @@ eval $(opam env)
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd executor-full-stack
+git clone https://github.com/SoftwareDeployed/resync
+cd resync
 
 # Install dependencies
 opam install . --deps-only --with-test
