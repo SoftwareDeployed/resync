@@ -4,6 +4,8 @@
 
 The repository currently ships with an ecommerce demo that exercises the shared packages.
 
+Note: parts of this README and `docs/` are AI-generated drafts. Human review and editing are required before treating them as finalized documentation.
+
 ## Status
 
 This project is still a prototype.
