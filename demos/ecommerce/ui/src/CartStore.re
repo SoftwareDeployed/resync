@@ -1,103 +1,76 @@
 open Melange_json.Primitives;
 
-module Schema = {
-  module Reservation = {
-    [@deriving json]
-    type t = {
-      date: StoreJson.Date.t,
-      units: int,
-      unit_type: PeriodList.Unit.t,
-    };
-  };
-
-  module CartItem = {
-    [@deriving json]
-    type t = {
-      [@json.option] reservation: option(Reservation.t),
-      inventory_id: string,
-      quantity: int,
-    };
-  };
-
+module Reservation = {
   [@deriving json]
-  type config = {items: StoreJson.Dict.t(CartItem.t)};
-
-  [@deriving json]
-  type payload = config;
-
-  type projections = {
-    item_count: int,
-  };
-
-  type store = {
-    items: Js.Dict.t(CartItem.t),
-    item_count: int,
-  };
-
-  let storageKey = "ecommerce.cart";
-
-  let emptyPayload: payload = {
-    items: Js.Dict.fromArray([||]),
-  };
-
-  let payloadOfConfig = (config: config): payload => config;
-  let configOfPayload = (payload: payload): config => payload;
-  let payloadOfStore = (store: store): payload => {items: store.items};
-
-  let project = (config: config): projections => {
-    item_count: config.items->Js.Dict.keys->Array.length,
-  };
-
-  let makeStore = (~config: config, ~payload: payload): store =>
-    switch%platform (Runtime.platform) {
-    | Client =>
-      Tilia.Core.carve(derive => {
-        let _ = payload;
-        {
-          items: config.items,
-          item_count: derive.derived(store => project({items: store.items}).item_count),
-        };
-      })
-    | Server => {
-        let _ = payload;
-        let projections = project(config);
-        {
-          items: config.items,
-          item_count: projections.item_count,
-        };
-      }
-    };
-
-  let emptyStore =
-    makeStore(
-      ~config=emptyPayload,
-      ~payload=emptyPayload,
-    );
-
-  let addItem = (config: config, item: Config.InventoryItem.t) => {
-    let cartItem =
-      switch (config.items->Js.Dict.get(item.id)) {
-      | Some(existing) => {
-          ...existing,
-          quantity: existing.quantity + 1,
-        }
-      | None => {
-          reservation: None,
-          inventory_id: item.id,
-          quantity: 1,
-        }
-      };
-    config.items->Js.Dict.set(item.id, cartItem);
+  type t = {
+    date: StoreJson.Date.t,
+    units: int,
+    unit_type: PeriodList.Unit.t,
   };
 };
 
-module Reservation = Schema.Reservation;
-module CartItem = Schema.CartItem;
+module CartItem = {
+  [@deriving json]
+  type t = {
+    [@json.option] reservation: option(Reservation.t),
+    inventory_id: string,
+    quantity: int,
+  };
+};
 
-module Core = StoreCore.Make(Schema);
+[@deriving json]
+type config = {items: StoreJson.Dict.t(CartItem.t)};
 
-let setItemsRef = ref((_items: Js.Dict.t(CartItem.t)) => ());
-let currentItemsRef = ref(Js.Dict.empty());
+[@deriving json]
+type payload = config;
+
+type store = {
+  items: Js.Dict.t(CartItem.t),
+  item_count: int,
+};
+
+let storageKey = "ecommerce.cart";
+
+let emptyPayload: payload = {
+  items: Js.Dict.fromArray([||]),
+};
+
+let payloadOfConfig = (config: config): payload => config;
+let configOfPayload = (payload: payload): config => payload;
+let payloadOfStore = (store: store): payload => {items: store.items};
+
+let itemCount = (config: config) => config.items->Js.Dict.keys->Array.length;
+let itemCountOfItems = items => items->Js.Dict.keys->Array.length;
+
+let makeClientStore = (~config: config, ~payload as _, ~derive: Tilia.Core.deriver(store)): store => {
+  items: config.items,
+  item_count: derive.derived(store => itemCountOfItems(store.items)),
+};
+
+let makeServerStore = (~config: config, ~payload as _): store => {
+  items: config.items,
+  item_count: itemCount(config),
+};
+
+let emptyStore = makeServerStore(~config=emptyPayload, ~payload=emptyPayload);
+
+let addItem = (config: config, item: Config.InventoryItem.t) => {
+  let cartItem =
+    switch (config.items->Js.Dict.get(item.id)) {
+    | Some(existing) => {
+        ...existing,
+        quantity: existing.quantity + 1,
+      }
+    | None => {
+        reservation: None,
+        inventory_id: item.id,
+        quantity: 1,
+      }
+    };
+  config.items->Js.Dict.set(item.id, cartItem);
+};
+
+let itemsSourceRef: ref(option(StoreSource.t(Js.Dict.t(CartItem.t)))) = ref(None);
 
 let log = (label: string, value: 'a) =>
   switch%platform (Runtime.platform) {
@@ -105,48 +78,52 @@ let log = (label: string, value: 'a) =>
   | Server => ()
   };
 
-let sourceItems = (config: Schema.config): Schema.config =>
+let transformConfig = (config: config): config =>
   switch%platform (Runtime.platform) {
   | Client => {
       log("[cart] sourceItems init count", config.items->Js.Dict.keys->Array.length);
-      currentItemsRef := config.items;
-      {
-        items:
-          Tilia.Core.source(. config.items, (. _items, setItems) => {
-            setItemsRef := nextItems => {
-              log("[cart] sourceItems next count", nextItems->Js.Dict.keys->Array.length);
-              currentItemsRef := nextItems;
-              setItems(nextItems);
-            };
-          }),
-      };
+      let itemsSource = StoreSource.make(config.items);
+      itemsSourceRef := Some(itemsSource);
+      {items: itemsSource.value};
     }
-  | Server => config
+  | Server => {
+      let itemsSource = StoreSource.make(config.items);
+      itemsSourceRef := Some(itemsSource);
+      {items: itemsSource.value};
+    }
   };
 
-module Persist = StorePersist.Make({
-  type payload = Schema.payload;
-  type store = Schema.store;
+module Runtime = StoreBuilder.Persisted.Make({
+  type nonrec config = config;
+  type nonrec payload = payload;
+  type nonrec store = store;
 
-  let storageKey = Schema.storageKey;
-  let emptyStore = Schema.emptyStore;
-  let makeStore = payload => Core.buildStore(~configTransform=sourceItems, payload);
-  let payloadOfStore = Schema.payloadOfStore;
-  let payload_of_json = Schema.payload_of_json;
-  let payload_to_json = Schema.payload_to_json;
+  let storageKey = storageKey;
+  let emptyStore = emptyStore;
+  let payloadOfConfig = payloadOfConfig;
+  let configOfPayload = configOfPayload;
+  let payloadOfStore = payloadOfStore;
+  let payload_of_json = payload_of_json;
+  let payload_to_json = payload_to_json;
+  let transformConfig = transformConfig;
+  let makeClientStore = makeClientStore;
+  let makeServerStore = makeServerStore;
 });
 
-include Core;
+include (
+  Runtime:
+    StoreBuilder.Persisted.Exports
+      with type config := config
+      and type payload := payload
+      and type t := store
+);
 
-let createStore = (config: Schema.config) => {
-  let store = Core.createStore(~configTransform=sourceItems, config);
-  currentItemsRef := store.items;
-  store;
-};
+type t = store;
+
+module Context = Runtime.Context;
 
 let hydrateStore = () => {
-  let store = Persist.hydrateStore();
-  currentItemsRef := store.items;
+  let store = Runtime.hydrateStore();
   log("[cart] hydrated count", store.items->Js.Dict.keys->Array.length);
   store;
 };
@@ -165,21 +142,35 @@ let copyItems = (items: Js.Dict.t(CartItem.t)) => {
 };
 
 let add_to_cart = (_store: t, item: Config.InventoryItem.t) => {
+  let source = itemsSourceRef.contents;
   let currentItems =
-    switch%platform (Runtime.platform) {
-    | Client => currentItemsRef.contents
-    | Server => _store.items
+    switch (source) {
+    | Some(itemsSource) => itemsSource.get()
+    | None => _store.items
     };
   let beforeCount = currentItems->Js.Dict.keys->Array.length;
-  let nextItems = copyItems(currentItems);
-  let nextStore: Schema.payload = {items: nextItems};
-  Schema.addItem(nextStore, item);
+  let nextItems =
+    switch (source) {
+    | Some(itemsSource) => {
+        itemsSource.update(current => {
+          let next = copyItems(current);
+          let nextStore: payload = {items: next};
+          addItem(nextStore, item);
+          next;
+        });
+        itemsSource.get();
+      }
+    | None => {
+        let next = copyItems(currentItems);
+        let nextStore: payload = {items: next};
+        addItem(nextStore, item);
+        next;
+      }
+    };
   let afterCount = nextItems->Js.Dict.keys->Array.length;
   log("[cart] add_to_cart item", item.id);
   log("[cart] add_to_cart before count", beforeCount);
   log("[cart] add_to_cart after count", afterCount);
-  currentItemsRef := nextItems;
-  setItemsRef.contents(nextItems);
   log("[cart] persisting payload", nextItems);
-  Persist.persistPayload({items: nextItems});
+  Runtime.persistPayload({items: nextItems});
 };

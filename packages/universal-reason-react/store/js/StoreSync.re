@@ -55,22 +55,17 @@ module Make = (Schema: Schema) => {
   let source = (config: config) =>
     switch%platform (Runtime.platform) {
     | Client =>
-      let currentConfig = ref(config);
-      Tilia.Core.source(.
-        config,
-        (. _config, set) => {
-          let setConfig = nextConfig => {
-            currentConfig := nextConfig;
-            set(nextConfig);
-          };
-
-          subscribe(
-            ~set=setConfig,
-            ~get=() => currentConfig.contents,
-            ~config,
-          );
-        },
-      );
+      let configSource =
+        StoreSource.make(
+          ~mount=actions =>
+            subscribe(
+              ~set=actions.set,
+              ~get=actions.get,
+              ~config,
+            ),
+          config,
+        );
+      configSource.value;
     | Server => config
     };
 };

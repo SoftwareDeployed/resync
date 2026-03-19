@@ -14,11 +14,10 @@ module Unit = {
 
   // XXX: This default state should come from the server
   let defaultState: t = `Month;
-  let (signal, set) =
-    switch%platform (Runtime.platform) {
-    | Client => Tilia.Core.signal(defaultState)
-    | Server => (defaultState, (_ => ()))
-    };
+  let state = StoreSignal.make(defaultState);
+  let value = state.value;
+  let get = state.get;
+  let set = state.set;
 };
 
 module Premise = {

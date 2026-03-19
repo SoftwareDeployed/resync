@@ -6,6 +6,7 @@
  (libraries
   dream
   server-reason-react.react
+  server-reason-react.reactDom
   server-reason-react.js
   universal_reason_react_components_native)
  (preprocess
