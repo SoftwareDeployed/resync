@@ -26,7 +26,6 @@ demos/todo/
 Make sure you've built the main project first:
 
 ```bash
-cd /path/to/executor-full-stack
 dune build
 ```
 

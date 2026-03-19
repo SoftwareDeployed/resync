@@ -23,8 +23,8 @@ This documentation covers the complete stack for building universal Reason React
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd executor-full-stack
+git clone https://github.com/SoftwareDeployed/resync
+cd resync
 
 # Install dependencies
 opam install . --deps-only
@@ -48,7 +48,6 @@ Use the checked-in `demos/todo` demo as the first app walkthrough.
 - client hydration in `ui/`
 
 ```bash
-cd /path/to/executor-full-stack
 dune build demos/todo
 export DOC_ROOT="./demos/todo/_build/default/demos/todo/ui/src/app/"
 dune exec demos/todo/server/src/server.exe
