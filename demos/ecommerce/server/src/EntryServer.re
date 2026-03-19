@@ -1,6 +1,6 @@
 open Lwt.Syntax;
 
-let getServerState = (context: UniversalRouterDream.serverContext) => {
+let getServerState = (context: UniversalRouterDream.serverContext(Store.t)) => {
   let routeRoot = UniversalRouterDream.contextRouteRoot(context);
   let* premise =
     Dream.sql(
@@ -23,19 +23,21 @@ let getServerState = (context: UniversalRouterDream.serverContext) => {
       };
     let* inventory = inventoryPromise;
     let config: Config.t = {inventory, premise: Some(premise)};
-    Lwt.return(UniversalRouterDream.State(config))
+    let store = Store.createStore(config);
+    Lwt.return(UniversalRouterDream.State(store))
   };
 };
 
-let render = (~context, ~serverState: Config.t, ()) => {
-  let store = Store.createStore(serverState);
-  let serializedState = Store.serializeState(serverState);
+let render = (~context, ~serverState: Store.t, ()) => {
+  let store = serverState;
+  let serializedState = Store.serializeState(serverState.config);
   let routeRoot = UniversalRouterDream.contextRouteRoot(context);
   let serverPath = UniversalRouterDream.contextPath(context);
   let serverSearch = UniversalRouterDream.contextSearch(context);
   let app =
     <UniversalRouter
       router=Routes.router
+      state=store
       routeRoot
       serverPath
       serverSearch
@@ -48,6 +50,7 @@ let render = (~context, ~serverState: Config.t, ()) => {
       ~path=serverPath,
       ~search=serverSearch,
       ~serializedState,
+      ~state=store,
       (),
     );
 

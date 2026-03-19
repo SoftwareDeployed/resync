@@ -69,8 +69,26 @@ type headTag =
 
 type titleResolver = (~path: string, ~params: Params.t, ~query: Query.t) => string;
 
+type titleResolverWithState('state) =
+  (
+    ~path: string,
+    ~params: Params.t,
+    ~query: Query.t,
+    ~state: 'state,
+  ) =>
+  string;
+
 type headTagsResolver =
   (~path: string, ~params: Params.t, ~query: Query.t) => list(headTag);
+
+type headTagsResolverWithState('state) =
+  (
+    ~path: string,
+    ~params: Params.t,
+    ~query: Query.t,
+    ~state: 'state,
+  ) =>
+  list(headTag);
 
 type hydrationState = {
   routeRoot: string,
@@ -109,42 +127,61 @@ module type NOT_FOUND = {
   let make: (~path: string, unit) => React.element;
 };
 
-type routeConfig = {
+type routeConfig('state) = {
   id: option(string),
   path: string,
   layout: option(module LAYOUT),
   page: option(module PAGE),
   title: option(string),
   resolveTitle: option(titleResolver),
+  resolveTitleWithState: option(titleResolverWithState('state)),
   headTags: list(headTag),
   resolveHeadTags: option(headTagsResolver),
-  children: list(routeConfig),
+  resolveHeadTagsWithState: option(headTagsResolverWithState('state)),
+  children: list(routeConfig('state)),
 };
 
-type t = {
+type t('state) = {
   document: documentConfig,
   notFound: option(module NOT_FOUND),
-  routes: list(routeConfig),
+  routes: list(routeConfig('state)),
 };
 
-type matchResult = {
+type matchResult('state) = {
   path: string,
   params: Params.t,
   query: Query.t,
-  routes: list(routeConfig),
+  routes: list(routeConfig('state)),
 };
 
-type contextValue = {
-  router: t,
+type contextValueWithState('state) = {
+  router: t('state),
   routeRoot: string,
   path: string,
   query: Query.t,
   params: Params.t,
-  matchResult: option(matchResult),
+  matchResult: option(matchResult('state)),
+};
+
+type contextValue = {
+  router: t(unit),
+  routeRoot: string,
+  path: string,
+  query: Query.t,
+  params: Params.t,
+  matchResult: option(matchResult(unit)),
 };
 
 let context: React.Context.t(option(contextValue)) = React.createContext(None);
 let provider = React.Context.provider(context);
+
+let castToUnitRouter = (router: t('state)) => (Obj.magic(router): t(unit));
+
+let castToUnitMatchResult = (matchResult: option(matchResult('state))) =>
+  switch (matchResult) {
+  | None => None
+  | Some(result) => Some(Obj.magic(result): matchResult(unit))
+  };
 
 let hydrationScriptId = "universal-router-state";
 
@@ -243,8 +280,10 @@ let route = (
   ~page=?,
   ~title: option(string)=?,
   ~resolveTitle: option(titleResolver)=?,
+  ~resolveTitleWithState: option(titleResolverWithState('state))=?,
   ~headTags=[],
   ~resolveHeadTags: option(headTagsResolver)=?,
+  ~resolveHeadTagsWithState: option(headTagsResolverWithState('state))=?,
   children,
   (),
 ) => {
@@ -254,8 +293,10 @@ let route = (
   page,
   title,
   resolveTitle,
+  resolveTitleWithState,
   headTags,
   resolveHeadTags,
+  resolveHeadTagsWithState,
   children,
 };
 
@@ -265,8 +306,10 @@ let group = (
   ~layout=?,
   ~title: option(string)=?,
   ~resolveTitle: option(titleResolver)=?,
+  ~resolveTitleWithState: option(titleResolverWithState('state))=?,
   ~headTags=[],
   ~resolveHeadTags: option(headTagsResolver)=?,
+  ~resolveHeadTagsWithState: option(headTagsResolverWithState('state))=?,
   children,
   (),
 ) =>
@@ -276,8 +319,10 @@ let group = (
     ~layout?,
     ~title?,
     ~resolveTitle?,
+    ~resolveTitleWithState?,
     ~headTags,
     ~resolveHeadTags?,
+    ~resolveHeadTagsWithState?,
     children,
     (),
   );
@@ -288,8 +333,10 @@ let index = (
   ~page,
   ~title: option(string)=?,
   ~resolveTitle: option(titleResolver)=?,
+  ~resolveTitleWithState: option(titleResolverWithState('state))=?,
   ~headTags=[],
   ~resolveHeadTags: option(headTagsResolver)=?,
+  ~resolveHeadTagsWithState: option(headTagsResolverWithState('state))=?,
   (),
 ) =>
   route(
@@ -299,8 +346,10 @@ let index = (
     ~page,
     ~title?,
     ~resolveTitle?,
+    ~resolveTitleWithState?,
     ~headTags,
     ~resolveHeadTags?,
+    ~resolveHeadTagsWithState?,
     [],
     (),
   );
@@ -384,11 +433,11 @@ let candidateRouteRoots = path => {
     segments
     |> List.fold_left(
          (acc, segment) => {
-           let previous = switch (acc) { | [head, ..._] => head | [] => [] };
-           [List.append(previous, [segment]), ...acc];
-         },
-         [[]],
-       );
+            let previous = switch (acc) { | [head, ..._] => head | [] => [] };
+            [List.append(previous, [segment]), ...acc];
+          },
+          [[]],
+        );
 
   prefixes
   |> List.map(pathOfSegments)
@@ -440,12 +489,12 @@ let matchPattern = (patternSegments, pathSegments) => {
   loop(patternSegments, pathSegments, []);
 };
 
-let matchPath = (~router: t, ~path, ~query=Query.empty, ()) => {
+let matchPath = (~router: t('state), ~path, ~query=Query.empty, ()) => {
   let pathSegments = path |> normalizePath |> segmentsOfPath;
 
   let rec matchRoutes =
           (
-            routes: list(routeConfig),
+            routes: list(routeConfig('state)),
             remainingSegments,
             params,
             matchedRoutes,
@@ -460,10 +509,10 @@ let matchPath = (~router: t, ~path, ~query=Query.empty, ()) => {
     }
   and matchRoute =
         (
-          currentRoute: routeConfig,
-          remainingSegments,
-          params,
-          matchedRoutes,
+           currentRoute: routeConfig('state),
+           remainingSegments,
+           params,
+           matchedRoutes,
         ) => {
     switch (matchPattern(routeSegments(currentRoute.path), remainingSegments)) {
     | None => None
@@ -478,12 +527,13 @@ let matchPath = (~router: t, ~path, ~query=Query.empty, ()) => {
         switch (childMatch()) {
         | Some(result) => Some(result)
         | None =>
-          Some({
-            path: normalizePath(path),
-            params: nextParams,
-            query,
-            routes: List.rev(nextMatchedRoutes),
-          })
+            Some({
+              path: normalizePath(path),
+              params: nextParams,
+              query,
+              
+              routes: List.rev(nextMatchedRoutes),
+            })
         };
       } else {
         childMatch();
@@ -494,16 +544,16 @@ let matchPath = (~router: t, ~path, ~query=Query.empty, ()) => {
   matchRoutes(router.routes, pathSegments, Params.empty, []);
 };
 
-let matchMountedPath = (~router: t, ~routeRoot, ~path, ~query=Query.empty, ()) =>
+let matchMountedPath = (~router: t('state), ~routeRoot, ~path, ~query=Query.empty, ()) =>
   switch (stripRouteRoot(~routeRoot, ~path)) {
   | None => None
   | Some(rootlessPath) => matchPath(~router, ~path=rootlessPath, ~query, ())
   };
 
-let rec findPatternForId = (routes: list(routeConfig), parentSegments, id) =>
+let rec findPatternForId = (routes: list(routeConfig('state)), parentSegments, id) =>
   switch (routes) {
   | [] => None
-  | [(currentRoute: routeConfig), ...remainingRoutes] =>
+  | [(currentRoute: routeConfig('state)), ...remainingRoutes] =>
     let nextSegments = List.append(parentSegments, routeSegments(currentRoute.path));
     if (currentRoute.id == Some(id)) {
       Some(nextSegments);
@@ -532,7 +582,7 @@ let buildPath = (~patternSegments, ~params=Params.empty, ~query=Query.empty, ())
   queryString == "" ? path : path ++ "?" ++ queryString;
 };
 
-let href = (~router: t, ~routeRoot="/", ~id, ~params=Params.empty, ~query=Query.empty, ()) =>
+let href = (~router: t('state), ~routeRoot="/", ~id, ~params=Params.empty, ~query=Query.empty, ()) =>
   switch (findPatternForId(router.routes, [], id)) {
   | None => None
   | Some(patternSegments) =>
@@ -544,7 +594,7 @@ let href = (~router: t, ~routeRoot="/", ~id, ~params=Params.empty, ~query=Query.
     )
   };
 
-let renderMatched = (~matchResult: matchResult, ~router: t) => {
+let renderMatched = (~matchResult: matchResult('state), ~router: t('state)) => {
   let _ = router;
   let params = matchResult.params;
   let query = matchResult.query;
@@ -582,7 +632,7 @@ let renderMatched = (~matchResult: matchResult, ~router: t) => {
   loop(matchResult.routes);
 };
 
-let renderNotFound = (~router: t, ~path) =>
+let renderNotFound = (~router: t('state), ~path) =>
   switch (router.notFound) {
   | None => React.null
   | Some(notFound) =>
@@ -590,47 +640,96 @@ let renderNotFound = (~router: t, ~path) =>
     NotFound.make(~path, ())
   };
 
-let resolveTitle = (~router: t, ~matchResult: option(matchResult)) =>
+let resolveTitle =
+    (
+      ~router: t('state),
+      ~matchResult: option(matchResult('state)),
+      ~state: option('state),
+    ) =>
   switch (matchResult) {
   | None => router.document.title
   | Some(result) =>
     result.routes
     |> List.fold_left(
-         (resolvedTitle, currentRoute) =>
-            switch (currentRoute.resolveTitle, currentRoute.title) {
-            | (Some(resolveTitle), _) =>
-              resolveTitle(~path=result.path, ~params=result.params, ~query=result.query)
-            | (None, Some(title)) => title
-            | (None, None) => resolvedTitle
+          (resolvedTitle, currentRoute) =>
+            switch (currentRoute.resolveTitleWithState) {
+            | Some(resolveTitleWithState) =>
+              switch (state) {
+              | Some(stateValue) =>
+                resolveTitleWithState(
+                  ~path=result.path,
+                  ~params=result.params,
+                  ~query=result.query,
+                  ~state=stateValue,
+                )
+              | None =>
+                switch (currentRoute.resolveTitle) {
+                | Some(resolveTitle) =>
+                  resolveTitle(~path=result.path, ~params=result.params, ~query=result.query)
+                | None =>
+                  switch (currentRoute.title) {
+                  | Some(title) => title
+                  | None => resolvedTitle
+                  }
+                }
+              }
+            | None =>
+              switch (currentRoute.resolveTitle) {
+              | Some(resolveTitle) =>
+                resolveTitle(~path=result.path, ~params=result.params, ~query=result.query)
+              | None =>
+                switch (currentRoute.title) {
+                | Some(title) => title
+                | None => resolvedTitle
+                }
+              }
             },
           router.document.title,
         )
   };
 
-let resolveHeadTags = (~router: t, ~matchResult: option(matchResult)) =>
+let resolveHeadTags =
+    (
+      ~router: t('state),
+      ~matchResult: option(matchResult('state)),
+      ~state: option('state),
+    ) =>
   switch (matchResult) {
   | None => router.document.headTags
   | Some(result) =>
     result.routes
     |> List.fold_left(
-         (resolvedHeadTags, currentRoute) =>
-           mergeHeadTags(
-             resolvedHeadTags,
-             switch (currentRoute.resolveHeadTags) {
-             | Some(resolveHeadTags) =>
-               mergeHeadTags(
-                 currentRoute.headTags,
-                 resolveHeadTags(
-                   ~path=result.path,
-                   ~params=result.params,
-                   ~query=result.query,
-                 ),
-               )
-             | None => currentRoute.headTags
-             },
-           ),
-          router.document.headTags,
-        )
+         (resolvedHeadTags, currentRoute) => {
+            let currentRouteHeadTags =
+              switch (currentRoute.resolveHeadTagsWithState, state) {
+              | (Some(resolveHeadTagsWithState), Some(stateValue)) =>
+                mergeHeadTags(
+                  currentRoute.headTags,
+                  resolveHeadTagsWithState(
+                    ~path=result.path,
+                    ~params=result.params,
+                    ~query=result.query,
+                    ~state=stateValue,
+                  ),
+                )
+              | (_, _) =>
+                switch (currentRoute.resolveHeadTags) {
+                | Some(resolveHeadTags) =>
+                  mergeHeadTags(
+                    currentRoute.headTags,
+                    resolveHeadTags(
+                      ~path=result.path,
+                      ~params=result.params,
+                      ~query=result.query,
+                    ),
+                  )
+                | None => currentRoute.headTags
+                }
+              };
+            mergeHeadTags(resolvedHeadTags, currentRouteHeadTags);
+         },
+           router.document.headTags,
+         )
   };
 
 let headTagId = index => "universal-router-head-" ++ string_of_int(index);
@@ -731,18 +830,20 @@ let renderHydrationScript = state =>
   />;
 
 let renderDocument = (
-  ~router: t,
-  ~children,
-  ~routeRoot="/",
-  ~path="/",
-  ~search="",
-  ~serializedState="",
-  (),
+   ~router: t('state),
+   ~children,
+   ~routeRoot="/",
+   ~path="/",
+   ~search="",
+   ~serializedState="",
+   ~state: option('state)=?,
+   (),
 ) => {
   let query = Query.parse(search);
   let matchResult = matchMountedPath(~router, ~routeRoot, ~path, ~query, ());
-  let title = resolveTitle(~router, ~matchResult);
-  let head = mergeHeadContent(router.document.head, resolveHeadTags(~router, ~matchResult));
+  let title = resolveTitle(~router, ~matchResult, ~state);
+  let head =
+    mergeHeadContent(router.document.head, resolveHeadTags(~router, ~matchResult, ~state));
   let hydrationState = {routeRoot: normalizeRouteRoot(routeRoot), path, search};
   let afterMain =
     mergeAfterMain(router.document.afterMain, renderHydrationScript(hydrationState));
@@ -893,10 +994,11 @@ module NavLink = {
 
 [@react.component]
 let make = (
-  ~router: t,
-  ~routeRoot: option(string)=?,
-  ~serverPath: option(string)=?,
-  ~serverSearch="",
+   ~router: t('state),
+   ~state: option('state)=?,
+   ~routeRoot: option(string)=?,
+   ~serverPath: option(string)=?,
+   ~serverSearch="",
 ) => {
   let hydrationState = readHydrationState();
   let effectiveRouteRoot =
@@ -944,8 +1046,8 @@ let make = (
     | None => renderNotFound(~router, ~path=currentPath)
     };
 
-  let title = resolveTitle(~router, ~matchResult);
-  let headTags = resolveHeadTags(~router, ~matchResult);
+  let title = resolveTitle(~router, ~matchResult, ~state);
+  let headTags = resolveHeadTags(~router, ~matchResult, ~state);
   let headVersion =
     title ++ "\n" ++ (headTags |> List.map(serializeHeadTag) |> String.concat("|"));
 
@@ -962,7 +1064,7 @@ let make = (
 
   let routerState =
     Some({
-      router,
+      router: castToUnitRouter(router),
       routeRoot: effectiveRouteRoot,
       path: currentPath,
       query,
@@ -971,7 +1073,7 @@ let make = (
         | Some(result) => result.params
         | None => Params.empty
         },
-      matchResult,
+      matchResult: castToUnitMatchResult(matchResult),
     });
 
   switch%platform (Runtime.platform) {

@@ -52,11 +52,45 @@ let itemIdLabel = params =>
   | None => "Item"
   };
 
+let itemNameFromState = (~params, ~state: Store.t) =>
+  switch (UniversalRouter.Params.find("id", params)) {
+  | None => itemIdLabel(params)
+  | Some(id) =>
+    switch (
+      Js.Array.find(
+        ~f=(item: Config.InventoryItem.t) => item.id == id,
+        state.config.inventory,
+      )
+    ) {
+    | Some(item) => item.name
+    | None => "Item " ++ id
+    }
+  };
+
 let resolveItemTitle = (~path as _, ~params, ~query as _) =>
   itemIdLabel(params) ++ " - Cloud Hardware Rental";
 
 let resolveItemHeadTags = (~path as _, ~params, ~query as _) => {
   let itemLabel = itemIdLabel(params);
+  [
+    UniversalRouter.propertyTag(
+      ~property="og:title",
+      ~content=itemLabel ++ " - Cloud Hardware Rental",
+      (),
+    ),
+    UniversalRouter.metaTag(
+      ~name="description",
+      ~content=itemLabel ++ " includes pricing and availability details before booking.",
+      (),
+    ),
+    ];
+  };
+
+let resolveItemTitleWithState = (~path as _, ~params, ~query as _, ~state: Store.t) =>
+  itemNameFromState(~params, ~state) ++ " - Cloud Hardware Rental";
+
+let resolveItemHeadTagsWithState = (~path as _, ~params, ~query as _, ~state: Store.t) => {
+  let itemLabel = itemNameFromState(~params, ~state);
   [
     UniversalRouter.propertyTag(
       ~property="og:title",
@@ -117,6 +151,7 @@ let router =
             ~path="item/:id",
             ~title="Item",
             ~resolveTitle=resolveItemTitle,
+            ~resolveTitleWithState=resolveItemTitleWithState,
             ~headTags=[
               UniversalRouter.metaTag(
                 ~name="description",
@@ -125,6 +160,7 @@ let router =
               ),
             ],
             ~resolveHeadTags=resolveItemHeadTags,
+            ~resolveHeadTagsWithState=resolveItemHeadTagsWithState,
             ~page=(module ItemPage),
             [],
             (),

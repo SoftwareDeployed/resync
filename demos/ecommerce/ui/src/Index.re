@@ -19,17 +19,17 @@ let%browser_only _ =
     let appWithProvider =
       React.createElement(
         Store.Context.Provider.make,
-        {
-          "value": store,
-          "children": React.createElement(
-            CartStore.Context.Provider.make,
-            {
-              "value": cartStore,
-              "children": <UniversalRouter router=Routes.router />,
-            },
-          ),
-        },
-      );
+             {
+               "value": store,
+               "children": React.createElement(
+                 CartStore.Context.Provider.make,
+                 {
+                   "value": cartStore,
+                  "children": <UniversalRouter router=Routes.router state=store />,
+                 },
+               ),
+             },
+           );
 
     ReactDOM.Client.hydrateRoot(domNode, appWithProvider)->ignore;
   | None => Js.log("No root element found")

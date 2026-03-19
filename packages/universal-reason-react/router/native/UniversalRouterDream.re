@@ -6,14 +6,14 @@ let requestSearch = request => Dream.target(request) |> Dream.split_target |> sn
 
 let requestQuery = request => Dream.all_queries(request) |> UniversalRouter.Query.ofList;
 
-type serverContext = {
+type serverContext('state) = {
   request: Dream.request,
   routeRoot: string,
   path: string,
   search: string,
   query: UniversalRouter.Query.t,
   params: UniversalRouter.Params.t,
-  matchResult: UniversalRouter.matchResult,
+  matchResult: UniversalRouter.matchResult('state),
 };
 
 type serverStateResult('state) =
@@ -22,7 +22,7 @@ type serverStateResult('state) =
   | Redirect({location: string, permanent: bool});
 
 type resolvedServerState('state) = {
-  context: serverContext,
+   context: serverContext('state),
   state: 'state,
 };
 
@@ -32,10 +32,10 @@ type loadedServerState('state) =
   | ServerRedirect({location: string, permanent: bool});
 
 type app('state) = {
-  router: UniversalRouter.t,
-  getServerState: serverContext => Lwt.t(serverStateResult('state)),
-  render: (~context: serverContext, ~serverState: 'state, unit) => React.element,
-};
+   router: UniversalRouter.t('state),
+   getServerState: serverContext('state) => Lwt.t(serverStateResult('state)),
+   render: (~context: serverContext('state), ~serverState: 'state, unit) => React.element,
+  };
 
 let app = (~router, ~getServerState, ~render, ()) => {
   router,
@@ -105,7 +105,7 @@ let loadServerState = (~router, ~routeRoot, ~request, ~getServerState) => {
   };
 };
 
-let renderDocument = (~router, ~routeRoot, ~serializedState="", ~children, request) =>
+let renderDocument = (~router, ~routeRoot, ~serializedState="", ~state=?, ~children, request) =>
   UniversalRouter.renderDocument(
     ~router,
     ~children,
@@ -113,6 +113,7 @@ let renderDocument = (~router, ~routeRoot, ~serializedState="", ~children, reque
     ~path=requestPath(request),
     ~search=requestSearch(request),
     ~serializedState,
+    ~state,
     (),
   );
 
