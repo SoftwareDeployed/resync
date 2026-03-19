@@ -24,6 +24,7 @@ packages/
   universal-reason-react/
     components/            Universal document components for SSR + hydration
     lucide-icons/          Universal Lucide icon rendering for SSR + hydration
+    router/                Shared nested routing for Dream + Reason React
     store/                 Composable store layers: core, state, sync, persist
 
 demos/
@@ -48,6 +49,27 @@ The ecommerce demo uses these layers in two different ways:
 
 - inventory store = core + state + sync
 - cart store = core + persist
+
+## Monorepo subpackages
+
+The packages in this monorepo are meant to be used together to build a universal `server-reason-react` application in an opinionated way.
+
+- `packages/universal-reason-react/components` gives you the shared document and rendering primitives for SSR + hydration.
+- `packages/universal-reason-react/router` gives you one route tree for Dream and the browser, including SSR entrypoints.
+- `packages/universal-reason-react/store` gives you the Tilia-backed store authoring model, hydration, persistence, and realtime sync.
+- `packages/universal-reason-react/lucide-icons` keeps SVG icon rendering consistent across server and client.
+- `packages/reason-realtime/dream-middleware` exposes the Dream websocket endpoint and middleware plumbing.
+- `packages/reason-realtime/pgnotify-adapter` turns PostgreSQL `LISTEN/NOTIFY` into realtime events that can feed the store.
+
+In practice, the opinionated stack looks like this:
+
+- Dream handles HTTP routing, SSR, and websocket endpoints
+- `universal-reason-react/router` shares route definitions between Dream and Reason React
+- `universal-reason-react/components` renders the document shell consistently on server and client
+- `universal-reason-react/store` hydrates initial state and keeps it reactive in the browser
+- `reason-realtime/*` pushes server-side changes into the client store after the initial SSR render
+
+If you want to understand how the pieces fit together, start with the ecommerce demo and the package-level docs under `docs/`.
 
 ## Realtime architecture
 
