@@ -2,20 +2,24 @@
 
 > ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
 
-
-Dream middleware and WebSocket infrastructure for real-time server-to-client updates.
+Dream websocket middleware and adapter hook for real-time server-to-client updates.
 
 ## Overview
 
-This package provides the server-side infrastructure for real-time updates in Universal Reason React applications. It handles WebSocket connections, message routing, and integration with Dream's request handling.
+This package provides a minimal websocket transport for pushing messages from server-side data sources into connected Dream clients.
+
+The middleware owns websocket lifecycle and channel subscriptions; it delegates two important decisions to your app:
+
+- how a client selection string maps to a channel (`~resolve_subscription`)
+- how to load a channel snapshot (`~load_snapshot`)
 
 ## Features
 
-- WebSocket endpoint for client connections
-- Middleware for request authentication and validation
-- Message routing and delivery
-- Integration with PostgreSQL LISTEN/NOTIFY
-- Automatic reconnection handling
+- WebSocket endpoint helper for Dream
+- Request-aware channel resolution via callback
+- Snapshot loading on subscription
+- Adapter integration for backend message sources (PostgreSQL adapter, custom adapters)
+- Broadcast fan-out to all sockets subscribed to a channel
 
 ## Installation
 
@@ -24,6 +28,7 @@ Add to your `dune` file:
 ```lisp
 (libraries
   reason_realtime_dream_middleware
+  reason_realtime_pgnotify_adapter
   dream
   lwt)
 ```
@@ -36,93 +41,75 @@ Add to your `dune` file:
 // server.ml
 open Dream;
 
+let resolve_subscription request selection = {
+  let route = Dream.path request in
+  let user = switch (Dream.session_field(request, "user_id")) {
+  | Some(value) => value
+  | None => "anonymous"
+  };
+  if (String.equal(selection, "public")) {
+    Lwt.return(Some("inventory"));
+  } else {
+    Lwt.return(Some(user ++ ":" ++ selection));
+  };
+};
+
+let load_snapshot request channel = {
+  let body =
+    if (String.equal(channel, "inventory")) {
+      "{\"type\":\"snapshot\",\"channel\":\"inventory\",\"payload\":{}}"
+    } else {
+      "{\"type\":\"snapshot\",\"channel\":\"\" ++ channel,\"payload\":{}}"
+    }
+  in
+  Lwt.return(body);
+};
+
+let adapter = ReasonRealtimeDreamMiddleware.Adapter.pack(
+  ReasonRealtimePgNotifyAdapter.create(~db_uri="postgres://user:pass@localhost:5432/mydb", ())
+);
+
+let middleware =
+  ReasonRealtimeDreamMiddleware.create(
+    ~adapter,
+    ~resolve_subscription,
+    ~load_snapshot,
+  );
+
 let () =
   Dream.run
   @@ Dream.logger
   @@ Dream.router([
-    // Real-time events endpoint
-    Dream.get "/_events" (
-      ReasonRealtimeDreamMiddleware.handler(
-        ~authenticate=(request => {
-          // Validate JWT or session
-          switch (Dream.header(request, "Authorization")) {
-          | Some(token) => validateToken(token)
-          | None => Lwt.return(None)
-          };
-        }),
-        ~onConnect=(userId => {
-          Log.info("User connected: " ++ userId);
-          Lwt.return_unit;
-        }),
-        ~onDisconnect=(userId => {
-          Log.info("User disconnected: " ++ userId);
-          Lwt.return_unit;
-        }),
-      )
-    ),
-    
-    // Your app routes
-    Dream.get "/**" (
-      UniversalRouterDream.handler(~app=EntryServer.app)
+    Dream.get "/_events" (ReasonRealtimeDreamMiddleware.route "/_events" middleware),
+    Dream.get "/**" (fun request =>
+      Dream.html("Hello from app")
     ),
   ]);
 ```
 
-### With PostgreSQL Notifications
+### Broadcasting from Adapter Callbacks
+
+The adapter should call the middleware broadcast function with string payloads when source events arrive.
 
 ```reason
-// server.ml
-let pgNotifyAdapter =
-  ReasonRealtimePgNotifyAdapter.create(
-    ~databaseUrl="postgres://user:pass@localhost/db",
-    ~channels=["items_changes", "user_updates"],
-  );
-
-let realtimeMiddleware =
+let middleware =
   ReasonRealtimeDreamMiddleware.create(
-    ~adapter=pgNotifyAdapter,
-    ~filterMessage=((userId, channel, payload)) => {
-      // Filter messages based on user permissions
-      switch (channel) {
-      | "items_changes" => Lwt.return(true)  // Public
-      | "user_updates" =>
-        let targetUserId = payload |> Json.Decode.field("userId", Json.Decode.string);
-        Lwt.return(userId == targetUserId);  // Private
-      | _ => Lwt.return(false)
-      };
-    }),
+    ~adapter,
+    ~resolve_subscription,
+    ~load_snapshot,
   );
 
 let () =
-  Dream.run
-  @@ Dream.logger
-  @@ Dream.router([
-    Dream.get "/_events" (ReasonRealtimeDreamMiddleware.handler(realtimeMiddleware)),
-  ]);
+  let* () = ReasonRealtimeDreamMiddleware.broadcast(middleware, "inventory", "{\"type\":\"patch\"}") in
+  Lwt.return_unit;
 ```
 
 ## API Reference
 
 ### Types
 
-#### `handler`
-
 ```reason
-type handler = Dream.handler;
-```
-
-Dream-compatible request handler for WebSocket connections.
-
-#### `config`
-
-```reason
-type config = {
-  authenticate: Dream.request => Lwt.t(option(string)),  // Returns userId or None
-  onConnect: string => Lwt.t(unit),                      // userId => unit
-  onDisconnect: string => Lwt.t(unit),                   // userId => unit
-  heartbeatInterval: option(int),                        // Milliseconds
-  maxConnections: option(int),                           // Per-user limit
-};
+type t;
 ```
 
 ### Functions
@@ -130,379 +117,65 @@ type config = {
 #### `create`
 
 ```reason
-let create: (~adapter: adapter=?, config) => t;
+let create: (
+  ~adapter: ReasonRealtimeDreamMiddleware.Adapter.packed,
+  ~resolve_subscription: (Dream.request => string => string option Lwt.t),
+  ~load_snapshot: (Dream.request => string => string Lwt.t),
+) => t;
 ```
 
-Create a new middleware instance with the given configuration.
+Build middleware and provide callbacks for subscription and snapshot resolution.
 
-**Parameters:**
-- `~adapter`: Optional real-time adapter (e.g., PostgreSQL notify adapter)
-- `config`: Configuration record with authentication and event handlers
-
-#### `handler`
+#### `route`
 
 ```reason
-let handler: t => Dream.handler;
+let route: (string, t) => Dream.handler;
 ```
 
-Convert the middleware to a Dream-compatible handler.
+Create a Dream handler for a websocket endpoint path and middleware.
 
 #### `broadcast`
 
 ```reason
-let broadcast: (t, ~channel: string, ~payload: Js.Json.t) => Lwt.t(unit);
+let broadcast: (t, string, string) => Lwt.t(unit);
 ```
 
-Broadcast a message to all connected clients on a channel.
+Broadcast a payload to all connected clients subscribed to the channel.
 
-#### `sendToUser`
+#### `Adapter`
 
-```reason
-let sendToUser: (t, ~userId: string, ~channel: string, ~payload: Js.Json.t) => Lwt.t(unit);
-```
-
-Send a message to a specific user.
-
-#### `sendToUsers`
-
-```reason
-let sendToUsers: (t, ~userIds: list(string), ~channel: string, ~payload: Js.Json.t) => Lwt.t(unit);
-```
-
-Send a message to multiple specific users.
-
-### Authentication
-
-#### JWT Example
-
-```reason
-let authenticate = (request: Dream.request) => {
-  switch (Dream.header(request, "Authorization")) {
-  | Some("Bearer " ++ token) =>
-    switch (Jwt.verify(token, secret)) {
-    | Ok(payload) =>
-      let userId = payload |> Json.Decode.field("sub", Json.Decode.string);
-      Lwt.return(Some(userId));
-    | Error(_) => Lwt.return(None)
-    }
-  | _ => Lwt.return(None)
-  };
-};
-```
-
-#### Session Example
-
-```reason
-let authenticate = (request: Dream.request) => {
-  switch (Dream.session_field(request, "user_id")) {
-  | Some(userId) => Lwt.return(Some(userId));
-  | None => Lwt.return(None)
-  };
-};
-```
+See `ReasonRealtimeDreamMiddleware.Adapter` for the adapter adapter protocol (`pack`, `start`, `stop`, `subscribe`, `unsubscribe`).
 
 ## Message Protocol
 
-### Client → Server
+Clients send plain text commands over websocket.
 
-```json
-{
-  "type": "subscribe",
-  "channel": "items_changes",
-  "filter": { "category": "electronics" }
-}
-```
+Supported commands:
 
-```json
-{
-  "type": "unsubscribe",
-  "channel": "items_changes"
-}
-```
+- `ping` → server replies with `pong`
+- `select <channel>` → subscribe/replace active subscription
 
-```json
-{
-  "type": "ping"
-}
-```
-
-### Server → Client
-
-```json
-{
-  "type": "patch",
-  "channel": "items_changes",
-  "payload": {
-    "table": "items",
-    "action": "insert",
-    "data": { "id": "123", "name": "New Item" }
-  }
-}
-```
-
-```json
-{
-  "type": "snapshot",
-  "channel": "items_changes",
-  "payload": {
-    "timestamp": "2024-01-15T10:30:00Z",
-    "data": [...]
-  }
-}
-```
-
-```json
-{
-  "type": "pong"
-}
-```
-
-## Advanced Configuration
-
-### Custom Message Filtering
-
-```reason
-let filterMessage = ((userId, channel, payload)) => {
-  switch (channel) {
-  | "private_messages" =>
-    let recipientId = payload |> Json.Decode.field("recipientId", Json.Decode.string);
-    Lwt.return(userId == recipientId);
-  | "team_updates" =>
-    let* userTeam = Database.getUserTeam(userId);
-    let updateTeam = payload |> Json.Decode.field("teamId", Json.Decode.string);
-    Lwt.return(userTeam == updateTeam);
-  | _ => Lwt.return(true)
-  };
-};
-
-let middleware =
-  ReasonRealtimeDreamMiddleware.create(
-    ~adapter,
-    ~filterMessage,
-  );
-```
-
-### Rate Limiting
-
-```reason
-let rateLimiter = RateLimiter.create(
-  ~maxRequests=100,
-  ~windowMs=60000,
-);
-
-let authenticate = (request) => {
-  let* userId = authenticateUser(request);
-  switch (userId) {
-  | Some(id) =>
-    if (RateLimiter.check(rateLimiter, id)) {
-      Lwt.return(Some(id));
-    } else {
-      Lwt.return(None);  // Rate limited
-    }
-  | None => Lwt.return(None)
-  };
-};
-```
-
-### Connection Management
-
-```reason
-let config = {
-  authenticate,
-  onConnect: (userId) => {
-    Metrics.increment("websocket.connections.active");
-    Log.info(f"User %s connected", userId);
-    Lwt.return_unit;
-  },
-  onDisconnect: (userId) => {
-    Metrics.decrement("websocket.connections.active");
-    Log.info(f"User %s disconnected", userId);
-    Lwt.return_unit;
-  },
-  heartbeatInterval: Some(30000),  // 30 seconds
-  maxConnections: Some(5),         // Max 5 connections per user
-};
-```
-
-## Error Handling
-
-### Connection Errors
-
-```reason
-let onError = ((userId, error)) => {
-  Log.error(f"WebSocket error for user %s: %s", userId, error);
-  Metrics.increment("websocket.errors");
-  Lwt.return_unit;
-};
-
-let middleware =
-  ReasonRealtimeDreamMiddleware.create(
-    ~onError,
-    ~adapter,
-  );
-```
-
-### Graceful Degradation
-
-```reason
-let authenticate = (request) => {
-  try%lwt {
-    let* userId = validateSession(request);
-    Lwt.return(userId);
-  } catch {
-  | _ =>
-    // Allow connection without authentication for public data
-    Lwt.return(Some("anonymous"))
-  };
-};
-```
-
-## Best Practices
-
-### 1. Validate All Messages
-
-Always validate incoming messages before processing:
-
-```reason
-let validateSubscribe = (json) => {
-  open Json.Decode;
-  {
-    channel: json |> field("channel", string),
-    filter: json |> optional(field("filter", object_)),
-  };
-};
-```
-
-### 2. Use Channels Effectively
-
-Group related data into channels:
-
-```reason
-channels: [
-  "items:all",           // All item changes
-  "items:category:123",  // Category-specific
-  "items:user:456",      // User's items
-];
-```
-
-### 3. Handle Reconnections
-
-Implement exponential backoff on the client:
-
-```javascript
-// Client-side pseudocode
-let reconnectDelay = 1000;
-const maxDelay = 30000;
-
-socket.onclose = () => {
-  setTimeout(() => connect(), reconnectDelay);
-  reconnectDelay = Math.min(reconnectDelay * 2, maxDelay);
-};
-```
-
-### 4. Monitor Connections
-
-Track connection metrics:
-
-```reason
-let onConnect = (userId) => {
-  Metrics.gauge("websocket.connections.total", getConnectionCount());
-  Metrics.increment("websocket.connections.new");
-  Lwt.return_unit;
-};
-```
-
-### 5. Secure Private Channels
-
-Always validate channel access:
-
-```reason
-let filterMessage = ((userId, channel, payload)) => {
-  if (String.starts_with(channel, "private:")) {
-    let allowedUsers = payload |> getAllowedUsers;
-    Lwt.return(List.mem(userId, allowedUsers));
-  } else {
-    Lwt.return(true);
-  };
-};
-```
+Responses are plain text payloads sent by the server (for example snapshots and adapter messages).
 
 ## Troubleshooting
 
-### Connection Refused
+### Clients Can't Connect
 
-**Problem:** Clients can't connect to `/_events`
+1. Confirm Dream routes include your websocket path using `ReasonRealtimeDreamMiddleware.route`.
+2. Verify no proxy strips websocket upgrade headers.
+3. Ensure the request path matches your client websocket URL.
 
-**Solutions:**
-1. Verify Dream router includes the events endpoint
-2. Check firewall rules allow WebSocket connections
-3. Ensure no reverse proxy is blocking the endpoint
+### No Messages Received
 
-### Messages Not Received
+1. Confirm adapter is running and emitting messages.
+2. Confirm `resolve_subscription` returns the same channel the client selects.
+3. Confirm `load_snapshot` returns a JSON string for that channel.
 
-**Problem:** Clients connected but not receiving updates
+### Unexpected Subscriptions
 
-**Solutions:**
-1. Check adapter is properly connected to data source
-2. Verify `filterMessage` isn't blocking valid messages
-3. Ensure client subscribed to the correct channel
+All authorization and tenancy checks should happen in `resolve_subscription`/`load_snapshot`; this package does not currently provide policy helpers.
 
-### High Memory Usage
+## Integration Notes
 
-**Problem:** Server memory grows over time
-
-**Solutions:**
-1. Implement connection limits per user
-2. Set appropriate heartbeat intervals
-3. Clean up disconnected sessions properly
-4. Monitor for memory leaks in message handlers
-
-### Authentication Failures
-
-**Problem:** Users can't authenticate WebSocket connections
-
-**Solutions:**
-1. Check authentication logic in Dream handlers
-2. Ensure cookies/sessions are properly passed
-3. Verify CORS settings allow credentials
-
-## Integration Examples
-
-### With Store Sync
-
-See [universal-reason-react/store](universal-reason-react.store.md) for how the middleware integrates with the store's real-time synchronization.
-
-### With PostgreSQL
-
-See [reason-realtime/pgnotify-adapter](reason-realtime.pgnotify-adapter.md) for PostgreSQL LISTEN/NOTIFY integration.
-
-### Custom Adapter
-
-```reason
-module CustomAdapter = {
-  type t = { /* your adapter state */ };
-  
-  let create = () => { ... };
-  
-  let subscribe = (t, ~channel, ~callback) => {
-    // Subscribe to your data source
-    Lwt.return_unit;
-  };
-  
-  let unsubscribe = (t, ~channel) => {
-    // Cleanup subscription
-    Lwt.return_unit;
-  };
-};
-
-let middleware =
-  ReasonRealtimeDreamMiddleware.create(
-    ~adapter=CustomAdapter.create(),
-  );
-```
-
-## Related Documentation
-
-- [universal-reason-react/store](universal-reason-react.store.md) - Client-side store with sync
-- [reason-realtime/pgnotify-adapter](reason-realtime.pgnotify-adapter.md) - PostgreSQL adapter
-- [Dream Framework](https://github.com/aantron/dream) - Web framework documentation
+- Use `reason-realtime/pgnotify-adapter` for Postgres-backed event sources.
+- For custom data sources, pass any adapter packed with `ReasonRealtimeDreamMiddleware.Adapter.pack`.
