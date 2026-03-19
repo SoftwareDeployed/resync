@@ -21,7 +21,7 @@ let parseState =
   | Server =>
     let _ = stateElementId;
     let _ = decodeState;
-    None;
+    None
   };
 
 let hydrateStore =
