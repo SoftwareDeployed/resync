@@ -13,7 +13,7 @@ The Universal Router allows you to define your routes once and use them in both 
 - **Type-Safe Routing**: Compile-time route matching and parameter validation
 - **SSR Integration**: Seamless server-side rendering with Dream
 - **Client Navigation**: Smooth client-side transitions without page reloads
-- **Href Generation**: Type-safe URL construction
+- **State-Aware Metadata**: Resolve document title and meta tags from app state
 
 ## Quick Start
 
@@ -114,7 +114,116 @@ let router =
   );
 ```
 
-## Server-Side Integration
+### State-Aware Document Metadata
+
+Resolve page titles and meta tags dynamically from your application state:
+
+```reason
+// Routes.re
+open UniversalRouter;
+
+// Static title (simple string)
+let resolveItemTitle = (~path as _, ~params, ~query as _) => {
+  let itemId = params |> Params.find("id") |> Belt.Option.getWithDefault("Unknown");
+  "Item " ++ itemId ++ " - My Store";
+};
+
+// Dynamic title from app state
+let resolveItemTitleWithState = (~path as _, ~params, ~query as _, ~state: Store.t) => {
+  let itemId = params |> Params.find("id") |> Belt.Option.getWithDefault("");
+  
+  // Look up item name from the store
+  switch (Js.Array.find(~f=(item: Item.t) => item.id == itemId, state.config.inventory)) {
+  | Some(item) => item.name ++ " - My Store"
+  | None => "Item Not Found - My Store"
+  };
+};
+
+// Static head tags
+let resolveItemHeadTags = (~path as _, ~params, ~query as _) => {
+  let itemId = params |> Params.find("id") |> Belt.Option.getWithDefault("");
+  [
+    metaTag(~name="description", ~content="View item details", ()),
+    propertyTag(~property="og:title", ~content="Item Details", ()),
+  ];
+};
+
+// Dynamic head tags from app state
+let resolveItemHeadTagsWithState = (~path as _, ~params, ~query as _, ~state: Store.t) => {
+  let itemId = params |> Params.find("id") |> Belt.Option.getWithDefault("");
+  
+  switch (Js.Array.find(~f=(item: Item.t) => item.id == itemId, state.config.inventory)) {
+  | Some(item) => [
+      metaTag(~name="description", ~content=item.description, ()),
+      propertyTag(~property="og:title", ~content=item.name, ()),
+      propertyTag(~property="og:image", ~content=item.imageUrl, ()),
+    ]
+  | None => [
+      metaTag(~name="description", ~content="Item not found", ()),
+    ]
+  };
+};
+
+let router =
+  UniversalRouter.create(
+    ~document=UniversalRouter.document(~title="My Store", ()),
+    ~notFound=(module NotFoundPage),
+    [
+      // Route with static metadata
+      UniversalRouter.route(
+        ~id="item",
+        ~path="item/:id",
+        ~page=(module ItemPage),
+        ~resolveTitle=resolveItemTitle,
+        ~resolveHeadTags=resolveItemHeadTags,
+        [],
+        (),
+      ),
+      
+      // Route with state-aware metadata
+      UniversalRouter.route(
+        ~id="item",
+        ~path="item/:id",
+        ~page=(module ItemPage),
+        ~resolveTitleWithState=resolveItemTitleWithState,
+        ~resolveHeadTagsWithState=resolveItemHeadTagsWithState,
+        [],
+        (),
+      ),
+    ],
+  );
+```
+
+**Note:** When using state-aware metadata resolution, you must pass the `state` prop to the `UniversalRouter` component:
+
+```reason
+// Server-side rendering
+let render = (~context, ~serverState: Store.t, ()) => {
+  let app =
+    <UniversalRouter
+      router=Routes.router
+      state=serverState  // Required for state-aware metadata
+      routeRoot
+      serverPath
+      serverSearch
+    />;
+  
+  // ...
+};
+
+// Client-side hydration
+let store = Store.hydrateStore();
+
+ReactDOM.hydrateRoot(
+  root,
+  <UniversalRouter
+    router=Routes.router
+    state=store  // Required for state-aware metadata
+  />,
+);
+```
+
+### Server-Side Integration
 
 ### Dream Handler
 
@@ -134,17 +243,59 @@ let () =
 
 ```reason
 // EntryServer.re
-let getServerState = (context: UniversalRouterDream.serverContext) => {
-  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
-  
-  // Fetch data based on the current route
-  let* data = fetchDataForRoute(routeRoot);
-  
-  Lwt.return(UniversalRouterDream.State(data));
+
+// Example: Route-based data fetching
+let fetchDataForRoute = (routeRoot: string, request: Dream.request) => {
+  switch (routeRoot) {
+  | "/" =>
+    // Home page - fetch featured items
+    let* featuredItems = Dream.sql(request, Database.getFeaturedItems());
+    Lwt.return({items: featuredItems, user: None})
+    
+  | "/products" =>
+    // Products page - fetch all products
+    let* products = Dream.sql(request, Database.getAllProducts());
+    Lwt.return({items: products, user: None})
+    
+  | "/products/:id" =>
+    // Product detail - fetch single product
+    let productId = extractParam(routeRoot, "id");
+    let* product = Dream.sql(request, Database.getProductById(productId));
+    Lwt.return({items: Option.to_list(product), user: None})
+    
+  | "/dashboard" =>
+    // Dashboard - fetch user-specific data
+    let* user = authenticate(request);
+    switch (user) {
+    | Some(userId) =>
+      let* userData = Dream.sql(request, Database.getUserData(userId));
+      let* orders = Dream.sql(request, Database.getUserOrders(userId));
+      Lwt.return({user: Some(userData), orders: orders})
+    | None =>
+      Lwt.return({user: None, orders: []})
+    }
+    
+  | _ =>
+    // Default - return empty state
+    Lwt.return({items: [], user: None})
+  };
 };
 
-let render = (~context, ~serverState, ()) => {
-  let store = Store.createStore(serverState);
+let getServerState = (context: UniversalRouterDream.serverContext(Store.t)) => {
+  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
+  let request = UniversalRouterDream.contextRequest(context);
+  
+  // Fetch data based on the current route
+  let* data = fetchDataForRoute(routeRoot, request);
+  
+  // Create store from data
+  let store = Store.createStore(data);
+  Lwt.return(UniversalRouterDream.State(store));
+};
+
+let render = (~context, ~serverState: Store.t, ()) => {
+  let store = serverState;
+  let serializedState = Store.serializeState(serverState.config);
   let routeRoot = UniversalRouterDream.contextRouteRoot(context);
   let serverPath = UniversalRouterDream.contextPath(context);
   let serverSearch = UniversalRouterDream.contextSearch(context);
@@ -152,6 +303,7 @@ let render = (~context, ~serverState, ()) => {
   let app =
     <UniversalRouter
       router=Routes.router
+      state=store  // Pass state for metadata resolution
       routeRoot
       serverPath
       serverSearch
@@ -164,7 +316,8 @@ let render = (~context, ~serverState, ()) => {
       ~routeRoot,
       ~path=serverPath,
       ~search=serverSearch,
-      ~serializedState=Store.serializeState(serverState),
+      ~serializedState,
+      ~state=store,  // Pass state for SSR metadata resolution
       (),
     );
 
@@ -194,7 +347,10 @@ let store = Store.hydrateStore();
 ReactDOM.hydrateRoot(
   root,
   <Store.Context.Provider value=store>
-    <UniversalRouter router=Routes.router />
+    <UniversalRouter 
+      router=Routes.router 
+      state=store  // Pass state for metadata resolution
+    />
   </Store.Context.Provider>,
 );
 ```
@@ -273,6 +429,10 @@ let route: (
   ~id: string,
   ~path: string,
   ~page: module(Page),
+  ~resolveTitle: titleResolver=?,
+  ~resolveTitleWithState: titleResolverWithState('state)=?,
+  ~resolveHeadTags: headTagsResolver=?,
+  ~resolveHeadTagsWithState: headTagsResolverWithState('state)=?,
   list(routeConfig),
   unit,
 ) => routeConfig;
@@ -284,6 +444,41 @@ Creates a route with the given path pattern.
 - Static: `"about"` → `/about`
 - Parameter: `"product/:id"` → `/product/123`
 - Multiple: `"category/:cat/product/:id"` → `/category/food/product/456`
+
+**Metadata Options:**
+- `~resolveTitle`: Function to resolve page title from path/params/query
+- `~resolveTitleWithState`: Function to resolve title with access to app state
+- `~resolveHeadTags`: Function to resolve meta tags from path/params/query  
+- `~resolveHeadTagsWithState`: Function to resolve meta tags with access to app state
+
+**Resolver Types:**
+```reason
+type titleResolver = (
+  ~path: string,
+  ~params: Params.t,
+  ~query: Query.t,
+) => string;
+
+type titleResolverWithState('state) = (
+  ~path: string,
+  ~params: Params.t,
+  ~query: Query.t,
+  ~state: 'state,
+) => string;
+
+type headTagsResolver = (
+  ~path: string,
+  ~params: Params.t,
+  ~query: Query.t,
+) => list(headTag);
+
+type headTagsResolverWithState('state) = (
+  ~path: string,
+  ~params: Params.t,
+  ~query: Query.t,
+  ~state: 'state,
+) => list(headTag);
+```
 
 #### `UniversalRouter.group`
 
@@ -300,10 +495,24 @@ Groups routes under a common path prefix and layout.
 
 ### Server Context
 
+The `serverContext` type is parameterized by your application state type:
+
+```reason
+type serverContext('state) = {
+  request: Dream.request,
+  routeRoot: string,
+  path: string,
+  search: string,
+  query: UniversalRouter.Query.t,
+  params: UniversalRouter.Params.t,
+  matchResult: UniversalRouter.matchResult('state),
+};
+```
+
 #### `UniversalRouterDream.contextRouteRoot`
 
 ```reason
-let contextRouteRoot: serverContext => string;
+let contextRouteRoot: serverContext('state) => string;
 ```
 
 Gets the route root from the server context.
@@ -311,7 +520,7 @@ Gets the route root from the server context.
 #### `UniversalRouterDream.contextPath`
 
 ```reason
-let contextPath: serverContext => string;
+let contextPath: serverContext('state) => string;
 ```
 
 Gets the current request path.
@@ -319,7 +528,7 @@ Gets the current request path.
 #### `UniversalRouterDream.contextSearch`
 
 ```reason
-let contextSearch: serverContext => string;
+let contextSearch: serverContext('state) => string;
 ```
 
 Gets the query string from the request.
