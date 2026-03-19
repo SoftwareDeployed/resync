@@ -1,5 +1,8 @@
 # reason-realtime/pgnotify-adapter
 
+> ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
+
+
 PostgreSQL `LISTEN/NOTIFY` adapter for the realtime middleware layer.
 
 ## Overview

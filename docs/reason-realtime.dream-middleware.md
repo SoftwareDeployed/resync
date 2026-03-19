@@ -1,5 +1,8 @@
 # reason-realtime/dream-middleware
 
+> ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
+
+
 Dream middleware and WebSocket infrastructure for real-time server-to-client updates.
 
 ## Overview

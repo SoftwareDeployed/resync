@@ -127,7 +127,7 @@ dune build @doc
 
 ## API Status
 
-⚠️ **Prototype Warning**: These APIs are actively evolving. While the core concepts are stable, expect breaking changes as we refine the authoring experience.
+⚠️ **Prototype Warning**: These APIs are not stable and are subject to change. Expect breaking changes as we refine the authoring experience.
 
 ## Contributing
 

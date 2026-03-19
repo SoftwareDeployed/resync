@@ -1,3 +1,5 @@
+> ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
+
 ## Software Principals
 This document is a rought draft. These are the principals of Executor that I've decided to write down:
 - Sane defaults, I should be able to use the software with minimal setup and get started right away.

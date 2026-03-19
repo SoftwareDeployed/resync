@@ -1,5 +1,8 @@
 # universal-reason-react/lucide-icons
 
+> ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
+
+
 Universal Lucide icon rendering for server and client Reason React applications.
 
 ## Overview

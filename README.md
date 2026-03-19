@@ -10,7 +10,7 @@ Note: parts of this README and `docs/` are AI-generated drafts. Human review and
 
 This project is still a prototype.
 
-- APIs, package boundaries, and schemas are still moving
+- APIs, package boundaries, and schemas are not stable and are subject to change
 - the ecommerce app is a demo, not a production-ready product
 - expect refactors while the core abstractions settle
 

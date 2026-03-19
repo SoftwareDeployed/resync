@@ -17,7 +17,7 @@ The ecommerce demo is the reference implementation:
 
 This setup is still a prototype. Expect the APIs to keep changing while the router and store authoring model are refined.
 
-This guide demonstrates production-ready patterns for universal React applications with Dream. The APIs are stable but may evolve based on community feedback.
+This guide demonstrates prototype-ready patterns for universal React applications with Dream. The APIs are not stable and are subject to change.
 
 ## Development environment
 

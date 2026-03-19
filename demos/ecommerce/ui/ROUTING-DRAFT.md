@@ -1,3 +1,5 @@
+> ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
+
 We need to somehow configure the routing of a Premise. This is a proposal draft.
 
 This is how we will remove the hardcoded premise ID from the application.

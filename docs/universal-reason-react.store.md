@@ -1,5 +1,8 @@
 # universal-reason-react/store
 
+> ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
+
+
 Opinionated Tilia-backed store tooling for universal (SSR + client) Reason React applications.
 
 ## Overview
