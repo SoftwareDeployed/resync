@@ -1,0 +1,33 @@
+(executable
+ (flags :standard -w -26-27)
+ (name server)
+ (public_name todo-server)
+ (libraries
+   dream
+   server-reason-react.react
+   server-reason-react.reactDom
+   server-reason-react.html
+   server-reason-react.js
+   universal_reason_react_router_native
+   universal_reason_react_store_native
+   universal_reason_react_lucide_icons_native
+   todo_shared_native
+   lwt.unix
+   str
+   unix
+   server-reason-react.belt
+   yojson)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.ppx
+   server-reason-react.melange_ppx
+   melange-json-native.ppx
+   lwt_ppx))
+ (modes native))
+
+; Copy UI source files
+(copy_files
+ (files "../../ui/src/*.re"))
+
+(include_subdirs qualified)

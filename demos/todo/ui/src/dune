@@ -1,0 +1,52 @@
+(melange.emit
+ (package resync)
+ (module_systems
+  (es6 "re.js"))
+ (target app)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -melange
+   server-reason-react.browser_ppx
+   -js
+   melange.ppx
+   melange-json.ppx
+   reason-react-ppx))
+ (runtime_deps style.css)
+ (libraries
+   reason-react
+   universal_reason_react_router_js
+   universal_reason_react_store_js
+   universal_reason_react_lucide_icons_js
+   todo_shared_js
+   melange.belt
+   melange.dom
+   melange.js))
+
+; Rule that runs esbuild and creates stamp file
+
+(rule
+ (targets .build_stamp)
+  (deps
+   (package resync)
+   (alias_rec melange)
+   (:script ../build.mjs)
+   (:entrypoints app/demos/todo/ui/src/Index.re.js)
+   (source_tree ../../../../node_modules)
+   (file ../package.json)
+   (source_tree ../../../../_opam/lib/server-reason-react/esbuild-plugin)
+   (universe))
+ (action
+   (progn
+    (run node %{script} %{entrypoints} --output=app --extract=true --env=%{env:DEMO_ENV='production'})
+    (with-stdout-to
+     .build_stamp
+     (system "date +%s")))))
+
+; Alias for the app
+
+(alias
+ (name app)
+ (deps .build_stamp))
+
+(include_subdirs qualified)

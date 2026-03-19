@@ -39,255 +39,31 @@ dune build
 
 ### Your First App
 
-Let's build a simple todo list app from scratch. This example demonstrates the complete flow: server-side rendering, client hydration, and state management.
+Use the checked-in `demos/todo` demo as the first app walkthrough.
 
-#### Project Structure
+`demos/todo` is a minimal universal Reason React app that demonstrates:
 
-```
-todo-app/
-├── dune-project
-├── dune-workspace
-├── server/
-│   ├── dune
-│   └── src/
-│       └── server.ml
-├── ui/
-│   ├── dune
-│   └── src/
-│       ├── Index.re
-│       ├── Routes.re
-│       └── HomePage.re
-└── shared/
-    ├── dune
-    └── src/
-        └── Config.re
-```
-
-#### 1. Project Configuration
-
-**dune-project:**
-```lisp
-(lang dune 3.0)
-(name todo-app)
-
-(generate_opam_files true)
-
-(package
- (name todo-app)
- (synopsis "A simple todo app")
- (depends
-  (ocaml (>= 4.14.0))
-  dune
-  dream
-  reason
-  (universal-reason-react-router (>= 0.1.0))
-  (universal-reason-react-store (>= 0.1.0))
-  (server-reason-react (>= 0.1.0))
-  lwt))
-```
-
-**dune-workspace:**
-```lisp
-(lang dune 3.0)
-
-(context default)
-(context
- (default
-  (name browser)
-  (profile release)))
-```
-
-#### 2. Shared Types
-
-**shared/src/Config.re:**
-```reason
-[@deriving json]
-type todo = {
-  id: string,
-  text: string,
-  completed: bool,
-};
-
-type config = {
-  todos: list(todo),
-};
-```
-
-**shared/dune:**
-```lisp
-(library
- (name todo_shared)
- (libraries reason)
- (preprocess (pps ppx_deriving_json)))
-```
-
-#### 3. UI Components
-
-**ui/src/HomePage.re:**
-```reason
-[@react.component]
-let make = () => {
-  <div className="container">
-    <h1>{React.string("My Todo List")}</h1>
-    <p>{React.string("Coming soon...")}</p>
-  </div>;
-};
-```
-
-**ui/src/Routes.re:**
-```reason
-open UniversalRouter;
-
-let router =
-  create(
-    ~document=document(~title="Todo App", ()),
-    ~notFound=(module NotFoundPage),
-    [
-      index(~id="home", ~page=(module HomePage), ()),
-    ],
-  );
-
-// 404 page
-module NotFoundPage = {
-  [@react.component]
-  let make = () => {
-    <div>{React.string("Page not found")}</div>;
-  };
-};
-```
-
-**ui/src/Index.re:**
-```reason
-let root = ReactDOM.querySelector("#root") |. Belt.Option.getExn;
-
-ReactDOM.hydrateRoot(
-  root,
-  <UniversalRouter router=Routes.router />,
-);
-```
-
-**ui/dune:**
-```lisp
-(library
- (name todo_ui)
- (modes melange)
- (libraries
-  todo_shared
-  universal_reason_react_router_js
-  reason-react
-  melange.js))
-```
-
-#### 4. Server
-
-**server/src/server.ml:**
-```reason
-let getServerState = (context: UniversalRouterDream.serverContext) => {
-  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
-  
-  (* Return some sample todos for the initial state *)
-  let config: Config.config = {
-    todos: [
-      {id: "1"; text: "Learn ReasonML"; completed: false};
-      {id: "2"; text: "Build an app"; completed: false};
-    ];
-  };
-  
-  Lwt.return(UniversalRouterDream.State(config));
-};
-
-let render = (~context, ~serverState: Config.config, ()) => {
-  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
-  let serverPath = UniversalRouterDream.contextPath(context);
-  let serverSearch = UniversalRouterDream.contextSearch(context);
-
-  let app =
-    <UniversalRouter
-      router=Routes.router
-      routeRoot
-      serverPath
-      serverSearch
-    />;
-
-  let document =
-    UniversalRouter.renderDocument(
-      ~router=Routes.router,
-      ~children=app,
-      ~routeRoot,
-      ~path=serverPath,
-      ~search=serverSearch,
-      ~serializedState=Config.config_to_json(serverState) |> Js.Json.stringify,
-      (),
-    );
-
-  document;
-};
-
-let app =
-  UniversalRouterDream.app(
-    ~router=Routes.router,
-    ~getServerState,
-    ~render,
-    (),
-  );
-
-let () =
-  Dream.run ~port:8080
-  @@ Dream.logger
-  @@ Dream.router([
-    Dream.get "/**" (UniversalRouterDream.handler ~app),
-  ]);
-```
-
-**server/dune:**
-```lisp
-(executable
- (name server)
- (libraries
-  dream
-  server-reason-react.react
-  server-reason-react.reactDom
-  universal_reason_react_router_native
-  todo_shared
-  todo_ui))
-```
-
-#### 5. Build and Run
+- shared schema/config in `shared/`
+- SSR and route handling in `server/`
+- client hydration in `ui/`
 
 ```bash
-# Create the project structure
-mkdir -p todo-app/{server,ui,shared}/src
-cd todo-app
-
-# Create all the files above...
-
-# Install dependencies
-opam install . --deps-only
-
-# Build the project
-dune build
-
-# Run the server
-dune exec -- ./server/src/server.exe
-
-# Open http://localhost:8080 in your browser
+cd /path/to/executor-full-stack
+dune build demos/todo
+export DOC_ROOT="./demos/todo/_build/default/demos/todo/ui/src/app/"
+dune exec demos/todo/server/src/server.exe
 ```
 
-#### What This Demonstrates
+Open `http://localhost:8080`.
 
-1. **Server-Side Rendering**: The server renders the initial HTML with sample data
-2. **Universal Router**: Same routes work on server and client
-3. **SSR Hydration**: Client takes over without re-fetching data
-4. **Type Safety**: Shared types between server and client
+Key files to inspect:
 
-#### Next Steps
+- `demos/todo/shared/src/Config.re` — shared type definitions
+- `demos/todo/server/src/EntryServer.re` — SSR state and render integration
+- `demos/todo/ui/src/Index.re` — hydration entry point
+- `demos/todo/ui/src/Routes.re` — route configuration
 
-- Add a store for state management ([see store docs](universal-reason-react.store.md))
-- Add client-side interactivity (add todos, mark complete)
-- Add a database for persistence
-- See the [ecommerce demo](../demos/ecommerce/) for a complete example
-
-See the [ecommerce demo](../demos/ecommerce/) for a complete working example.
+After the basics are working, move to the [ecommerce demo](../demos/ecommerce/) for persistence and real-time extensions.
 
 ## Package Documentation
 

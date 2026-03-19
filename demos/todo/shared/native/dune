@@ -1,0 +1,17 @@
+(library
+ (name todo_shared_native)
+ (public_name resync.todo_shared_native)
+ (modules Config)
+ (wrapped false)
+ (libraries
+  melange-json-native
+  server-reason-react.js)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.melange_ppx
+   melange-json-native.ppx))
+ (modes native))
+
+(copy_files
+ (files ../js/*.re))
