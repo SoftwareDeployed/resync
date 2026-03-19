@@ -33,10 +33,14 @@
    lwt_ppx))
  (modes native))
 
-; Copy UI source files - these are the actual dependencies
+; Copy UI source files - these are the actual dependencies.
 (copy_files
  (files "../../ui/src/*.re"))
 
+; Copy the UI build-stamp into server build context so the server can be
+; restarted when client artifacts rebuild. The root-level package.json
+; watches this generated stamp via `dev:watch` and restarts
+; `./_build/default/demos/ecommerce/server/src/server.exe`.
 (copy_files
  (files "../../ui/src/.build_stamp"))
 

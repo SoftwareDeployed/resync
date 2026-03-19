@@ -85,6 +85,19 @@ dune build packages/universal-reason-react/router
 dune build -w
 ```
 
+### 4b. Full-stack watch workflow (shared UI + server)
+
+This repository uses a generated stamp file to keep server restarts in sync with
+client bundle rebuilds.
+
+```bash
+# Terminal 1: keep dune rebuilding artifacts
+pnpm run dune:watch
+
+# Terminal 2: run the server executable and restart when the UI stamp changes
+pnpm run dev:watch
+```
+
 ### 5. Run the Demo
 
 ```bash
@@ -402,6 +415,10 @@ db_url=$DB_URL dune exec -- ./server/bin/main.exe
 # Hot reload (in separate terminals)
 # Terminal 1: dune build -w
 # Terminal 2: dune exec --watch ./server/bin/main.exe
+
+# If using the shared UI/server stamp workaround (recommended for this demo):
+# Terminal 1: pnpm run dune:watch
+# Terminal 2: pnpm run dev:watch
 ```
 
 ### Testing

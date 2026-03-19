@@ -378,7 +378,33 @@ ReactDOM.hydrateRoot(
 - Encode units and other enum-like values as stable strings in JSON.
 - Prefer typed patch variants plus `decodePatch`/`updateOfPatch` over stringly typed patch reducers.
 
-## 11. Recommended project layout
+## 11. Development watch workaround (UI + server)
+
+The ecommerce demo shares compiled UI artifacts with the server. To keep the server
+restarting when a client-side shared file changes, this repository uses a generated
+`.build_stamp` file as a lightweight trigger.
+
+### .build_stamp in dune
+
+- `demos/ecommerce/ui/src/dune` builds `Index.re.js` and writes `demos/ecommerce/ui/src/.build_stamp`.
+- `demos/ecommerce/server/src/dune` copies that `.build_stamp` into the server
+  build context via `copy_files`.
+- `package.json` defines `dev:watch`, which watches
+  `./_build/default/demos/ecommerce/ui/src/.build_stamp` and restarts
+  `./_build/default/demos/ecommerce/server/src/server.exe` when the stamp changes.
+
+This gives practical hot-reload behavior for cases where Dream server rendering uses
+source files that are also part of the client build graph.
+
+```bash
+pnpm run dune:watch    # keeps client+server artifacts rebuilding
+pnpm run dev:watch     # restarts the server when .build_stamp updates
+```
+
+> If you add more client files used by the server, ensure they remain in the same
+> dependency graph that causes `.build_stamp` to refresh after a rebuild.
+
+## 12. Recommended project layout
 
 ```text
 ui/src/
@@ -396,7 +422,7 @@ shared/js/
   PeriodList.re     shared period units / codecs
 ```
 
-## 12. Current prototype direction
+## 13. Current prototype direction
 
 This repo is currently optimized for a prototype workflow:
 

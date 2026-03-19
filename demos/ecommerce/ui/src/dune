@@ -27,7 +27,10 @@
   melange.dom
   melange.js))
 
-; Rule that runs esbuild and creates stamp AFTER successful completion
+; Rule that runs esbuild and writes .build_stamp after successful completion.
+; The stamp acts as a stable file that changes whenever client output is rebuilt.
+; The server build depends on this stamp so cross-layer work can be triggered when
+; browser-side changes are compiled.
 
 (rule
  (targets .build_stamp)
@@ -50,9 +53,9 @@
     --output=app/dist
     --extract=true
     --env=%{env:DEMO_ENV='production'})
-   (with-stdout-to
-    .build_stamp
-    (system "date +%s")))))
+    (with-stdout-to
+     .build_stamp
+     (system "date +%s")))))
 
 ; Alias for the app
 
