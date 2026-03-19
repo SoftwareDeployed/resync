@@ -2,24 +2,24 @@
 
 > ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
 
-
-PostgreSQL `LISTEN/NOTIFY` adapter for the realtime middleware layer.
+PostgreSQL `LISTEN/NOTIFY` adapter for the Dream real-time middleware.
 
 ## Overview
 
-This adapter bridges PostgreSQL's built-in pub/sub mechanism with the Dream real-time middleware, enabling database-driven real-time updates without polling.
+This adapter keeps a PostgreSQL connection and subscribes/unsubscribes handlers per
+channel. Notifications are polled from the connection and dispatched to channel
+handlers as raw payload strings.
 
 ## Features
 
-- **Database-Driven Events**: Real-time updates from PostgreSQL triggers
-- **Automatic Reconnection**: Handles database connection drops
-- **Channel Filtering**: Subscribe to specific tables or events
-- **JSON Payloads**: Full support for JSON/JSONB notifications
-- **Transaction Bound**: Notifications tied to commit boundaries
+- **Database-driven updates** from PostgreSQL `NOTIFY`
+- **Channel lifecycle** via explicit subscribe/unsubscribe
+- **Raw payload forwarding** for full application-level control
+- **Simple adapter lifecycle** with `start` and `stop`
 
 ## Installation
 
-Add to your `dune` file:
+Add the dependency in your `dune` file:
 
 ```lisp
 (libraries
@@ -34,589 +34,187 @@ Add to your `dune` file:
 ### Basic Setup
 
 ```reason
-// server.ml
-let adapter =
-  ReasonRealtimePgNotifyAdapter.create(
-    ~databaseUrl="postgres://user:pass@localhost:5432/mydb",
-    ~channels=["items_changes", "user_updates"],
+// server.re
+let resolve_subscription request selection =
+  /* map a client command to a channel */
+  Lwt.return(Some(selection));
+
+let load_snapshot request channel = {
+  Lwt.return(
+    Printf.sprintf("{\"type\":\"snapshot\",\"channel\":\"%s\",\"payload\":{}}", channel)
   );
+};
+
+let pg_adapter =
+  Pgnotify_adapter.create(~db_uri="postgres://user:pass@localhost:5432/mydb", ());
+
+let adapter = Adapter.pack((module Pgnotify_adapter), pg_adapter);
 
 let middleware =
-  ReasonRealtimeDreamMiddleware.create(
+  Middleware.create(
     ~adapter,
-    (),
+    ~resolve_subscription,
+    ~load_snapshot,
   );
 
 let () =
+  /* Start polling for LISTEN events */
+  let _ = Lwt.async(() => Adapter.start(adapter));
+
   Dream.run
   @@ Dream.router([
-    Dream.get "/_events" (
-      ReasonRealtimeDreamMiddleware.handler(middleware)
-    ),
+    Dream.get "/_events" (Middleware.route("/_events", middleware)),
+    Dream.get "/" (_ => Dream.html("Hello")),
   ]);
 ```
 
-### Database Trigger Setup
+> Note: `Adapter.start` is required so notifications are consumed and pushed into
+> registered handlers.
+
+## API Reference
+
+### Types
+
+#### `Pgnotify_adapter.t`
+
+```reason
+type t;
+```
+
+PostgreSQL adapter handle.
+
+### Functions
+
+#### `Pgnotify_adapter.create`
+
+```reason
+let create: (~db_uri: string, unit) => t;
+```
+
+Creates a new adapter using a PostgreSQL connection URI.
+
+#### `Pgnotify_adapter.start`
+
+```reason
+let start: t => Lwt.t(unit);
+```
+
+Starts the internal notification polling loop.
+
+#### `Pgnotify_adapter.stop`
+
+```reason
+let stop: t => Lwt.t(unit);
+```
+
+Stops polling and closes the database connection.
+
+#### `Pgnotify_adapter.subscribe`
+
+```reason
+let subscribe: (t, ~channel: string, ~handler: (string => unit Lwt.t)) => Lwt.t(unit);
+```
+
+Registers a handler for a channel and opens `LISTEN` for that channel.
+
+#### `Pgnotify_adapter.unsubscribe`
+
+```reason
+let unsubscribe: (t, ~channel: string) => Lwt.t(unit);
+```
+
+Unregisters all handlers for a channel and issues `UNLISTEN`.
+
+## Database Trigger Setup
 
 ```sql
--- Enable notifications on table changes
 CREATE OR REPLACE FUNCTION notify_changes()
 RETURNS TRIGGER AS $$
 BEGIN
   PERFORM pg_notify(
     TG_TABLE_NAME || '_changes',
     json_build_object(
-      'action', TG_OP,
-      'table', TG_TABLE_NAME,
-      'old', CASE WHEN TG_OP = 'DELETE' THEN row_to_json(OLD) ELSE NULL END,
-      'new', CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN row_to_json(NEW) ELSE NULL END
-    )::text
-  );
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
--- Attach trigger to table
-CREATE TRIGGER items_changes_trigger
-AFTER INSERT OR UPDATE OR DELETE ON items
-FOR EACH ROW EXECUTE FUNCTION notify_changes();
-```
-
-## API Reference
-
-### Types
-
-#### `adapter`
-
-```reason
-type adapter;
-```
-
-The PostgreSQL notify adapter handle.
-
-#### `config`
-
-```reason
-type config = {
-  databaseUrl: string,
-  channels: list(string),
-  reconnectInterval: option(int),  // Milliseconds
-  maxReconnectAttempts: option(int),
-};
-```
-
-### Functions
-
-#### `create`
-
-```reason
-let create: (~databaseUrl: string, ~channels: list(string)) => adapter;
-```
-
-Create a new adapter instance.
-
-**Parameters:**
-- `~databaseUrl`: PostgreSQL connection URL
-- `~channels`: List of channel names to subscribe to
-
-#### `createWithConfig`
-
-```reason
-let createWithConfig: config => adapter;
-```
-
-Create adapter with full configuration.
-
-#### `addChannel`
-
-```reason
-let addChannel: (adapter, string) => Lwt.t(unit);
-```
-
-Dynamically add a channel subscription.
-
-#### `removeChannel`
-
-```reason
-let removeChannel: (adapter, string) => Lwt.t(unit);
-```
-
-Remove a channel subscription.
-
-#### `stop`
-
-```reason
-let stop: adapter => Lwt.t(unit);
-```
-
-Stop the adapter and close database connections.
-
-## Configuration
-
-### Connection Options
-
-```reason
-let adapter =
-  ReasonRealtimePgNotifyAdapter.createWithConfig({
-    databaseUrl: "postgres://user:pass@localhost:5432/mydb",
-    channels: ["items_changes", "orders_changes"],
-    reconnectInterval: Some(5000),       // Reconnect after 5s
-    maxReconnectAttempts: Some(10),      // Give up after 10 tries
-  });
-```
-
-### Environment Variables
-
-```reason
-let databaseUrl =
-  switch (Sys.getenv_opt("DATABASE_URL")) {
-  | Some(url) => url
-  | None => "postgres://localhost:5432/mydb"
-  };
-
-let adapter =
-  ReasonRealtimePgNotifyAdapter.create(
-    ~databaseUrl,
-    ~channels=["events"],
-  );
-```
-
-## Trigger Patterns
-
-### Simple Table Notifications
-
-```sql
--- Basic trigger for all changes
-CREATE TRIGGER simple_notify
-AFTER INSERT OR UPDATE OR DELETE ON my_table
-FOR EACH ROW EXECUTE FUNCTION notify_changes();
-```
-
-### Conditional Notifications
-
-```sql
--- Only notify on specific changes
-CREATE OR REPLACE FUNCTION notify_status_changes()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF OLD.status IS DISTINCT FROM NEW.status THEN
-    PERFORM pg_notify(
-      'status_changes',
-      json_build_object(
-        'id', NEW.id,
-        'oldStatus', OLD.status,
-        'newStatus', NEW.status
-      )::text
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER status_change_trigger
-AFTER UPDATE ON orders
-FOR EACH ROW EXECUTE FUNCTION notify_status_changes();
-```
-
-### Rich Payloads
-
-```sql
-CREATE OR REPLACE FUNCTION notify_with_metadata()
-RETURNS TRIGGER AS $$
-DECLARE
-  payload json;
-BEGIN
-  payload := json_build_object(
-    'timestamp', NOW(),
-    'txid', txid_current(),
-    'user', current_user,
-    'action', TG_OP,
-    'schema', TG_TABLE_SCHEMA,
-    'table', TG_TABLE_NAME,
-    'data', CASE
-      WHEN TG_OP = 'DELETE' THEN row_to_json(OLD)
-      ELSE row_to_json(NEW)
-    END
-  );
-  
-  PERFORM pg_notify(TG_ARGV[0], payload::text);
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER rich_notify
-AFTER INSERT OR UPDATE OR DELETE ON items
-FOR EACH ROW EXECUTE FUNCTION notify_with_metadata('items_changes');
-```
-
-## Message Format
-
-### Standard Payload
-
-```json
-{
-  "action": "INSERT",
-  "table": "items",
-  "old": null,
-  "new": {
-    "id": "123",
-    "name": "New Item",
-    "price": 29.99
-  }
-}
-```
-
-### Update Payload
-
-```json
-{
-  "action": "UPDATE",
-  "table": "items",
-  "old": {
-    "id": "123",
-    "name": "Old Name",
-    "price": 19.99
-  },
-  "new": {
-    "id": "123",
-    "name": "New Name",
-    "price": 29.99
-  }
-}
-```
-
-### Delete Payload
-
-```json
-{
-  "action": "DELETE",
-  "table": "items",
-  "old": {
-    "id": "123",
-    "name": "Deleted Item"
-  },
-  "new": null
-}
-```
-
-## Integration with Store
-
-### Client-Side Patch Handling
-
-```reason
-// Store.re
-let decodePatch =
-  StorePatch.compose([
-    StorePatch.Pg.decodeAs(
-      ~table="items",
-      ~decodeRow=json => {
-        open Json.Decode;
-        {
-          id: json |> field("id", string),
-          name: json |> field("name", string),
-          price: json |> field("price", float),
-        };
-      },
-      ~insert=data => ItemAdd(data),
-      ~update=data => ItemUpdate(data.id, data),
-      ~delete=id => ItemDelete(id),
-      (),
-    ),
-  ]);
-```
-
-### Server-Side Filtering
-
-```reason
-let middleware =
-  ReasonRealtimeDreamMiddleware.create(
-    ~adapter,
-    ~filterMessage=((userId, channel, payload)) => {
-      switch (channel) {
-      | "items_changes" =>
-        // Filter by user permissions
-        let itemUserId =
-          payload
-          |> Json.Decode.field("new", Json.Decode.field("user_id", Json.Decode.string));
-        Lwt.return(userId == itemUserId);
-      | _ => Lwt.return(false)
-      };
-    }),
-  );
-```
-
-## Advanced Patterns
-
-### Multi-Tenant Isolation
-
-```sql
--- Add tenant_id to all tables
-ALTER TABLE items ADD COLUMN tenant_id UUID NOT NULL;
-
--- Create tenant-isolated trigger
-CREATE OR REPLACE FUNCTION notify_tenant_changes()
-RETURNS TRIGGER AS $$
-DECLARE
-  tenant_id UUID;
-BEGIN
-  tenant_id := CASE
-    WHEN TG_OP = 'DELETE' THEN OLD.tenant_id
-    ELSE NEW.tenant_id
-  END;
-  
-  PERFORM pg_notify(
-    'tenant_' || tenant_id::text || '_changes',
-    json_build_object(
       'table', TG_TABLE_NAME,
       'action', TG_OP,
+      'id', CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END,
       'data', CASE
-        WHEN TG_OP = 'DELETE' THEN row_to_json(OLD)
-        ELSE row_to_json(NEW)
+        WHEN TG_OP = 'DELETE' THEN NULL
+        ELSE to_jsonb(NEW)
       END
     )::text
   );
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER items_changes_trigger
+AFTER INSERT OR UPDATE OR DELETE ON items
+FOR EACH ROW EXECUTE FUNCTION notify_changes();
 ```
 
-### Audit Logging
+## Message Format
 
-```sql
-CREATE TABLE audit_log (
-  id SERIAL PRIMARY KEY,
-  table_name TEXT NOT NULL,
-  action TEXT NOT NULL,
-  old_data JSONB,
-  new_data JSONB,
-  changed_at TIMESTAMP DEFAULT NOW()
-);
+Payloads are passed through from PostgreSQL as a raw text string and parsed into:
 
-CREATE OR REPLACE FUNCTION audit_trigger()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO audit_log (table_name, action, old_data, new_data)
-  VALUES (
-    TG_TABLE_NAME,
-    TG_OP,
-    CASE WHEN TG_OP != 'INSERT' THEN to_jsonb(OLD) ELSE NULL END,
-    CASE WHEN TG_OP != 'DELETE' THEN to_jsonb(NEW) ELSE NULL END
-  );
-  
-  PERFORM pg_notify('audit_changes', json_build_object(
-    'table', TG_TABLE_NAME,
-    'action', TG_OP
-  )::text);
-  
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
+- `table` (string)
+- `id` (JSON value)
+- `action` (`INSERT` | `UPDATE` | `DELETE`)
+- `data` (optional JSON object)
+
+### Insert/Update
+
+```json
+{
+  "table": "inventory",
+  "action": "INSERT",
+  "id": "123",
+  "data": {"id": "123", "name": "New Item", "price": 29.99}
+}
 ```
 
-### Batch Notifications
+### Delete
 
-```sql
--- Reduce notification frequency for high-volume tables
-CREATE OR REPLACE FUNCTION notify_batch_changes()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Use statement-level trigger for batches
-  PERFORM pg_notify(
-    TG_TABLE_NAME || '_batch_changes',
-    json_build_object(
-      'table', TG_TABLE_NAME,
-      'action', TG_OP,
-      'timestamp', NOW()
-    )::text
-  );
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER batch_notify
-AFTER INSERT OR UPDATE OR DELETE ON high_volume_table
-FOR EACH STATEMENT EXECUTE FUNCTION notify_batch_changes();
+```json
+{
+  "table": "inventory",
+  "action": "DELETE",
+  "id": "123"
+}
 ```
 
-## Best Practices
+The adapter currently forwards updates only for the `inventory` table; unsupported
+tables are ignored.
 
-### 1. Keep Payloads Small
+## Integration Notes
 
-❌ **Bad:** Including entire rows with large JSONB columns
-
-✅ **Good:** Only include changed fields and IDs
-
-```sql
-SELECT json_build_object(
-  'id', id,
-  'changedFields', (
-    SELECT json_object_agg(key, value)
-    FROM jsonb_each(to_jsonb(NEW))
-    WHERE key IN ('name', 'status', 'updated_at')
-  )
-);
-```
-
-### 2. Use Specific Channels
-
-❌ **Bad:** Single channel for all tables
-
-✅ **Good:** Separate channels per table or event type
-
-```sql
--- Good
-pg_notify('orders_status_changes', ...)
-pg_notify('inventory_updates', ...)
-```
-
-### 3. Handle Connection Failures
-
-```reason
-let adapter =
-  ReasonRealtimePgNotifyAdapter.createWithConfig({
-    databaseUrl,
-    channels: ["events"],
-    reconnectInterval: Some(1000),
-    maxReconnectAttempts: Some(5),
-  });
-
-// Monitor connection status
-let monitorConnection = () => {
-  ReasonRealtimePgNotifyAdapter.onDisconnect(adapter, () => {
-    Log.warn("Database connection lost, attempting reconnect...");
-  });
-  
-  ReasonRealtimePgNotifyAdapter.onReconnect(adapter, () => {
-    Log.info("Database connection restored");
-  });
-};
-```
-
-### 4. Clean Up Old Connections
-
-```sql
--- Periodically clean up idle connections
-SELECT pg_terminate_backend(pid)
-FROM pg_stat_activity
-WHERE state = 'idle'
-  AND state_change < NOW() - INTERVAL '1 hour';
-```
+- Route authorization and tenancy checks belong in your `resolve_subscription`
+  and `load_snapshot` callbacks in `reason-realtime/dream-middleware`.
+- The adapter only handles transport-level channel delivery; application-level
+  filtering should be done before payloads are sent to clients.
 
 ## Troubleshooting
 
 ### Notifications Not Received
 
-**Problem:** Clients not getting PostgreSQL notifications
+1. Ensure `Adapter.start` is running.
+2. Confirm trigger payload shape includes a `table`, `action`, and `id` field.
+3. Confirm channel names match between trigger output and client `select` commands.
+4. Verify PostgreSQL user permissions for LISTEN/NOTIFY and table triggers.
 
-**Solutions:**
-1. Verify trigger is created and attached
-2. Check channel name matches exactly (case-sensitive)
-3. Ensure transaction is committed (notifications sent on COMMIT)
-4. Verify database user has TRIGGER permission
+### Connection Errors
 
-**Debug Query:**
-```sql
--- Test notification manually
-SELECT pg_notify('test_channel', '{"test": true}'::text);
+1. Verify `db_uri` values (user, password, host, database).
+2. Confirm PostgreSQL is reachable from the app host.
+3. Check `pg_stat_activity` for active LISTEN sessions.
 
--- Check active listeners
-SELECT * FROM pg_stat_activity WHERE wait_event = 'PgNotifySlruLock';
+### Performance
 
--- Verify trigger exists
-SELECT * FROM pg_trigger WHERE tgname = 'your_trigger_name';
-```
-
-### Connection Drops
-
-**Problem:** Adapter loses database connection
-
-**Solutions:**
-1. Configure reconnection parameters
-2. Check database max_connections limit
-3. Verify network stability
-4. Use connection pooling (PgBouncer)
-
-### Performance Issues
-
-**Problem:** High CPU or notification lag
-
-**Solutions:**
-1. Use statement-level triggers for bulk operations
-2. Reduce payload size
-3. Batch notifications when possible
-4. Monitor with:
-```sql
-SELECT 
-  channel,
-  count(*),
-  max(sent_at) as last_sent
-FROM pg_notification_queue
-GROUP BY channel;
-```
-
-## Monitoring
-
-### Metrics to Track
-
-```reason
-// Track adapter metrics
-ReasonRealtimePgNotifyAdapter.onMessage(adapter, (channel, payload) => {
-  Metrics.increment("pg_notify.received", ~tags=[("channel", channel)]);
-  
-  let size = payload |> Js.Json.stringify |> String.length;
-  Metrics.histogram("pg_notify.payload_size", float_of_int(size));
-});
-```
-
-### PostgreSQL Monitoring
-
-```sql
--- Active LISTEN connections
-SELECT count(*) FROM pg_stat_activity 
-WHERE query LIKE '%LISTEN%';
-
--- Notification queue depth
-SELECT count(*) FROM pg_notification_queue;
-
--- Slowest notifications
-SELECT channel, avg(processing_time) as avg_time
-FROM notification_log  -- If you maintain one
-GROUP BY channel
-ORDER BY avg_time DESC;
-```
-
-## Examples
-
-### E-commerce Real-time Inventory
-
-See the [ecommerce demo](../demos/ecommerce/) for complete implementation including:
-- Inventory change notifications
-- Stock level updates
-- Order status changes
-
-### Chat Application
-
-```sql
--- Messages table
-CREATE TABLE messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  room_id UUID NOT NULL,
-  user_id UUID NOT NULL,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Notify on new messages
-CREATE TRIGGER message_notify
-AFTER INSERT ON messages
-FOR EACH ROW EXECUTE FUNCTION notify_changes();
-
--- Subscribe to room-specific channel in application
-let channels = ["room_" ++ roomId ++ "_messages"];
-```
+1. Keep payloads small.
+2. Use specific channels for high-volume events.
+3. Consider filtering/transforming payloads at trigger time.
 
 ## Related Documentation
 
-- [reason-realtime/dream-middleware](reason-realtime.dream-middleware.md) - WebSocket middleware
-- [universal-reason-react/store](universal-reason-react.store.md) - Client store sync
-- [PostgreSQL NOTIFY Documentation](https://www.postgresql.org/docs/current/sql-notify.html) - Official docs
+- [reason-realtime/dream-middleware](reason-realtime.dream-middleware.md) - websocket middleware
+- [universal-reason-react/store](universal-reason-react.store.md) - store sync patterns
+- [PostgreSQL NOTIFY Documentation](https://www.postgresql.org/docs/current/sql-notify.html)

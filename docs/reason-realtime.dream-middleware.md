@@ -65,22 +65,24 @@ let load_snapshot request channel = {
   Lwt.return(body);
 };
 
-let adapter = ReasonRealtimeDreamMiddleware.Adapter.pack(
-  ReasonRealtimePgNotifyAdapter.create(~db_uri="postgres://user:pass@localhost:5432/mydb", ())
-);
+let pg_adapter = Pgnotify_adapter.create(~db_uri="postgres://user:pass@localhost:5432/mydb", ());
+
+let adapter = Adapter.pack(pg_adapter);
 
 let middleware =
-  ReasonRealtimeDreamMiddleware.create(
+  Middleware.create(
     ~adapter,
     ~resolve_subscription,
     ~load_snapshot,
   );
 
 let () =
+  (* Start adapter polling *)
+  let _ = Lwt.async(() => Adapter.start(adapter));
   Dream.run
   @@ Dream.logger
   @@ Dream.router([
-    Dream.get "/_events" (ReasonRealtimeDreamMiddleware.route "/_events" middleware),
+    Dream.get "/_events" (Middleware.route "/_events" middleware),
     Dream.get "/**" (fun request =>
       Dream.html("Hello from app")
     ),
@@ -93,14 +95,14 @@ The adapter should call the middleware broadcast function with string payloads w
 
 ```reason
 let middleware =
-  ReasonRealtimeDreamMiddleware.create(
+  Middleware.create(
     ~adapter,
     ~resolve_subscription,
     ~load_snapshot,
   );
 
 let () =
-  let* () = ReasonRealtimeDreamMiddleware.broadcast(middleware, "inventory", "{\"type\":\"patch\"}") in
+  let* () = Middleware.broadcast(middleware, "inventory", "{\"type\":\"patch\"}") in
   Lwt.return_unit;
 ```
 
@@ -114,37 +116,55 @@ type t;
 
 ### Functions
 
-#### `create`
+#### `Middleware.create`
 
 ```reason
 let create: (
-  ~adapter: ReasonRealtimeDreamMiddleware.Adapter.packed,
+  ~adapter: Adapter.packed,
   ~resolve_subscription: (Dream.request => string => string option Lwt.t),
   ~load_snapshot: (Dream.request => string => string Lwt.t),
-) => t;
+) => Middleware.t;
 ```
 
 Build middleware and provide callbacks for subscription and snapshot resolution.
 
-#### `route`
+#### `Middleware.route`
 
 ```reason
-let route: (string, t) => Dream.handler;
+let route: (string, Middleware.t) => Dream.handler;
 ```
 
 Create a Dream handler for a websocket endpoint path and middleware.
 
-#### `broadcast`
+#### `Middleware.broadcast`
 
 ```reason
-let broadcast: (t, string, string) => Lwt.t(unit);
+let broadcast: (Middleware.t, string, string) => Lwt.t(unit);
 ```
 
 Broadcast a payload to all connected clients subscribed to the channel.
 
 #### `Adapter`
 
-See `ReasonRealtimeDreamMiddleware.Adapter` for the adapter adapter protocol (`pack`, `start`, `stop`, `subscribe`, `unsubscribe`).
+The `Adapter` module defines the adapter protocol:
+
+```reason
+module type S = sig
+  type t
+  val start : t -> unit Lwt.t
+  val stop : t -> unit Lwt.t
+  val subscribe : t -> channel:string -> handler:(string -> unit Lwt.t) -> unit Lwt.t
+  val unsubscribe : t -> channel:string -> unit Lwt.t
+end
+
+type packed = Pack : (module S with type t = 'a) * 'a -> packed
+
+let pack : (module S with type t = 'a) -> 'a -> packed
+let start : packed -> unit Lwt.t
+let stop : packed -> unit Lwt.t
+let subscribe : packed -> channel:string -> handler:(string -> unit Lwt.t) -> unit Lwt.t
+let unsubscribe : packed -> channel:string -> unit Lwt.t
+```
 
 ## Message Protocol
 
@@ -161,7 +181,7 @@ Responses are plain text payloads sent by the server (for example snapshots and 
 
 ### Clients Can't Connect
 
-1. Confirm Dream routes include your websocket path using `ReasonRealtimeDreamMiddleware.route`.
+1. Confirm Dream routes include your websocket path using `Middleware.route`.
 2. Verify no proxy strips websocket upgrade headers.
 3. Ensure the request path matches your client websocket URL.
 
@@ -178,4 +198,4 @@ All authorization and tenancy checks should happen in `resolve_subscription`/`lo
 ## Integration Notes
 
 - Use `reason-realtime/pgnotify-adapter` for Postgres-backed event sources.
-- For custom data sources, pass any adapter packed with `ReasonRealtimeDreamMiddleware.Adapter.pack`.
+- For custom data sources, pass any adapter packed with `Adapter.pack`.

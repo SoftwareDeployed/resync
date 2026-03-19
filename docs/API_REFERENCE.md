@@ -473,111 +473,149 @@ let make: (
 
 ### Types
 
-#### `adapter`
+#### `Middleware.t`
 
 ```reason
-type adapter;
+type t;
 ```
 
-Real-time adapter interface.
+Middleware handle.
+
+#### `Adapter.packed`
+
+```reason
+type packed = Pack : (module S with type t = 'a) * 'a -> packed
+```
+
+Packed adapter value.
 
 ### Functions
 
-#### `ReasonRealtimeDreamMiddleware.create`
+#### `Middleware.create`
 
 ```reason
 let create: (
-  ~adapter: adapter=?,
-  ~authenticate: Dream.request => Lwt.t(option(string)),
-  ~onConnect: string => Lwt.t(unit)=?,
-  ~onDisconnect: string => Lwt.t(unit)=?,
-  unit,
-) => t;
+  ~adapter: Adapter.packed,
+  ~resolve_subscription: Dream.request => string => string option Lwt.t,
+  ~load_snapshot: Dream.request => string => string Lwt.t,
+) => Middleware.t;
 ```
 
 Creates middleware instance.
 
-#### `ReasonRealtimeDreamMiddleware.handler`
+#### `Middleware.route`
 
 ```reason
-let handler: t => Dream.handler;
+let route: (string, Middleware.t) => Dream.handler;
 ```
 
-Converts middleware to Dream handler.
+Builds a Dream handler for a websocket route.
 
-#### `ReasonRealtimeDreamMiddleware.broadcast`
+#### `Middleware.broadcast`
 
 ```reason
-let broadcast: (t, ~channel: string, ~payload: Js.Json.t) => Lwt.t(unit);
+let broadcast: (Middleware.t, string, string) => Lwt.t(unit);
 ```
 
-Broadcasts message to all connected clients.
+Broadcasts a payload string to all connected clients.
 
-#### `ReasonRealtimeDreamMiddleware.sendToUser`
+#### `Adapter.pack`
 
 ```reason
-let sendToUser: (t, ~userId: string, ~channel: string, ~payload: Js.Json.t) => Lwt.t(unit);
+let pack: (module Adapter.S with type t = 'a) -> 'a -> Adapter.packed;
 ```
 
-Sends message to specific user.
+Pack an adapter implementation.
+
+#### `Adapter.start`
+
+```reason
+let start: Adapter.packed -> unit Lwt.t;
+```
+
+Start a packed adapter.
+
+#### `Adapter.stop`
+
+```reason
+let stop: Adapter.packed -> unit Lwt.t;
+```
+
+Stop a packed adapter.
+
+#### `Adapter.subscribe`
+
+```reason
+let subscribe: Adapter.packed -> channel:string -> handler:(string -> unit Lwt.t) -> unit Lwt.t;
+```
+
+Subscribe a packed adapter to a channel.
+
+#### `Adapter.unsubscribe`
+
+```reason
+let unsubscribe: Adapter.packed -> channel:string -> unit Lwt.t;
+```
+
+Unsubscribe a packed adapter from a channel.
 
 ## PostgreSQL Notify Adapter
 
-### Functions
+### Types
 
-#### `ReasonRealtimePgNotifyAdapter.create`
+#### `Pgnotify_adapter.t`
 
 ```reason
-let create: (~databaseUrl: string, ~channels: list(string)) => adapter;
+type t;
+```
+
+PostgreSQL adapter handle.
+
+### Functions
+
+#### `Pgnotify_adapter.create`
+
+```reason
+let create: (~db_uri: string, unit) => Pgnotify_adapter.t;
 ```
 
 Creates PostgreSQL notify adapter.
 
 **Parameters:**
-- `~databaseUrl`: PostgreSQL connection string
-- `~channels`: List of channels to subscribe to
+- `~db_uri`: PostgreSQL connection string
 
-#### `ReasonRealtimePgNotifyAdapter.createWithConfig`
+#### `Pgnotify_adapter.start`
 
 ```reason
-let createWithConfig: config => adapter;
+let start: Pgnotify_adapter.t => Lwt.t(unit);
 ```
 
-Creates adapter with full configuration.
+Starts adapter polling.
 
-**Config type:**
-```reason
-type config = {
-  databaseUrl: string,
-  channels: list(string),
-  reconnectInterval: option(int),
-  maxReconnectAttempts: option(int),
-};
-```
-
-#### `ReasonRealtimePgNotifyAdapter.addChannel`
+#### `Pgnotify_adapter.stop`
 
 ```reason
-let addChannel: (adapter, string) => Lwt.t(unit);
-```
-
-Adds channel subscription.
-
-#### `ReasonRealtimePgNotifyAdapter.removeChannel`
-
-```reason
-let removeChannel: (adapter, string) => Lwt.t(unit);
-```
-
-Removes channel subscription.
-
-#### `ReasonRealtimePgNotifyAdapter.stop`
-
-```reason
-let stop: adapter => Lwt.t(unit);
+let stop: Pgnotify_adapter.t => Lwt.t(unit);
 ```
 
 Stops adapter and closes connections.
+
+#### `Pgnotify_adapter.subscribe`
+
+```reason
+let subscribe:
+  (Pgnotify_adapter.t, ~channel: string, ~handler: (string => unit Lwt.t)) => Lwt.t(unit);
+```
+
+Register a handler for channel updates.
+
+#### `Pgnotify_adapter.unsubscribe`
+
+```reason
+let unsubscribe: (Pgnotify_adapter.t, ~channel: string) => Lwt.t(unit);
+```
+
+Stop listening on a channel and remove handlers.
 
 ## Type Definitions
 
@@ -729,9 +767,4 @@ let defaultNotFoundStatus = 404;
 // Store
 let defaultStateElementId = "__store_state__";
 let defaultPersistenceKey = "universal_store_v1";
-
-// Real-time
-let defaultReconnectInterval = 5000;  // 5 seconds
-let defaultMaxReconnectAttempts = 10;
-let defaultHeartbeatInterval = 30000;  // 30 seconds
 ```
