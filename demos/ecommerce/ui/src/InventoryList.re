@@ -5,7 +5,7 @@ let str = React.string;
 [@react.component]
 let make =
     leaf((~openDate: option(Js.Date.t)=?, ~closeDate: option(Js.Date.t)=?) => {
-  let main_store = StoreContext.useStore();
+  let main_store = Store.Context.useStore();
   let config: Config.t = main_store.config;
   let unit: PeriodList.Unit.t = main_store.unit;
   let items = config.inventory;

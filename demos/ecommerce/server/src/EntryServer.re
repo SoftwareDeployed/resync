@@ -1,7 +1,13 @@
 let handler = (~routeRoot, ~serverPath, ~serverSearch="", config: Config.t) => {
   let store = Store.createStore(config);
   let serializedState = Store.serializeState(config);
-  let app = <App routeRoot serverPath serverSearch />;
+  let app =
+    <UniversalRouter
+      router=Routes.router
+      routeRoot
+      serverPath
+      serverSearch
+    />;
   let document =
     UniversalRouter.renderDocument(
       ~router=Routes.router,
@@ -13,9 +19,9 @@ let handler = (~routeRoot, ~serverPath, ~serverSearch="", config: Config.t) => {
       (),
     );
 
-  <StoreContext.Provider value=store>
+  <Store.Context.Provider value=store>
     <CartStore.Context.Provider value=CartStore.empty>
       document
     </CartStore.Context.Provider>
-  </StoreContext.Provider>;
+  </Store.Context.Provider>;
 };

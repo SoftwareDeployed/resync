@@ -2,7 +2,7 @@ let use = () => {
   let (isMounted, setIsMounted) = React.useState(() => false);
 
   React.useEffect0(() => {
-    setIsMounted(_ => true);
+    setIsMounted(_previous => true);
     None;
   });
 

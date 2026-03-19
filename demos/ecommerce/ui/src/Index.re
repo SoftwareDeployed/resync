@@ -13,19 +13,19 @@ let rootElement = ReactDOM.querySelector("#root");
 let%browser_only _ =
   switch (rootElement) {
   | Some(domNode) =>
-    let store = StoreHydration.hydrateStore();
+    let store = Store.hydrateStore();
     let cartStore = CartStore.hydrateStore();
 
     let appWithProvider =
       React.createElement(
-        StoreContext.Provider.make,
+        Store.Context.Provider.make,
         {
           "value": store,
           "children": React.createElement(
             CartStore.Context.Provider.make,
             {
               "value": cartStore,
-              "children": <App />,
+              "children": <UniversalRouter router=Routes.router />,
             },
           ),
         },

@@ -1,12 +1,17 @@
-module StorefrontLayout = {
-  let make = (~children, ~params as _, ~query as _, ()) => {
-    let main_store = StoreContext.useStore();
+module StorefrontLayoutView = {
+  [@react.component]
+  let make = (~children) => {
+    let main_store = Store.Context.useStore();
 
     switch (main_store.config.premise) {
     | Some(_) => children
     | None => <NotFound />
     };
   };
+};
+
+module StorefrontLayout = {
+  let make = (~children, ~params as _, ~query as _, ()) => <StorefrontLayoutView> children </StorefrontLayoutView>;
 };
 
 module LandingPage = {

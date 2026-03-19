@@ -18,7 +18,7 @@ module Contents = {
     leaf(() => {
       useTilia();
       let cart_store = CartStore.Context.useStore();
-      let main_store = StoreContext.useStore();
+      let main_store = Store.Context.useStore();
       let cart_ids = cart_store.items->Js.Dict.keys;
 
       if (cart_ids->Array.length == 0) {
