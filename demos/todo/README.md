@@ -17,7 +17,6 @@ This demo shows:
 
 ```
 demos/todo/
-├── shared/          # Shared types and configuration
 ├── ui/             # Client-side UI (Melange/Reason React)
 └── server/         # Dream server (OCaml/Reason)
 ```
@@ -26,43 +25,41 @@ demos/todo/
 
 ### Prerequisites
 
-Make sure you've built the main project first:
+Install dependencies from the repo root:
 
 ```bash
-dune build
+pnpm install
 ```
 
-### Build the Demo
+Configure environment variables. For development, add to `.envrc` at the repo root:
 
 ```bash
-cd demos/todo
-dune build
+export TODO_DOC_ROOT="./_build/default/demos/todo/ui/src/app/"
 ```
 
-### Run the Server
+### Run the Demo
+
+Run with pnpm (requires two terminals):
 
 ```bash
-# Set the document root (where compiled JS files are)
-export DOC_ROOT="$PWD/_build/default/demos/todo/ui/src/app/"
+# Terminal 1: Build watch
+pnpm todo:dune:watch
 
-# Run the server
-./_build/default/demos/todo/server/src/server.exe
-
-# Open http://localhost:8080 in your browser
+# Terminal 2: Run server (restarts on UI changes)
+pnpm todo:watch
 ```
 
-Or from the repo root:
+> **Note:** Set `TODO_DOC_ROOT` in `.envrc` as shown above. The server fails fast unless this is set.
 
-```bash
-export DOC_ROOT="./_build/default/demos/todo/ui/src/app/"
-dune exec demos/todo/server/src/server.exe
-```
+> **Note:** Dune's built-in watch (`dune exec -w`) is not recommended for live development. Use `pnpm todo:watch` instead, which restarts the server when UI artifacts change.
+
+Open http://localhost:8080 in your browser.
 
 ## How It Works
 
-### 1. Shared Types (`shared/src/Config.re`)
+### 1. Store Types (`ui/src/TodoStore.re`)
 
-Defines the `todo` type and `config` type that are used by both server and client.
+Defines the `todo` type, `config` type, and store implementation used by both server and client.
 
 ### 2. UI Components (`ui/src/`)
 
@@ -85,7 +82,7 @@ Defines the `todo` type and `config` type that are used by both server and clien
 
 ## Key Files to Study
 
-- `shared/src/Config.re` - How types are shared between server/client
+- `ui/src/TodoStore.re` - How types and store are defined
 - `ui/src/Routes.re` - How routes are defined
 - `server/src/EntryServer.re` - How SSR state is provided
 - `ui/src/Index.re` - How hydration works

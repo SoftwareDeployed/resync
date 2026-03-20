@@ -1,23 +1,45 @@
 ; Root dune file for build orchestration
 
-; Alias for building the UI/app
+; === ECOMMERCE DEMO ===
 (alias
- (name app)
+ (name ecommerce-app)
  (deps
   (alias_rec demos/ecommerce/ui/app)))
 
-; Alias for building the server
 (alias
- (name server)
+ (name ecommerce-server)
  (deps
   (file demos/ecommerce/server/src/server.exe)))
 
-; Default alias builds both
+; === TODO DEMO ===
+(alias
+ (name todo-app)
+ (deps
+  (alias_rec demos/todo/ui/app)))
+
+(alias
+ (name todo-server)
+ (deps
+  (file demos/todo/server/src/server.exe)))
+
+; === CONVENIENCE ALIASES ===
+(alias
+ (name all-apps)
+ (deps
+  (alias ecommerce-app)
+  (alias todo-app)))
+
+(alias
+ (name all-servers)
+ (deps
+  (alias ecommerce-server)
+  (alias todo-server)))
+
+; Default still points to ecommerce (backward compat)
 (alias
  (name default)
  (deps
-  (alias app)
-  (alias server)))
+  (alias ecommerce-app)
+  (alias ecommerce-server)))
 
-; Directories to include in the build
 (dirs packages demos)

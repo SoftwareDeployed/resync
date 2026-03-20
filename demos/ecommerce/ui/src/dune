@@ -46,13 +46,13 @@
  ; Always check if this rule needs to run
  (action
   (progn
-   (run
-    node
-    %{script}
-    %{entrypoints}
-    --output=app/dist
-    --extract=true
-    --env=%{env:DEMO_ENV='production'})
+(run
+     node
+     %{script}
+     %{entrypoints}
+     --output=app
+     --extract=true
+     --env=%{env:DEMO_ENV='production'})
     (with-stdout-to
      .build_stamp
      (system "date +%s")))))

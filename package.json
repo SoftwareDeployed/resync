@@ -1,29 +1,30 @@
 {
   "name": "resync",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
-    "dev:serve": "dune exec -w demos/ecommerce/server/src/server.exe",
-    "dev:watch": "watchexec --no-vcs-ignore -w ./_build/default/demos/ecommerce/ui/src/.build_stamp -r -c -- ./_build/default/demos/ecommerce/server/src/server.exe",
-    "dev": "pnpm \"/(.*:watch$|^dev:serve$)/\"",
-    "dune:watch": "/bin/zsh -i -c 'dune build --force -w'",
-    "watch": "pnpm run \"/.*:watch$/\""
+    "ecommerce:dune:watch": "/bin/zsh -i -c 'dune build @ecommerce-app @ecommerce-server --force -w'",
+    "ecommerce:serve": "dune exec -w demos/ecommerce/server/src/server.exe",
+    "ecommerce:watch": "watchexec --no-vcs-ignore -w ./_build/default/demos/ecommerce/ui/src/.build_stamp -r -c -- ./_build/default/demos/ecommerce/server/src/server.exe",
+
+    "todo:dune:watch": "/bin/zsh -i -c 'dune build @todo-app @todo-server --force -w'",
+    "todo:serve": "dune exec -w demos/todo/server/src/server.exe",
+    "todo:watch": "watchexec --no-vcs-ignore -w ./_build/default/demos/todo/ui/src/.build_stamp -r -c -- ./_build/default/demos/todo/server/src/server.exe",
+
+    "dune:watch": "pnpm run ecommerce:dune:watch",
+    "serve": "pnpm run ecommerce:serve",
+    "watch": "pnpm run ecommerce:watch"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.22.0",
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
     "@tilia/react": "5.0.0-beta.20251218T180640",
     "common": "link:demos/ecommerce/shared",
+    "ecommerce-ui": "link:demos/ecommerce/ui",
+    "todo-ui": "link:demos/todo/ui",
     "lucide-react": "^0.555.0",
     "react": "^19.2.4",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.4",
     "store-backend": "link:demos/ecommerce/server",
-    "store-ui": "link:demos/ecommerce/ui",
     "tilia": "5.0.0-beta.20251218T180640"
   },
   "overrides": {

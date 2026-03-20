@@ -111,7 +111,7 @@ These packages are used by the ecommerce demo for:
 - pnpm
 - esbuild
 
-## Running the ecommerce demo
+## Running the demos
 
 Install JavaScript dependencies from the repo root:
 
@@ -119,28 +119,37 @@ Install JavaScript dependencies from the repo root:
 pnpm install
 ```
 
+### Ecommerce demo
+
 Start PostgreSQL:
 
 ```bash
 docker compose -f demos/ecommerce/server/docker-compose.yml up -d
 ```
 
-Before starting the server, set `DB_URL` and `DOC_ROOT`. For development,
-`.envrc` is recommended so the expected environment is loaded consistently:
+Configure environment variables. For development, `.envrc` is recommended:
 
 ```bash
-export DB_URL="postgres://executor:executor-password@localhost:5432/executor_db" \
-API_BASE_URL="http://localhost:8899" \
-DOC_ROOT="./_build/default/demos/ecommerce/ui/src/app/"
+# .envrc
+export DB_URL="postgres://executor:executor-password@localhost:5432/executor_db"
+export API_BASE_URL="http://localhost:8899"
+export ECOMMERCE_DOC_ROOT="./_build/default/demos/ecommerce/ui/src"
+export TODO_DOC_ROOT="./_build/default/demos/todo/ui/src"
 ```
 
-The server now fails fast unless `DB_URL` and `DOC_ROOT` are set.
+The server fails fast unless `DB_URL` and `ECOMMERCE_DOC_ROOT` are set.
 
-Run the app from the repo root:
+Run the demo (requires two terminals):
 
 ```bash
-pnpm dev
+# Terminal 1: Build watch
+pnpm ecommerce:dune:watch
+
+# Terminal 2: Server with restart on UI changes
+pnpm ecommerce:watch
 ```
+
+> **Note:** Dune's built-in watch (`dune exec -w`) is not recommended for live development. Use `pnpm ecommerce:watch` instead, which restarts the server when UI artifacts change.
 
 Open:
 
@@ -148,29 +157,65 @@ Open:
 http://localhost:8899
 ```
 
-You can also run the demo from its own directory:
+### Todo demo
+
+Run the demo (requires two terminals):
 
 ```bash
-cd demos/ecommerce
-pnpm dev
+# Terminal 1: Build watch
+pnpm todo:dune:watch
+
+# Terminal 2: Run server (restarts on UI changes)
+pnpm todo:watch
 ```
+
+> **Note:** Set `TODO_DOC_ROOT` in `.envrc` as shown above. The server fails fast unless this is set.
+
+> **Note:** Dune's built-in watch (`dune exec -w`) is not recommended for live development. Use `pnpm todo:watch` instead, which restarts the server when UI artifacts change.
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+### Available scripts
+
+| Script | Description |
+|--------|-------------|
+| `ecommerce:dune:watch` | Dune build watch for ecommerce |
+| `ecommerce:watch` | Run ecommerce server, restart on .build_stamp changes |
+| `todo:dune:watch` | Dune build watch for todo |
+| `todo:watch` | Run todo server, restart on .build_stamp changes |
 
 ## Build
 
-Build the demo app and server from the repo root:
+Build specific demos from the repo root:
 
 ```bash
-dune build @app @server
+dune build @ecommerce-app @ecommerce-server
+dune build @todo-app @todo-server
+```
+
+Or build all:
+
+```bash
+dune build @all-apps @all-servers
 ```
 
 ## Default development configuration
 
 The ecommerce demo currently uses:
 
-- `DOC_ROOT=./_build/default/demos/ecommerce/ui/src/app/`
+- `ECOMMERCE_DOC_ROOT=./_build/default/demos/ecommerce/ui/src`
 - `DB_URL=postgres://executor:executor-password@localhost:5432/executor_db`
 - `API_BASE_URL=http://localhost:8899`
 - server port `8899`
+
+The todo demo uses:
+
+- `TODO_DOC_ROOT=./_build/default/demos/todo/ui/src`
+- server port `8080`
 
 ## Demo behavior
 

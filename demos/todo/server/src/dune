@@ -3,19 +3,19 @@
  (name server)
  (public_name todo-server)
  (libraries
-   dream
-   server-reason-react.react
-   server-reason-react.reactDom
-   server-reason-react.html
-   server-reason-react.js
-   universal_reason_react_router_native
-   universal_reason_react_store_native
-   universal_reason_react_lucide_icons_native
-   lwt.unix
-   str
-   unix
-   server-reason-react.belt
-   yojson)
+  dream
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.html
+  server-reason-react.js
+  universal_reason_react_router_native
+  universal_reason_react_store_native
+  universal_reason_react_lucide_icons_native
+  lwt.unix
+  str
+  unix
+  server-reason-react.belt
+  yojson)
  (preprocess
   (pps
    server-reason-react.browser_ppx
@@ -26,7 +26,14 @@
  (modes native))
 
 ; Copy UI source files
+
 (copy_files
  (files "../../ui/src/*.re"))
+
+; Copy the UI build-stamp into server build context so the server can be
+; restarted when client artifacts rebuild.
+
+(copy_files
+ (files "../../ui/src/.build_stamp"))
 
 (include_subdirs qualified)

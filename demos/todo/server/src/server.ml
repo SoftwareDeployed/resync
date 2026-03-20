@@ -1,9 +1,9 @@
 open Lwt.Syntax
 
 let doc_root =
-  match Sys.getenv_opt "DOC_ROOT" with
+  match Sys.getenv_opt "TODO_DOC_ROOT" with
   | Some doc_root -> doc_root
-  | None -> failwith "DOC_ROOT is required"
+  | None -> failwith "TODO_DOC_ROOT is required"
 
 let () =
   Dream.run ~port:8080 @@ Dream.logger

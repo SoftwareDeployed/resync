@@ -20,6 +20,9 @@ importers:
       common:
         specifier: link:demos/ecommerce/shared
         version: link:demos/ecommerce/shared
+      ecommerce-ui:
+        specifier: link:demos/ecommerce/ui
+        version: link:demos/ecommerce/ui
       lucide-react:
         specifier: ^0.555.0
         version: 0.555.0(react@19.2.4)
@@ -35,12 +38,12 @@ importers:
       store-backend:
         specifier: link:demos/ecommerce/server
         version: link:demos/ecommerce/server
-      store-ui:
-        specifier: link:demos/ecommerce/ui
-        version: link:demos/ecommerce/ui
       tilia:
         specifier: 5.0.0-beta.20251218T180640
         version: 5.0.0-beta.20251218T180640
+      todo-ui:
+        specifier: link:demos/todo/ui
+        version: link:demos/todo/ui
     devDependencies:
       esbuild:
         specifier: ^0.27.4
