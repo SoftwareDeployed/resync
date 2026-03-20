@@ -43,7 +43,6 @@ Use the checked-in `demos/todo` demo as the first app walkthrough.
 
 `demos/todo` is a minimal universal Reason React app that demonstrates:
 
-- shared schema/config in `shared/`
 - SSR and route handling in `server/`
 - client hydration in `ui/`
 
@@ -57,7 +56,6 @@ Open `http://localhost:8080`.
 
 Key files to inspect:
 
-- `demos/todo/shared/src/Config.re` — shared type definitions
 - `demos/todo/server/src/EntryServer.re` — SSR state and render integration
 - `demos/todo/ui/src/Index.re` — hydration entry point
 - `demos/todo/ui/src/Routes.re` — route configuration
