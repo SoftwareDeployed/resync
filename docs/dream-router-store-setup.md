@@ -264,21 +264,18 @@ For the ecommerce demo, the relevant wiring lives in:
 
 ```reason
 let getServerState = (context: UniversalRouterDream.serverContext) => {
-  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
+  let {UniversalRouterDream.basePath, UniversalRouterDream.request} = context;
   let* premise =
     Dream.sql(
-      UniversalRouterDream.contextRequest(context),
-      Database.Premise.get_route_premise(routeRoot),
+      request,
+      Database.Premise.get_route_premise(basePath),
     );
 
   switch (premise) {
   | None => Lwt.return(UniversalRouterDream.NotFound)
   | Some(premise) =>
     let* inventory =
-      Dream.sql(
-        UniversalRouterDream.contextRequest(context),
-        Database.Inventory.get_list(premise.id),
-      );
+        Dream.sql(request, Database.Inventory.get_list(premise.id));
     let config: Config.t = {inventory, premise: Some(premise)};
     Lwt.return(UniversalRouterDream.State(config))
   };
@@ -299,14 +296,12 @@ Create one server app value that knows:
 let render = (~context, ~serverState, ()) => {
   let store = Store.createStore(serverState);
   let serializedState = Store.serializeState(serverState);
-  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
-  let serverPath = UniversalRouterDream.contextPath(context);
-  let serverSearch = UniversalRouterDream.contextSearch(context);
+  let {UniversalRouterDream.basePath, UniversalRouterDream.path: serverPath, UniversalRouterDream.search: serverSearch} = context;
 
   let app =
     <UniversalRouter
       router=Routes.router
-      routeRoot
+      basePath
       serverPath
       serverSearch
     />;
@@ -315,7 +310,7 @@ let render = (~context, ~serverState, ()) => {
     UniversalRouter.renderDocument(
       ~router=Routes.router,
       ~children=app,
-      ~routeRoot,
+      ~basePath,
       ~path=serverPath,
       ~search=serverSearch,
       ~serializedState,

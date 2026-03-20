@@ -219,29 +219,25 @@ let handler: (~app: app) => Dream.handler;
 
 Converts app to Dream request handler.
 
-#### `UniversalRouterDream.contextRouteRoot`
+#### `UniversalRouterDream.serverContext`
 
 ```reason
-let contextRouteRoot: serverContext('state) => string;
+type serverContext('state) = {
+  request: Dream.request,
+  basePath: string,
+  path: string,
+  search: string,
+  query: UniversalRouter.Query.t,
+  params: UniversalRouter.Params.t,
+  matchResult: UniversalRouter.matchResult('state),
+};
 ```
 
-Extracts route root from server context.
-
-#### `UniversalRouterDream.contextPath`
+`serverContext` is intentionally a concrete record so server handlers can access fields directly with qualified record labels.
 
 ```reason
-let contextPath: serverContext => string;
+let {UniversalRouterDream.basePath, UniversalRouterDream.request} = context;
 ```
-
-Extracts request path from server context.
-
-#### `UniversalRouterDream.contextSearch`
-
-```reason
-let contextSearch: serverContext => string;
-```
-
-Extracts query string from server context.
 
 ## Universal Store
 

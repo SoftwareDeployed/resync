@@ -495,8 +495,7 @@ let decodePatch =
 ```reason
 // EntryServer.re
 let getServerState = (context: UniversalRouterDream.serverContext) => {
-  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
-  let request = UniversalRouterDream.contextRequest(context);
+  let UniversalRouterDream.{basePath, request} = context;
   
   // Fetch data based on route
   let* items =

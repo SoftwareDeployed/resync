@@ -1,12 +1,9 @@
 open Lwt.Syntax;
 
 let getServerState = (context: UniversalRouterDream.serverContext(Store.t)) => {
-  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
+  let UniversalRouterDream.{ basePath, request } = context;
   let* premise =
-    Dream.sql(
-      UniversalRouterDream.contextRequest(context),
-      Database.Premise.get_route_premise(routeRoot),
-    );
+    Dream.sql(request, Database.Premise.get_route_premise(basePath));
 
   switch (premise) {
   | None => Lwt.return(UniversalRouterDream.NotFound)
@@ -16,29 +13,31 @@ let getServerState = (context: UniversalRouterDream.serverContext(Store.t)) => {
       if (premiseId == "") {
         Lwt.return([||]);
       } else {
-        Dream.sql(
-          UniversalRouterDream.contextRequest(context),
-          Database.Inventory.get_list(premiseId),
-        );
+        Dream.sql(request, Database.Inventory.get_list(premiseId));
       };
     let* inventory = inventoryPromise;
-    let config: Config.t = {inventory, premise: Some(premise)};
+    let config: Config.t = {
+      inventory,
+      premise: Some(premise),
+    };
     let store = Store.createStore(config);
-    Lwt.return(UniversalRouterDream.State(store))
+    Lwt.return(UniversalRouterDream.State(store));
   };
 };
 
 let render = (~context, ~serverState: Store.t, ()) => {
   let store = serverState;
   let serializedState = Store.serializeState(serverState.config);
-  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
-  let serverPath = UniversalRouterDream.contextPath(context);
-  let serverSearch = UniversalRouterDream.contextSearch(context);
+  let UniversalRouterDream.{
+    basePath,
+    path: serverPath,
+    search: serverSearch,
+  } = context;
   let app =
     <UniversalRouter
       router=Routes.router
       state=store
-      routeRoot
+      basePath
       serverPath
       serverSearch
     />;
@@ -46,7 +45,7 @@ let render = (~context, ~serverState: Store.t, ()) => {
     UniversalRouter.renderDocument(
       ~router=Routes.router,
       ~children=app,
-      ~routeRoot,
+      ~basePath,
       ~path=serverPath,
       ~search=serverSearch,
       ~serializedState,

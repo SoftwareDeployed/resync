@@ -191,20 +191,20 @@ let router =
     ],
   );
 
-let homePath = (~routeRoot="/", ()) =>
-  UniversalRouter.href(~router, ~routeRoot, ~id="home", ())
-  |> Option.value(~default=routeRoot);
+let homePath = (~basePath="/", ()) =>
+  UniversalRouter.href(~router, ~basePath, ~id="home", ())
+  |> Option.value(~default=basePath);
 
-let itemPath = (~routeRoot="/", ~id, ()) =>
+let itemPath = (~basePath="/", ~id, ()) =>
   UniversalRouter.href(
     ~router,
-    ~routeRoot,
+    ~basePath,
     ~id="item",
     ~params=UniversalRouter.Params.ofList([("id", id)]),
     (),
   )
-  |> Option.value(~default=routeRoot);
+  |> Option.value(~default=basePath);
 
-let cartPath = (~routeRoot="/", ()) =>
-  UniversalRouter.href(~router, ~routeRoot, ~id="cart", ())
+let cartPath = (~basePath="/", ()) =>
+  UniversalRouter.href(~router, ~basePath, ~id="cart", ())
   |> Option.value(~default="/cart");

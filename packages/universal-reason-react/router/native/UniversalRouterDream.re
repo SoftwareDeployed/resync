@@ -8,7 +8,7 @@ let requestQuery = request => Dream.all_queries(request) |> UniversalRouter.Quer
 
 type serverContext('state) = {
   request: Dream.request,
-  routeRoot: string,
+  basePath: string,
   path: string,
   search: string,
   query: UniversalRouter.Query.t,
@@ -46,14 +46,6 @@ let app = (~router, ~getServerState, ~render, ()) => {
 let resolvedContext = resolvedServerState => resolvedServerState.context;
 let resolvedState = resolvedServerState => resolvedServerState.state;
 
-let contextRouteRoot = context => context.routeRoot;
-let contextPath = context => context.path;
-let contextSearch = context => context.search;
-let contextQuery = context => context.query;
-let contextParams = context => context.params;
-let contextMatchResult = context => context.matchResult;
-let contextRequest = context => context.request;
-
 let streamReactApp = (responseStream, reactElement) => {
   let* () = Dream.write(responseStream, "<!DOCTYPE html>");
   let* (stream, _abort) = ReactDOM.renderToStream(reactElement);
@@ -68,26 +60,26 @@ let streamReactApp = (responseStream, reactElement) => {
   Lwt.return(());
 };
 
-let matchRequest = (~router, ~routeRoot, request) =>
+let matchRequest = (~router, ~basePath, request) =>
   UniversalRouter.matchMountedPath(
     ~router,
-    ~routeRoot,
+    ~basePath,
     ~path=requestPath(request),
     ~query=requestQuery(request),
     (),
   );
 
-let loadServerState = (~router, ~routeRoot, ~request, ~getServerState) => {
+let loadServerState = (~router, ~basePath, ~request, ~getServerState) => {
   let path = requestPath(request);
   let search = requestSearch(request);
   let query = requestQuery(request);
 
-  switch (matchRequest(~router, ~routeRoot, request)) {
+  switch (matchRequest(~router, ~basePath, request)) {
   | None => Lwt.return(ServerNotFound)
   | Some(matchResult) =>
     let context = {
       request,
-      routeRoot,
+      basePath,
       path,
       search,
       query,
@@ -105,11 +97,11 @@ let loadServerState = (~router, ~routeRoot, ~request, ~getServerState) => {
   };
 };
 
-let renderDocument = (~router, ~routeRoot, ~serializedState="", ~state=?, ~children, request) =>
+let renderDocument = (~router, ~basePath, ~serializedState="", ~state=?, ~children, request) =>
   UniversalRouter.renderDocument(
     ~router,
     ~children,
-    ~routeRoot,
+    ~basePath,
     ~path=requestPath(request),
     ~search=requestSearch(request),
     ~serializedState,
@@ -139,11 +131,11 @@ let redirectResponse = (~request, ~location, ~permanent) => {
 let rec respondCandidateRoots = (~app, ~request, candidateRoots) =>
   switch (candidateRoots) {
   | [] => Dream.empty(`Not_Found)
-  | [routeRoot, ...remainingRoots] => {
+  | [basePath, ...remainingRoots] => {
       let* serverState =
         loadServerState(
           ~router=app.router,
-          ~routeRoot,
+          ~basePath,
           ~request,
           ~getServerState=app.getServerState,
         );
@@ -159,6 +151,6 @@ let rec respondCandidateRoots = (~app, ~request, candidateRoots) =>
 
 let handler = (~app, request) => {
   let requestPath = requestPath(request);
-  let candidateRoots = UniversalRouter.candidateRouteRoots(requestPath);
+  let candidateRoots = UniversalRouter.candidateBasePaths(requestPath);
   respondCandidateRoots(~app, ~request, candidateRoots);
 };

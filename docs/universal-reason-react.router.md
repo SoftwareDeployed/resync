@@ -206,7 +206,7 @@ let render = (~context, ~serverState: Store.t, ()) => {
     <UniversalRouter
       router=Routes.router
       state=serverState  // Required for state-aware metadata
-      routeRoot
+      basePath
       serverPath
       serverSearch
     />;
@@ -248,8 +248,8 @@ let () =
 // EntryServer.re
 
 // Example: Route-based data fetching
-let fetchDataForRoute = (routeRoot: string, request: Dream.request) => {
-  switch (routeRoot) {
+let fetchDataForRoute = (basePath: string, request: Dream.request) => {
+  switch (basePath) {
   | "/" =>
     // Home page - fetch featured items
     let* featuredItems = Dream.sql(request, Database.getFeaturedItems());
@@ -262,7 +262,7 @@ let fetchDataForRoute = (routeRoot: string, request: Dream.request) => {
     
   | "/products/:id" =>
     // Product detail - fetch single product
-    let productId = extractParam(routeRoot, "id");
+    let productId = extractParam(basePath, "id");
     let* product = Dream.sql(request, Database.getProductById(productId));
     Lwt.return({items: Option.to_list(product), user: None})
     
@@ -285,11 +285,10 @@ let fetchDataForRoute = (routeRoot: string, request: Dream.request) => {
 };
 
 let getServerState = (context: UniversalRouterDream.serverContext(Store.t)) => {
-  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
-  let request = UniversalRouterDream.contextRequest(context);
+  let {UniversalRouterDream.basePath, UniversalRouterDream.request} = context;
   
   // Fetch data based on the current route
-  let* data = fetchDataForRoute(routeRoot, request);
+  let* data = fetchDataForRoute(basePath, request);
   
   // Create store from data
   let store = Store.createStore(data);
@@ -299,15 +298,13 @@ let getServerState = (context: UniversalRouterDream.serverContext(Store.t)) => {
 let render = (~context, ~serverState: Store.t, ()) => {
   let store = serverState;
   let serializedState = Store.serializeState(serverState.config);
-  let routeRoot = UniversalRouterDream.contextRouteRoot(context);
-  let serverPath = UniversalRouterDream.contextPath(context);
-  let serverSearch = UniversalRouterDream.contextSearch(context);
+  let {UniversalRouterDream.basePath, UniversalRouterDream.path: serverPath, UniversalRouterDream.search: serverSearch} = context;
 
   let app =
     <UniversalRouter
       router=Routes.router
       state=store  // Pass state for metadata resolution
-      routeRoot
+      basePath
       serverPath
       serverSearch
     />;
@@ -316,7 +313,7 @@ let render = (~context, ~serverState: Store.t, ()) => {
     UniversalRouter.renderDocument(
       ~router=Routes.router,
       ~children=app,
-      ~routeRoot,
+      ~basePath,
       ~path=serverPath,
       ~search=serverSearch,
       ~serializedState,
@@ -503,7 +500,7 @@ The `serverContext` type is parameterized by your application state type:
 ```reason
 type serverContext('state) = {
   request: Dream.request,
-  routeRoot: string,
+  basePath: string,
   path: string,
   search: string,
   query: UniversalRouter.Query.t,
@@ -512,29 +509,7 @@ type serverContext('state) = {
 };
 ```
 
-#### `UniversalRouterDream.contextRouteRoot`
-
-```reason
-let contextRouteRoot: serverContext('state) => string;
-```
-
-Gets the route root from the server context.
-
-#### `UniversalRouterDream.contextPath`
-
-```reason
-let contextPath: serverContext('state) => string;
-```
-
-Gets the current request path.
-
-#### `UniversalRouterDream.contextSearch`
-
-```reason
-let contextSearch: serverContext('state) => string;
-```
-
-Gets the query string from the request.
+Because `serverContext` is a concrete record, handlers can destructure needed fields directly.
 
 ## Best Practices
 

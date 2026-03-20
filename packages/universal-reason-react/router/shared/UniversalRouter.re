@@ -91,7 +91,7 @@ type headTagsResolverWithState('state) =
   list(headTag);
 
 type hydrationState = {
-  routeRoot: string,
+  basePath: string,
   path: string,
   search: string,
 };
@@ -156,7 +156,7 @@ type matchResult('state) = {
 
 type contextValueWithState('state) = {
   router: t('state),
-  routeRoot: string,
+  basePath: string,
   path: string,
   query: Query.t,
   params: Params.t,
@@ -165,7 +165,7 @@ type contextValueWithState('state) = {
 
 type contextValue = {
   router: t(unit),
-  routeRoot: string,
+  basePath: string,
   path: string,
   query: Query.t,
   params: Params.t,
@@ -231,8 +231,8 @@ let segmentsOfPath = path => path |> String.split_on_char('/') |> filterEmptySeg
 
 let normalizePath = path => path |> segmentsOfPath |> pathOfSegments;
 
-let normalizeRouteRoot = routeRoot => {
-  let trimmed = routeRoot |> String.trim;
+let normalizeBasePath = basePath => {
+  let trimmed = basePath |> String.trim;
   trimmed == "" ? "/" : normalizePath(trimmed);
 };
 
@@ -361,14 +361,14 @@ let create = (~document: documentConfig=document(), ~notFound=?, routes) => {
 };
 
 let serializeHydrationState = (state: hydrationState) =>
-  state.routeRoot ++ "\n" ++ state.path ++ "\n" ++ state.search;
+  state.basePath ++ "\n" ++ state.path ++ "\n" ++ state.search;
 
 let parseHydrationState = value => {
   switch (value |> String.split_on_char('\n')) {
-  | [routeRoot, path, search, ..._] =>
-    Some({routeRoot: normalizeRouteRoot(routeRoot), path, search})
-  | [routeRoot, path] =>
-    Some({routeRoot: normalizeRouteRoot(routeRoot), path, search: ""})
+  | [basePath, path, search, ..._] =>
+    Some({basePath: normalizeBasePath(basePath), path, search})
+  | [basePath, path] =>
+    Some({basePath: normalizeBasePath(basePath), path, search: ""})
   | _ => None
   };
 };
@@ -393,41 +393,41 @@ let makeServerUrl = (~path, ~search="", ()) => {
   search,
 };
 
-let stripRouteRoot = (~routeRoot, ~path) => {
-  let normalizedRouteRoot = normalizeRouteRoot(routeRoot);
+let stripBasePath = (~basePath, ~path) => {
+  let normalizedBasePath = normalizeBasePath(basePath);
   let normalizedPath = normalizePath(path);
 
-  if (normalizedRouteRoot == "/") {
+  if (normalizedBasePath == "/") {
     Some(normalizedPath);
-  } else if (normalizedPath == normalizedRouteRoot) {
+  } else if (normalizedPath == normalizedBasePath) {
     Some("/");
   } else {
-    let prefix = normalizedRouteRoot ++ "/";
+    let prefix = normalizedBasePath ++ "/";
     String.starts_with(normalizedPath, ~prefix)
       ? Some(
           normalizedPath->String.sub(
-            String.length(normalizedRouteRoot),
-            String.length(normalizedPath) - String.length(normalizedRouteRoot),
+            String.length(normalizedBasePath),
+            String.length(normalizedPath) - String.length(normalizedBasePath),
           ),
         )
       : None;
   };
 };
 
-let prefixRouteRoot = (~routeRoot, ~path) => {
-  let normalizedRouteRoot = normalizeRouteRoot(routeRoot);
+let prefixBasePath = (~basePath, ~path) => {
+  let normalizedBasePath = normalizeBasePath(basePath);
   let normalizedPath = normalizePath(path);
 
-  if (normalizedRouteRoot == "/") {
+  if (normalizedBasePath == "/") {
     normalizedPath;
   } else if (normalizedPath == "/") {
-    normalizedRouteRoot;
+    normalizedBasePath;
   } else {
-    normalizedRouteRoot ++ normalizedPath;
+    normalizedBasePath ++ normalizedPath;
   };
 };
 
-let candidateRouteRoots = path => {
+let candidateBasePaths = path => {
   let segments = path |> normalizePath |> segmentsOfPath;
   let prefixes =
     segments
@@ -544,8 +544,8 @@ let matchPath = (~router: t('state), ~path, ~query=Query.empty, ()) => {
   matchRoutes(router.routes, pathSegments, Params.empty, []);
 };
 
-let matchMountedPath = (~router: t('state), ~routeRoot, ~path, ~query=Query.empty, ()) =>
-  switch (stripRouteRoot(~routeRoot, ~path)) {
+let matchMountedPath = (~router: t('state), ~basePath, ~path, ~query=Query.empty, ()) =>
+  switch (stripBasePath(~basePath, ~path)) {
   | None => None
   | Some(rootlessPath) => matchPath(~router, ~path=rootlessPath, ~query, ())
   };
@@ -582,13 +582,13 @@ let buildPath = (~patternSegments, ~params=Params.empty, ~query=Query.empty, ())
   queryString == "" ? path : path ++ "?" ++ queryString;
 };
 
-let href = (~router: t('state), ~routeRoot="/", ~id, ~params=Params.empty, ~query=Query.empty, ()) =>
+let href = (~router: t('state), ~basePath="/", ~id, ~params=Params.empty, ~query=Query.empty, ()) =>
   switch (findPatternForId(router.routes, [], id)) {
   | None => None
   | Some(patternSegments) =>
     Some(
-      prefixRouteRoot(
-        ~routeRoot,
+      prefixBasePath(
+        ~basePath,
         ~path=buildPath(~patternSegments, ~params, ~query, ()),
       ),
     )
@@ -832,7 +832,7 @@ let renderHydrationScript = state =>
 let renderDocument = (
    ~router: t('state),
    ~children,
-   ~routeRoot="/",
+   ~basePath="/",
    ~path="/",
    ~search="",
    ~serializedState="",
@@ -840,11 +840,11 @@ let renderDocument = (
    (),
 ) => {
   let query = Query.parse(search);
-  let matchResult = matchMountedPath(~router, ~routeRoot, ~path, ~query, ());
+  let matchResult = matchMountedPath(~router, ~basePath, ~path, ~query, ());
   let title = resolveTitle(~router, ~matchResult, ~state);
   let head =
     mergeHeadContent(router.document.head, resolveHeadTags(~router, ~matchResult, ~state));
-  let hydrationState = {routeRoot: normalizeRouteRoot(routeRoot), path, search};
+  let hydrationState = {basePath: normalizeBasePath(basePath), path, search};
   let afterMain =
     mergeAfterMain(router.document.afterMain, renderHydrationScript(hydrationState));
 
@@ -877,7 +877,7 @@ let useParams = () => useRouter().params;
 let useQuery = () => useRouter().query;
 let useMatch = () => useRouter().matchResult;
 let useCurrentPath = () => useRouter().path;
-let useRouteRoot = () => useRouter().routeRoot;
+let useBasePath = () => useRouter().basePath;
 
 let useIsActive = (~id, ~exact=false, ()) => {
   let routerState = useRouter();
@@ -898,7 +898,7 @@ let useHref = (~id, ~params=Params.empty, ~query=Query.empty, ()) => {
   let routerState = useRouter();
   href(
     ~router=routerState.router,
-    ~routeRoot=routerState.routeRoot,
+    ~basePath=routerState.basePath,
     ~id,
     ~params,
     ~query,
@@ -915,7 +915,7 @@ let useNavigateTo = () => {
     switch (
       href(
         ~router=routerState.router,
-        ~routeRoot=routerState.routeRoot,
+        ~basePath=routerState.basePath,
         ~id,
         ~params,
         ~query,
@@ -996,15 +996,15 @@ module NavLink = {
 let make = (
    ~router: t('state),
    ~state: option('state)=?,
-   ~routeRoot: option(string)=?,
+   ~basePath: option(string)=?,
    ~serverPath: option(string)=?,
    ~serverSearch="",
 ) => {
   let hydrationState = readHydrationState();
-  let effectiveRouteRoot =
-    switch (routeRoot, hydrationState) {
-    | (Some(value), _) => normalizeRouteRoot(value)
-    | (None, Some(state)) => state.routeRoot
+  let effectiveBasePath =
+    switch (basePath, hydrationState) {
+    | (Some(value), _) => normalizeBasePath(value)
+    | (None, Some(state)) => state.basePath
     | (None, None) => "/"
     };
 
@@ -1034,7 +1034,7 @@ let make = (
   let matchResult =
     matchMountedPath(
       ~router,
-      ~routeRoot=effectiveRouteRoot,
+      ~basePath=effectiveBasePath,
       ~path=currentPath,
       ~query,
       (),
@@ -1065,7 +1065,7 @@ let make = (
   let routerState =
     Some({
       router: castToUnitRouter(router),
-      routeRoot: effectiveRouteRoot,
+      basePath: effectiveBasePath,
       path: currentPath,
       query,
       params:
