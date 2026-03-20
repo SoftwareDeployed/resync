@@ -4,7 +4,6 @@ module type DB = Caqti_lwt.CONNECTION;
 module R = Caqti_request;
 module T = Caqti_type;
 
-/* Helper to parse JSON period list - returns empty array on any error */
 let parse_period_list = (json_str: string) => {
   let result =
     try(Some(Yojson.Safe.from_string(json_str))) {
@@ -52,23 +51,34 @@ let parse_period_list = (json_str: string) => {
   };
 };
 
-/* Helper to convert DB tuple to InventoryItem.t with period_list */
-let tuple_to_inventory_item =
-    ((description, id, name, quantity, premise_id, period_list_json)) => {
-  {
-    Config.InventoryItem.description,
-    id,
-    name,
-    quantity,
-    premise_id,
-    period_list: parse_period_list(period_list_json),
-  };
-};
+let period_list_type =
+  T.custom(
+    ~encode=(_ => Error("encoding period_list not supported")),
+    ~decode=(json_str => Ok(parse_period_list(json_str))),
+    T.string,
+  );
+
+let inventory_item_caqti_type =
+  T.product((description, id, name, quantity, premise_id, period_list) => {
+    Config.InventoryItem.description: description,
+    id: id,
+    name: name,
+    quantity: quantity,
+    premise_id: premise_id,
+    period_list: period_list,
+  })
+    @@ T.proj(T.string, ((item: Config.InventoryItem.t) => item.description))
+    @@ T.proj(T.string, ((item: Config.InventoryItem.t) => item.id))
+    @@ T.proj(T.string, ((item: Config.InventoryItem.t) => item.name))
+    @@ T.proj(T.int, ((item: Config.InventoryItem.t) => item.quantity))
+    @@ T.proj(T.string, ((item: Config.InventoryItem.t) => item.premise_id))
+    @@ T.proj(period_list_type, ((item: Config.InventoryItem.t) => item.period_list))
+    @@ T.proj_end;
 
 let get_list = (premise_id: string) => {
   let query =
     Caqti_request.Infix.(
-      (T.string ->* T.(t6(string, string, string, int, string, string)))(
+      (T.string ->* inventory_item_caqti_type)(
         {sql|
           SELECT
             i.description,
@@ -93,17 +103,14 @@ let get_list = (premise_id: string) => {
   (module Db: DB) => {
     let* items_or_error = Db.collect_list(query, premise_id);
     let* items_list = Caqti_lwt.or_fail(items_or_error);
-    let items =
-      List.map(tuple_to_inventory_item, items_list) |> Array.of_list;
-    Lwt.return(items);
+    Lwt.return(Array.of_list(items_list));
   };
 };
 
-/* Get a single inventory item by ID with period_list */
 let get_by_id = (item_id: string) => {
   let query =
     Caqti_request.Infix.(
-      (T.string ->? T.(t6(string, string, string, int, string, string)))(
+      (T.string ->? inventory_item_caqti_type)(
         {sql|
           SELECT
             i.description,
@@ -127,10 +134,6 @@ let get_by_id = (item_id: string) => {
     );
   (module Db: DB) => {
     let* item_or_error = Db.find_opt(query, item_id);
-    let* item_opt = Caqti_lwt.or_fail(item_or_error);
-    switch (item_opt) {
-    | Some(item) => Lwt.return(Some(tuple_to_inventory_item(item)))
-    | None => Lwt.return(None)
-    };
+    Caqti_lwt.or_fail(item_or_error);
   };
 };

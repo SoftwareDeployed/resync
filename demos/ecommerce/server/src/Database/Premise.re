@@ -4,20 +4,30 @@ module type DB = Caqti_lwt.CONNECTION;
 module R = Caqti_request;
 module T = Caqti_type;
 
-/* Helper to convert DB tuple to Premise.t */
-let tuple_to_premise = ((id, name, description, updated_at_ts)) => {
-  {
-    PeriodList.Premise.id,
-    name,
-    description,
-    updated_at: Js.Date.fromFloat(updated_at_ts),
-  };
-};
+let date_type =
+  T.custom(
+    ~encode=(date => Ok(Js.Date.getTime(date))),
+    ~decode=(ts => Ok(Js.Date.fromFloat(ts))),
+    T.float,
+  );
+
+let premise_caqti_type =
+  T.product((id, name, description, updated_at) => {
+    PeriodList.Premise.id: id,
+    name: name,
+    description: description,
+    updated_at: updated_at,
+  })
+    @@ T.proj(T.string, ((premise: PeriodList.Premise.t) => premise.id))
+    @@ T.proj(T.string, ((premise: PeriodList.Premise.t) => premise.name))
+    @@ T.proj(T.string, ((premise: PeriodList.Premise.t) => premise.description))
+    @@ T.proj(date_type, ((premise: PeriodList.Premise.t) => premise.updated_at))
+    @@ T.proj_end;
 
 let get_route_premise = (route_root: string) => {
   let query =
     Caqti_request.Infix.(
-      (T.string ->? T.(t4(string, string, string, float)))(
+      (T.string ->? premise_caqti_type)(
         {sql|
           SELECT
             premise.id,
@@ -34,20 +44,14 @@ let get_route_premise = (route_root: string) => {
 
   (module Db: DB) => {
     let* premise_or_error = Db.find_opt(query, route_root);
-    let* premise_tuple = Caqti_lwt.or_fail(premise_or_error);
-    let premise_option =
-      switch (premise_tuple) {
-      | Some(tuple) => Some(tuple_to_premise(tuple))
-      | None => None
-      };
-    Lwt.return(premise_option);
+    Caqti_lwt.or_fail(premise_or_error);
   };
 };
 
 let get_premise = (premise_id: string) => {
   let query =
     Caqti_request.Infix.(
-      (T.string ->? T.(t4(string, string, string, float)))(
+      (T.string ->? premise_caqti_type)(
         {sql|
           SELECT
             premise.id,
@@ -62,12 +66,6 @@ let get_premise = (premise_id: string) => {
     );
   (module Db: DB) => {
     let* premise_or_error = Db.find_opt(query, premise_id);
-    let* premise_tuple = Caqti_lwt.or_fail(premise_or_error);
-    let premise_option =
-      switch (premise_tuple) {
-      | Some(tuple) => Some(tuple_to_premise(tuple))
-      | None => None
-      };
-    Lwt.return(premise_option);
+    Caqti_lwt.or_fail(premise_or_error);
   };
 };
