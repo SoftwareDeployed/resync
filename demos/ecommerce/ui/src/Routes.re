@@ -58,7 +58,7 @@ let itemNameFromState = (~params, ~state: Store.t) =>
   | Some(id) =>
     switch (
       Js.Array.find(
-        ~f=(item: Config.InventoryItem.t) => item.id == id,
+        ~f=(item: Model.InventoryItem.t) => item.id == id,
         state.config.inventory,
       )
     ) {

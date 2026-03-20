@@ -1,7 +1,7 @@
 (library
  (name common_js)
  (public_name resync.common_js)
- (modules Config Constants PeriodList)
+ (modules Model Constants PeriodList)
  (wrapped false)
  (libraries
   melange-json

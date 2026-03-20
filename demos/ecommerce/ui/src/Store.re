@@ -1,7 +1,7 @@
 open Melange_json.Primitives;
 
 [@deriving json]
-type config = Config.t;
+type config = Model.t;
 
 type subscription = RealtimeSubscription.t;
 
@@ -13,7 +13,7 @@ type inventory_patch_data = {
   quantity: int,
   premise_id: string,
   [@json.option]
-  period_list: option(Config.Pricing.period_list),
+  period_list: option(Model.Pricing.period_list),
 };
 
 [@deriving json]
@@ -24,7 +24,7 @@ type inventory_payload = {
   quantity: int,
   premise_id: string,
   [@json.option]
-  period_list: option(Config.Pricing.period_list),
+  period_list: option(Model.Pricing.period_list),
 };
 
 [@deriving json]
@@ -47,29 +47,29 @@ type payload = {
 
 type projections = {
   premise_id: string,
-  period_list: array(Config.Pricing.period),
+  period_list: array(Model.Pricing.period),
 };
 
 type store = {
   premise_id: string,
-  config: Config.t,
-  period_list: array(Config.Pricing.period),
+  config: Model.t,
+  period_list: array(Model.Pricing.period),
   unit: PeriodList.Unit.t,
 };
 
 let stateElementId = "initial-store";
 
-let derivePeriodList = (config: Config.t) => {
+let derivePeriodList = (config: Model.t) => {
   config.inventory
   |> Array.to_list
-  |> List.map((inv: Config.InventoryItem.t) => Array.to_list(inv.period_list))
+  |> List.map((inv: Model.InventoryItem.t) => Array.to_list(inv.period_list))
   |> List.concat
   |> List.fold_left(
-       (periods: list(Config.Pricing.period), period: Config.Pricing.period) => {
+       (periods: list(Model.Pricing.period), period: Model.Pricing.period) => {
          let current_unit = period.unit;
          if (
            List.exists(
-             (existing: Config.Pricing.period) => {
+             (existing: Model.Pricing.period) => {
                let existing_unit = existing.unit;
                existing_unit == current_unit;
              },
@@ -81,7 +81,7 @@ let derivePeriodList = (config: Config.t) => {
            [period, ...periods];
          };
        },
-       []: list(Config.Pricing.period),
+       []: list(Model.Pricing.period),
      )
   |> List.rev
   |> Array.of_list;
@@ -92,7 +92,7 @@ let payloadOfConfig = (config: config): payload => {
     inventory:
       Some(
         config.inventory
-        |> Array.map((item: Config.InventoryItem.t): inventory_payload => {
+        |> Array.map((item: Model.InventoryItem.t): inventory_payload => {
              description: item.description,
              id: item.id,
              name: item.name,
@@ -115,7 +115,7 @@ let configOfPayload = (payload: payload): config => {
     switch (payload.config.inventory) {
     | Some(inventory) =>
       inventory
-      |> Array.map((item: inventory_payload): Config.InventoryItem.t => {
+      |> Array.map((item: inventory_payload): Model.InventoryItem.t => {
            description: item.description,
            id: item.id,
            name: item.name,
@@ -181,7 +181,7 @@ let makeStore =
 
 let emptyStore: store = {
   premise_id: "",
-  config: Config.SSR.empty,
+  config: Model.SSR.empty,
   period_list: [||],
   unit: PeriodList.Unit.defaultState,
 };
@@ -189,7 +189,7 @@ let emptyStore: store = {
 let find_existing_period_list = (currentConfig: config, itemId: string) => {
   switch (
     Js.Array.find(
-      ~f=(i: Config.InventoryItem.t) => i.id === itemId,
+      ~f=(i: Model.InventoryItem.t) => i.id === itemId,
       currentConfig.inventory,
     )
   ) {
@@ -200,7 +200,7 @@ let find_existing_period_list = (currentConfig: config, itemId: string) => {
 
 let item_of_patch =
     (currentConfig: config, item: inventory_patch_data)
-    : Config.InventoryItem.t => {
+    : Model.InventoryItem.t => {
   let period_list =
     switch (item.period_list) {
     | Some(period_list) => period_list
@@ -208,7 +208,7 @@ let item_of_patch =
     };
 
   {
-    Config.InventoryItem.description: item.description,
+    Model.InventoryItem.description: item.description,
     id: item.id,
     name: item.name,
     quantity: item.quantity,
@@ -233,13 +233,13 @@ let updateInventory = (currentConfig: config, newItem: inventory_patch_data): co
   let itemWithPeriod = item_of_patch(currentConfig, newItem);
   let exists =
     currentConfig.inventory
-    |> Js.Array.some(~f=(i: Config.InventoryItem.t) => i.id === newItem.id);
+    |> Js.Array.some(~f=(i: Model.InventoryItem.t) => i.id === newItem.id);
   let newInventory =
     if (exists) {
       currentConfig.inventory
-      |> Js.Array.map(~f=(i: Config.InventoryItem.t) =>
+      |> Js.Array.map(~f=(i: Model.InventoryItem.t) =>
            i.id === itemWithPeriod.id ? itemWithPeriod : i
-         );
+          );
     } else {
       Array.append(currentConfig.inventory, [|itemWithPeriod|]);
     };
@@ -252,7 +252,7 @@ let updateInventory = (currentConfig: config, newItem: inventory_patch_data): co
 let deleteInventory = (currentConfig: config, id: string): config => {
   let newInventory =
     currentConfig.inventory
-    |> Js.Array.filter(~f=(i: Config.InventoryItem.t) => i.id !== id);
+    |> Js.Array.filter(~f=(i: Model.InventoryItem.t) => i.id !== id);
   {
     ...currentConfig,
     inventory: newInventory,

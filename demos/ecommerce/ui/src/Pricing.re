@@ -1,17 +1,17 @@
 [@react.component]
-let make = (~period_list: Config.Pricing.period_list) => {
+let make = (~period_list: Model.Pricing.period_list) => {
   let format_price = (p: int) => {
     (Int.to_float(p) /. Int.to_float(100))
     ->NumberFormatter.formatCurrency
     ->React.string;
   };
 
-  let key_for_period = (p: Config.Pricing.period) =>
+  let key_for_period = (p: Model.Pricing.period) =>
     p.unit ++ ":" ++ p.label ++ ":" ++ Int.to_string(p.id);
 
   let list_items =
     period_list
-    |> Array.map((p: Config.Pricing.period) => {
+    |> Array.map((p: Model.Pricing.period) => {
          <React.Fragment key={key_for_period(p)}>
            <div className="border-1 border-black/30 p-1">
              <p className="text-left text-sm"> {React.string(p.label)} </p>

@@ -37,7 +37,7 @@ module Contents = {
                   let label =
                     switch (
                       Js.Array.find(
-                        ~f=(item: Config.InventoryItem.t) =>
+                        ~f=(item: Model.InventoryItem.t) =>
                           item.id == cart_item.inventory_id,
                         main_store.config.inventory,
                       )

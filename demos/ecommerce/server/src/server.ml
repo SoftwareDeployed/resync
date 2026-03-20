@@ -14,7 +14,7 @@ let db_uri =
 let get_config request premise_id =
   let* premise = Dream.sql request (Database.Premise.get_premise premise_id) in
   let* inventory = Dream.sql request (Database.Inventory.get_list premise_id) in
-  let config : Config.t = { inventory; premise } in
+  let config : Model.t = {inventory; premise} in
   Lwt.return config
 
 let get_config_json request premise_id =

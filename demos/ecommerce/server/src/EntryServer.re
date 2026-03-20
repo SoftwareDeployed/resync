@@ -16,7 +16,7 @@ let getServerState = (context: UniversalRouterDream.serverContext(Store.t)) => {
         Dream.sql(request, Database.Inventory.get_list(premiseId));
       };
     let* inventory = inventoryPromise;
-    let config: Config.t = {
+    let config: Model.t = {
       inventory,
       premise: Some(premise),
     };

@@ -4,7 +4,7 @@ let str = React.string;
 let make =
   Tilia.React.leaf(() => {
     let main_store = Store.Context.useStore();
-    let%browser_only select_unit = (period: Config.Pricing.period, e) => {
+    let%browser_only select_unit = (period: Model.Pricing.period, e) => {
       let inputEl = e->React.Event.Form.currentTarget;
       if (inputEl##checked == true) {
         switch (PeriodList.Unit.tFromJs(period.unit)) {
@@ -15,7 +15,7 @@ let make =
     };
     <div className="my-auto">
       {main_store.period_list
-       |> Array.map((period: Config.Pricing.period) =>
+       |> Array.map((period: Model.Pricing.period) =>
             switch (PeriodList.Unit.tFromJs(period.unit)) {
             | None => React.null
             | Some(unit) =>

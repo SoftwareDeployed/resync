@@ -276,7 +276,7 @@ let getServerState = (context: UniversalRouterDream.serverContext) => {
   | Some(premise) =>
     let* inventory =
         Dream.sql(request, Database.Inventory.get_list(premise.id));
-    let config: Config.t = {inventory, premise: Some(premise)};
+    let config: Model.t = {inventory, premise: Some(premise)};
     Lwt.return(UniversalRouterDream.State(config))
   };
 };
@@ -413,7 +413,7 @@ server/src/
   server.ml         Dream setup + route mounting
 
 shared/js/
-  Config.re         shared domain types / codecs
+  Model.re          shared domain types / codecs
   PeriodList.re     shared period units / codecs
 ```
 

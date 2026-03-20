@@ -6,7 +6,7 @@ let str = React.string;
 let make =
     leaf((~openDate: option(Js.Date.t)=?, ~closeDate: option(Js.Date.t)=?) => {
   let main_store = Store.Context.useStore();
-  let config: Config.t = main_store.config;
+  let config: Model.t = main_store.config;
   let unit: PeriodList.Unit.t = main_store.unit;
   let items = config.inventory;
   let today =
@@ -53,10 +53,10 @@ let make =
 
   let items_by_unit =
     items
-    |> Array.fold_left((matching, item: Config.InventoryItem.t) =>
+    |> Array.fold_left((matching, item: Model.InventoryItem.t) =>
          if (
            Array.exists(
-             (period: Config.Pricing.period) => period.unit == selected_unit,
+             (period: Model.Pricing.period) => period.unit == selected_unit,
              item.period_list,
            )
          ) {
@@ -79,7 +79,7 @@ let make =
     <Card
       className="border-none shadow-none shadow-transparent m-0 p-0 place-content-start grid lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-1 gap-4">
       {items_by_unit
-       |> Array.map((item: Config.InventoryItem.t) =>
+       |> Array.map((item: Model.InventoryItem.t) =>
              <InventoryItem key={item.id} item />
            )
        |> React.array}

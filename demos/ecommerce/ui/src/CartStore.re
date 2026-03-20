@@ -254,7 +254,7 @@ let remove_item = (store: t, inventoryId: string) => {
   );
 };
 
-let add_to_cart = (store: t, item: Config.InventoryItem.t) => {
+let add_to_cart = (store: t, item: Model.InventoryItem.t) => {
   log("[cart] add_to_cart item", item.id);
   increment_item(store, item.id);
 };

@@ -4,7 +4,7 @@ let str = React.string;
 
 [@react.component]
 let make =
-  leaf((~item: option(Config.InventoryItem.t)=?) => {
+  leaf((~item: option(Model.InventoryItem.t)=?) => {
     let item =
       switch (item) {
       | Some(item) => item

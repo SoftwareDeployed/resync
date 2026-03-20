@@ -23,7 +23,7 @@ let parse_period_list = (json_str: string) => {
              | _ => ""
              };
            {
-             Config.Pricing.id: 0,
+             Model.Pricing.id: 0,
              unit: get_field("unit"),
              label: get_field("label"),
              price:
@@ -37,7 +37,7 @@ let parse_period_list = (json_str: string) => {
                |> Option.value(~default=0),
            };
          | _ => {
-             Config.Pricing.id: 0,
+             Model.Pricing.id: 0,
              unit: "",
              label: "",
              price: 0,
@@ -60,19 +60,19 @@ let period_list_type =
 
 let inventory_item_caqti_type =
   T.product((description, id, name, quantity, premise_id, period_list) => {
-    Config.InventoryItem.description: description,
+    Model.InventoryItem.description: description,
     id: id,
     name: name,
     quantity: quantity,
     premise_id: premise_id,
     period_list: period_list,
   })
-    @@ T.proj(T.string, ((item: Config.InventoryItem.t) => item.description))
-    @@ T.proj(T.string, ((item: Config.InventoryItem.t) => item.id))
-    @@ T.proj(T.string, ((item: Config.InventoryItem.t) => item.name))
-    @@ T.proj(T.int, ((item: Config.InventoryItem.t) => item.quantity))
-    @@ T.proj(T.string, ((item: Config.InventoryItem.t) => item.premise_id))
-    @@ T.proj(period_list_type, ((item: Config.InventoryItem.t) => item.period_list))
+    @@ T.proj(T.string, ((item: Model.InventoryItem.t) => item.description))
+    @@ T.proj(T.string, ((item: Model.InventoryItem.t) => item.id))
+    @@ T.proj(T.string, ((item: Model.InventoryItem.t) => item.name))
+    @@ T.proj(T.int, ((item: Model.InventoryItem.t) => item.quantity))
+    @@ T.proj(T.string, ((item: Model.InventoryItem.t) => item.premise_id))
+    @@ T.proj(period_list_type, ((item: Model.InventoryItem.t) => item.period_list))
     @@ T.proj_end;
 
 let get_list = (premise_id: string) => {
