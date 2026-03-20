@@ -18,7 +18,6 @@
    universal_reason_react_router_js
    universal_reason_react_store_js
    universal_reason_react_lucide_icons_js
-   todo_shared_js
    melange.belt
    melange.dom
    melange.js))
