@@ -2,10 +2,11 @@
  (flags :standard -w -26-27)
  (name server)
  (public_name server)
- (libraries
-  caqti-driver-postgresql
-  common_native
-  dream
+  (libraries
+   caqti-driver-postgresql
+   common_native
+   icu_numberformatter
+   dream
   melange-json-native
   reason_realtime_dream_middleware
   reason_realtime_pgnotify_adapter

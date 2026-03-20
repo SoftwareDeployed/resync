@@ -613,6 +613,81 @@ let unsubscribe: (Pgnotify_adapter.t, ~channel: string) => Lwt.t(unit);
 
 Stop listening on a channel and remove handlers.
 
+## icu-numberformatter
+
+Native ICU-backed formatting for server-side currency, decimal, and percent values.
+
+The package is exposed as `resync.icu_numberformatter` and provides
+`Number_formatter` in your OCaml/Reason code.
+
+### Types
+
+```reason
+type Number_formatter.style =
+  | Currency
+  | Decimal
+  | Percent
+
+type Number_formatter.options = {
+  style: Number_formatter.style,
+  currency: option(string),
+  locale: string,
+  minimum_fraction_digits: option(int),
+  maximum_fraction_digits: option(int),
+  use_grouping: option(bool),
+}
+```
+
+### Functions
+
+```reason
+let Number_formatter.make_options:
+  ?style:Number_formatter.style ->
+  ?currency:string ->
+  ?locale:string ->
+  ?minimum_fraction_digits:int ->
+  ?maximum_fraction_digits:int ->
+  ?use_grouping:bool ->
+  unit ->
+  Number_formatter.options;
+
+let Number_formatter.format_with_options:
+  Number_formatter.options ->
+  float ->
+  string;
+
+let Number_formatter.format_currency:
+  ?locale:string ->
+  ?currency:string ->
+  ?min_fraction:int ->
+  ?max_fraction:int ->
+  float ->
+  string;
+
+let Number_formatter.format_decimal:
+  ?locale:string ->
+  ?min_fraction:int ->
+  ?max_fraction:int ->
+  ?grouping:bool ->
+  float ->
+  string;
+
+let Number_formatter.format_percent:
+  ?locale:string ->
+  ?min_fraction:int ->
+  ?max_fraction:int ->
+  float ->
+  string;
+```
+
+### Notes
+
+- Formatters are cached in-process for reuse.
+- Discovery checks ICU headers/libraries at configure-time and fails fast when
+  unavailable.
+- Ecommerce server rendering uses this package on the server branch while client
+  still uses `Intl.NumberFormat`.
+
 ## Type Definitions
 
 ### Common Types

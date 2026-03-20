@@ -70,6 +70,7 @@ After the basics are working, move to the [ecommerce demo](../demos/ecommerce/) 
 - **[universal-reason-react/store](universal-reason-react.store.md)** - Tilia-backed store authoring with SSR hydration, persistence, and real-time sync.
 - **[universal-reason-react/components](universal-reason-react.components.md)** - Universal rendering helpers and shared components.
 - **[universal-reason-react/lucide-icons](universal-reason-react.lucide-icons.md)** - Universal Lucide icon rendering for server and client.
+- **[icu-numberformatter](icu-numberformatter.md)** - Native ICU-based number formatting used for server-side currency/decimal/percent output.
 
 ### Real-time Packages
 
