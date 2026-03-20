@@ -4,29 +4,26 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-   "dev:serve": "dune exec -w demos/ecommerce/server/src/server.exe",
-   "dev:watch": "watchexec --no-vcs-ignore -w ./_build/default/demos/ecommerce/ui/src/.build_stamp -r -c -- ./_build/default/demos/ecommerce/server/src/server.exe",
-   "dev": "pnpm \"/(.*:watch$|^dev:serve$)/\"",
-   "dune:watch": "/bin/zsh -i -c 'dune build --force -w'",
-   "watch": "pnpm run \"/.*:watch$/\""
+    "dev:serve": "dune exec -w demos/ecommerce/server/src/server.exe",
+    "dev:watch": "watchexec --no-vcs-ignore -w ./_build/default/demos/ecommerce/ui/src/.build_stamp -r -c -- ./_build/default/demos/ecommerce/server/src/server.exe",
+    "dev": "pnpm \"/(.*:watch$|^dev:serve$)/\"",
+    "dune:watch": "/bin/zsh -i -c 'dune build --force -w'",
+    "watch": "pnpm run \"/.*:watch$/\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.22.0",
   "dependencies": {
-    "reason-react": "0.17.0",
     "@fontsource/inter": "^5.2.8",
     "@tilia/react": "5.0.0-beta.20251218T180640",
     "common": "link:demos/ecommerce/shared",
+    "lucide-react": "^0.555.0",
+    "react": "^19.2.4",
+    "react-day-picker": "^9.14.0",
+    "react-dom": "^19.2.4",
     "store-backend": "link:demos/ecommerce/server",
     "store-ui": "link:demos/ecommerce/ui",
-    "lucide-react": "^0.555.0",
-    "pg": "^8.16.3",
-    "pg-listener": "^1.1.3",
-    "pg-promise": "^12.3.0",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
     "tilia": "5.0.0-beta.20251218T180640"
   },
   "overrides": {
@@ -34,7 +31,8 @@
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
-    "bun-plugin-tailwind": "^0.1.2",
-    "tailwindcss": "^4.1.18"
+    "esbuild": "^0.27.4",
+    "esbuild-plugin-tailwindcss": "^2.2.0",
+    "tailwindcss": "^4.2.2"
   }
 }
