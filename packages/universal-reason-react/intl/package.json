@@ -1,0 +1,11 @@
+{
+  "name": "@universal-reason-react/intl",
+  "version": "0.1.0",
+  "description": "Universal internationalization library for Reason React",
+  "main": "index.js",
+  "scripts": {
+    "build": "dune build"
+  },
+  "keywords": ["reason", "react", "intl", "i18n"],
+  "license": "MIT"
+}

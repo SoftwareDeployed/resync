@@ -1,0 +1,9 @@
+(library
+ (name universal_reason_react_intl_native)
+ (public_name resync.universal_reason_react_intl_native)
+ (modules Intl)
+ (libraries
+  resync.ocaml_icu4c
+  server-reason-react.js)
+ (wrapped false)
+ (modes native))

@@ -613,225 +613,201 @@ let unsubscribe: (Pgnotify_adapter.t, ~channel: string) => Lwt.t(unit);
 
 Stop listening on a channel and remove handlers.
 
-## icu-numberformatter
+## universal-reason-react/intl
 
-Native ICU-backed formatting for server-side currency, decimal, and percent values.
+Universal internationalization library with `Intl.NumberFormatter` and `Intl.DateTimeFormatter` for both server (via ICU4C) and client (via native `Intl`).
 
-The package is exposed as `resync.icu_numberformatter` and provides
-`Number_formatter` in your OCaml/Reason code.
+**Packages:**
+- JS target: `resync.universal_reason_react_intl_js` (Melange)
+- Native target: `resync.universal_reason_react_intl_native` (OCaml native)
 
-### Types
+This replaces the old separate `icu-numberformatter` and `icu-datetimeformatter` packages with a unified API that works identically on both server and client.
 
-```reason
-type Number_formatter.style =
-  | Currency
-  | Decimal
-  | Percent
+### Intl.NumberFormatter
 
-type Number_formatter.options = {
-  style: Number_formatter.style,
-  currency: option(string),
-  locale: string,
-  minimum_fraction_digits: option(int),
-  maximum_fraction_digits: option(int),
-  use_grouping: option(bool),
-}
-```
+Number formatting for currency, decimal, and percent values.
 
-### Functions
+#### Types
 
 ```reason
-let Number_formatter.make_options:
-  ?style:Number_formatter.style ->
-  ?currency:string ->
-  ?locale:string ->
-  ?minimum_fraction_digits:int ->
-  ?maximum_fraction_digits:int ->
-  ?use_grouping:bool ->
-  unit ->
-  Number_formatter.options;
-
-let Number_formatter.format_with_options:
-  Number_formatter.options ->
-  float ->
-  string;
-
-let Number_formatter.format_currency:
-  ?locale:string ->
-  ?currency:string ->
-  ?min_fraction:int ->
-  ?max_fraction:int ->
-  float ->
-  string;
-
-let Number_formatter.format_decimal:
-  ?locale:string ->
-  ?min_fraction:int ->
-  ?max_fraction:int ->
-  ?grouping:bool ->
-  float ->
-  string;
-
-let Number_formatter.format_percent:
-  ?locale:string ->
-  ?min_fraction:int ->
-  ?max_fraction:int ->
-  float ->
-  string;
-```
-
-### Notes
-
-- Formatters are cached in-process for reuse.
-- Discovery checks ICU headers/libraries at configure-time and fails fast when
-  unavailable.
-- Ecommerce server rendering uses this package on the server branch while client
-  still uses `Intl.NumberFormat`.
-
-## icu-datetimeformatter
-
-Native ICU-backed date/time formatting for server-side `Intl.DateTimeFormat`-style rendering.
-
-The package is exposed as `resync.icu_datetimeformatter` and provides
-`Date_time_formatter` in your OCaml/Reason code.
-
-### Types
-
-```reason
-module Date_time_formatter.Style: {
-  type t = Full | Long | Medium | Short;
+module Intl.NumberFormatter.Style: {
+  type t = Decimal | Currency | Percent;
 };
 
-module Date_time_formatter.Text: {
-  type t = Narrow | Short | Long;
-};
-
-module Date_time_formatter.Numeric: {
-  type t = Numeric | Two_digit;
-};
-
-module Date_time_formatter.Month: {
-  type t = Numeric | Two_digit | Narrow | Short | Long;
-};
-
-module Date_time_formatter.Hour_cycle: {
-  type t = H11 | H12 | H23 | H24;
-};
-
-module Date_time_formatter.Time_zone_name: {
-  type t =
-    | Short
-    | Long
-    | Short_offset
-    | Long_offset
-    | Short_generic
-    | Long_generic;
-};
-
-type Date_time_formatter.part = {
+type Intl.NumberFormatter.part = {
   type_: string,
   value: string,
 };
 
-type Date_time_formatter.options = {
-  locale: string,
-  time_zone: option(string),
-  date_style: option(Date_time_formatter.Style.t),
-  time_style: option(Date_time_formatter.Style.t),
-  weekday: option(Date_time_formatter.Text.t),
-  era: option(Date_time_formatter.Text.t),
-  year: option(Date_time_formatter.Numeric.t),
-  month: option(Date_time_formatter.Month.t),
-  day: option(Date_time_formatter.Numeric.t),
-  hour: option(Date_time_formatter.Numeric.t),
-  minute: option(Date_time_formatter.Numeric.t),
-  second: option(Date_time_formatter.Numeric.t),
-  fractional_second_digits: option(int),
-  time_zone_name: option(Date_time_formatter.Time_zone_name.t),
-  hour12: option(bool),
-  hour_cycle: option(Date_time_formatter.Hour_cycle.t),
+type Intl.NumberFormatter.options = {
+  locale: option(string),
+  style: option(Intl.NumberFormatter.Style.t),
+  currency: option(string),
+  minimumFractionDigits: option(int),
+  maximumFractionDigits: option(int),
+  useGrouping: option(bool),
 };
 ```
 
-### Functions
+#### Functions
 
 ```reason
-let Date_time_formatter.make_options:
-  ?locale:string ->
-  ?time_zone:string ->
-  ?date_style:Date_time_formatter.Style.t ->
-  ?time_style:Date_time_formatter.Style.t ->
-  ?weekday:Date_time_formatter.Text.t ->
-  ?era:Date_time_formatter.Text.t ->
-  ?year:Date_time_formatter.Numeric.t ->
-  ?month:Date_time_formatter.Month.t ->
-  ?day:Date_time_formatter.Numeric.t ->
-  ?hour:Date_time_formatter.Numeric.t ->
-  ?minute:Date_time_formatter.Numeric.t ->
-  ?second:Date_time_formatter.Numeric.t ->
-  ?fractional_second_digits:int ->
-  ?time_zone_name:Date_time_formatter.Time_zone_name.t ->
-  ?hour12:bool ->
-  ?hour_cycle:Date_time_formatter.Hour_cycle.t ->
-  unit ->
-  Date_time_formatter.options;
+let Intl.NumberFormatter.make: Intl.NumberFormatter.options => Intl.NumberFormatter.t;
 
-let Date_time_formatter.format_with_options:
-  Date_time_formatter.options ->
-  float ->
-  string;
+let Intl.NumberFormatter.format: (Intl.NumberFormatter.t, float) => string;
 
-let Date_time_formatter.format_to_parts_with_options:
-  Date_time_formatter.options ->
-  float ->
-  list(Date_time_formatter.part);
+let Intl.NumberFormatter.formatToParts: (Intl.NumberFormatter.t, float) => list(Intl.NumberFormatter.part);
 
-let Date_time_formatter.format:
-  ?locale:string ->
-  ?time_zone:string ->
-  ?date_style:Date_time_formatter.Style.t ->
-  ?time_style:Date_time_formatter.Style.t ->
-  ?weekday:Date_time_formatter.Text.t ->
-  ?era:Date_time_formatter.Text.t ->
-  ?year:Date_time_formatter.Numeric.t ->
-  ?month:Date_time_formatter.Month.t ->
-  ?day:Date_time_formatter.Numeric.t ->
-  ?hour:Date_time_formatter.Numeric.t ->
-  ?minute:Date_time_formatter.Numeric.t ->
-  ?second:Date_time_formatter.Numeric.t ->
-  ?fractional_second_digits:int ->
-  ?time_zone_name:Date_time_formatter.Time_zone_name.t ->
-  ?hour12:bool ->
-  ?hour_cycle:Date_time_formatter.Hour_cycle.t ->
-  float ->
-  string;
+let Intl.NumberFormatter.formatWithOptions: (Intl.NumberFormatter.options, float) => string;
 
-let Date_time_formatter.format_to_parts:
-  ?locale:string ->
-  ?time_zone:string ->
-  ?date_style:Date_time_formatter.Style.t ->
-  ?time_style:Date_time_formatter.Style.t ->
-  ?weekday:Date_time_formatter.Text.t ->
-  ?era:Date_time_formatter.Text.t ->
-  ?year:Date_time_formatter.Numeric.t ->
-  ?month:Date_time_formatter.Month.t ->
-  ?day:Date_time_formatter.Numeric.t ->
-  ?hour:Date_time_formatter.Numeric.t ->
-  ?minute:Date_time_formatter.Numeric.t ->
-  ?second:Date_time_formatter.Numeric.t ->
-  ?fractional_second_digits:int ->
-  ?time_zone_name:Date_time_formatter.Time_zone_name.t ->
-  ?hour12:bool ->
-  ?hour_cycle:Date_time_formatter.Hour_cycle.t ->
-  float ->
-  list(Date_time_formatter.part);
+let Intl.NumberFormatter.formatToPartsWithOptions: (Intl.NumberFormatter.options, float) => list(Intl.NumberFormatter.part);
+```
+
+#### Example
+
+```reason
+let formatter = Intl.NumberFormatter.make({
+  locale: Some("en-US"),
+  style: Some(Intl.NumberFormatter.Style.Currency),
+  currency: Some("USD"),
+  minimumFractionDigits: None,
+  maximumFractionDigits: None,
+  useGrouping: None,
+});
+
+let price = formatter->Intl.NumberFormatter.format(1234.56);
+// "price" is "$1,234.56"
+```
+
+### Intl.DateTimeFormatter
+
+Date/time formatting for various locales and styles.
+
+#### Types
+
+```reason
+module Intl.DateTimeFormatter.Style: {
+  type t = Full | Long | Medium | Short;
+};
+
+module Intl.DateTimeFormatter.Text: {
+  type t = Narrow | Short | Long;
+};
+
+module Intl.DateTimeFormatter.Numeric: {
+  type t = Numeric | TwoDigit;
+};
+
+module Intl.DateTimeFormatter.Month: {
+  type t = Numeric | TwoDigit | Narrow | Short | Long;
+};
+
+module Intl.DateTimeFormatter.HourCycle: {
+  type t = H11 | H12 | H23 | H24;
+};
+
+module Intl.DateTimeFormatter.TimeZoneName: {
+  type t =
+    | Short
+    | Long
+    | ShortOffset
+    | LongOffset
+    | ShortGeneric
+    | LongGeneric;
+};
+
+type Intl.DateTimeFormatter.part = {
+  type_: string,
+  value: string,
+};
+
+type Intl.DateTimeFormatter.options = {
+  locale: option(string),
+  timeZone: option(string),
+  dateStyle: option(Intl.DateTimeFormatter.Style.t),
+  timeStyle: option(Intl.DateTimeFormatter.Style.t),
+  weekday: option(Intl.DateTimeFormatter.Text.t),
+  era: option(Intl.DateTimeFormatter.Text.t),
+  year: option(Intl.DateTimeFormatter.Numeric.t),
+  month: option(Intl.DateTimeFormatter.Month.t),
+  day: option(Intl.DateTimeFormatter.Numeric.t),
+  hour: option(Intl.DateTimeFormatter.Numeric.t),
+  minute: option(Intl.DateTimeFormatter.Numeric.t),
+  second: option(Intl.DateTimeFormatter.Numeric.t),
+  fractionalSecondDigits: option(int),
+  timeZoneName: option(Intl.DateTimeFormatter.TimeZoneName.t),
+  hour12: option(bool),
+  hourCycle: option(Intl.DateTimeFormatter.HourCycle.t),
+};
+```
+
+#### Functions
+
+```reason
+let Intl.DateTimeFormatter.make: Intl.DateTimeFormatter.options => Intl.DateTimeFormatter.t;
+
+let Intl.DateTimeFormatter.format: (Intl.DateTimeFormatter.t, float) => string;
+
+let Intl.DateTimeFormatter.formatToParts: (Intl.DateTimeFormatter.t, float) => list(Intl.DateTimeFormatter.part);
+
+let Intl.DateTimeFormatter.formatWithOptions: (Intl.DateTimeFormatter.options, float) => string;
+
+let Intl.DateTimeFormatter.formatToPartsWithOptions: (Intl.DateTimeFormatter.options, float) => list(Intl.DateTimeFormatter.part);
+```
+
+#### Example
+
+```reason
+let formatter = Intl.DateTimeFormatter.make({
+  locale: Some("en-US"),
+  timeZone: Some("UTC"),
+  dateStyle: Some(Intl.DateTimeFormatter.Style.Short),
+  timeStyle: None,
+  weekday: None,
+  era: None,
+  year: None,
+  month: None,
+  day: None,
+  hour: None,
+  minute: None,
+  second: None,
+  fractionalSecondDigits: None,
+  timeZoneName: None,
+  hour12: None,
+  hourCycle: None,
+});
+
+let date = formatter->Intl.DateTimeFormatter.format(1608434596738.0);
+// "date" is "12/20/2020"
 ```
 
 ### Notes
 
-- Formatters are cached in-process for reuse.
-- ICU discovery and symbol versioning follow the same build pattern as `icu-numberformatter`.
-- The current scope focuses on `format` and `formatToParts`, not `formatRange`, `resolvedOptions`, or `supportedLocalesOf` yet.
+- **Universal API**: Same API works on both JS (via browser `Intl`) and native (via ICU4C)
+- **CamelCase naming**: Uses camelCase for consistency with JavaScript `Intl` API
+- **No platform switching**: No need for `switch%platform` - the universal package handles target differences internally
+- **formatToParts**: Both formatters support `formatToParts` for styled number/date formatting
+- **Caching**: Formatters are cached in-process for reuse on the native side
+
+## ocaml-icu4c
+
+Low-level OCaml bindings for ICU4C (International Components for Unicode). Used internally by the intl package for native targets.
+
+**Package:** `resync.ocaml_icu4c`
+
+### Modules
+
+- `Icu4c_bindings` - Raw C bindings with version suffix handling
+- `Icu4c_strings` - UTF-8/UTF-16 conversion utilities
+- `Icu4c_locale` - Locale and timezone normalization
+- `Icu4c_number` - Number formatting
+- `Icu4c_datetime` - DateTime formatting
+
+### Notes
+
+- This is a low-level package primarily used by `universal-reason-react/intl`
+- ICU discovery and symbol versioning handled at configure-time
+- Wrapped module structure to avoid naming collisions
 
 ## Type Definitions
 

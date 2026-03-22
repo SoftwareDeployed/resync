@@ -4,9 +4,10 @@
  (modules Model Constants PeriodList)
  (wrapped false)
  (libraries
-  melange-json
-  universal_reason_react_store_js
-  melange.js)
+   melange-json
+   universal_reason_react_store_js
+   universal_reason_react_intl_js
+   melange.js)
  (modes melange)
  (preprocess
   (pps

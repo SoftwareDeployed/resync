@@ -5,8 +5,7 @@
  (libraries
   caqti-driver-postgresql
   common_native
-  icu_datetimeformatter
-  icu_numberformatter
+  resync.universal_reason_react_intl_native
   dream
   melange-json-native
   reason_realtime_dream_middleware

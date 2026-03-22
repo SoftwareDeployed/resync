@@ -1,0 +1,9 @@
+(library
+ (name universal_reason_react_intl_js)
+ (public_name resync.universal_reason_react_intl_js)
+ (modules Intl)
+ (wrapped false)
+ (libraries melange)
+ (preprocess
+  (pps melange.ppx))
+ (modes melange))

@@ -1,14 +1,4 @@
-type dateTimeFormatter;
-type dateTimeFormatOptions;
-
-[@mel.scope "Intl"]
-external make: (string, dateTimeFormatOptions) => dateTimeFormatter =
-  "DateTimeFormat";
-
-[@mel.send] external format: (dateTimeFormatter, float) => string = "format";
-
-[@mel.obj]
-external makeOptions: (~timeZone: string, unit) => dateTimeFormatOptions;
+/* Date formatting using universal Intl API */
 
 let normalizedDateValue = (date: Js.Date.t) =>
   Js.Date.utc(
@@ -27,12 +17,25 @@ let formatDate = (~locale: option(string)=?, date: Js.Date.t) => {
     };
   let value = normalizedDateValue(date);
 
-  switch%platform (Runtime.platform) {
-  | Server =>
-    Date_time_formatter.format(~locale=locale_, ~time_zone="UTC", value)
-  | Client =>
-    let formatter = make(locale_, makeOptions(~timeZone="UTC", ()));
+  let formatter =
+    Intl.DateTimeFormatter.make({
+      locale: Some(locale_),
+      timeZone: Some("UTC"),
+      dateStyle: Some(Intl.DateTimeFormatter.Style.Short),
+      timeStyle: None,
+      weekday: None,
+      era: None,
+      year: None,
+      month: None,
+      day: None,
+      hour: None,
+      minute: None,
+      second: None,
+      fractionalSecondDigits: None,
+      timeZoneName: None,
+      hour12: None,
+      hourCycle: None,
+    });
 
-    formatter->format(value)
-  };
+  formatter->Intl.DateTimeFormatter.format(value);
 };

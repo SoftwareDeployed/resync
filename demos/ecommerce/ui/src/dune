@@ -13,19 +13,20 @@
    melange-json.ppx
    reason-react-ppx))
  (runtime_deps style.css)
- (libraries
-  reason-react-day-picker
-   common_js
-    universal_reason_react_components_js
-    universal_reason_react_lucide_icons_js
-    universal_reason_react_router_js
-    universal_reason_react_store_js
-   melange-json
-   melange.belt
-   melange-webapi
-   reason-react
-  melange.dom
-  melange.js))
+  (libraries
+   reason-react-day-picker
+    common_js
+     universal_reason_react_components_js
+     universal_reason_react_lucide_icons_js
+     universal_reason_react_router_js
+     universal_reason_react_store_js
+     universal_reason_react_intl_js
+    melange-json
+    melange.belt
+    melange-webapi
+    reason-react
+   melange.dom
+   melange.js))
 
 ; Rule that runs esbuild and writes .build_stamp after successful completion.
 ; The stamp acts as a stable file that changes whenever client output is rebuilt.

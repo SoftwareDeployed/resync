@@ -1,15 +1,4 @@
-type numberFormatter;
-type numberFormatOptions;
-
-[@mel.scope "Intl"]
-external make: (string, numberFormatOptions) => numberFormatter =
-  "NumberFormat";
-
-[@mel.send] external format: (numberFormatter, float) => string = "format";
-
-[@mel.obj]
-external makeOptions:
-  (~style: string, ~currency: string, unit) => numberFormatOptions;
+/* Number formatting using universal Intl API */
 
 let formatCurrency =
     (~locale: option(string)=?, ~currency: option(string)=?, amount: float) => {
@@ -24,13 +13,15 @@ let formatCurrency =
     | None => "USD"
     };
 
-  switch%platform (Runtime.platform) {
-  | Server =>
-    Number_formatter.format_currency(~locale=locale_, ~currency=currency_, amount)
-  | Client =>
-    let formatter =
-      make(locale_, makeOptions(~style="currency", ~currency=currency_, ()));
+  let formatter =
+    Intl.NumberFormatter.make({
+      locale: Some(locale_),
+      style: Some(Intl.NumberFormatter.Style.Currency),
+      currency: Some(currency_),
+      minimumFractionDigits: None,
+      maximumFractionDigits: None,
+      useGrouping: None,
+    });
 
-    formatter->format(amount)
-  };
+  formatter->Intl.NumberFormatter.format(amount);
 };

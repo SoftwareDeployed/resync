@@ -1,3 +1,5 @@
+(** DateTime formatting using ICU4C *)
+
 module Style : sig
   type t = Full | Long | Medium | Short
 end
@@ -27,11 +29,6 @@ module Time_zone_name : sig
     | Short_generic
     | Long_generic
 end
-
-type part = {
-  type_ : string;
-  value : string;
-}
 
 type options = {
   locale : string;
@@ -72,46 +69,17 @@ val make_options :
   unit ->
   options
 
+type t
+(** A datetime formatter instance *)
+
+val make : options -> t
+(** Create a new datetime formatter with the given options *)
+
+val format : t -> float -> string
+(** Format a timestamp (float milliseconds) using the formatter *)
+
 val format_with_options : options -> float -> string
+(** One-shot format with options *)
 
-val format_to_parts_with_options : options -> float -> part list
-
-val format :
-  ?locale:string ->
-  ?time_zone:string ->
-  ?date_style:Style.t ->
-  ?time_style:Style.t ->
-  ?weekday:Text.t ->
-  ?era:Text.t ->
-  ?year:Numeric.t ->
-  ?month:Month.t ->
-  ?day:Numeric.t ->
-  ?hour:Numeric.t ->
-  ?minute:Numeric.t ->
-  ?second:Numeric.t ->
-  ?fractional_second_digits:int ->
-  ?time_zone_name:Time_zone_name.t ->
-  ?hour12:bool ->
-  ?hour_cycle:Hour_cycle.t ->
-  float ->
-  string
-
-val format_to_parts :
-  ?locale:string ->
-  ?time_zone:string ->
-  ?date_style:Style.t ->
-  ?time_style:Style.t ->
-  ?weekday:Text.t ->
-  ?era:Text.t ->
-  ?year:Numeric.t ->
-  ?month:Month.t ->
-  ?day:Numeric.t ->
-  ?hour:Numeric.t ->
-  ?minute:Numeric.t ->
-  ?second:Numeric.t ->
-  ?fractional_second_digits:int ->
-  ?time_zone_name:Time_zone_name.t ->
-  ?hour12:bool ->
-  ?hour_cycle:Hour_cycle.t ->
-  float ->
-  part list
+val close : t -> unit
+(** Close the formatter and free resources *)

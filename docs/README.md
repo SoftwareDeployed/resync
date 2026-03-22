@@ -70,8 +70,8 @@ After the basics are working, move to the [ecommerce demo](../demos/ecommerce/) 
 - **[universal-reason-react/store](universal-reason-react.store.md)** - Tilia-backed store authoring with SSR hydration, persistence, and real-time sync.
 - **[universal-reason-react/components](universal-reason-react.components.md)** - Universal rendering helpers and shared components.
 - **[universal-reason-react/lucide-icons](universal-reason-react.lucide-icons.md)** - Universal Lucide icon rendering for server and client.
-- **[icu-numberformatter](icu-numberformatter.md)** - Native ICU-based number formatting used for server-side currency/decimal/percent output.
-- **[icu-datetimeformatter](icu-datetimeformatter.md)** - Native ICU-based date/time formatting for server-side `Intl.DateTimeFormat`-style output.
+- **[universal-reason-react/intl](universal-reason-react.intl.md)** - Universal internationalization library with `Intl.NumberFormatter` and `Intl.DateTimeFormatter` for both server (via ICU4C) and client (via native `Intl`).
+- **[ocaml-icu4c](ocaml-icu4c.md)** - Low-level OCaml bindings for ICU4C (International Components for Unicode), used internally by the intl package for native targets.
 
 ### Real-time Packages
 
