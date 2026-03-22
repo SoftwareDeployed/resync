@@ -14,41 +14,20 @@ let make =
            ~minutes=0.0,
            ~seconds=0.0,
            ~milliseconds=0.0,
-         )
+          )
       |> Js.Date.fromFloat;
+    let tomorrow =
+      Js.Date.make(
+        ~year=Js.Date.getFullYear(today),
+        ~month=Js.Date.getMonth(today),
+        ~date=Js.Date.getDate(today) +. 1.0,
+        ~hours=0.0,
+        ~minutes=0.0,
+        ~seconds=0.0,
+        (),
+      );
     let (openDate, setOpenDate) = React.useState(() => today);
-    let (closeDate, setCloseDate) = React.useState(() => today);
-
-    let%browser_only calendar = () =>
-      <ReactDayPicker
-        mode="range"
-        selected={
-                   `Range(Js.Undefined.return({
-                     ReactDayPicker.from: Js.Undefined.return(openDate),
-                     ReactDayPicker.to_: Js.Undefined.return(closeDate),
-                   }))
-                 }
-        onSelect={`Range((dates: ReactDayPicker.rangeDate) => {
-          switch (dates->Js.Undefined.toOption) {
-          | Some(dates) => {
-            let openDate = switch (dates.from->Js.Undefined.toOption) {
-                           | Some(date) => date
-                           | None => today
-           };
-           let closeDate = switch (dates.to_->Js.Undefined.toOption) {
-                           | Some(date) => date
-                           | None => openDate
-           };
-           setOpenDate(_prev => openDate);
-           setCloseDate(_prev => closeDate);
-           }
-           | None => {
-             setOpenDate(_prev => today);
-             setCloseDate(_prev => today);
-           };
-          }
-        })}
-      />;
+    let (closeDate, setCloseDate) = React.useState(() => tomorrow);
 
     <Container>
       <Card className="bg-slate-200/40 border-slate-200/40 border">
@@ -80,7 +59,43 @@ let make =
             />
             "Select your reservation time: "->str
           </span>
-          <ClientOnly> {() => calendar()} </ClientOnly>
+          <ReactDayPicker
+            mode="range"
+            selected={
+                       `Range(
+                         ReactDayPicker.defined({
+                           ReactDayPicker.from:
+                             ReactDayPicker.defined(openDate),
+                           ReactDayPicker.to_:
+                             ReactDayPicker.defined(closeDate),
+                         }),
+                       )
+                     }
+            onSelect={
+                       `Range(
+                         (dates: ReactDayPicker.rangeDate) => {
+                           switch (dates->Js.Undefined.toOption) {
+                           | Some(dates) =>
+                             let openDate =
+                               switch (dates.from->Js.Undefined.toOption) {
+                               | Some(date) => date
+                               | None => today
+                               };
+                             let closeDate =
+                               switch (dates.to_->Js.Undefined.toOption) {
+                               | Some(date) => date
+                               | None => openDate
+                               };
+                             setOpenDate(_prev => openDate);
+                             setCloseDate(_prev => closeDate);
+                           | None =>
+                             setOpenDate(_prev => today);
+                             setCloseDate(_prev => today);
+                           }
+                         },
+                       )
+                     }
+          />
         </div>
       </Card>
       <InventoryList openDate closeDate />

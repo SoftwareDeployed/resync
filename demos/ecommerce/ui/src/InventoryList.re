@@ -38,15 +38,15 @@ let make =
       ++ " equipment available "
       ++ (
         String.equal(Js.Date.toDateString(openDate), Js.Date.toDateString(today))
-          ? "today" : Js.Date.toLocaleDateString(openDate)
+          ? "today" : DateFormatter.formatDate(openDate)
       )
     | (_, false) =>
       "Showing "
       ++ "all"
       ++ " equipment available from "
-      ++ Js.Date.toLocaleDateString(openDate)
+      ++ DateFormatter.formatDate(openDate)
       ++ " to "
-      ++ Js.Date.toLocaleDateString(closeDate)
+      ++ DateFormatter.formatDate(closeDate)
     };
 
   let selected_unit = PeriodList.Unit.tToJs(unit);

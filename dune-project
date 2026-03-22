@@ -29,24 +29,26 @@
   (name reason-react-ppx)))
 
 (pin
- (url "git+https://github.com/Software-Deployed/reason-react-day-picker.git")
+ (url
+  "git+https://github.com/Software-Deployed/reason-react-day-picker.git#reason-native")
  (package
   (name reason-react-day-picker)))
 
 (package
  (name resync)
  (synopsis "Realtime Universal Reason React")
- (description "Tools for creating a realtime universal reason react application")
+ (description
+  "Tools for creating a realtime universal reason react application")
  (depends
   (ocaml
    (= "5.4.0"))
   caqti-driver-postgresql
-   dream
-   lwt
-   melange
-   melange-json
-   melange-json-native
-   ocaml-lsp-server
+  dream
+  lwt
+  melange
+  melange-json
+  melange-json-native
+  ocaml-lsp-server
   ocamlformat
   reason
   melange-webapi

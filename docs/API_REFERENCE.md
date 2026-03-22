@@ -688,6 +688,151 @@ let Number_formatter.format_percent:
 - Ecommerce server rendering uses this package on the server branch while client
   still uses `Intl.NumberFormat`.
 
+## icu-datetimeformatter
+
+Native ICU-backed date/time formatting for server-side `Intl.DateTimeFormat`-style rendering.
+
+The package is exposed as `resync.icu_datetimeformatter` and provides
+`Date_time_formatter` in your OCaml/Reason code.
+
+### Types
+
+```reason
+module Date_time_formatter.Style: {
+  type t = Full | Long | Medium | Short;
+};
+
+module Date_time_formatter.Text: {
+  type t = Narrow | Short | Long;
+};
+
+module Date_time_formatter.Numeric: {
+  type t = Numeric | Two_digit;
+};
+
+module Date_time_formatter.Month: {
+  type t = Numeric | Two_digit | Narrow | Short | Long;
+};
+
+module Date_time_formatter.Hour_cycle: {
+  type t = H11 | H12 | H23 | H24;
+};
+
+module Date_time_formatter.Time_zone_name: {
+  type t =
+    | Short
+    | Long
+    | Short_offset
+    | Long_offset
+    | Short_generic
+    | Long_generic;
+};
+
+type Date_time_formatter.part = {
+  type_: string,
+  value: string,
+};
+
+type Date_time_formatter.options = {
+  locale: string,
+  time_zone: option(string),
+  date_style: option(Date_time_formatter.Style.t),
+  time_style: option(Date_time_formatter.Style.t),
+  weekday: option(Date_time_formatter.Text.t),
+  era: option(Date_time_formatter.Text.t),
+  year: option(Date_time_formatter.Numeric.t),
+  month: option(Date_time_formatter.Month.t),
+  day: option(Date_time_formatter.Numeric.t),
+  hour: option(Date_time_formatter.Numeric.t),
+  minute: option(Date_time_formatter.Numeric.t),
+  second: option(Date_time_formatter.Numeric.t),
+  fractional_second_digits: option(int),
+  time_zone_name: option(Date_time_formatter.Time_zone_name.t),
+  hour12: option(bool),
+  hour_cycle: option(Date_time_formatter.Hour_cycle.t),
+};
+```
+
+### Functions
+
+```reason
+let Date_time_formatter.make_options:
+  ?locale:string ->
+  ?time_zone:string ->
+  ?date_style:Date_time_formatter.Style.t ->
+  ?time_style:Date_time_formatter.Style.t ->
+  ?weekday:Date_time_formatter.Text.t ->
+  ?era:Date_time_formatter.Text.t ->
+  ?year:Date_time_formatter.Numeric.t ->
+  ?month:Date_time_formatter.Month.t ->
+  ?day:Date_time_formatter.Numeric.t ->
+  ?hour:Date_time_formatter.Numeric.t ->
+  ?minute:Date_time_formatter.Numeric.t ->
+  ?second:Date_time_formatter.Numeric.t ->
+  ?fractional_second_digits:int ->
+  ?time_zone_name:Date_time_formatter.Time_zone_name.t ->
+  ?hour12:bool ->
+  ?hour_cycle:Date_time_formatter.Hour_cycle.t ->
+  unit ->
+  Date_time_formatter.options;
+
+let Date_time_formatter.format_with_options:
+  Date_time_formatter.options ->
+  float ->
+  string;
+
+let Date_time_formatter.format_to_parts_with_options:
+  Date_time_formatter.options ->
+  float ->
+  list(Date_time_formatter.part);
+
+let Date_time_formatter.format:
+  ?locale:string ->
+  ?time_zone:string ->
+  ?date_style:Date_time_formatter.Style.t ->
+  ?time_style:Date_time_formatter.Style.t ->
+  ?weekday:Date_time_formatter.Text.t ->
+  ?era:Date_time_formatter.Text.t ->
+  ?year:Date_time_formatter.Numeric.t ->
+  ?month:Date_time_formatter.Month.t ->
+  ?day:Date_time_formatter.Numeric.t ->
+  ?hour:Date_time_formatter.Numeric.t ->
+  ?minute:Date_time_formatter.Numeric.t ->
+  ?second:Date_time_formatter.Numeric.t ->
+  ?fractional_second_digits:int ->
+  ?time_zone_name:Date_time_formatter.Time_zone_name.t ->
+  ?hour12:bool ->
+  ?hour_cycle:Date_time_formatter.Hour_cycle.t ->
+  float ->
+  string;
+
+let Date_time_formatter.format_to_parts:
+  ?locale:string ->
+  ?time_zone:string ->
+  ?date_style:Date_time_formatter.Style.t ->
+  ?time_style:Date_time_formatter.Style.t ->
+  ?weekday:Date_time_formatter.Text.t ->
+  ?era:Date_time_formatter.Text.t ->
+  ?year:Date_time_formatter.Numeric.t ->
+  ?month:Date_time_formatter.Month.t ->
+  ?day:Date_time_formatter.Numeric.t ->
+  ?hour:Date_time_formatter.Numeric.t ->
+  ?minute:Date_time_formatter.Numeric.t ->
+  ?second:Date_time_formatter.Numeric.t ->
+  ?fractional_second_digits:int ->
+  ?time_zone_name:Date_time_formatter.Time_zone_name.t ->
+  ?hour12:bool ->
+  ?hour_cycle:Date_time_formatter.Hour_cycle.t ->
+  float ->
+  list(Date_time_formatter.part);
+```
+
+### Notes
+
+- Formatters are cached in-process for reuse.
+- ICU discovery and symbol versioning follow the same build pattern as `icu-numberformatter`.
+- The current scope focuses on `format` and `formatToParts`, not `formatRange`, `resolvedOptions`, or `supportedLocalesOf` yet.
+
 ## Type Definitions
 
 ### Common Types
