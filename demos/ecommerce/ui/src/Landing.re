@@ -14,7 +14,7 @@ let make =
            ~minutes=0.0,
            ~seconds=0.0,
            ~milliseconds=0.0,
-          )
+         )
       |> Js.Date.fromFloat;
     let tomorrow =
       Js.Date.make(
@@ -63,11 +63,9 @@ let make =
             mode="range"
             selected={
                        `Range(
-                         ReactDayPicker.defined({
-                           ReactDayPicker.from:
-                             ReactDayPicker.defined(openDate),
-                           ReactDayPicker.to_:
-                             ReactDayPicker.defined(closeDate),
+                         Js.Undefined.return({
+                           ReactDayPicker.from: Js.Undefined.return(openDate),
+                           ReactDayPicker.to_: Js.Undefined.return(closeDate),
                          }),
                        )
                      }
