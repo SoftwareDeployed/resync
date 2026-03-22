@@ -53,8 +53,8 @@ The ecommerce demo uses these layers in two different ways:
 ## Monorepo subpackages
 
 The packages in this monorepo are meant to be used together to build a universal `server-reason-react` application in an opinionated way.
-
-- `packages/universal-reason-react/components` gives you the shared document and rendering primitives for SSR + hydration.
+- `packages/ocaml-icu4c` is a highly experimental package that uses OCaml FFI to bind to icu4c. It is used to provide parity to the JavaScript Intl API.
+- `packages/universal-reason-react/intl` gives you a universal API for calling JavaScript Intl API from native OCaml and JS using ocaml-icu4c under the hood.
 - `packages/universal-reason-react/router` gives you one route tree for Dream and the browser, including SSR entrypoints.
 - `packages/universal-reason-react/store` gives you the Tilia-backed store authoring model, hydration, persistence, and realtime sync.
 - `packages/universal-reason-react/lucide-icons` keeps SVG icon rendering consistent across server and client.
