@@ -4,14 +4,14 @@ let requestPath = request => Dream.target(request) |> Dream.split_target |> fst;
 
 let requestSearch = request => Dream.target(request) |> Dream.split_target |> snd;
 
-let requestQuery = request => Dream.all_queries(request) |> UniversalRouter.Query.ofList;
+let requestSearchParams = request => requestSearch(request) |> UniversalRouter.SearchParams.parse;
 
 type serverContext('state) = {
   request: Dream.request,
   basePath: string,
-  path: string,
+  pathname: string,
   search: string,
-  query: UniversalRouter.Query.t,
+  searchParams: UniversalRouter.SearchParams.t,
   params: UniversalRouter.Params.t,
   matchResult: UniversalRouter.matchResult('state),
 };
@@ -64,15 +64,14 @@ let matchRequest = (~router, ~basePath, request) =>
   UniversalRouter.matchMountedPath(
     ~router,
     ~basePath,
-    ~path=requestPath(request),
-    ~query=requestQuery(request),
+    ~pathname=requestPath(request),
+    ~searchParams=requestSearchParams(request),
     (),
   );
 
 let loadServerState = (~router, ~basePath, ~request, ~getServerState) => {
-  let path = requestPath(request);
   let search = requestSearch(request);
-  let query = requestQuery(request);
+  let searchParams = requestSearchParams(request);
 
   switch (matchRequest(~router, ~basePath, request)) {
   | None => Lwt.return(ServerNotFound)
@@ -80,9 +79,9 @@ let loadServerState = (~router, ~basePath, ~request, ~getServerState) => {
     let context = {
       request,
       basePath,
-      path,
+      pathname: matchResult.pathname,
       search,
-      query,
+      searchParams,
       params: matchResult.params,
       matchResult,
     };
@@ -97,17 +96,32 @@ let loadServerState = (~router, ~basePath, ~request, ~getServerState) => {
   };
 };
 
-let renderDocument = (~router, ~basePath, ~serializedState="", ~state=?, ~children, request) =>
-  UniversalRouter.renderDocument(
-    ~router,
-    ~children,
-    ~basePath,
-    ~path=requestPath(request),
-    ~search=requestSearch(request),
-    ~serializedState,
-    ~state,
-    (),
-  );
+let renderDocument = (~router, ~basePath, ~serializedState="", ~state=?, ~children, request) => {
+  switch (matchRequest(~router, ~basePath, request)) {
+  | Some(matchResult) =>
+    UniversalRouter.renderDocument(
+      ~router,
+      ~children,
+      ~basePath,
+      ~pathname=matchResult.pathname,
+      ~search=requestSearch(request),
+      ~serializedState,
+      ~state,
+      (),
+    )
+  | None =>
+    UniversalRouter.renderDocument(
+      ~router,
+      ~children,
+      ~basePath,
+      ~pathname="/",
+      ~search=requestSearch(request),
+      ~serializedState,
+      ~state,
+      (),
+    )
+  };
+};
 
 let renderResolved = (~app, resolvedServerState) =>
   app.render(

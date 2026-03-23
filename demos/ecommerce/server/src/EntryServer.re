@@ -30,7 +30,7 @@ let render = (~context, ~serverState: Store.t, ()) => {
   let serializedState = Store.serializeState(serverState.config);
   let UniversalRouterDream.{
     basePath,
-    path: serverPath,
+    pathname: serverPathname,
     search: serverSearch,
   } = context;
   let app =
@@ -38,7 +38,7 @@ let render = (~context, ~serverState: Store.t, ()) => {
       router=Routes.router
       state=store
       basePath
-      serverPath
+      serverPathname
       serverSearch
     />;
   let document =
@@ -46,7 +46,7 @@ let render = (~context, ~serverState: Store.t, ()) => {
       ~router=Routes.router,
       ~children=app,
       ~basePath,
-      ~path=serverPath,
+      ~pathname=serverPathname,
       ~search=serverSearch,
       ~serializedState,
       ~state=store,

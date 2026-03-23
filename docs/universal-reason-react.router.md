@@ -126,13 +126,13 @@ Resolve page titles and meta tags dynamically from your application state:
 open UniversalRouter;
 
 // Static title (simple string)
-let resolveItemTitle = (~path as _, ~params, ~query as _) => {
+let resolveItemTitle = (~pathname as _, ~params, ~searchParams as _) => {
   let itemId = params |> Params.find("id") |> Belt.Option.getWithDefault("Unknown");
   "Item " ++ itemId ++ " - My Store";
 };
 
 // Dynamic title from app state
-let resolveItemTitleWithState = (~path as _, ~params, ~query as _, ~state: Store.t) => {
+let resolveItemTitleWithState = (~pathname as _, ~params, ~searchParams as _, ~state: Store.t) => {
   let itemId = params |> Params.find("id") |> Belt.Option.getWithDefault("");
   
   // Look up item name from the store
@@ -143,7 +143,7 @@ let resolveItemTitleWithState = (~path as _, ~params, ~query as _, ~state: Store
 };
 
 // Static head tags
-let resolveItemHeadTags = (~path as _, ~params, ~query as _) => {
+let resolveItemHeadTags = (~pathname as _, ~params, ~searchParams as _) => {
   let itemId = params |> Params.find("id") |> Belt.Option.getWithDefault("");
   [
     metaTag(~name="description", ~content="View item details", ()),
@@ -152,7 +152,7 @@ let resolveItemHeadTags = (~path as _, ~params, ~query as _) => {
 };
 
 // Dynamic head tags from app state
-let resolveItemHeadTagsWithState = (~path as _, ~params, ~query as _, ~state: Store.t) => {
+let resolveItemHeadTagsWithState = (~pathname as _, ~params, ~searchParams as _, ~state: Store.t) => {
   let itemId = params |> Params.find("id") |> Belt.Option.getWithDefault("");
   
   switch (Js.Array.find(~f=(item: Item.t) => item.id == itemId, state.config.inventory)) {
@@ -207,7 +207,7 @@ let render = (~context, ~serverState: Store.t, ()) => {
       router=Routes.router
       state=serverState  // Required for state-aware metadata
       basePath
-      serverPath
+      serverPathname
       serverSearch
     />;
   
@@ -298,14 +298,14 @@ let getServerState = (context: UniversalRouterDream.serverContext(Store.t)) => {
 let render = (~context, ~serverState: Store.t, ()) => {
   let store = serverState;
   let serializedState = Store.serializeState(serverState.config);
-  let {UniversalRouterDream.basePath, UniversalRouterDream.path: serverPath, UniversalRouterDream.search: serverSearch} = context;
+  let {UniversalRouterDream.basePath, UniversalRouterDream.pathname: serverPathname, UniversalRouterDream.search: serverSearch} = context;
 
   let app =
     <UniversalRouter
       router=Routes.router
       state=store  // Pass state for metadata resolution
       basePath
-      serverPath
+      serverPathname
       serverSearch
     />;
 
@@ -314,7 +314,7 @@ let render = (~context, ~serverState: Store.t, ()) => {
       ~router=Routes.router,
       ~children=app,
       ~basePath,
-      ~path=serverPath,
+      ~pathname=serverPathname,
       ~search=serverSearch,
       ~serializedState,
       ~state=store,  // Pass state for SSR metadata resolution
@@ -359,17 +359,22 @@ ReactDOM.hydrateRoot(
 
 ```reason
 // Inside a component
-let navigate = UniversalRouter.useNavigate();
+let pathname = UniversalRouter.usePathname();
+let searchParams = UniversalRouter.useSearchParams();
+let router = UniversalRouter.useRouter();
 
-// Navigate to a route
-navigate(~to_="/about", ());
+// Read search params reactively
+let q = UniversalRouter.SearchParams.get("q", searchParams);
 
-// Navigate with query params
-navigate(~to_="/search", ~search="?q=hello", ());
+// Navigate with a pathname string
+router.push("/about");
 
-// Navigate programmatically
+// Push updated search params
 let handleClick = () => {
-  navigate(~to_="/dashboard", ());
+  let nextSearchParams =
+    searchParams
+    |> (params => UniversalRouter.SearchParams.set(params, "q", "hello"));
+  router.push(pathname ++ UniversalRouter.SearchParams.toSearch(nextSearchParams));
 };
 ```
 
@@ -377,16 +382,17 @@ let handleClick = () => {
 
 ```reason
 // Basic link
-<UniversalRouter.Link to_="/about">About</UniversalRouter.Link>
+<UniversalRouter.Link href="/about">About</UniversalRouter.Link>
 
-// Link with active state
-<UniversalRouter.Link
-  to_="/products"
-  className={({isActive}) => 
-    isActive ? "nav-link active" : "nav-link"
-  }>
+// Typed route link
+<UniversalRouter.RouteLink id="product" params=UniversalRouter.Params.ofList([("id", "123")])>
   Products
-</UniversalRouter.Link>
+</UniversalRouter.RouteLink>
+
+// Pathname-aware nav link
+<UniversalRouter.NavLink href="/products" activeClassName="nav-link active">
+  Products
+</UniversalRouter.NavLink>
 ```
 
 ## API Reference
@@ -446,36 +452,36 @@ Creates a route with the given path pattern.
 - Multiple: `"category/:cat/product/:id"` → `/category/food/product/456`
 
 **Metadata Options:**
-- `~resolveTitle`: Function to resolve page title from path/params/query
+- `~resolveTitle`: Function to resolve page title from pathname/params/searchParams
 - `~resolveTitleWithState`: Function to resolve title with access to app state
-- `~resolveHeadTags`: Function to resolve meta tags from path/params/query  
+- `~resolveHeadTags`: Function to resolve meta tags from pathname/params/searchParams  
 - `~resolveHeadTagsWithState`: Function to resolve meta tags with access to app state
 
 **Resolver Types:**
 ```reason
 type titleResolver = (
-  ~path: string,
+  ~pathname: string,
   ~params: Params.t,
-  ~query: Query.t,
+  ~searchParams: SearchParams.t,
 ) => string;
 
 type titleResolverWithState('state) = (
-  ~path: string,
+  ~pathname: string,
   ~params: Params.t,
-  ~query: Query.t,
+  ~searchParams: SearchParams.t,
   ~state: 'state,
 ) => string;
 
 type headTagsResolver = (
-  ~path: string,
+  ~pathname: string,
   ~params: Params.t,
-  ~query: Query.t,
+  ~searchParams: SearchParams.t,
 ) => list(headTag);
 
 type headTagsResolverWithState('state) = (
-  ~path: string,
+  ~pathname: string,
   ~params: Params.t,
-  ~query: Query.t,
+  ~searchParams: SearchParams.t,
   ~state: 'state,
 ) => list(headTag);
 ```
@@ -501,9 +507,9 @@ The `serverContext` type is parameterized by your application state type:
 type serverContext('state) = {
   request: Dream.request,
   basePath: string,
-  path: string,
+  pathname: string,
   search: string,
-  query: UniversalRouter.Query.t,
+  searchParams: UniversalRouter.SearchParams.t,
   params: UniversalRouter.Params.t,
   matchResult: UniversalRouter.matchResult('state),
 };

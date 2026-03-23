@@ -296,13 +296,13 @@ Create one server app value that knows:
 let render = (~context, ~serverState, ()) => {
   let store = Store.createStore(serverState);
   let serializedState = Store.serializeState(serverState);
-  let {UniversalRouterDream.basePath, UniversalRouterDream.path: serverPath, UniversalRouterDream.search: serverSearch} = context;
+  let {UniversalRouterDream.basePath, UniversalRouterDream.pathname: serverPathname, UniversalRouterDream.search: serverSearch} = context;
 
   let app =
     <UniversalRouter
       router=Routes.router
       basePath
-      serverPath
+      serverPathname
       serverSearch
     />;
 
@@ -311,7 +311,7 @@ let render = (~context, ~serverState, ()) => {
       ~router=Routes.router,
       ~children=app,
       ~basePath,
-      ~path=serverPath,
+      ~pathname=serverPathname,
       ~search=serverSearch,
       ~serializedState,
       (),

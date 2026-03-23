@@ -413,14 +413,14 @@ React.useEffect0(() => {
 ```reason
 // EntryServer.re
 let render = (~context, ~serverState, ()) => {
-  let {UniversalRouterDream.basePath, UniversalRouterDream.path: serverPath, UniversalRouterDream.search: serverSearch} = context;
+  let {UniversalRouterDream.basePath, UniversalRouterDream.pathname: serverPathname, UniversalRouterDream.search: serverSearch} = context;
 
   let document =
     UniversalRouter.renderDocument(
       ~router=Routes.router,
       ~children=<App />,
       ~basePath,
-      ~path=serverPath,
+      ~pathname=serverPathname,
       ~search=serverSearch,
       ~serializedState,
       (),

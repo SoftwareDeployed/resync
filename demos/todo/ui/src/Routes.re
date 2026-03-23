@@ -1,11 +1,11 @@
 module HomePageWrapper = {
-  let make = (~params as _, ~query as _, ()) => {
+  let make = (~params as _, ~searchParams as _, ()) => {
     <HomePage />;
   };
 };
 
 module NotFoundPage = {
-  let make = (~path as _, ()) => {
+  let make = (~pathname as _, ()) => {
     <div> {React.string("404 - Page not found")} </div>;
   };
 };

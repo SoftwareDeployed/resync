@@ -124,18 +124,18 @@ let make = (~onClick, ~children) => {
 
 ```reason
 [@react.component]
-let make = (~to_, ~icon: module(LucideIcon), ~label) => {
+let make = (~href, ~icon: module(LucideIcon), ~label) => {
   let iconModule = (val icon: module(LucideIcon));
   
-  <UniversalRouter.Link to_ className="nav-link">
+  <UniversalRouter.Link href className="nav-link">
     <iconModule size={20} />
     <span className="nav-label"> {React.string(label)} </span>
   </UniversalRouter.Link>;
 };
 
 // Usage
-<NavItem to_="/home" icon=(module Home) label="Home" />
-<NavItem to_="/settings" icon=(module Settings) label="Settings" />
+<NavItem href="/home" icon=(module Home) label="Home" />
+<NavItem href="/settings" icon=(module Settings) label="Settings" />
 ```
 
 ### Dynamic Icons
@@ -307,9 +307,9 @@ let make = (~items) => {
            {index > 0
              ? <ChevronRight size={14} className="breadcrumb-separator" />
              : React.null}
-           <UniversalRouter.Link to_={item.href}>
-             {React.string(item.label)}
-           </UniversalRouter.Link>
+            <UniversalRouter.Link href={item.href}>
+              {React.string(item.label)}
+            </UniversalRouter.Link>
          </li>
        )
        |> React.list}

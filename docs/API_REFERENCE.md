@@ -151,49 +151,74 @@ Creates document configuration.
 
 ### Hooks
 
-#### `useNavigate`
+#### `useRouter`
 
 ```reason
-let useNavigate: unit => (~to_: string, ~search: string=?, unit) => unit;
+type routerApi = {
+  push: string => unit,
+  replace: string => unit,
+  pushRoute: (~id: string, ~params: Params.t=?, ~searchParams: SearchParams.t=?, unit) => unit,
+  replaceRoute: (~id: string, ~params: Params.t=?, ~searchParams: SearchParams.t=?, unit) => unit,
+};
+
+let useRouter: unit => routerApi;
 ```
 
 Hook for programmatic navigation.
 
 **Example:**
 ```reason
-let navigate = UniversalRouter.useNavigate();
-navigate(~to_="/dashboard", ());
+let router = UniversalRouter.useRouter();
+router.push("/dashboard");
 ```
+
+#### `usePathname`
+
+```reason
+let usePathname: unit => string;
+```
+
+Hook to access the current app pathname.
+
+**Example:**
+```reason
+let pathname = UniversalRouter.usePathname();
+```
+
+#### `useSearchParams`
+
+```reason
+let useSearchParams: unit => UniversalRouter.SearchParams.t;
+```
+
+Hook to access the current search params.
+
+**Example:**
+```reason
+let searchParams = UniversalRouter.useSearchParams();
+let q = UniversalRouter.SearchParams.get("q", searchParams);
+```
+
+#### `useSearch`
+
+```reason
+let useSearch: unit => string;
+```
+
+Hook to access the raw search string.
 
 #### `useParams`
 
 ```reason
-let useParams: unit => Js.Dict.t(string);
+let useParams: unit => UniversalRouter.Params.t;
 ```
 
-Hook to access route parameters.
+Hook to access route params.
 
 **Example:**
 ```reason
 let params = UniversalRouter.useParams();
-let id = params |. Js.Dict.get("id") |. Belt.Option.getExn;
-```
-
-#### `useLocation`
-
-```reason
-let useLocation: unit => location;
-```
-
-Hook to access current location.
-
-**Type:**
-```reason
-type location = {
-  pathname: string,
-  search: string,
-  hash: string,
-};
+let id = UniversalRouter.Params.get("id", params);
 ```
 
 ### Server Functions
@@ -225,9 +250,9 @@ Converts app to Dream request handler.
 type serverContext('state) = {
   request: Dream.request,
   basePath: string,
-  path: string,
+  pathname: string,
   search: string,
-  query: UniversalRouter.Query.t,
+  searchParams: UniversalRouter.SearchParams.t,
   params: UniversalRouter.Params.t,
   matchResult: UniversalRouter.matchResult('state),
 };
@@ -837,49 +862,37 @@ type layoutComponent = {
 ### Router Types
 
 ```reason
-type location = {
+type matchResult('state) = {
   pathname: string,
-  search: string,
-  hash: string,
-  state: option(Js.Json.t),
+  params: Params.t,
+  searchParams: SearchParams.t,
+  routes: list(routeConfig('state)),
 };
-
-type match = {
-  params: Js.Dict.t(string),
-  isExact: bool,
-  path: string,
-  url: string,
-};
-
-type historyAction =
-  | Push
-  | Replace
-  | Pop;
 
 // Metadata resolvers
 type titleResolver = (
-  ~path: string,
+  ~pathname: string,
   ~params: Params.t,
-  ~query: Query.t,
+  ~searchParams: SearchParams.t,
 ) => string;
 
 type titleResolverWithState('state) = (
-  ~path: string,
+  ~pathname: string,
   ~params: Params.t,
-  ~query: Query.t,
+  ~searchParams: SearchParams.t,
   ~state: 'state,
 ) => string;
 
 type headTagsResolver = (
-  ~path: string,
+  ~pathname: string,
   ~params: Params.t,
-  ~query: Query.t,
+  ~searchParams: SearchParams.t,
 ) => list(headTag);
 
 type headTagsResolverWithState('state) = (
-  ~path: string,
+  ~pathname: string,
   ~params: Params.t,
-  ~query: Query.t,
+  ~searchParams: SearchParams.t,
   ~state: 'state,
 ) => list(headTag);
 ```

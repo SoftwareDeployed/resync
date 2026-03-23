@@ -11,39 +11,40 @@ module StorefrontLayoutView = {
 };
 
 module StorefrontLayout = {
-  let make = (~children, ~params as _, ~query as _, ()) => <StorefrontLayoutView> children </StorefrontLayoutView>;
+  let make = (~children, ~params as _, ~searchParams as _, ()) => <StorefrontLayoutView> children </StorefrontLayoutView>;
 };
 
 module LandingPage = {
-  let make = (~params as _, ~query as _, ()) => <Landing />;
+  let make = (~params as _, ~searchParams as _, ()) => <Landing />;
 };
 
 module ItemPage = {
-  let make = (~params as _, ~query as _, ()) => <Landing />;
+  let make = (~params as _, ~searchParams as _, ()) => <Landing />;
 };
 
 module CartLayout = {
-  let make = (~children, ~params as _, ~query as _, ()) => <Container> children </Container>;
+  let make = (~children, ~params as _, ~searchParams as _, ()) => <Container> children </Container>;
 };
 
 module CartPage = {
-  let make = (~params as _, ~query as _, ()) => {
+  let make = (~params as _, ~searchParams, ()) => {
     <Card>
       <Cart showContents=true />
       <p className="m-2 text-sm text-slate-600">
         "Review your selected equipment before booking."->React.string
       </p>
-      <UniversalRouter.Link
+      <UniversalRouter.RouteLink
         id="home"
+        searchParams
         className="m-2 inline-block text-sm text-slate-700 underline underline-offset-4 hover:text-slate-900">
         "Continue browsing equipment"->React.string
-      </UniversalRouter.Link>
+      </UniversalRouter.RouteLink>
     </Card>;
   };
 };
 
 module NotFoundPage = {
-  let make = (~path as _, ()) => <NotFound />;
+  let make = (~pathname as _, ()) => <NotFound />;
 };
 
 let itemIdLabel = params =>
@@ -67,10 +68,10 @@ let itemNameFromState = (~params, ~state: Store.t) =>
     }
   };
 
-let resolveItemTitle = (~path as _, ~params, ~query as _) =>
+let resolveItemTitle = (~pathname as _, ~params, ~searchParams as _) =>
   itemIdLabel(params) ++ " - Cloud Hardware Rental";
 
-let resolveItemHeadTags = (~path as _, ~params, ~query as _) => {
+let resolveItemHeadTags = (~pathname as _, ~params, ~searchParams as _) => {
   let itemLabel = itemIdLabel(params);
   [
     UniversalRouter.propertyTag(
@@ -86,10 +87,10 @@ let resolveItemHeadTags = (~path as _, ~params, ~query as _) => {
     ];
   };
 
-let resolveItemTitleWithState = (~path as _, ~params, ~query as _, ~state: Store.t) =>
+let resolveItemTitleWithState = (~pathname as _, ~params, ~searchParams as _, ~state: Store.t) =>
   itemNameFromState(~params, ~state) ++ " - Cloud Hardware Rental";
 
-let resolveItemHeadTagsWithState = (~path as _, ~params, ~query as _, ~state: Store.t) => {
+let resolveItemHeadTagsWithState = (~pathname as _, ~params, ~searchParams as _, ~state: Store.t) => {
   let itemLabel = itemNameFromState(~params, ~state);
   [
     UniversalRouter.propertyTag(
@@ -192,11 +193,11 @@ let router =
   );
 
 let homePath = (~basePath="/", ()) =>
-  UniversalRouter.href(~router, ~basePath, ~id="home", ())
+  UniversalRouter.routeHref(~router, ~basePath, ~id="home", ())
   |> Option.value(~default=basePath);
 
 let itemPath = (~basePath="/", ~id, ()) =>
-  UniversalRouter.href(
+  UniversalRouter.routeHref(
     ~router,
     ~basePath,
     ~id="item",
@@ -206,5 +207,5 @@ let itemPath = (~basePath="/", ~id, ()) =>
   |> Option.value(~default=basePath);
 
 let cartPath = (~basePath="/", ()) =>
-  UniversalRouter.href(~router, ~basePath, ~id="cart", ())
+  UniversalRouter.routeHref(~router, ~basePath, ~id="cart", ())
   |> Option.value(~default="/cart");

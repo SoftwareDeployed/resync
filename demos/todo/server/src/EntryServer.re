@@ -29,7 +29,7 @@ let getServerState =
 let render = (~context, ~serverState: TodoStore.t, ()) => {
   let UniversalRouterDream.{
     basePath,
-    path: serverPath,
+    pathname: serverPathname,
     search: serverSearch,
   } = context;
 
@@ -41,7 +41,7 @@ let render = (~context, ~serverState: TodoStore.t, ()) => {
       router=Routes.router
       state=serverState
       basePath
-      serverPath
+      serverPathname
       serverSearch
     />;
 
@@ -50,7 +50,7 @@ let render = (~context, ~serverState: TodoStore.t, ()) => {
       ~router=Routes.router,
       ~children=app,
       ~basePath,
-      ~path=serverPath,
+      ~pathname=serverPathname,
       ~search=serverSearch,
       ~serializedState,
       ~state=serverState,

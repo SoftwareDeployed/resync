@@ -8,6 +8,8 @@ module Params = {
 
   let ofList = entries => entries;
 
+  let toList = params => params;
+
   let add = (params, key, value) => {
     let remaining =
       params |> List.filter(((existingKey, _value)) => existingKey != key);
@@ -22,9 +24,13 @@ module Params = {
     |> List.find_map(((existingKey, value)) =>
          existingKey == key ? Some(value) : None
        );
+
+  let get = find;
+
+  let has = (key, params) => params |> List.exists(((existingKey, _value)) => existingKey == key);
 };
 
-module Query = {
+module SearchParams = {
   type entry = (string, string);
   type t = list(entry);
 
@@ -32,34 +38,160 @@ module Query = {
 
   let ofList = entries => entries;
 
+  let toList = searchParams => searchParams;
+
+  let isAlphaNumeric = char =>
+    (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9');
+
+  let isUnreserved = char =>
+    isAlphaNumeric(char) || char == '-' || char == '_' || char == '.' || char == '~';
+
+  let hexDigit = value =>
+    value < 10 ? Char.chr(Char.code('0') + value) : Char.chr(Char.code('A') + value - 10);
+
+  let hexValue = char =>
+    if (char >= '0' && char <= '9') {
+      Some(Char.code(char) - Char.code('0'));
+    } else if (char >= 'A' && char <= 'F') {
+      Some(Char.code(char) - Char.code('A') + 10);
+    } else if (char >= 'a' && char <= 'f') {
+      Some(Char.code(char) - Char.code('a') + 10);
+    } else {
+      None;
+    };
+
+  let encodeComponent = value => {
+    let buffer = Buffer.create(String.length(value) * 3);
+    value
+    |> String.iter(char =>
+         if (isUnreserved(char)) {
+           Buffer.add_char(buffer, char);
+         } else if (char == ' ') {
+           Buffer.add_char(buffer, '+');
+         } else {
+           let code = Char.code(char);
+           Buffer.add_char(buffer, '%');
+           Buffer.add_char(buffer, hexDigit(code / 16));
+           Buffer.add_char(buffer, hexDigit(code mod 16));
+         }
+       );
+    Buffer.contents(buffer);
+  };
+
+  let decodeComponent = value => {
+    let buffer = Buffer.create(String.length(value));
+    let valueLength = String.length(value);
+
+    let rec loop = index =>
+      if (index >= valueLength) {
+        ();
+      } else {
+        switch (value.[index]) {
+        | '+' => {
+            Buffer.add_char(buffer, ' ');
+            loop(index + 1);
+          }
+        | '%' =>
+          if (index + 2 < valueLength) {
+            switch (hexValue(value.[index + 1]), hexValue(value.[index + 2])) {
+            | (Some(high), Some(low)) => {
+                Buffer.add_char(buffer, Char.chr(high * 16 + low));
+                loop(index + 3);
+              }
+            | _ => {
+                Buffer.add_char(buffer, '%');
+                loop(index + 1);
+              }
+            };
+          } else {
+            Buffer.add_char(buffer, '%');
+            loop(index + 1);
+          }
+        | char => {
+            Buffer.add_char(buffer, char);
+            loop(index + 1);
+          }
+        };
+      };
+
+    loop(0);
+    Buffer.contents(buffer);
+  };
+
+  let searchWithoutPrefix = search =>
+    String.starts_with(search, ~prefix="?")
+      ? search->String.sub(1, String.length(search) - 1) : search;
+
+  let splitEntry = entry => {
+    let entryLength = String.length(entry);
+
+    let rec findSeparator = index =>
+      index >= entryLength
+        ? None
+        : entry.[index] == '=' ? Some(index) : findSeparator(index + 1);
+
+    switch (findSeparator(0)) {
+    | None => (entry, "")
+    | Some(index) =>
+      (
+        entry->String.sub(0, index),
+        entry->String.sub(index + 1, entryLength - index - 1),
+      )
+    };
+  };
+
   let parse = search => {
-    let rawSearch =
-      String.starts_with(search, ~prefix="?")
-        ? search->String.sub(1, String.length(search) - 1) : search;
+    let rawSearch = searchWithoutPrefix(search);
 
     rawSearch == ""
       ? []
       : rawSearch
         |> String.split_on_char('&')
         |> List.filter_map(entry =>
-             switch (entry |> String.split_on_char('=')) {
-             | [] => None
-             | [key] => Some((key, ""))
-             | [key, value, ..._] => Some((key, value))
-             }
-           );
+             entry == ""
+               ? None
+               : {
+                   let (key, value) = splitEntry(entry);
+                   Some((decodeComponent(key), decodeComponent(value)));
+                 }
+            );
   };
 
-  let find = (key, query) =>
-    query
+  let get = (key, searchParams) =>
+    searchParams
     |> List.find_map(((existingKey, value)) =>
          existingKey == key ? Some(value) : None
        );
 
-  let toString = query =>
-    query
-    |> List.map(((key, value)) => value == "" ? key : key ++ "=" ++ value)
+  let find = get;
+
+  let getAll = (key, searchParams) =>
+    searchParams
+    |> List.filter_map(((existingKey, value)) => existingKey == key ? Some(value) : None);
+
+  let has = (key, searchParams) =>
+    searchParams |> List.exists(((existingKey, _value)) => existingKey == key);
+
+  let delete = (searchParams, key) =>
+    searchParams |> List.filter(((existingKey, _value)) => existingKey != key);
+
+  let append = (searchParams, key, value) => List.append(searchParams, [(key, value)]);
+
+  let set = (searchParams, key, value) => append(delete(searchParams, key), key, value);
+
+  let toString = searchParams =>
+    searchParams
+    |> List.map(((key, value)) => {
+         let encodedKey = encodeComponent(key);
+         let encodedValue = encodeComponent(value);
+         value == "" ? encodedKey : encodedKey ++ "=" ++ encodedValue;
+       })
     |> String.concat("&");
+
+  let toSearch = searchParams => {
+    let serialized = toString(searchParams);
+    serialized == "" ? "" : "?" ++ serialized;
+  };
 };
 
 type headTag =
@@ -67,32 +199,36 @@ type headTag =
   | PropertyTag(string, string)
   | LinkTag(string, string);
 
-type titleResolver = (~path: string, ~params: Params.t, ~query: Query.t) => string;
+type titleResolver = (
+  ~pathname: string,
+  ~params: Params.t,
+  ~searchParams: SearchParams.t,
+) => string;
 
 type titleResolverWithState('state) =
   (
-    ~path: string,
+    ~pathname: string,
     ~params: Params.t,
-    ~query: Query.t,
+    ~searchParams: SearchParams.t,
     ~state: 'state,
   ) =>
   string;
 
 type headTagsResolver =
-  (~path: string, ~params: Params.t, ~query: Query.t) => list(headTag);
+  (~pathname: string, ~params: Params.t, ~searchParams: SearchParams.t) => list(headTag);
 
 type headTagsResolverWithState('state) =
   (
-    ~path: string,
+    ~pathname: string,
     ~params: Params.t,
-    ~query: Query.t,
+    ~searchParams: SearchParams.t,
     ~state: 'state,
   ) =>
   list(headTag);
 
 type hydrationState = {
   basePath: string,
-  path: string,
+  pathname: string,
   search: string,
 };
 
@@ -113,18 +249,18 @@ module type LAYOUT = {
     (
       ~children: React.element,
       ~params: Params.t,
-      ~query: Query.t,
+      ~searchParams: SearchParams.t,
       unit,
     ) =>
     React.element;
 };
 
 module type PAGE = {
-  let make: (~params: Params.t, ~query: Query.t, unit) => React.element;
+  let make: (~params: Params.t, ~searchParams: SearchParams.t, unit) => React.element;
 };
 
 module type NOT_FOUND = {
-  let make: (~path: string, unit) => React.element;
+  let make: (~pathname: string, unit) => React.element;
 };
 
 type routeConfig('state) = {
@@ -148,17 +284,27 @@ type t('state) = {
 };
 
 type matchResult('state) = {
-  path: string,
+  pathname: string,
   params: Params.t,
-  query: Query.t,
+  searchParams: SearchParams.t,
   routes: list(routeConfig('state)),
+};
+
+type routerApi = {
+  push: string => unit,
+  replace: string => unit,
+  pushRoute:
+    (~id: string, ~params: Params.t=?, ~searchParams: SearchParams.t=?, unit) => unit,
+  replaceRoute:
+    (~id: string, ~params: Params.t=?, ~searchParams: SearchParams.t=?, unit) => unit,
 };
 
 type contextValueWithState('state) = {
   router: t('state),
   basePath: string,
-  path: string,
-  query: Query.t,
+  pathname: string,
+  search: string,
+  searchParams: SearchParams.t,
   params: Params.t,
   matchResult: option(matchResult('state)),
 };
@@ -166,8 +312,9 @@ type contextValueWithState('state) = {
 type contextValue = {
   router: t(unit),
   basePath: string,
-  path: string,
-  query: Query.t,
+  pathname: string,
+  search: string,
+  searchParams: SearchParams.t,
   params: Params.t,
   matchResult: option(matchResult(unit)),
 };
@@ -361,14 +508,14 @@ let create = (~document: documentConfig=document(), ~notFound=?, routes) => {
 };
 
 let serializeHydrationState = (state: hydrationState) =>
-  state.basePath ++ "\n" ++ state.path ++ "\n" ++ state.search;
+  state.basePath ++ "\n" ++ state.pathname ++ "\n" ++ state.search;
 
 let parseHydrationState = value => {
   switch (value |> String.split_on_char('\n')) {
-  | [basePath, path, search, ..._] =>
-    Some({basePath: normalizeBasePath(basePath), path, search})
-  | [basePath, path] =>
-    Some({basePath: normalizeBasePath(basePath), path, search: ""})
+  | [basePath, pathname, search, ..._] =>
+    Some({basePath: normalizeBasePath(basePath), pathname: normalizePath(pathname), search})
+  | [basePath, pathname] =>
+    Some({basePath: normalizeBasePath(basePath), pathname: normalizePath(pathname), search: ""})
   | _ => None
   };
 };
@@ -386,12 +533,6 @@ let readHydrationState = () =>
     }
   | Server => None
   };
-
-let makeServerUrl = (~path, ~search="", ()) => {
-  ReasonReactRouter.path: path |> segmentsOfPath,
-  hash: "",
-  search,
-};
 
 let stripBasePath = (~basePath, ~path) => {
   let normalizedBasePath = normalizeBasePath(basePath);
@@ -425,6 +566,61 @@ let prefixBasePath = (~basePath, ~path) => {
   } else {
     normalizedBasePath ++ normalizedPath;
   };
+};
+
+let makeServerUrl = (~basePath, ~pathname, ~search="", ()) => {
+  ReasonReactRouter.path: prefixBasePath(~basePath, ~path=pathname) |> segmentsOfPath,
+  hash: "",
+  search,
+};
+
+let splitHref = href => {
+  let hrefLength = String.length(href);
+
+  let rec findSuffixIndex = index =>
+    index >= hrefLength
+      ? None
+      : switch (href.[index]) {
+        | '?' | '#' => Some(index)
+        | _ => findSuffixIndex(index + 1)
+        };
+
+  switch (findSuffixIndex(0)) {
+  | None => (href, "")
+  | Some(index) =>
+    (
+      href->String.sub(0, index),
+      href->String.sub(index, hrefLength - index),
+    )
+  };
+};
+
+let normalizeHrefPath = path => {
+  let trimmed = path |> String.trim;
+  trimmed == "" ? "/" : String.starts_with(trimmed, ~prefix="/") ? normalizePath(trimmed) : normalizePath("/" ++ trimmed);
+};
+
+let isExternalHref = href =>
+  String.starts_with(href, ~prefix="http://") || String.starts_with(href, ~prefix="https://") || String.starts_with(href, ~prefix="//") || String.starts_with(href, ~prefix="mailto:") || String.starts_with(href, ~prefix="tel:") || String.starts_with(href, ~prefix="#");
+
+let resolveHref = (~basePath, href) => {
+  if (href == "" || isExternalHref(href)) {
+    href;
+  } else {
+    let (path, suffix) = splitHref(href);
+    let normalizedPath = normalizeHrefPath(path);
+    let resolvedPath =
+      switch (stripBasePath(~basePath, ~path=normalizedPath)) {
+      | Some(_) => normalizedPath
+      | None => prefixBasePath(~basePath, ~path=normalizedPath)
+      };
+    resolvedPath ++ suffix;
+  };
+};
+
+let pathnameOfHref = href => {
+  let (path, _suffix) = splitHref(href);
+  normalizeHrefPath(path);
 };
 
 let candidateBasePaths = path => {
@@ -489,8 +685,8 @@ let matchPattern = (patternSegments, pathSegments) => {
   loop(patternSegments, pathSegments, []);
 };
 
-let matchPath = (~router: t('state), ~path, ~query=Query.empty, ()) => {
-  let pathSegments = path |> normalizePath |> segmentsOfPath;
+let matchPath = (~router: t('state), ~pathname, ~searchParams=SearchParams.empty, ()) => {
+  let pathSegments = pathname |> normalizePath |> segmentsOfPath;
 
   let rec matchRoutes =
           (
@@ -525,12 +721,12 @@ let matchPath = (~router: t('state), ~path, ~query=Query.empty, ()) => {
 
       if (nextSegments == []) {
         switch (childMatch()) {
-        | Some(result) => Some(result)
-        | None =>
-            Some({
-              path: normalizePath(path),
+          | Some(result) => Some(result)
+          | None =>
+              Some({
+              pathname: normalizePath(pathname),
               params: nextParams,
-              query,
+              searchParams,
               
               routes: List.rev(nextMatchedRoutes),
             })
@@ -544,10 +740,16 @@ let matchPath = (~router: t('state), ~path, ~query=Query.empty, ()) => {
   matchRoutes(router.routes, pathSegments, Params.empty, []);
 };
 
-let matchMountedPath = (~router: t('state), ~basePath, ~path, ~query=Query.empty, ()) =>
-  switch (stripBasePath(~basePath, ~path)) {
+let matchMountedPath = (
+  ~router: t('state),
+  ~basePath,
+  ~pathname,
+  ~searchParams=SearchParams.empty,
+  (),
+) =>
+  switch (stripBasePath(~basePath, ~path=pathname)) {
   | None => None
-  | Some(rootlessPath) => matchPath(~router, ~path=rootlessPath, ~query, ())
+  | Some(rootlessPath) => matchPath(~router, ~pathname=rootlessPath, ~searchParams, ())
   };
 
 let rec findPatternForId = (routes: list(routeConfig('state)), parentSegments, id) =>
@@ -565,7 +767,7 @@ let rec findPatternForId = (routes: list(routeConfig('state)), parentSegments, i
     }
   };
 
-let buildPath = (~patternSegments, ~params=Params.empty, ~query=Query.empty, ()) => {
+let buildPath = (~patternSegments, ~params=Params.empty, ~searchParams=SearchParams.empty, ()) => {
   let segments =
     patternSegments
     |> List.map(segment =>
@@ -575,21 +777,28 @@ let buildPath = (~patternSegments, ~params=Params.empty, ~query=Query.empty, ())
          } else {
            segment
          }
-       );
+        );
 
   let path = pathOfSegments(segments);
-  let queryString = Query.toString(query);
+  let queryString = SearchParams.toString(searchParams);
   queryString == "" ? path : path ++ "?" ++ queryString;
 };
 
-let href = (~router: t('state), ~basePath="/", ~id, ~params=Params.empty, ~query=Query.empty, ()) =>
+let routeHref = (
+  ~router: t('state),
+  ~basePath="/",
+  ~id,
+  ~params=Params.empty,
+  ~searchParams=SearchParams.empty,
+  (),
+) =>
   switch (findPatternForId(router.routes, [], id)) {
   | None => None
   | Some(patternSegments) =>
     Some(
       prefixBasePath(
         ~basePath,
-        ~path=buildPath(~patternSegments, ~params, ~query, ()),
+        ~path=buildPath(~patternSegments, ~params, ~searchParams, ()),
       ),
     )
   };
@@ -597,7 +806,7 @@ let href = (~router: t('state), ~basePath="/", ~id, ~params=Params.empty, ~query
 let renderMatched = (~matchResult: matchResult('state), ~router: t('state)) => {
   let _ = router;
   let params = matchResult.params;
-  let query = matchResult.query;
+  let searchParams = matchResult.searchParams;
 
   let rec loop = routes =>
     switch (routes) {
@@ -608,36 +817,36 @@ let renderMatched = (~matchResult: matchResult('state), ~router: t('state)) => {
           | None => React.null
           | Some(page) =>
             module Page = (val page: PAGE);
-            Page.make(~params, ~query, ())
+            Page.make(~params, ~searchParams, ())
           };
 
         switch (currentRoute.layout) {
         | None => leaf
         | Some(layout) =>
           module Layout = (val layout: LAYOUT);
-          Layout.make(~children=leaf, ~params, ~query, ())
+          Layout.make(~children=leaf, ~params, ~searchParams, ())
         }
       }
     | [currentRoute, ...remainingRoutes] => {
         let children = loop(remainingRoutes);
         switch (currentRoute.layout) {
-        | None => children
-        | Some(layout) =>
-          module Layout = (val layout: LAYOUT);
-          Layout.make(~children, ~params, ~query, ())
-        }
+      | None => children
+      | Some(layout) =>
+        module Layout = (val layout: LAYOUT);
+        Layout.make(~children, ~params, ~searchParams, ())
       }
+    }
     };
 
   loop(matchResult.routes);
 };
 
-let renderNotFound = (~router: t('state), ~path) =>
+let renderNotFound = (~router: t('state), ~pathname) =>
   switch (router.notFound) {
   | None => React.null
   | Some(notFound) =>
     module NotFound = (val notFound: NOT_FOUND);
-    NotFound.make(~path, ())
+    NotFound.make(~pathname, ())
   };
 
 let resolveTitle =
@@ -657,15 +866,19 @@ let resolveTitle =
               switch (state) {
               | Some(stateValue) =>
                 resolveTitleWithState(
-                  ~path=result.path,
+                  ~pathname=result.pathname,
                   ~params=result.params,
-                  ~query=result.query,
+                  ~searchParams=result.searchParams,
                   ~state=stateValue,
                 )
               | None =>
                 switch (currentRoute.resolveTitle) {
                 | Some(resolveTitle) =>
-                  resolveTitle(~path=result.path, ~params=result.params, ~query=result.query)
+                  resolveTitle(
+                    ~pathname=result.pathname,
+                    ~params=result.params,
+                    ~searchParams=result.searchParams,
+                  )
                 | None =>
                   switch (currentRoute.title) {
                   | Some(title) => title
@@ -676,7 +889,11 @@ let resolveTitle =
             | None =>
               switch (currentRoute.resolveTitle) {
               | Some(resolveTitle) =>
-                resolveTitle(~path=result.path, ~params=result.params, ~query=result.query)
+                resolveTitle(
+                  ~pathname=result.pathname,
+                  ~params=result.params,
+                  ~searchParams=result.searchParams,
+                )
               | None =>
                 switch (currentRoute.title) {
                 | Some(title) => title
@@ -706,9 +923,9 @@ let resolveHeadTags =
                 mergeHeadTags(
                   currentRoute.headTags,
                   resolveHeadTagsWithState(
-                    ~path=result.path,
+                    ~pathname=result.pathname,
                     ~params=result.params,
-                    ~query=result.query,
+                    ~searchParams=result.searchParams,
                     ~state=stateValue,
                   ),
                 )
@@ -718,9 +935,9 @@ let resolveHeadTags =
                   mergeHeadTags(
                     currentRoute.headTags,
                     resolveHeadTags(
-                      ~path=result.path,
+                      ~pathname=result.pathname,
                       ~params=result.params,
-                      ~query=result.query,
+                      ~searchParams=result.searchParams,
                     ),
                   )
                 | None => currentRoute.headTags
@@ -833,18 +1050,18 @@ let renderDocument = (
    ~router: t('state),
    ~children,
    ~basePath="/",
-   ~path="/",
+   ~pathname="/",
    ~search="",
    ~serializedState="",
    ~state: option('state)=?,
    (),
 ) => {
-  let query = Query.parse(search);
-  let matchResult = matchMountedPath(~router, ~basePath, ~path, ~query, ());
+  let searchParams = SearchParams.parse(search);
+  let matchResult = matchPath(~router, ~pathname, ~searchParams, ());
   let title = resolveTitle(~router, ~matchResult, ~state);
   let head =
     mergeHeadContent(router.document.head, resolveHeadTags(~router, ~matchResult, ~state));
-  let hydrationState = {basePath: normalizeBasePath(basePath), path, search};
+  let hydrationState = {basePath: normalizeBasePath(basePath), pathname, search};
   let afterMain =
     mergeAfterMain(router.document.afterMain, renderHydrationScript(hydrationState));
 
@@ -862,10 +1079,10 @@ let renderDocument = (
   </Document>;
 };
 
-let useRouter = () =>
+let useRouterState = () =>
   switch (React.useContext(context)) {
   | Some(value) => value
-  | None => raise(MissingContext("UniversalRouter.useRouter requires the router provider"))
+  | None => raise(MissingContext("UniversalRouter requires the router provider"))
   };
 
 let joinClassNames = classNames =>
@@ -873,14 +1090,15 @@ let joinClassNames = classNames =>
   |> List.filter(className => className != "")
   |> String.concat(" ");
 
-let useParams = () => useRouter().params;
-let useQuery = () => useRouter().query;
-let useMatch = () => useRouter().matchResult;
-let useCurrentPath = () => useRouter().path;
-let useBasePath = () => useRouter().basePath;
+let useParams = () => useRouterState().params;
+let useSearchParams = () => useRouterState().searchParams;
+let useSearch = () => useRouterState().search;
+let useMatch = () => useRouterState().matchResult;
+let usePathname = () => useRouterState().pathname;
+let useBasePath = () => useRouterState().basePath;
 
-let useIsActive = (~id, ~exact=false, ()) => {
-  let routerState = useRouter();
+let useIsActiveRoute = (~id, ~exact=false, ()) => {
+  let routerState = useRouterState();
 
   switch (routerState.matchResult) {
   | None => false
@@ -890,62 +1108,95 @@ let useIsActive = (~id, ~exact=false, ()) => {
         | [route, ..._] => route.id == Some(id)
         | [] => false
         }
-      : result.routes |> List.exists(route => route.id == Some(id))
+       : result.routes |> List.exists(route => route.id == Some(id))
   };
 };
 
-let useHref = (~id, ~params=Params.empty, ~query=Query.empty, ()) => {
-  let routerState = useRouter();
-  href(
+let useRouteHref = (~id, ~params=Params.empty, ~searchParams=SearchParams.empty, ()) => {
+  let routerState = useRouterState();
+  routeHref(
     ~router=routerState.router,
     ~basePath=routerState.basePath,
     ~id,
     ~params,
-    ~query,
+    ~searchParams,
     (),
   );
 };
 
-let navigate = (~replace=false, path) =>
-  replace ? ReasonReactRouter.replace(path) : ReasonReactRouter.push(path);
+let navigateHref = (~replace=false, href) =>
+  replace ? ReasonReactRouter.replace(href) : ReasonReactRouter.push(href);
 
-let useNavigateTo = () => {
-  let routerState = useRouter();
-  (~replace=false, ~id, ~params=Params.empty, ~query=Query.empty, ()) =>
+let useNavigateToRoute = () => {
+  let routerState = useRouterState();
+  (~replace=false, ~id, ~params=Params.empty, ~searchParams=SearchParams.empty, ()) =>
     switch (
-      href(
+      routeHref(
         ~router=routerState.router,
         ~basePath=routerState.basePath,
         ~id,
         ~params,
-        ~query,
+        ~searchParams,
         (),
       )
     ) {
-    | Some(path) => navigate(~replace, path)
+    | Some(href) => navigateHref(~replace, href)
     | None => ()
     };
+};
+
+let useRouter = () => {
+  let routerState = useRouterState();
+  let navigateToRoute = useNavigateToRoute();
+  let push = href => navigateHref(resolveHref(~basePath=routerState.basePath, href));
+  let replace = href => navigateHref(~replace=true, resolveHref(~basePath=routerState.basePath, href));
+  let pushRoute = (~id, ~params=Params.empty, ~searchParams=SearchParams.empty, ()) =>
+    navigateToRoute(~id, ~params, ~searchParams, ());
+  let replaceRoute = (~id, ~params=Params.empty, ~searchParams=SearchParams.empty, ()) =>
+    navigateToRoute(~replace=true, ~id, ~params, ~searchParams, ());
+
+  {push, replace, pushRoute, replaceRoute};
+};
+
+let useIsActiveHref = (~href, ~exact=false, ()) => {
+  let routerState = useRouterState();
+  let resolvedHref = resolveHref(~basePath=routerState.basePath, href);
+  let targetPathname =
+    resolvedHref
+    |> pathnameOfHref
+    |> (path =>
+         switch (stripBasePath(~basePath=routerState.basePath, ~path)) {
+         | Some(pathname) => pathname
+         | None => path
+         }
+       );
+  let currentPathname = routerState.pathname;
+
+  if (exact || targetPathname == "/") {
+    currentPathname == targetPathname;
+  } else {
+    currentPathname == targetPathname || String.starts_with(currentPathname, ~prefix=targetPathname ++ "/");
+  };
 };
 
 module Link = {
   [@react.component]
   let make = (
-    ~id,
-    ~params=Params.empty,
-    ~query=Query.empty,
+    ~href,
     ~replace=false,
     ~elementId: option(string)=?,
     ~className: option(string)=?,
     ~children,
   ) => {
-    let hrefValue = useHref(~id, ~params, ~query, ()) |> Option.value(~default="#");
+    let routerState = useRouterState();
+    let hrefValue = resolveHref(~basePath=routerState.basePath, href);
 
     switch%platform (Runtime.platform) {
     | Client => {
-        let navigateTo = useNavigateTo();
+        let router = useRouter();
         let handleClick = event => {
           event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
-          navigateTo(~replace, ~id, ~params, ~query, ());
+          replace ? router.replace(href) : router.push(href);
         };
         <a id=?elementId className=?className href=hrefValue onClick=handleClick>
           children
@@ -960,9 +1211,7 @@ module Link = {
 module NavLink = {
   [@react.component]
   let make = (
-    ~id,
-    ~params=Params.empty,
-    ~query=Query.empty,
+    ~href,
     ~replace=false,
     ~exact=false,
     ~elementId: option(string)=?,
@@ -970,7 +1219,7 @@ module NavLink = {
     ~activeClassName: option(string)=?,
     ~children,
   ) => {
-    let isActive = useIsActive(~id, ~exact, ());
+    let isActive = useIsActiveHref(~href, ~exact, ());
     let mergedClassName =
       switch (className, activeClassName, isActive) {
       | (Some(baseClassName), Some(activeClassName), true) =>
@@ -981,9 +1230,7 @@ module NavLink = {
       };
 
     <Link
-      id
-      params
-      query
+      href
       replace
       elementId=?elementId
       className=?mergedClassName>
@@ -992,12 +1239,80 @@ module NavLink = {
   };
 };
 
+module RouteLink = {
+  [@react.component]
+  let make = (
+    ~id,
+    ~params=Params.empty,
+    ~searchParams=SearchParams.empty,
+    ~replace=false,
+    ~elementId: option(string)=?,
+    ~className: option(string)=?,
+    ~children,
+  ) => {
+    let hrefValue =
+      useRouteHref(~id, ~params, ~searchParams, ()) |> Option.value(~default="#");
+
+    switch%platform (Runtime.platform) {
+    | Client => {
+        let router = useRouter();
+        let handleClick = event => {
+          event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
+          replace
+            ? router.replaceRoute(~id, ~params, ~searchParams, ())
+            : router.pushRoute(~id, ~params, ~searchParams, ());
+        };
+        <a id=?elementId className=?className href=hrefValue onClick=handleClick>
+          children
+        </a>;
+      }
+    | Server =>
+      <a id=?elementId className=?className href=hrefValue> children </a>
+    };
+  };
+};
+
+module RouteNavLink = {
+  [@react.component]
+  let make = (
+    ~id,
+    ~params=Params.empty,
+    ~searchParams=SearchParams.empty,
+    ~replace=false,
+    ~exact=false,
+    ~elementId: option(string)=?,
+    ~className: option(string)=?,
+    ~activeClassName: option(string)=?,
+    ~children,
+  ) => {
+    let isActive = useIsActiveRoute(~id, ~exact, ());
+    let mergedClassName =
+      switch (className, activeClassName, isActive) {
+      | (Some(baseClassName), Some(activeClassName), true) =>
+        Some(joinClassNames([baseClassName, activeClassName]))
+      | (Some(baseClassName), _, _) => Some(baseClassName)
+      | (None, Some(activeClassName), true) => Some(activeClassName)
+      | _ => None
+      };
+
+    <RouteLink
+      id
+      params
+      searchParams
+      replace
+      elementId=?elementId
+      className=?mergedClassName>
+      children
+    </RouteLink>;
+  };
+};
+
 [@react.component]
 let make = (
    ~router: t('state),
    ~state: option('state)=?,
    ~basePath: option(string)=?,
-   ~serverPath: option(string)=?,
+   ~serverPathname: option(string)=?,
    ~serverSearch="",
 ) => {
   let hydrationState = readHydrationState();
@@ -1009,10 +1324,18 @@ let make = (
     };
 
   let serverUrl =
-    switch (serverPath, hydrationState) {
-    | (Some(path), _) => Some(makeServerUrl(~path, ~search=serverSearch, ()))
+    switch (serverPathname, hydrationState) {
+    | (Some(pathname), _) =>
+      Some(makeServerUrl(~basePath=effectiveBasePath, ~pathname, ~search=serverSearch, ()))
     | (None, Some(state)) =>
-      Some(makeServerUrl(~path=state.path, ~search=state.search, ()))
+      Some(
+        makeServerUrl(
+          ~basePath=state.basePath,
+          ~pathname=state.pathname,
+          ~search=state.search,
+          (),
+        )
+      )
     | (None, None) => None
     };
 
@@ -1025,25 +1348,30 @@ let make = (
       let watcherId =
         ReasonReactRouter.watchUrl(nextUrl => setUrl(_previous => nextUrl));
       Some(() => ReasonReactRouter.unwatchUrl(watcherId))
-    | Server => None
-    }
-  });
+     | Server => None
+     }
+   });
 
-  let currentPath = url.path |> pathOfSegments;
-  let query = Query.parse(url.search);
+  let currentBrowserPath = url.path |> pathOfSegments;
+  let currentPathname =
+    switch (stripBasePath(~basePath=effectiveBasePath, ~path=currentBrowserPath)) {
+    | Some(pathname) => pathname
+    | None => normalizePath(currentBrowserPath)
+    };
+  let search = url.search;
+  let searchParams = SearchParams.parse(search);
   let matchResult =
-    matchMountedPath(
+    matchPath(
       ~router,
-      ~basePath=effectiveBasePath,
-      ~path=currentPath,
-      ~query,
+      ~pathname=currentPathname,
+      ~searchParams,
       (),
     );
 
   let renderedElement =
     switch (matchResult) {
     | Some(result) => renderMatched(~matchResult=result, ~router)
-    | None => renderNotFound(~router, ~path=currentPath)
+    | None => renderNotFound(~router, ~pathname=currentPathname)
     };
 
   let title = resolveTitle(~router, ~matchResult, ~state);
@@ -1066,8 +1394,9 @@ let make = (
     Some({
       router: castToUnitRouter(router),
       basePath: effectiveBasePath,
-      path: currentPath,
-      query,
+      pathname: currentPathname,
+      search,
+      searchParams,
       params:
         switch (matchResult) {
         | Some(result) => result.params

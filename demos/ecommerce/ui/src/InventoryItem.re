@@ -13,6 +13,7 @@ let make =
       };
     let cart_store = CartStore.Context.useStore();
     let item_params = UniversalRouter.Params.ofList([("id", item.id)]);
+    let searchParams = UniversalRouter.useSearchParams();
     let image =
       "https://random.danielpetrica.com/api/random?" ++ item.id;
     let%browser_only add_to_cart_click = e => {
@@ -35,10 +36,11 @@ let make =
         </button>
       };
     <div className="flex flex-1 flex-col grow border-2">
-      <UniversalRouter.Link
+      <UniversalRouter.RouteLink
         id="item"
         replace=true
         params=item_params
+        searchParams
         elementId={"item-" ++ item.id}
         className="relative m-[1.5] flex flex-1 flex-col grow">
         <div className="rounded-sm shadow-sm m-0 p-0">
@@ -53,7 +55,7 @@ let make =
           <p className="text-xs text-left m-2"> item.description->str </p>
           <Pricing period_list={item.period_list} />
         </div>
-      </UniversalRouter.Link>
+      </UniversalRouter.RouteLink>
       add_to_cart_button
     </div>;
   });

@@ -97,10 +97,13 @@ module Contents = {
 
 [@react.component]
 let make = (~showContents=false) => {
+  let searchParams = UniversalRouter.useSearchParams();
+
   <div>
     <h1 className="block font-bold align-middle text-gray-700 m-2 text-3xl">
-      <UniversalRouter.NavLink
+      <UniversalRouter.RouteNavLink
         id="cart"
+        searchParams
         exact=true
         className="inline-flex items-center text-gray-700 transition-colors hover:text-slate-900"
         activeClassName="text-slate-900">
@@ -110,7 +113,7 @@ let make = (~showContents=false) => {
         {str("Selected equipment (")}
         <ClientOnly> {() => <Count />} </ClientOnly>
         {str(")")}
-      </UniversalRouter.NavLink>
+      </UniversalRouter.RouteNavLink>
     </h1>
     {showContents ? <ClientOnly> {() => <Contents />} </ClientOnly> : React.null}
   </div>;

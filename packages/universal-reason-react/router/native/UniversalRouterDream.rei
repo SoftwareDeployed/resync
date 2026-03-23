@@ -1,9 +1,9 @@
 type serverContext('state) = {
   request: Dream.request,
   basePath: string,
-  path: string,
+  pathname: string,
   search: string,
-  query: UniversalRouter.Query.t,
+  searchParams: UniversalRouter.SearchParams.t,
   params: UniversalRouter.Params.t,
   matchResult: UniversalRouter.matchResult('state),
 };
