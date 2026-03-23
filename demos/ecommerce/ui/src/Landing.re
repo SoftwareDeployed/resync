@@ -23,7 +23,8 @@ let addDays = (date, days) =>
     (),
   );
 
-let pad2 = value => value < 10 ? "0" ++ Int.to_string(value) : Int.to_string(value);
+let pad2 = value =>
+  value < 10 ? "0" ++ Int.to_string(value) : Int.to_string(value);
 
 let isoDate = date => {
   let year = Js.Date.getFullYear(date) |> int_of_float;
@@ -36,7 +37,11 @@ let isoDate = date => {
 let dateFromIso = value =>
   switch (value |> String.split_on_char('-')) {
   | [year, month, day] =>
-    switch (int_of_string_opt(year), int_of_string_opt(month), int_of_string_opt(day)) {
+    switch (
+      int_of_string_opt(year),
+      int_of_string_opt(month),
+      int_of_string_opt(day),
+    ) {
     | (Some(year), Some(month), Some(day)) =>
       Some(
         Js.Date.make(
@@ -80,15 +85,28 @@ let dateRangeFromSearchParams = (~today, ~tomorrow, searchParams) => {
     };
 
   Float.compare(Js.Date.getTime(endDate), Js.Date.getTime(startDate)) < 0
-    ? (startDate, startDate)
-    : (startDate, endDate);
+    ? (startDate, startDate) : (startDate, endDate);
 };
 
 let hrefWithDates = (~pathname, ~startDate, ~endDate) => {
   let searchParams =
     UniversalRouter.SearchParams.empty
-    |> (searchParams => UniversalRouter.SearchParams.set(searchParams, "start", isoDate(startDate)))
-    |> (searchParams => UniversalRouter.SearchParams.set(searchParams, "end", isoDate(endDate)));
+    |> (
+      searchParams =>
+        UniversalRouter.SearchParams.set(
+          searchParams,
+          "start",
+          isoDate(startDate),
+        )
+    )
+    |> (
+      searchParams =>
+        UniversalRouter.SearchParams.set(
+          searchParams,
+          "end",
+          isoDate(endDate),
+        )
+    );
 
   pathname ++ UniversalRouter.SearchParams.toSearch(searchParams);
 };
@@ -103,11 +121,23 @@ let make =
     let searchParams = UniversalRouter.useSearchParams();
     let today = Js.Date.make() |> startOfDay;
     let tomorrow = addDays(today, 1.0);
-    let (openDate, closeDate) = dateRangeFromSearchParams(~today, ~tomorrow, searchParams);
+    let (openDate, closeDate) =
+      dateRangeFromSearchParams(~today, ~tomorrow, searchParams);
+
     let reservationSearchParams =
       UniversalRouter.SearchParams.empty
-      |> (params => UniversalRouter.SearchParams.set(params, "start", isoDate(openDate)))
-      |> (params => UniversalRouter.SearchParams.set(params, "end", isoDate(closeDate)));
+      |> (
+        params =>
+          UniversalRouter.SearchParams.set(
+            params,
+            "start",
+            isoDate(openDate),
+          )
+      )
+      |> (
+        params =>
+          UniversalRouter.SearchParams.set(params, "end", isoDate(closeDate))
+      );
 
     <Container>
       <Card className="bg-slate-200/40 border-slate-200/40 border">
@@ -153,31 +183,35 @@ let make =
                        `Range(
                          (dates: ReactDayPicker.rangeDate) => {
                            switch (dates->Js.Undefined.toOption) {
-                            | Some(dates) =>
-                              let nextOpenDate =
-                                switch (dates.from->Js.Undefined.toOption) {
-                                | Some(date) => date
-                                | None => today
-                                };
-                              let nextCloseDate =
-                                switch (dates.to_->Js.Undefined.toOption) {
-                                | Some(date) => date
-                                | None => nextOpenDate
-                                };
-                              router.push(
-                                hrefWithDates(
-                                  ~pathname,
-                                  ~startDate=nextOpenDate,
-                                  ~endDate=nextCloseDate,
-                                ),
-                              );
-                            | None =>
-                              router.push(
-                                hrefWithDates(~pathname, ~startDate=today, ~endDate=today),
-                              );
-                            }
-                          },
-                        )
+                           | Some(dates) =>
+                             let nextOpenDate =
+                               switch (dates.from->Js.Undefined.toOption) {
+                               | Some(date) => date
+                               | None => today
+                               };
+                             let nextCloseDate =
+                               switch (dates.to_->Js.Undefined.toOption) {
+                               | Some(date) => date
+                               | None => nextOpenDate
+                               };
+                             router.push(
+                               hrefWithDates(
+                                 ~pathname,
+                                 ~startDate=nextOpenDate,
+                                 ~endDate=nextCloseDate,
+                               ),
+                             );
+                           | None =>
+                             router.push(
+                               hrefWithDates(
+                                 ~pathname,
+                                 ~startDate=today,
+                                 ~endDate=today,
+                               ),
+                             )
+                           }
+                         },
+                       )
                      }
           />
         </div>
