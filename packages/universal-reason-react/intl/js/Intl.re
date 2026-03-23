@@ -47,7 +47,7 @@ module NumberFormatter = {
     | Style.Percent => "percent"
     };
 
-  let make = opts => {
+  let makeWithOptions = (opts: options) => {
     let locale =
       switch (opts.locale) {
       | Some(l) => l
@@ -83,6 +83,24 @@ module NumberFormatter = {
     makeIntl(locale, Obj.magic(jsOpts));
   };
 
+  let make = (
+    ~locale=?,
+    ~style=?,
+    ~currency=?,
+    ~minimumFractionDigits=?,
+    ~maximumFractionDigits=?,
+    ~useGrouping=?,
+    (),
+  ) =>
+    makeWithOptions({
+      locale,
+      style,
+      currency,
+      minimumFractionDigits,
+      maximumFractionDigits,
+      useGrouping,
+    });
+
   let formatToParts = (formatter, value) => {
     let parts = formatToParts(formatter, value);
     Array.to_list(parts)
@@ -92,13 +110,47 @@ module NumberFormatter = {
        });
   };
 
-  let formatWithOptions = (opts, value) => {
-    let formatter = make(opts);
+  let formatWithOptions = (
+    ~locale=?,
+    ~style=?,
+    ~currency=?,
+    ~minimumFractionDigits=?,
+    ~maximumFractionDigits=?,
+    ~useGrouping=?,
+    value,
+  ) => {
+    let formatter =
+      make(
+        ~locale?,
+        ~style?,
+        ~currency?,
+        ~minimumFractionDigits?,
+        ~maximumFractionDigits?,
+        ~useGrouping?,
+        (),
+      );
     format(formatter, value);
   };
 
-  let formatToPartsWithOptions = (opts, value) => {
-    let formatter = make(opts);
+  let formatToPartsWithOptions = (
+    ~locale=?,
+    ~style=?,
+    ~currency=?,
+    ~minimumFractionDigits=?,
+    ~maximumFractionDigits=?,
+    ~useGrouping=?,
+    value,
+  ) => {
+    let formatter =
+      make(
+        ~locale?,
+        ~style?,
+        ~currency?,
+        ~minimumFractionDigits?,
+        ~maximumFractionDigits?,
+        ~useGrouping?,
+        (),
+      );
     formatToParts(formatter, value);
   };
 };
@@ -242,7 +294,7 @@ module DateTimeFormatter = {
     | TimeZoneName.LongGeneric => "longGeneric"
     };
 
-  let make = opts => {
+  let makeWithOptions = (opts: options) => {
     let locale =
       switch (opts.locale) {
       | Some(l) => l
@@ -328,6 +380,44 @@ module DateTimeFormatter = {
     makeIntl(locale, Obj.magic(jsOpts));
   };
 
+  let make = (
+    ~locale=?,
+    ~timeZone=?,
+    ~dateStyle=?,
+    ~timeStyle=?,
+    ~weekday=?,
+    ~era=?,
+    ~year=?,
+    ~month=?,
+    ~day=?,
+    ~hour=?,
+    ~minute=?,
+    ~second=?,
+    ~fractionalSecondDigits=?,
+    ~timeZoneName=?,
+    ~hour12=?,
+    ~hourCycle=?,
+    (),
+  ) =>
+    makeWithOptions({
+      locale,
+      timeZone,
+      dateStyle,
+      timeStyle,
+      weekday,
+      era,
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      fractionalSecondDigits,
+      timeZoneName,
+      hour12,
+      hourCycle,
+    });
+
   let formatToParts = (formatter, value) => {
     let parts = formatToParts(formatter, value);
     Array.to_list(parts)
@@ -337,13 +427,87 @@ module DateTimeFormatter = {
        });
   };
 
-  let formatWithOptions = (opts, value) => {
-    let formatter = make(opts);
+  let formatWithOptions = (
+    ~locale=?,
+    ~timeZone=?,
+    ~dateStyle=?,
+    ~timeStyle=?,
+    ~weekday=?,
+    ~era=?,
+    ~year=?,
+    ~month=?,
+    ~day=?,
+    ~hour=?,
+    ~minute=?,
+    ~second=?,
+    ~fractionalSecondDigits=?,
+    ~timeZoneName=?,
+    ~hour12=?,
+    ~hourCycle=?,
+    value,
+  ) => {
+    let formatter =
+      make(
+        ~locale?,
+        ~timeZone?,
+        ~dateStyle?,
+        ~timeStyle?,
+        ~weekday?,
+        ~era?,
+        ~year?,
+        ~month?,
+        ~day?,
+        ~hour?,
+        ~minute?,
+        ~second?,
+        ~fractionalSecondDigits?,
+        ~timeZoneName?,
+        ~hour12?,
+        ~hourCycle?,
+        (),
+      );
     format(formatter, value);
   };
 
-  let formatToPartsWithOptions = (opts, value) => {
-    let formatter = make(opts);
+  let formatToPartsWithOptions = (
+    ~locale=?,
+    ~timeZone=?,
+    ~dateStyle=?,
+    ~timeStyle=?,
+    ~weekday=?,
+    ~era=?,
+    ~year=?,
+    ~month=?,
+    ~day=?,
+    ~hour=?,
+    ~minute=?,
+    ~second=?,
+    ~fractionalSecondDigits=?,
+    ~timeZoneName=?,
+    ~hour12=?,
+    ~hourCycle=?,
+    value,
+  ) => {
+    let formatter =
+      make(
+        ~locale?,
+        ~timeZone?,
+        ~dateStyle?,
+        ~timeStyle?,
+        ~weekday?,
+        ~era?,
+        ~year?,
+        ~month?,
+        ~day?,
+        ~hour?,
+        ~minute?,
+        ~second?,
+        ~fractionalSecondDigits?,
+        ~timeZoneName?,
+        ~hour12?,
+        ~hourCycle?,
+        (),
+      );
     formatToParts(formatter, value);
   };
 };

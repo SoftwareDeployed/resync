@@ -26,18 +26,31 @@ module NumberFormatter = struct
     | Style.Currency -> Ocaml_icu4c.Icu4c_number.Style.Currency
     | Style.Percent -> Ocaml_icu4c.Icu4c_number.Style.Percent
 
-  let make opts =
+  let make_icu_options opts =
     let locale = match opts.locale with Some l -> l | None -> "en-US" in
     let style = match opts.style with Some s -> Some (style_to_icu s) | None -> None in
-    let icu_opts = Ocaml_icu4c.Icu4c_number.make_options
+    Ocaml_icu4c.Icu4c_number.make_options
       ~locale
       ?style
       ?currency:opts.currency
       ?minimum_fraction_digits:opts.minimumFractionDigits
       ?maximum_fraction_digits:opts.maximumFractionDigits
       ?use_grouping:opts.useGrouping
-      () in
-    Ocaml_icu4c.Icu4c_number.make icu_opts
+      ()
+
+  let make_with_options opts =
+    Ocaml_icu4c.Icu4c_number.make (make_icu_options opts)
+
+  let make ?locale ?style ?currency ?minimumFractionDigits ?maximumFractionDigits ?useGrouping () =
+    make_with_options
+      {
+        locale;
+        style;
+        currency;
+        minimumFractionDigits;
+        maximumFractionDigits;
+        useGrouping;
+      }
 
   let format formatter value =
     Ocaml_icu4c.Icu4c_number.format formatter value
@@ -46,20 +59,21 @@ module NumberFormatter = struct
     (* TODO: Implement formatToParts using ICU formatted-value APIs *)
     []
 
-  let formatWithOptions opts value =
-    let locale = match opts.locale with Some l -> l | None -> "en-US" in
-    let style = match opts.style with Some s -> Some (style_to_icu s) | None -> None in
-    let icu_opts = Ocaml_icu4c.Icu4c_number.make_options
-      ~locale
-      ?style
-      ?currency:opts.currency
-      ?minimum_fraction_digits:opts.minimumFractionDigits
-      ?maximum_fraction_digits:opts.maximumFractionDigits
-      ?use_grouping:opts.useGrouping
-      () in
+  let formatWithOptions ?locale ?style ?currency ?minimumFractionDigits ?maximumFractionDigits ?useGrouping value =
+    let icu_opts =
+      make_icu_options
+        {
+          locale;
+          style;
+          currency;
+          minimumFractionDigits;
+          maximumFractionDigits;
+          useGrouping;
+        }
+    in
     Ocaml_icu4c.Icu4c_number.format_with_options icu_opts value
 
-  let formatToPartsWithOptions _opts _value =
+  let formatToPartsWithOptions ?locale:_ ?style:_ ?currency:_ ?minimumFractionDigits:_ ?maximumFractionDigits:_ ?useGrouping:_ _value =
     (* TODO: Implement formatToParts using ICU formatted-value APIs *)
     []
 end
@@ -157,9 +171,9 @@ module DateTimeFormatter = struct
     | TimeZoneName.ShortGeneric -> Ocaml_icu4c.Icu4c_datetime.Time_zone_name.Short_generic
     | TimeZoneName.LongGeneric -> Ocaml_icu4c.Icu4c_datetime.Time_zone_name.Long_generic
 
-  let make opts =
+  let make_icu_options opts =
     let locale = match opts.locale with Some l -> l | None -> "en-US" in
-    let icu_opts = Ocaml_icu4c.Icu4c_datetime.make_options
+    Ocaml_icu4c.Icu4c_datetime.make_options
       ~locale
       ?time_zone:opts.timeZone
       ?date_style:(Option.map style_to_icu opts.dateStyle)
@@ -176,8 +190,31 @@ module DateTimeFormatter = struct
       ?time_zone_name:(Option.map time_zone_name_to_icu opts.timeZoneName)
       ?hour12:opts.hour12
       ?hour_cycle:(Option.map hour_cycle_to_icu opts.hourCycle)
-      () in
-    Ocaml_icu4c.Icu4c_datetime.make icu_opts
+      ()
+
+  let make_with_options opts =
+    Ocaml_icu4c.Icu4c_datetime.make (make_icu_options opts)
+
+  let make ?locale ?timeZone ?dateStyle ?timeStyle ?weekday ?era ?year ?month ?day ?hour ?minute ?second ?fractionalSecondDigits ?timeZoneName ?hour12 ?hourCycle () =
+    make_with_options
+      {
+        locale;
+        timeZone;
+        dateStyle;
+        timeStyle;
+        weekday;
+        era;
+        year;
+        month;
+        day;
+        hour;
+        minute;
+        second;
+        fractionalSecondDigits;
+        timeZoneName;
+        hour12;
+        hourCycle;
+      }
 
   let format formatter value =
     Ocaml_icu4c.Icu4c_datetime.format formatter value
@@ -186,29 +223,31 @@ module DateTimeFormatter = struct
     (* TODO: Implement formatToParts *)
     []
 
-  let formatWithOptions opts value =
-    let locale = match opts.locale with Some l -> l | None -> "en-US" in
-    let icu_opts = Ocaml_icu4c.Icu4c_datetime.make_options
-      ~locale
-      ?time_zone:opts.timeZone
-      ?date_style:(Option.map style_to_icu opts.dateStyle)
-      ?time_style:(Option.map style_to_icu opts.timeStyle)
-      ?weekday:(Option.map text_to_icu opts.weekday)
-      ?era:(Option.map text_to_icu opts.era)
-      ?year:(Option.map numeric_to_icu opts.year)
-      ?month:(Option.map month_to_icu opts.month)
-      ?day:(Option.map numeric_to_icu opts.day)
-      ?hour:(Option.map numeric_to_icu opts.hour)
-      ?minute:(Option.map numeric_to_icu opts.minute)
-      ?second:(Option.map numeric_to_icu opts.second)
-      ?fractional_second_digits:opts.fractionalSecondDigits
-      ?time_zone_name:(Option.map time_zone_name_to_icu opts.timeZoneName)
-      ?hour12:opts.hour12
-      ?hour_cycle:(Option.map hour_cycle_to_icu opts.hourCycle)
-      () in
+  let formatWithOptions ?locale ?timeZone ?dateStyle ?timeStyle ?weekday ?era ?year ?month ?day ?hour ?minute ?second ?fractionalSecondDigits ?timeZoneName ?hour12 ?hourCycle value =
+    let icu_opts =
+      make_icu_options
+        {
+          locale;
+          timeZone;
+          dateStyle;
+          timeStyle;
+          weekday;
+          era;
+          year;
+          month;
+          day;
+          hour;
+          minute;
+          second;
+          fractionalSecondDigits;
+          timeZoneName;
+          hour12;
+          hourCycle;
+        }
+    in
     Ocaml_icu4c.Icu4c_datetime.format_with_options icu_opts value
 
-  let formatToPartsWithOptions _opts _value =
+  let formatToPartsWithOptions ?locale:_ ?timeZone:_ ?dateStyle:_ ?timeStyle:_ ?weekday:_ ?era:_ ?year:_ ?month:_ ?day:_ ?hour:_ ?minute:_ ?second:_ ?fractionalSecondDigits:_ ?timeZoneName:_ ?hour12:_ ?hourCycle:_ _value =
     (* TODO: Implement formatToParts *)
     []
 end

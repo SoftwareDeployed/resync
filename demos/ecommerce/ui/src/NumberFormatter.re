@@ -14,14 +14,12 @@ let formatCurrency =
     };
 
   let formatter =
-    Intl.NumberFormatter.make({
-      locale: Some(locale_),
-      style: Some(Intl.NumberFormatter.Style.Currency),
-      currency: Some(currency_),
-      minimumFractionDigits: None,
-      maximumFractionDigits: None,
-      useGrouping: None,
-    });
+    Intl.NumberFormatter.make(
+      ~locale=locale_,
+      ~style=Intl.NumberFormatter.Style.Currency,
+      ~currency=currency_,
+      (),
+    );
 
   formatter->Intl.NumberFormatter.format(amount);
 };

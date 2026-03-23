@@ -18,24 +18,12 @@ let formatDate = (~locale: option(string)=?, date: Js.Date.t) => {
   let value = normalizedDateValue(date);
 
   let formatter =
-    Intl.DateTimeFormatter.make({
-      locale: Some(locale_),
-      timeZone: Some("UTC"),
-      dateStyle: Some(Intl.DateTimeFormatter.Style.Short),
-      timeStyle: None,
-      weekday: None,
-      era: None,
-      year: None,
-      month: None,
-      day: None,
-      hour: None,
-      minute: None,
-      second: None,
-      fractionalSecondDigits: None,
-      timeZoneName: None,
-      hour12: None,
-      hourCycle: None,
-    });
+    Intl.DateTimeFormatter.make(
+      ~locale=locale_,
+      ~timeZone="UTC",
+      ~dateStyle=Intl.DateTimeFormatter.Style.Short,
+      (),
+    );
 
   formatter->Intl.DateTimeFormatter.format(value);
 };

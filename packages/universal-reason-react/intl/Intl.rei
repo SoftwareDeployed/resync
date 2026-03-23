@@ -11,23 +11,38 @@ module NumberFormatter: {
     value: string,
   };
 
-  type options = {
-    locale: option(string),
-    style: option(Style.t),
-    currency: option(string),
-    minimumFractionDigits: option(int),
-    maximumFractionDigits: option(int),
-    useGrouping: option(bool),
-  };
-
   type t;
 
-  let make: options => t;
+  let make: (
+    ~locale: string=?,
+    ~style: Style.t=?,
+    ~currency: string=?,
+    ~minimumFractionDigits: int=?,
+    ~maximumFractionDigits: int=?,
+    ~useGrouping: bool=?,
+    unit,
+  ) => t;
   let format: (t, float) => string;
   let formatToParts: (t, float) => list(part);
 
-  let formatWithOptions: (options, float) => string;
-  let formatToPartsWithOptions: (options, float) => list(part);
+  let formatWithOptions: (
+    ~locale: string=?,
+    ~style: Style.t=?,
+    ~currency: string=?,
+    ~minimumFractionDigits: int=?,
+    ~maximumFractionDigits: int=?,
+    ~useGrouping: bool=?,
+    float,
+  ) => string;
+  let formatToPartsWithOptions: (
+    ~locale: string=?,
+    ~style: Style.t=?,
+    ~currency: string=?,
+    ~minimumFractionDigits: int=?,
+    ~maximumFractionDigits: int=?,
+    ~useGrouping: bool=?,
+    float,
+  ) => list(part);
 };
 
 module DateTimeFormatter: {
@@ -84,31 +99,66 @@ module DateTimeFormatter: {
     value: string,
   };
 
-  type options = {
-    locale: option(string),
-    timeZone: option(string),
-    dateStyle: option(Style.t),
-    timeStyle: option(Style.t),
-    weekday: option(Text.t),
-    era: option(Text.t),
-    year: option(Numeric.t),
-    month: option(Month.t),
-    day: option(Numeric.t),
-    hour: option(Numeric.t),
-    minute: option(Numeric.t),
-    second: option(Numeric.t),
-    fractionalSecondDigits: option(int),
-    timeZoneName: option(TimeZoneName.t),
-    hour12: option(bool),
-    hourCycle: option(HourCycle.t),
-  };
-
   type t;
 
-  let make: options => t;
+  let make: (
+    ~locale: string=?,
+    ~timeZone: string=?,
+    ~dateStyle: Style.t=?,
+    ~timeStyle: Style.t=?,
+    ~weekday: Text.t=?,
+    ~era: Text.t=?,
+    ~year: Numeric.t=?,
+    ~month: Month.t=?,
+    ~day: Numeric.t=?,
+    ~hour: Numeric.t=?,
+    ~minute: Numeric.t=?,
+    ~second: Numeric.t=?,
+    ~fractionalSecondDigits: int=?,
+    ~timeZoneName: TimeZoneName.t=?,
+    ~hour12: bool=?,
+    ~hourCycle: HourCycle.t=?,
+    unit,
+  ) => t;
   let format: (t, float) => string;
   let formatToParts: (t, float) => list(part);
 
-  let formatWithOptions: (options, float) => string;
-  let formatToPartsWithOptions: (options, float) => list(part);
+  let formatWithOptions: (
+    ~locale: string=?,
+    ~timeZone: string=?,
+    ~dateStyle: Style.t=?,
+    ~timeStyle: Style.t=?,
+    ~weekday: Text.t=?,
+    ~era: Text.t=?,
+    ~year: Numeric.t=?,
+    ~month: Month.t=?,
+    ~day: Numeric.t=?,
+    ~hour: Numeric.t=?,
+    ~minute: Numeric.t=?,
+    ~second: Numeric.t=?,
+    ~fractionalSecondDigits: int=?,
+    ~timeZoneName: TimeZoneName.t=?,
+    ~hour12: bool=?,
+    ~hourCycle: HourCycle.t=?,
+    float,
+  ) => string;
+  let formatToPartsWithOptions: (
+    ~locale: string=?,
+    ~timeZone: string=?,
+    ~dateStyle: Style.t=?,
+    ~timeStyle: Style.t=?,
+    ~weekday: Text.t=?,
+    ~era: Text.t=?,
+    ~year: Numeric.t=?,
+    ~month: Month.t=?,
+    ~day: Numeric.t=?,
+    ~hour: Numeric.t=?,
+    ~minute: Numeric.t=?,
+    ~second: Numeric.t=?,
+    ~fractionalSecondDigits: int=?,
+    ~timeZoneName: TimeZoneName.t=?,
+    ~hour12: bool=?,
+    ~hourCycle: HourCycle.t=?,
+    float,
+  ) => list(part);
 };

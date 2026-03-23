@@ -28,14 +28,13 @@ The package is available as two targets:
 ### Number Formatting
 
 ```reason
-let formatter = Intl.NumberFormatter.make({
-  locale: Some("en-US"),
-  style: Some(Intl.NumberFormatter.Style.Currency),
-  currency: Some("USD"),
-  minimumFractionDigits: None,
-  maximumFractionDigits: None,
-  useGrouping: None,
-});
+let formatter =
+  Intl.NumberFormatter.make(
+    ~locale="en-US",
+    ~style=Intl.NumberFormatter.Style.Currency,
+    ~currency="USD",
+    (),
+  );
 
 let price = formatter->Intl.NumberFormatter.format(1234.56);
 // "$1,234.56"
@@ -44,24 +43,13 @@ let price = formatter->Intl.NumberFormatter.format(1234.56);
 ### Date/Time Formatting
 
 ```reason
-let formatter = Intl.DateTimeFormatter.make({
-  locale: Some("en-US"),
-  timeZone: Some("UTC"),
-  dateStyle: Some(Intl.DateTimeFormatter.Style.Short),
-  timeStyle: None,
-  weekday: None,
-  era: None,
-  year: None,
-  month: None,
-  day: None,
-  hour: None,
-  minute: None,
-  second: None,
-  fractionalSecondDigits: None,
-  timeZoneName: None,
-  hour12: None,
-  hourCycle: None,
-});
+let formatter =
+  Intl.DateTimeFormatter.make(
+    ~locale="en-US",
+    ~timeZone="UTC",
+    ~dateStyle=Intl.DateTimeFormatter.Style.Short,
+    (),
+  );
 
 let date = formatter->Intl.DateTimeFormatter.format(1608434596738.0);
 // "12/20/2020"
@@ -85,24 +73,15 @@ type part = {
   type_: string,
   value: string,
 };
-
-type options = {
-  locale: option(string),
-  style: option(Style.t),
-  currency: option(string),
-  minimumFractionDigits: option(int),
-  maximumFractionDigits: option(int),
-  useGrouping: option(bool),
-};
 ```
 
 #### Functions
 
-- `make: options => t` - Create a formatter with the specified options
+- `make: (~locale=?, ~style=?, ~currency=?, ~minimumFractionDigits=?, ~maximumFractionDigits=?, ~useGrouping=?, unit) => t` - Create a formatter with optional labeled arguments
 - `format: (t, float) => string` - Format a number
 - `formatToParts: (t, float) => list(part)` - Format a number into parts
-- `formatWithOptions: (options, float) => string` - One-shot format
-- `formatToPartsWithOptions: (options, float) => list(part)` - One-shot format to parts
+- `formatWithOptions: (~locale=?, ~style=?, ~currency=?, ~minimumFractionDigits=?, ~maximumFractionDigits=?, ~useGrouping=?, float) => string` - One-shot format
+- `formatToPartsWithOptions: (~locale=?, ~style=?, ~currency=?, ~minimumFractionDigits=?, ~maximumFractionDigits=?, ~useGrouping=?, float) => list(part)` - One-shot format to parts
 
 ### Intl.DateTimeFormatter
 
@@ -143,34 +122,15 @@ type part = {
   type_: string,
   value: string,
 };
-
-type options = {
-  locale: option(string),
-  timeZone: option(string),
-  dateStyle: option(Style.t),
-  timeStyle: option(Style.t),
-  weekday: option(Text.t),
-  era: option(Text.t),
-  year: option(Numeric.t),
-  month: option(Month.t),
-  day: option(Numeric.t),
-  hour: option(Numeric.t),
-  minute: option(Numeric.t),
-  second: option(Numeric.t),
-  fractionalSecondDigits: option(int),
-  timeZoneName: option(TimeZoneName.t),
-  hour12: option(bool),
-  hourCycle: option(HourCycle.t),
-};
 ```
 
 #### Functions
 
-- `make: options => t` - Create a formatter with the specified options
+- `make: (~locale=?, ~timeZone=?, ~dateStyle=?, ~timeStyle=?, ~weekday=?, ~era=?, ~year=?, ~month=?, ~day=?, ~hour=?, ~minute=?, ~second=?, ~fractionalSecondDigits=?, ~timeZoneName=?, ~hour12=?, ~hourCycle=?, unit) => t` - Create a formatter with optional labeled arguments
 - `format: (t, float) => string` - Format a timestamp (milliseconds)
 - `formatToParts: (t, float) => list(part)` - Format into parts
-- `formatWithOptions: (options, float) => string` - One-shot format
-- `formatToPartsWithOptions: (options, float) => list(part)` - One-shot format to parts
+- `formatWithOptions: (~locale=?, ~timeZone=?, ~dateStyle=?, ~timeStyle=?, ~weekday=?, ~era=?, ~year=?, ~month=?, ~day=?, ~hour=?, ~minute=?, ~second=?, ~fractionalSecondDigits=?, ~timeZoneName=?, ~hour12=?, ~hourCycle=?, float) => string` - One-shot format
+- `formatToPartsWithOptions: (~locale=?, ~timeZone=?, ~dateStyle=?, ~timeStyle=?, ~weekday=?, ~era=?, ~year=?, ~month=?, ~day=?, ~hour=?, ~minute=?, ~second=?, ~fractionalSecondDigits=?, ~timeZoneName=?, ~hour12=?, ~hourCycle=?, float) => list(part)` - One-shot format to parts
 
 ## Platform Notes
 
@@ -196,4 +156,4 @@ Key changes:
 1. **Unified API** - Same code works on both platforms
 2. **CamelCase** - Field names use camelCase (e.g., `minimumFractionDigits`)
 3. **No platform switching** - Remove `switch%platform` blocks
-4. **Options as records** - Pass options as records instead of labeled arguments
+4. **Optional labeled args** - Pass formatter options directly as named arguments
