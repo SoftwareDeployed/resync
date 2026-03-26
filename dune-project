@@ -9,6 +9,8 @@
 
 (authors "Brian Kaplan <brian@equalslashed.net>")
 
+(maintainers "Brian Kaplan <brian@equalslashed.net>")
+
 (license MIT)
 
 (using melange 0.1)
@@ -53,6 +55,7 @@
   reason
   melange-webapi
   ppxlib
+  ctypes-foreign
   reason-react-ppx
   reason-react
   reason-react-day-picker

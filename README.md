@@ -119,6 +119,34 @@ Install JavaScript dependencies from the repo root:
 pnpm install
 ```
 
+### Linux Docker workflow
+
+To verify the demos build in a Linux container:
+
+```bash
+docker compose run --rm linux-check
+```
+
+To run the demos in Linux containers:
+
+```bash
+docker compose up ecommerce-demo
+docker compose up todo-demo
+```
+
+The root `docker-compose.yml` provisions a Debian-based image with opam, pnpm,
+and the native build dependencies, then builds the monorepo using container
+volumes for the opam root, `_build`, and `node_modules`.
+
+The `postgres` service also initializes the ecommerce schema from
+`demos/ecommerce/server/sql`. Because Postgres only runs init scripts for a new
+data directory, rerun with a fresh volume when you need to re-seed:
+
+```bash
+docker compose down -v
+docker compose up ecommerce-demo
+```
+
 ### Ecommerce demo
 
 Start PostgreSQL:
