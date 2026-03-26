@@ -10,6 +10,11 @@ let db_uri =
   | Some uri -> uri
   | None -> failwith "DB_URL is required"
 
+let server_interface =
+  match Sys.getenv_opt "SERVER_INTERFACE" with
+  | Some interface -> interface
+  | None -> "127.0.0.1"
+
 (* Fetch config for a premise from database *)
 let get_config request premise_id =
   let* premise = Dream.sql request (Database.Premise.get_premise premise_id) in
@@ -44,16 +49,16 @@ let () =
   | () -> ()
   | exception Failure msg ->
       Printf.eprintf "Failed to connect notification listener: %s\n" msg);
-  Dream.run ~port:8899 @@ Dream.logger
+  Dream.run ~interface:server_interface ~port:8899 @@ Dream.logger
   @@ Dream.sql_pool ~size:50 db_uri
   @@ Dream.router
        [
-         Middleware.route "_events" realtime_middleware;
-         Dream.get "/static/**" (Dream.static doc_root);
-         Dream.get "/app.js" (fun req ->
-             Dream.from_filesystem doc_root "Index.re.js" req);
-         Dream.get "/style.css" (fun req ->
-             Dream.from_filesystem doc_root "Index.re.css" req);
+          Middleware.route "_events" realtime_middleware;
+          Dream.get "/static/**" (Dream.static doc_root);
+          Dream.get "/app.js" (fun req ->
+              Dream.from_filesystem doc_root "Index.re.js" req);
+          Dream.get "/style.css" (fun req ->
+              Dream.from_filesystem doc_root "Index.re.css" req);
          Dream.get "/" (UniversalRouterDream.handler ~app:EntryServer.app);
          Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
        ]

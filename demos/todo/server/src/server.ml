@@ -5,8 +5,13 @@ let doc_root =
   | Some doc_root -> doc_root
   | None -> failwith "TODO_DOC_ROOT is required"
 
+let server_interface =
+  match Sys.getenv_opt "SERVER_INTERFACE" with
+  | Some interface -> interface
+  | None -> "127.0.0.1"
+
 let () =
-  Dream.run ~port:8080 @@ Dream.logger
+  Dream.run ~interface:server_interface ~port:8080 @@ Dream.logger
   @@ Dream.router
        [
          Dream.get "/app.js" (fun req ->
