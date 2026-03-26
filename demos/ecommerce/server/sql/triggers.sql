@@ -58,7 +58,7 @@ BEGIN
         PERFORM pg_notify(channel_name, payload::text);
         -- Update premise timestamp (this will trigger premise notification too, but we ignore it)
         UPDATE premise SET updated_at = NOW() where id = channel_name::UUID;
-        IF TG_OP != 'DELETE' AND OLD.premise_id::text != NEW.premise_id::text THEN
+        IF TG_OP = 'UPDATE' AND OLD.premise_id::text != NEW.premise_id::text THEN
             UPDATE premise SET updated_at = NOW() where id = OLD.premise_id;
             PERFORM pg_notify(OLD.premise_id::text, payload::text);
         END IF;

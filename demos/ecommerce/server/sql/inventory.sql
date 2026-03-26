@@ -1,4 +1,6 @@
+DROP TABLE IF EXISTS inventory_period_map;
 DROP TABLE IF EXISTS inventory;
+
 CREATE TABLE inventory (
   id uuid not null default uuidv7() primary key,
   premise_id uuid not null,
@@ -8,9 +10,15 @@ CREATE TABLE inventory (
   FOREIGN KEY (premise_id) REFERENCES premise(id)
 );
 
-INSERT INTO inventory (premise_id, name, description, quantity) VALUES ((SELECT id FROM premise LIMIT 1), 'Test Inventory Item 1', 'This is a test inventory item', 1);
+INSERT INTO inventory (id, premise_id, name, description, quantity)
+VALUES (
+  'b55351b1-1b78-4b6c-bd13-6859dc9ad411',
+  'a55351b1-1b78-4b6c-bd13-6859dc9ad410',
+  'Pop Item',
+  'An incredibly stinky product',
+  1
+);
 
-DROP TABLE IF EXISTS inventory_period_map;
 CREATE TABLE inventory_period_map (
   inventory_id uuid not null,
   period_id uuid not null,
@@ -20,5 +28,5 @@ CREATE TABLE inventory_period_map (
 );
 
 INSERT INTO inventory_period_map (inventory_id, period_id)
-SELECT 1, id
+SELECT 'b55351b1-1b78-4b6c-bd13-6859dc9ad411', id
 FROM period;

@@ -1,4 +1,5 @@
-DROP TABLE IF EXISTS period;
+DROP TABLE IF EXISTS period CASCADE;
+DROP TYPE IF EXISTS unit_enum CASCADE;
 -- The different units that can be used.
 CREATE TYPE unit_enum AS ENUM ('second', 'minute', 'hour', 'day', 'week', 'month', 'year');
 
