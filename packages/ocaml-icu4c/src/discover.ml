@@ -10,13 +10,99 @@ let add_unique_flag existing flag =
 
 let has_lib path =
   let lib = Filename.concat path "lib" in
+  (* Check for version-agnostic library names (symlinks maintained by Homebrew) *)
   let checks =
-    [ "libicuuc.a"; "libicuuc.so"; "libicuuc.dylib"; "libicuuc.78.2.dylib"
-    ; "libicui18n.a"; "libicui18n.so"; "libicui18n.dylib"; "libicui18n.78.2.dylib" ] in
+    [ "libicuuc.a"; "libicuuc.so"; "libicuuc.dylib"
+    ; "libicui18n.a"; "libicui18n.so"; "libicui18n.dylib" ] in
   List.exists (fun name -> Sys.file_exists (Filename.concat lib name)) checks
 
 let has_headers path =
   Sys.file_exists (Filename.concat path "include/unicode/utypes.h")
+
+(* Dynamically discover ICU installations from Homebrew Cellar directories *)
+let discover_icu_cellar_paths cellar_root =
+  let icu_paths = ref [] in
+  (try
+     let cellars = Sys.readdir cellar_root in
+     Array.iter (fun dir ->
+       if has_prefix dir "icu4c@" then
+         let icu_base = Filename.concat cellar_root dir in
+         (try
+            let versions = Sys.readdir icu_base in
+            Array.iter (fun version ->
+              let full_path = Filename.concat icu_base version in
+              if Sys.is_directory full_path then
+                icu_paths := full_path :: !icu_paths
+            ) versions
+          with Sys_error _ -> ())
+     ) cellars
+   with Sys_error _ -> ());
+  List.sort_uniq String.compare !icu_paths
+
+(* Build a list of ICU candidate prefixes dynamically *)
+let get_icu_candidate_prefixes () =
+  let base_candidates =
+    [ "/usr"
+    ; "/usr/local"
+    ; "/opt/homebrew/opt/icu4c"  (* Homebrew symlink to latest *)
+    ; "/usr/local/opt/icu4c"     (* Intel Mac Homebrew symlink *)
+    ] in
+  let cellar_paths =
+    List.concat
+      [ discover_icu_cellar_paths "/opt/homebrew/Cellar"
+      ; discover_icu_cellar_paths "/usr/local/Cellar"
+      ; discover_icu_cellar_paths "/home/linuxbrew/.linuxbrew/Cellar"
+      ] in
+  (* Add opt paths for specific versions found in cellar *)
+  let opt_paths =
+    List.filter_map (fun cellar_path ->
+      if has_prefix cellar_path "/opt/homebrew/Cellar/icu4c@" then
+        let version_suffix =
+          String.sub cellar_path (String.length "/opt/homebrew/Cellar/icu4c@")
+            (String.length cellar_path - String.length "/opt/homebrew/Cellar/icu4c@") in
+        let version =
+          try
+            let idx = String.index version_suffix '/' in
+            String.sub version_suffix 0 idx
+          with Not_found -> version_suffix
+        in
+        Some ("/opt/homebrew/opt/icu4c@" ^ version)
+      else if has_prefix cellar_path "/usr/local/Cellar/icu4c@" then
+        let version_suffix =
+          String.sub cellar_path (String.length "/usr/local/Cellar/icu4c@")
+            (String.length cellar_path - String.length "/usr/local/Cellar/icu4c@") in
+        let version =
+          try
+            let idx = String.index version_suffix '/' in
+            String.sub version_suffix 0 idx
+          with Not_found -> version_suffix
+        in
+        Some ("/usr/local/opt/icu4c@" ^ version)
+      else
+        None
+    ) cellar_paths
+  in
+  let all_candidates = base_candidates @ opt_paths @ cellar_paths in
+  (* Remove duplicates and return *)
+  List.sort_uniq String.compare all_candidates
+
+(* Get pkg-config paths from discovered ICU installations *)
+let get_pkg_config_paths () =
+  let base_paths =
+    [ "/opt/homebrew/opt/icu4c/lib/pkgconfig"
+    ; "/usr/local/opt/icu4c/lib/pkgconfig"
+    ; "/usr/lib/pkgconfig"
+    ; "/usr/local/lib/pkgconfig"
+    ] in
+  let cellar_paths =
+    List.concat
+      [ discover_icu_cellar_paths "/opt/homebrew/Cellar"
+      ; discover_icu_cellar_paths "/usr/local/Cellar"
+      ; discover_icu_cellar_paths "/home/linuxbrew/.linuxbrew/Cellar"
+      ] in
+  let pkg_config_paths =
+    List.map (fun prefix -> Filename.concat prefix "lib/pkgconfig") cellar_paths in
+  List.filter Sys.file_exists (base_paths @ pkg_config_paths)
 
 let normalize_prefix_from_cflags cflags =
   let includes = List.filter (fun flag -> has_prefix flag "-I") cflags in
@@ -82,14 +168,7 @@ let infer_version_suffix_from_prefix prefix =
   parse_icu_version_suffix (Filename.concat prefix "include/unicode/uvernum.h")
 
 let infer_version_suffix () =
-  let candidates =
-    [ "/usr"
-    ; "/usr/local"
-    ; "/opt/homebrew/Cellar/icu4c@78/78.2"
-    ; "/opt/homebrew/opt/icu4c@78/78.2"
-    ; "/opt/homebrew/opt/icu4c"
-    ; "/usr/local/Cellar/icu4c@78/78.2"
-    ; "/usr/local/opt/icu4c" ] in
+  let candidates = get_icu_candidate_prefixes () in
   let prefix_candidates =
     match Sys.getenv_opt "ICU_PREFIX" with
     | Some custom -> custom :: candidates
@@ -142,13 +221,7 @@ let normalize_flags prefix flags =
   C.Pkg_config.({ cflags; libs })
 
 let find_prefix_by_fallback () =
-  let candidates =
-    [ "/opt/homebrew/Cellar/icu4c@78/78.2"
-    ; "/opt/homebrew/opt/icu4c@78/78.2"
-    ; "/opt/homebrew/opt/icu4c"
-    ; "/usr/local/Cellar/icu4c@78/78.2"
-    ; "/usr/local/opt/icu4c"
-    ; "/usr" ] in
+  let candidates = get_icu_candidate_prefixes () in
   let prefix_candidates =
     match Sys.getenv_opt "ICU_PREFIX" with
     | Some custom -> custom :: candidates
@@ -156,10 +229,7 @@ let find_prefix_by_fallback () =
   List.find_opt (fun prefix -> has_headers prefix && has_lib prefix) prefix_candidates
 
 let try_pkg_config c =
-  let config_paths =
-    [ "/opt/homebrew/Cellar/icu4c@78/78.2/lib/pkgconfig"
-    ; "/opt/homebrew/opt/icu4c/lib/pkgconfig"
-    ; "/usr/local/opt/icu4c/lib/pkgconfig" ] in
+  let config_paths = get_pkg_config_paths () in
   let current =
     Option.value (Sys.getenv_opt "PKG_CONFIG_PATH") ~default:"" in
   Unix.putenv "PKG_CONFIG_PATH"
