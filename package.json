@@ -2,15 +2,15 @@
   "name": "resync",
   "version": "1.0.0",
   "scripts": {
-    "ecommerce:dune:watch": "/bin/zsh -i -c 'dune build @ecommerce-app @ecommerce-server --force -w'",
-    "ecommerce:serve": "dune exec -w demos/ecommerce/server/src/server.exe",
+    "ecommerce:dune:watch": "/bin/zsh -i -c 'opam exec dune build @ecommerce-app @ecommerce-server --force -w'",
+    "ecommerce:serve": "opam exec dune exec -w demos/ecommerce/server/src/server.exe",
     "ecommerce:watch": "watchexec --no-vcs-ignore -w ./_build/default/demos/ecommerce/ui/src/.build_stamp -r -c -- ./_build/default/demos/ecommerce/server/src/server.exe",
 
-    "todo:dune:watch": "/bin/zsh -i -c 'dune build @todo-app @todo-server --force -w'",
-    "todo:serve": "dune exec -w demos/todo/server/src/server.exe",
+    "todo:dune:watch": "opam exec dune build --force -w'",
+    "todo:serve": "opam exec dune exec -w demos/todo/server/src/server.exe",
     "todo:watch": "watchexec --no-vcs-ignore -w ./_build/default/demos/todo/ui/src/.build_stamp -r -c -- ./_build/default/demos/todo/server/src/server.exe",
 
-    "dune:watch": "pnpm run ecommerce:dune:watch",
+    "dune:watch": "opam exec dune build -w",
     "serve": "pnpm run ecommerce:serve",
     "watch": "pnpm run ecommerce:watch"
   },
