@@ -1,0 +1,77 @@
+name: resync
+
+x-app-env: &app-env
+  OCAML_VERSION: 5.4.0
+  OPAM_SWITCH_NAME: linux-demo
+  WORK_REPO_ROOT: /workspace
+  ECOMMERCE_DOC_ROOT: /workspace/_build/default/demos/ecommerce/ui/src
+  TODO_DOC_ROOT: /workspace/_build/default/demos/todo/ui/src
+
+x-app-base: &app-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+  user: "0:0"
+  working_dir: /workspace
+  volumes:
+    - .:/src:ro
+    - opam-root:/home/opam/.opam
+    - node-modules:/workspace/node_modules
+    - dune-build:/workspace/_build
+  environment:
+    <<: *app-env
+
+services:
+  linux-check:
+    <<: *app-base
+    command: ["/bin/bash", "/src/run-linux-demos.sh", "check"]
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    command: postgres -c max_connections=200
+    environment:
+      POSTGRES_USER: executor
+      POSTGRES_PASSWORD: executor-password
+      POSTGRES_DB: executor_db
+      POSTGRES_HOST_AUTH_METHOD: md5
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U executor -d executor_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    #ports:
+    #  - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+      - ./demos/ecommerce/server/sql:/seed-sql:ro
+
+  ecommerce-demo:
+    <<: *app-base
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+      DB_URL: postgres://executor:executor-password@postgres:5432/executor_db
+      API_BASE_URL: http://localhost:8899
+      SERVER_INTERFACE: "0.0.0.0"
+    command: ["/bin/bash", "/src/run-linux-demos.sh", "ecommerce"]
+    ports:
+      - "8899:8899"
+
+  todo-demo:
+    <<: *app-base
+    environment:
+      <<: *app-env
+      SERVER_INTERFACE: "0.0.0.0"
+    command: ["/bin/bash", "/src/run-linux-demos.sh", "todo"]
+    ports:
+      - "8080:8080"
+
+volumes:
+  opam-root:
+  node-modules:
+  dune-build:
+  postgres-data:
