@@ -115,28 +115,28 @@ let parse_payload payload =
 
 let notification_to_message payload =
   try
-    let payload = parse_payload payload in
-    match (payload.table_, payload.action) with
-    | "inventory", ("INSERT" | "UPDATE") ->
+    let json = Yojson.Safe.from_string payload in
+    let open Yojson.Safe.Util in
+    match json |> member "type" with
+    | `String "patch" -> Some (Yojson.Safe.to_string json)
+    | _ ->
+        let payload = parse_payload payload in
         Some
-          (`Assoc
-            [ ("type", `String "patch");
-              ("table", `String "inventory");
-              ("action", `String payload.action);
-              ( "data",
-                match payload.data with Some data -> data | None -> `Null );
-            ]
+          ((match payload.action with
+          | "DELETE" ->
+              `Assoc
+                [ ("type", `String "patch");
+                  ("table", `String payload.table_);
+                  ("action", `String "DELETE");
+                  ("id", payload.id) ]
+          | _ ->
+              `Assoc
+                [ ("type", `String "patch");
+                  ("table", `String payload.table_);
+                  ("action", `String payload.action);
+                  ( "data",
+                    match payload.data with Some data -> data | None -> `Null ) ])
           |> Yojson.Safe.to_string)
-    | "inventory", "DELETE" ->
-        Some
-          (`Assoc
-            [ ("type", `String "patch");
-              ("table", `String "inventory");
-              ("action", `String "DELETE");
-              ("id", payload.id);
-            ]
-          |> Yojson.Safe.to_string)
-    | _ -> None
   with
   | Yojson.Json_error _ -> None
   | Yojson.Safe.Util.Type_error _ -> None

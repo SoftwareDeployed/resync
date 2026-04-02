@@ -7,7 +7,7 @@ let make = (~period_list: Model.Pricing.period_list) => {
   };
 
   let key_for_period = (p: Model.Pricing.period) =>
-    p.unit ++ ":" ++ p.label ++ ":" ++ Int.to_string(p.id);
+    p.unit ++ ":" ++ p.label ++ ":" ++ p.id;
 
   let list_items =
     period_list

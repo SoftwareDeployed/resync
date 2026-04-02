@@ -1,0 +1,24 @@
+(library
+ (name realtime_schema)
+ (public_name resync.realtime_schema)
+ (modules
+  Realtime_schema_caqti
+  Realtime_schema_types
+  Realtime_schema_utils
+  Realtime_schema_parser
+  Realtime_schema_codegen)
+ (wrapped false)
+ (libraries caqti melange-json-native str yojson unix))
+
+(library
+ (name realtime_schema_ppx)
+ (public_name resync.realtime_schema_ppx)
+ (kind ppx_rewriter)
+ (modules Realtime_schema_ppx)
+ (libraries ppxlib realtime_schema))
+
+(executable
+ (name realtime_schema_codegen_main)
+ (public_name realtime-schema-codegen)
+ (modules Realtime_schema_codegen_main)
+ (libraries realtime_schema yojson unix))

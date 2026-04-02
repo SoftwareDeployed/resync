@@ -1,16 +1,17 @@
 (library
  (name common_native)
  (public_name resync.common_native)
- (modules Model Constants PeriodList)
+ (modules Model Constants PeriodList RealtimeSchema)
  (wrapped false)
 (libraries
-   melange-json-native
+    melange-json-native
    server-reason-react.js
    universal_reason_react_store_native
    resync.universal_reason_react_intl_native
    str)
  (preprocess
   (pps
+   realtime_schema_ppx
    server-reason-react.browser_ppx
    server-reason-react.melange_ppx
    melange-json-native.ppx))

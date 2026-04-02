@@ -3,7 +3,7 @@ open Melange_json.Primitives;
 module Pricing = {
   [@deriving json]
   type period = {
-    id: int,
+    id: string,
     unit: string,
     label: string,
     price: int,

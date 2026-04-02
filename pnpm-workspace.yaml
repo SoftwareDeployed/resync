@@ -1,15 +1,9 @@
+allowBuilds:
+  esbuild: false
 hoist: true
 
-ignoredBuiltDependencies:
-  - '@scarf/scarf'
-  - esbuild
-  - rescript
-  - rescript-embed-lang
-
 onlyBuiltDependencies:
-  - '@rolandpeelen/rewatch'
-  - bun
-  - rescript-embed-lang
+  - esbuild
 
 overrides:
   common: link:demos/ecommerce/shared

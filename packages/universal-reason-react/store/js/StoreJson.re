@@ -71,3 +71,42 @@ let tryDecodeString = (decode, data: string) =>
   };
 
 let stringify = (encode, value) => value->encode->Melange_json.to_string;
+
+let field = (json, key) => {
+  let rawJson = (Obj.magic(json): Melange_json.t);
+  switch (Melange_json.classify(rawJson)) {
+  | `Assoc(entries) =>
+    entries
+    |> List.find_map(((entryKey, value)) =>
+         entryKey == key ? Some(Obj.magic(value)) : None
+       )
+  | _ => None
+  };
+};
+
+let requiredField = (~json, ~fieldName, ~decode) =>
+  switch (field(json, fieldName)) {
+  | Some(value) => decode(value)
+  | None => failwith("missing field: " ++ fieldName)
+  };
+
+let optionalField = (~json, ~fieldName, ~decode) =>
+  switch (field(json, fieldName)) {
+  | Some(value) => Some(decode(value))
+  | None => None
+  };
+
+let decodeEmbedded = (~decode, json) => {
+  let rawJson = (Obj.magic(json): Melange_json.t);
+  switch (Melange_json.classify(rawJson)) {
+  | `String(encodedJson) => tryDecodeString(decode, encodedJson)
+  | `Null => None
+  | _ => tryDecode(decode, json)
+  };
+};
+
+let decodeIntWithDefault = (~default=0, json) =>
+  switch (tryDecode(Melange_json.Primitives.int_of_json, json)) {
+  | Some(value) => value
+  | None => default
+  };

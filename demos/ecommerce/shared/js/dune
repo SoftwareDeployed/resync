@@ -1,16 +1,17 @@
 (library
  (name common_js)
  (public_name resync.common_js)
- (modules Model Constants PeriodList)
+ (modules Model Constants PeriodList RealtimeSchema)
  (wrapped false)
  (libraries
-   melange-json
+    melange-json
    universal_reason_react_store_js
    universal_reason_react_intl_js
    melange.js)
  (modes melange)
  (preprocess
   (pps
+   realtime_schema_ppx
    server-reason-react.browser_ppx -js
    melange.ppx
    melange-json.ppx)))

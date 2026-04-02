@@ -1,6 +1,8 @@
 DROP TABLE IF EXISTS premise_route;
 DROP TABLE IF EXISTS premise;
 
+-- @table premise
+-- @id_column id
 CREATE TABLE premise (
   id uuid primary key not null default uuidv7(),
   name varchar not null,

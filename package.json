@@ -2,6 +2,7 @@
   "name": "resync",
   "version": "1.0.0",
   "scripts": {
+    "schema:generate": "opam exec -- dune build packages/realtime-schema/src/realtime_schema_codegen_main.exe && opam exec -- ./_build/default/packages/realtime-schema/src/realtime_schema_codegen_main.exe --sql-dir ./demos/ecommerce/server/sql --out-triggers ./demos/ecommerce/server/sql/generated/realtime.sql --out-snapshot ./demos/ecommerce/server/sql/generated/schema_snapshot.json --migrations-dir ./demos/ecommerce/server/sql/generated/migrations",
     "ecommerce:dune:watch": "/bin/zsh -i -c 'opam exec dune build @ecommerce-app @ecommerce-server --force -w'",
     "ecommerce:serve": "opam exec dune exec -w demos/ecommerce/server/src/server.exe",
     "ecommerce:watch": "watchexec --no-vcs-ignore -w ./_build/default/demos/ecommerce/ui/src/.build_stamp -r -c -- ./_build/default/demos/ecommerce/server/src/server.exe",

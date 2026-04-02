@@ -1,6 +1,9 @@
 DROP TABLE IF EXISTS inventory_period_map;
 DROP TABLE IF EXISTS inventory;
 
+-- @table inventory
+-- @id_column id
+-- @broadcast_channel column=premise_id
 CREATE TABLE inventory (
   id uuid not null default uuidv7() primary key,
   premise_id uuid not null,
@@ -9,6 +12,51 @@ CREATE TABLE inventory (
   quantity int not null default 0,
   FOREIGN KEY (premise_id) REFERENCES premise(id)
 );
+
+/*
+@query get_complete_inventory
+@cache_key inventory_id
+@json_column period_list
+SELECT
+  i.description,
+  i.id,
+  i.name,
+  i.quantity,
+  i.premise_id,
+  COALESCE(
+    JSONB_AGG(
+      TO_JSONB(p.*)
+    ) FILTER (WHERE p.id IS NOT NULL),
+    '[]'::jsonb
+  )::text as period_list
+FROM inventory i
+JOIN inventory_period_map pm ON pm.inventory_id = i.id
+JOIN period p ON p.id = pm.period_id
+WHERE i.id = $1
+GROUP BY i.id, i.premise_id, i.name, i.description, i.quantity;
+*/
+
+/*
+@query get_inventory_list
+@json_column period_list
+SELECT
+  i.description,
+  i.id,
+  i.name,
+  i.quantity,
+  i.premise_id,
+  COALESCE(
+    JSONB_AGG(
+      TO_JSONB(p.*)
+    ) FILTER (WHERE p.id IS NOT NULL),
+    '[]'::jsonb
+  )::text as period_list
+FROM inventory i
+JOIN inventory_period_map pm ON pm.inventory_id = i.id
+JOIN period p ON p.id = pm.period_id
+WHERE i.premise_id = $1
+GROUP BY i.id, i.premise_id, i.name, i.description, i.quantity;
+*/
 
 INSERT INTO inventory (id, premise_id, name, description, quantity)
 VALUES (
@@ -19,6 +67,9 @@ VALUES (
   1
 );
 
+-- @table inventory_period_map
+-- @composite_key inventory_id, period_id
+-- @broadcast_parent table=inventory query=get_complete_inventory
 CREATE TABLE inventory_period_map (
   inventory_id uuid not null,
   period_id uuid not null,

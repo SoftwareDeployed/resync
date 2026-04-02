@@ -1,0 +1,208 @@
+{
+  "schema_hash": "14695bc859959459e240b01e8859d67f",
+  "tables": [
+    {
+      "table_name": "premise",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": "uuid",
+          "nullable": false,
+          "primary_key": true,
+          "default": "uuidv7()",
+          "foreign_key": null
+        },
+        {
+          "name": "name",
+          "sql_type": "varchar",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "description",
+          "sql_type": "varchar",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "updated_at",
+          "sql_type": "timestamp",
+          "nullable": false,
+          "primary_key": false,
+          "default": "now()",
+          "foreign_key": null
+        }
+      ],
+      "id_column": "id",
+      "composite_key": []
+    },
+    {
+      "table_name": "inventory",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": "uuid",
+          "nullable": false,
+          "primary_key": true,
+          "default": "uuidv7()",
+          "foreign_key": null
+        },
+        {
+          "name": "premise_id",
+          "sql_type": "uuid",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": {
+            "column": "premise_id",
+            "referenced_table": "premise",
+            "referenced_column": "id"
+          }
+        },
+        {
+          "name": "name",
+          "sql_type": "varchar",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "description",
+          "sql_type": "varchar",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "quantity",
+          "sql_type": "int",
+          "nullable": false,
+          "primary_key": false,
+          "default": "0",
+          "foreign_key": null
+        }
+      ],
+      "id_column": "id",
+      "composite_key": []
+    },
+    {
+      "table_name": "period",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": "uuid",
+          "nullable": false,
+          "primary_key": true,
+          "default": "uuidv7()",
+          "foreign_key": null
+        },
+        {
+          "name": "label",
+          "sql_type": "varchar",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "min_value",
+          "sql_type": "int",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "max_value",
+          "sql_type": "int",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "unit",
+          "sql_type": "unit_enum",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "price",
+          "sql_type": "bigint",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        }
+      ],
+      "id_column": "id",
+      "composite_key": []
+    },
+    {
+      "table_name": "inventory_period_map",
+      "columns": [
+        {
+          "name": "inventory_id",
+          "sql_type": "uuid",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": {
+            "column": "inventory_id",
+            "referenced_table": "inventory",
+            "referenced_column": "id"
+          }
+        },
+        {
+          "name": "period_id",
+          "sql_type": "uuid",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": {
+            "column": "period_id",
+            "referenced_table": "period",
+            "referenced_column": "id"
+          }
+        }
+      ],
+      "id_column": null,
+      "composite_key": [ "inventory_id", "period_id" ]
+    },
+    {
+      "table_name": "premise_route",
+      "columns": [
+        {
+          "name": "premise_id",
+          "sql_type": "uuid",
+          "nullable": false,
+          "primary_key": false,
+          "default": "uuidv7()",
+          "foreign_key": {
+            "column": "premise_id",
+            "referenced_table": "premise",
+            "referenced_column": "id"
+          }
+        },
+        {
+          "name": "route_root",
+          "sql_type": "varchar",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        }
+      ],
+      "id_column": null,
+      "composite_key": []
+    }
+  ]
+}
