@@ -3,7 +3,7 @@ open Lwt.Syntax;
 let getServerState =
     (_context: UniversalRouterDream.serverContext(TodoStore.t)) => {
   let config: TodoStore.config = {
-    todos: [
+    todos: [|
       {
         id: "1",
         text: "Learn ReasonML",
@@ -19,7 +19,7 @@ let getServerState =
         text: "Deploy to production",
         completed: false,
       },
-    ],
+    |],
   };
 
   let store = TodoStore.createStore(config);
@@ -34,7 +34,7 @@ let render = (~context, ~serverState: TodoStore.t, ()) => {
   } = context;
 
   let serializedState =
-    TodoStore.serializeState({ todos: serverState.todos });
+    TodoStore.serializeState({todos: serverState.todos});
 
   let app =
     <UniversalRouter

@@ -1,6 +1,7 @@
 [@platform native]
 module Socket = {
   let defaultBaseUrl = "http://localhost:8899";
+  let sendMutation = (_name: string, _payload: string) => ();
 };
 
 [@platform js]
@@ -14,6 +15,14 @@ module Socket = {
     last_pong: float,
     updated_at: float,
   };
+
+  let sendRef: ref(option(string => unit)) = ref(None);
+
+  let sendMutation = (name: string, payload: string) =>
+    switch (sendRef.contents) {
+    | Some(send) => send("mutation " ++ name ++ " " ++ payload)
+    | _ => ()
+    };
 
   let rec subscribe =
           (
@@ -39,6 +48,11 @@ module Socket = {
     url->Webapi.Url.setProtocol("ws");
 
     let ws = WebSocket.make(url->Webapi.Url.href);
+    sendRef := Some(message => {
+      if (ws->WebSocket.readyState == 1) {
+        ws->WebSocket.send_string(message);
+      };
+    });
     let timeout = 5.0;
     let signal = Tilia.Core.signal;
     let lift = Tilia.Core.lift;
@@ -86,6 +100,7 @@ module Socket = {
 
     WebSocket.onOpen(ws, () => select());
     WebSocket.onClose(ws, () => {
+      sendRef := None;
       subscribe(
         ~source,
         ~subscription,
@@ -115,9 +130,20 @@ module Socket = {
               setUpdatedTs(updatedAtOf(next));
               ()
             | None =>
-              let snapshot = decodeSnapshot(json);
-              setUpdatedTs(updatedAtOf(snapshot));
-              source.set(snapshot);
+              switch (StoreJson.field(json, "type")) {
+              | Some(rawType) =>
+                switch (StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rawType)) {
+                | Some("patch") => ()
+                | _ =>
+                  let snapshot = decodeSnapshot(json);
+                  setUpdatedTs(updatedAtOf(snapshot));
+                  source.set(snapshot);
+                }
+              | None =>
+                let snapshot = decodeSnapshot(json);
+                setUpdatedTs(updatedAtOf(snapshot));
+                source.set(snapshot);
+              }
             }
           | None => ()
           };

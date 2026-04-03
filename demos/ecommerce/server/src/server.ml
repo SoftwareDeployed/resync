@@ -42,7 +42,7 @@ let realtime_adapter =
 
 let realtime_middleware =
   Middleware.create ~adapter:realtime_adapter ~resolve_subscription
-    ~load_snapshot:get_config_json
+    ~load_snapshot:get_config_json ()
 
 let () =
   (match Lwt_main.run (Adapter.start realtime_adapter) with

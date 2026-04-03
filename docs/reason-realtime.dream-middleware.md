@@ -2,16 +2,17 @@
 
 > ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
 
-Dream websocket middleware and adapter hook for real-time server-to-client updates.
+Dream websocket middleware and adapter hook for realtime server-to-client updates and client-to-server mutation commands.
 
 ## Overview
 
-This package provides a minimal websocket transport for pushing messages from server-side data sources into connected Dream clients.
+This package provides a minimal websocket transport for pushing messages from server-side data sources into connected Dream clients and for accepting plain-text mutation commands from connected browsers.
 
-The middleware owns websocket lifecycle and channel subscriptions; it delegates two important decisions to your app:
+The middleware owns websocket lifecycle and channel subscriptions; it delegates three important decisions to your app:
 
 - how a client selection string maps to a channel (`~resolve_subscription`)
 - how to load a channel snapshot (`~load_snapshot`)
+- how to execute a named mutation command (`~handle_mutation`, optional)
 
 ## Features
 
@@ -20,6 +21,7 @@ The middleware owns websocket lifecycle and channel subscriptions; it delegates 
 - Snapshot loading on subscription
 - Adapter integration for backend message sources (PostgreSQL adapter, custom adapters)
 - Broadcast fan-out to all sockets subscribed to a channel
+- Optional mutation dispatch callback for commands like `mutation add_todo {"text":"..."}`
 
 ## Installation
 
@@ -74,6 +76,7 @@ let middleware =
     ~adapter,
     ~resolve_subscription,
     ~load_snapshot,
+    (),
   );
 
 let () =
@@ -82,7 +85,7 @@ let () =
   Dream.run
   @@ Dream.logger
   @@ Dream.router([
-    Dream.get "/_events" (Middleware.route "/_events" middleware),
+    Middleware.route "/_events" middleware,
     Dream.get "/**" (fun request =>
       Dream.html("Hello from app")
     ),
@@ -99,6 +102,7 @@ let middleware =
     ~adapter,
     ~resolve_subscription,
     ~load_snapshot,
+    (),
   );
 
 let () =
@@ -123,18 +127,20 @@ let create: (
   ~adapter: Adapter.packed,
   ~resolve_subscription: (Dream.request => string => string option Lwt.t),
   ~load_snapshot: (Dream.request => string => string Lwt.t),
+  ?handle_mutation: (Dream.request => string => string => unit Lwt.t),
+  unit,
 ) => Middleware.t;
 ```
 
-Build middleware and provide callbacks for subscription and snapshot resolution.
+Build middleware and provide callbacks for subscription resolution, snapshot loading, and optional mutation execution.
 
 #### `Middleware.route`
 
 ```reason
-let route: (string, Middleware.t) => Dream.handler;
+let route: (string, Middleware.t) => Dream.route;
 ```
 
-Create a Dream handler for a websocket endpoint path and middleware.
+Create the websocket route for `Dream.router`.
 
 #### `Middleware.broadcast`
 
@@ -174,8 +180,34 @@ Supported commands:
 
 - `ping` → server replies with `pong`
 - `select <channel>` → subscribe/replace active subscription
+- `mutation <name> <json>` → invoke `~handle_mutation` with the mutation name and raw JSON payload
 
 Responses are plain text payloads sent by the server (for example snapshots and adapter messages).
+
+### Mutation Example
+
+```reason
+let handle_mutation request name payload =
+  switch (name) {
+  | "add_todo" => {
+      let json = Yojson.Basic.from_string(payload);
+      let listId = (* decode list_id from json *) "...";
+      let text = (* decode text from json *) "...";
+      let* () = Dream.sql(request, Database.Todo.add_todo(listId, text)) in
+      Lwt.return();
+    }
+  | _ => Lwt.return()
+  };
+
+let middleware =
+  Middleware.create(
+    ~adapter,
+    ~resolve_subscription,
+    ~load_snapshot,
+    ~handle_mutation,
+    (),
+  );
+```
 
 ## Troubleshooting
 
@@ -190,6 +222,7 @@ Responses are plain text payloads sent by the server (for example snapshots and 
 1. Confirm adapter is running and emitting messages.
 2. Confirm `resolve_subscription` returns the same channel the client selects.
 3. Confirm `load_snapshot` returns a JSON string for that channel.
+4. Confirm your mutation handler executes database writes that trigger broadcasts on the selected channel.
 
 ### Unexpected Subscriptions
 

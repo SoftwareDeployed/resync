@@ -1,22 +1,23 @@
 (library
  (name universal_reason_react_store_native)
  (public_name resync.universal_reason_react_store_native)
- (modules
-  Hydration
-  RealtimeClient
-  StoreBuilder
-  StoreComputed
-  StoreCore
-  StoreJson
-  StorePatch
-  StorePersist
-  StoreRuntime
-  StoreSignal
-  StoreSource
-  StoreState
-  StoreSync
-  Tilia
-  WebSocket)
+  (modules
+   Hydration
+   RealtimeClient
+   StoreBuilder
+   StoreComputed
+   StoreCore
+   StoreCrud
+   StoreJson
+   StorePatch
+   StorePersist
+   StoreRuntime
+   StoreSignal
+   StoreSource
+   StoreState
+   StoreSync
+   Tilia
+   WebSocket)
  (wrapped false)
  (libraries
   melange-json-native

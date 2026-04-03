@@ -297,7 +297,7 @@ Opaque subscription type for real-time sync.
 
 ### StoreBuilder.Runtime.Make
 
-Module functor for creating runtime stores.
+Module functor for creating runtime stores. Define all values inline inside the functor body.
 
 **Signature:**
 ```reason
@@ -308,21 +308,21 @@ module Runtime = StoreBuilder.Runtime.Make({
   type store;
   type subscription;
 
-  let emptyStore: unit => store;
+  let emptyStore: store;
   let stateElementId: string;
   let payloadOfConfig: config => payload;
   let configOfPayload: payload => config;
   let subscriptionOfConfig: config => option(subscription);
-  let encodeSubscription: subscription => Js.Json.t;
-  let updatedAtOf: config => option(Js.Date.t);
+  let encodeSubscription: subscription => string;
+  let updatedAtOf: config => float;
   let eventUrl: string;
   let baseUrl: string;
   let updateOfPatch: patch => config => config;
-  let decodePatch: Js.Json.t => option(patch);
-  let config_of_json: Js.Json.t => config;
-  let config_to_json: config => Js.Json.t;
-  let payload_of_json: Js.Json.t => payload;
-  let payload_to_json: payload => Js.Json.t;
+  let decodePatch: StoreJson.json => option(patch);
+  let config_of_json: StoreJson.json => config;
+  let config_to_json: config => StoreJson.json;
+  let payload_of_json: StoreJson.json => payload;
+  let payload_to_json: payload => StoreJson.json;
 });
 ```
 
@@ -333,8 +333,8 @@ module Runtime = StoreBuilder.Runtime.Make({
 - `let createStore: config => t`: Create new store
 - `let hydrateStore: unit => t`: Hydrate from SSR
 - `let serializeState: config => string`: Serialize for SSR
+- `let serializeSnapshot: config => string`: Serialize for snapshot
 - `let useStore: unit => t`: Hook to access store
-- `let useUpdate: unit => (t => t) => unit`: Hook to update store
 - `let Context: React.context(t)`: React context
 
 ### StoreBuilder.Persisted.Make
@@ -344,20 +344,77 @@ Module functor for creating persisted stores.
 **Signature:**
 ```reason
 module Persisted = StoreBuilder.Persisted.Make({
-  type t;
-  let key: string;
-  let default: unit => t;
-  let encode: t => Js.Json.t;
-  let decode: Js.Json.t => t;
+  type config;
+  type payload;
+  type store;
+
+  let storageKey: string;
+  let emptyStore: store;
+  let payloadOfConfig: config => payload;
+  let configOfPayload: payload => config;
+  let payloadOfStore: store => payload;
+  let payload_of_json: StoreJson.json => payload;
+  let payload_to_json: payload => StoreJson.json;
+  let transformConfig: config => config;
+  let makeStore:
+    (~config: config, ~payload: payload, ~derive: Tilia.Core.deriver(store)=?, unit) =>
+    store;
 });
 ```
 
 **Exports:**
 - `type t`: The store type
-- `let useStore: unit => t`: Hook to access store
-- `let useUpdate: unit => (t => t) => unit`: Hook to update store
-- `let Context: React.context(t)`: React context
+- `let empty: t`: Empty store
+- `let createStore: config => t`: Create new store
+- `let hydrateStore: unit => t`: Hydrate from localStorage
+- `let serializeState: config => string`: Serialize state
+- `let persistPayload: payload => unit`: Persist payload
+- `let persistStore: t => unit`: Persist store
 - `let clear: unit => unit`: Clear persisted data
+- `let Context: React.context(t)`: React context
+
+### StoreCrud
+
+Generic CRUD helpers for realtime patch handling.
+
+#### `StoreCrud.patch`
+
+```reason
+type patch('row) =
+  | Upsert('row)
+  | Delete(string);
+```
+
+#### `StoreCrud.decodePatch`
+
+```reason
+let decodePatch:
+  (~table: string, ~decodeRow: StoreJson.json => 'row, unit) =>
+  StorePatch.decoder(patch('row));
+```
+
+#### `StoreCrud.upsert`
+
+```reason
+let upsert: (~getId: 'row => string, array('row), 'row) => array('row);
+```
+
+#### `StoreCrud.remove`
+
+```reason
+let remove: (~getId: 'row => string, array('row), string) => array('row);
+```
+
+#### `StoreCrud.updateOfPatch`
+
+```reason
+let updateOfPatch:
+  (~getId: 'row => string,
+   ~getItems: 'config => array('row),
+   ~setItems: ('config, array('row)) => 'config,
+   patch('row)) =>
+  'config => 'config;
+```
 
 ### Projection Functions
 
@@ -400,7 +457,7 @@ Returns different values on client vs server.
 #### `StorePatch.compose`
 
 ```reason
-let compose: list(decoder('a)) => Js.Json.t => option('a);
+let compose: list(decoder('a)) => StoreJson.json => option('a);
 ```
 
 Composes multiple patch decoders.
@@ -410,7 +467,7 @@ Composes multiple patch decoders.
 ```reason
 let decodeAs: (
   ~table: string,
-  ~decodeRow: Js.Json.t => 'row,
+  ~decodeRow: StoreJson.json => 'row,
   ~insert: 'row => 'patch,
   ~update: 'row => 'patch,
   ~delete: string => 'patch,
@@ -418,7 +475,7 @@ let decodeAs: (
 ) => decoder('patch);
 ```
 
-Creates PostgreSQL change decoder.
+Creates PostgreSQL change decoder. For standard CRUD, prefer `StoreCrud.decodePatch` which wraps this with `Upsert`/`Delete` variants.
 
 ## Components
 
@@ -519,18 +576,20 @@ let create: (
   ~adapter: Adapter.packed,
   ~resolve_subscription: Dream.request => string => string option Lwt.t,
   ~load_snapshot: Dream.request => string => string Lwt.t,
+  ?handle_mutation: Dream.request => string => string => unit Lwt.t,
+  unit,
 ) => Middleware.t;
 ```
 
-Creates middleware instance.
+Creates middleware instance. `~handle_mutation` is optional and receives websocket commands in the form `mutation <name> <json>`.
 
 #### `Middleware.route`
 
 ```reason
-let route: (string, Middleware.t) => Dream.handler;
+let route: (string, Middleware.t) => Dream.route;
 ```
 
-Builds a Dream handler for a websocket route.
+Builds the websocket route for `Dream.router`.
 
 #### `Middleware.broadcast`
 
@@ -539,6 +598,16 @@ let broadcast: (Middleware.t, string, string) => Lwt.t(unit);
 ```
 
 Broadcasts a payload string to all connected clients.
+
+### Realtime Client Socket
+
+#### `RealtimeClient.Socket.sendMutation`
+
+```reason
+let sendMutation: (string, string) => unit;
+```
+
+Send a named mutation command over the currently active realtime websocket. The first argument is the mutation name and the second argument is the JSON payload string.
 
 #### `Adapter.pack`
 

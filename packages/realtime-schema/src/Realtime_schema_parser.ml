@@ -349,6 +349,11 @@ let infer_query_params tables sql =
   fallback_loop 0;
   Hashtbl.to_seq_values params |> List.of_seq |> List.sort (fun a b -> compare a.index b.index)
 
+let parse_handler annotations =
+  match annotation_value annotations "handler" with
+  | Some "ocaml" -> Ocaml
+  | _ -> Sql
+
 let parse_query ~source_file ~annotations tables statement : query option =
   match annotation_value annotations "query" with
   | None -> None
@@ -378,6 +383,20 @@ let parse_query ~source_file ~annotations tables statement : query option =
           return_table;
           json_columns;
           params = infer_query_params tables statement;
+          handler = parse_handler annotations;
+        }
+
+let parse_mutation ~source_file ~annotations tables statement : mutation option =
+  match annotation_value annotations "mutation" with
+  | None -> None
+  | Some name ->
+      Some
+        {
+          name = trim name;
+          sql = strip_trailing_semicolons statement ^ ";";
+          source_file;
+          params = infer_query_params tables statement;
+          handler = parse_handler annotations;
         }
 
 let extract_block_comments content =
@@ -408,6 +427,10 @@ let strip_block_comments content =
   in
   loop 0
 
+type block_result =
+  | BlockQuery of query
+  | BlockMutation of mutation
+
 let parse_query_block ~source_file tables block =
   let lines = String.split_on_char '\n' block in
   let annotations, sql_lines =
@@ -428,16 +451,21 @@ let parse_query_block ~source_file tables block =
   if statement = "" then
     None
   else
-    parse_query ~source_file ~annotations tables statement
+    match parse_query ~source_file ~annotations tables statement with
+    | Some query -> Some (BlockQuery query)
+    | None ->
+        match parse_mutation ~source_file ~annotations tables statement with
+        | Some mutation -> Some (BlockMutation mutation)
+        | None -> None
 
-let parse_file tables_acc queries_acc file_path =
+let parse_file tables_acc queries_acc mutations_acc file_path =
   let content = read_file file_path in
   let lines = content |> strip_block_comments |> String.split_on_char '\n' in
-  let finalize_statement annotations buffer tables queries =
+  let finalize_statement annotations buffer tables queries mutations =
     let statement = Buffer.contents buffer |> trim in
     Buffer.clear buffer;
     if statement = "" then
-      (tables, queries)
+      (tables, queries, mutations)
     else
       let tables =
         match parse_table ~source_file:(Filename.basename file_path) ~annotations statement with
@@ -449,39 +477,46 @@ let parse_file tables_acc queries_acc file_path =
         | Some query -> queries @ [ query ]
         | None -> queries
       in
-      (tables, queries)
+      let mutations =
+        match parse_mutation ~source_file:(Filename.basename file_path) ~annotations tables statement with
+        | Some mutation -> mutations @ [ mutation ]
+        | None -> mutations
+      in
+      (tables, queries, mutations)
   in
   let buffer = Buffer.create (String.length content) in
-  let rec loop annotations tables queries = function
-    | [] -> finalize_statement annotations buffer tables queries
+  let rec loop annotations tables queries mutations = function
+    | [] -> finalize_statement annotations buffer tables queries mutations
     | line :: rest ->
         let trimmed = trim line in
         if trimmed = "" && Buffer.length buffer = 0 then
-          loop annotations tables queries rest
+          loop annotations tables queries mutations rest
         else if starts_with ~prefix:"--" trimmed && Buffer.length buffer = 0 then
           let annotations =
             match parse_annotation_line trimmed with
             | Some annotation -> annotations @ [ annotation ]
             | None -> annotations
           in
-          loop annotations tables queries rest
+          loop annotations tables queries mutations rest
         else if starts_with ~prefix:"--" trimmed then
-          loop annotations tables queries rest
+          loop annotations tables queries mutations rest
         else (
           if Buffer.length buffer > 0 then Buffer.add_char buffer '\n';
           Buffer.add_string buffer line;
           if String.contains line ';' then
-            let tables, queries = finalize_statement annotations buffer tables queries in
-            loop [] tables queries rest
+            let tables, queries, mutations = finalize_statement annotations buffer tables queries mutations in
+            loop [] tables queries mutations rest
           else
-            loop annotations tables queries rest)
+            loop annotations tables queries mutations rest)
   in
-  let tables, queries = loop [] tables_acc queries_acc lines in
-  let block_queries =
+  let tables, queries, mutations = loop [] tables_acc queries_acc mutations_acc lines in
+  let block_results =
     extract_block_comments content
     |> list_filter_map (parse_query_block ~source_file:(Filename.basename file_path) tables)
   in
-  (tables, queries @ block_queries)
+  let block_queries = List.filter_map (function BlockQuery q -> Some q | BlockMutation _ -> None) block_results in
+  let block_mutations = List.filter_map (function BlockMutation m -> Some m | BlockQuery _ -> None) block_results in
+  (tables, queries @ block_queries, mutations @ block_mutations)
 
 let topological_tables tables =
   let table_map = Hashtbl.create (List.length tables) in
@@ -507,14 +542,15 @@ let topological_tables tables =
 
 let parse_directory directory =
   let files = list_sql_files directory in
-  let tables, queries =
+  let tables, queries, mutations =
     List.fold_left
-      (fun (tables, queries) file_path -> parse_file tables queries file_path)
-      ([], []) files
+      (fun (tables, queries, mutations) file_path ->
+         parse_file tables queries mutations file_path)
+      ([], [], []) files
   in
   let tables = topological_tables tables in
   let hash_input =
     String.concat "\n--FILE--\n"
       (List.map (fun file_path -> file_path ^ "\n" ^ read_file file_path) files)
   in
-  { tables; queries; source_files = List.map Filename.basename files; schema_hash = digest_string hash_input }
+  { tables; queries; mutations; source_files = List.map Filename.basename files; schema_hash = digest_string hash_input }

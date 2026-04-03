@@ -109,7 +109,7 @@ cd demos/ecommerce
 # Set environment variables
 export DB_URL="postgres://user:pass@localhost:5432/db"
 export API_BASE_URL="http://localhost:8080"
-export DOC_ROOT="./_build/default/demos/ecommerce/ui/src/app/"
+export ECOMMERCE_DOC_ROOT="./_build/default/demos/ecommerce/ui/src/"
 
 # Run the server
 dune exec -- ./server/bin/main.exe
@@ -294,7 +294,7 @@ mkdir -p shared/src
 cat > .envrc << 'EOF'
 export DB_URL="postgres://user:pass@localhost:5432/myapp"
 export API_BASE_URL="http://localhost:8080"
-export DOC_ROOT="./_build/default/ui/src/"
+export MYAPP_DOC_ROOT="./_build/default/ui/src/"
 export PORT=8080
 EOF
 
@@ -375,12 +375,20 @@ ReactDOM.hydrateRoot(
 
 ```reason
 // server/src/server.ml
+let realtime_middleware =
+  Middleware.create(
+    ~adapter,
+    ~resolve_subscription,
+    ~load_snapshot,
+    (),
+  );
+
 let () =
   Dream.run ~port:8080
   @@ Dream.logger
   @@ Dream.router([
-    Dream.get "/_events" Realtime.handler,
-    Dream.get "/static/**" (Dream.static Sys.getenv("DOC_ROOT")),
+    Middleware.route "/_events" realtime_middleware,
+    Dream.get "/static/**" (Dream.static Sys.getenv("MYAPP_DOC_ROOT")),
     Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app),
   ]);
 ```

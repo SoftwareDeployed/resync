@@ -21,16 +21,16 @@ This guide demonstrates prototype-ready patterns for universal React application
 
 ## Development environment
 
-For local development, set `DB_URL`, `API_BASE_URL`, and `DOC_ROOT` before starting the Dream server.
+For local development, set `DB_URL`, `API_BASE_URL`, and the app-specific doc-root env var before starting the Dream server. In the ecommerce demo that variable is `ECOMMERCE_DOC_ROOT`.
 Using `.envrc` is recommended.
 
 ```bash
 export DB_URL="postgres://executor:executor-password@localhost:5432/executor_db" \
 API_BASE_URL="http://localhost:8899" \
-DOC_ROOT="./_build/default/demos/ecommerce/ui/src/app/"
+ECOMMERCE_DOC_ROOT="./_build/default/demos/ecommerce/ui/src/"
 ```
 
-The current server setup expects `DB_URL` and `DOC_ROOT` to be present.
+The current ecommerce server setup expects `DB_URL` and `ECOMMERCE_DOC_ROOT` to be present.
 
 ## Mental model
 
@@ -100,61 +100,28 @@ Keep route definitions close to the page and layout components they reference.
 
 ## 3. Define a store with `StoreBuilder`
 
-For an SSR + realtime store, use `StoreBuilder.Runtime.Make`.
+For an SSR + realtime store, use `StoreBuilder.Runtime.Make`. Define all values inline inside the functor body.
 
 ```reason
 [@deriving json]
+type config = Model.t;
+
+type subscription = RealtimeSubscription.t;
+
+type patch = StoreCrud.patch(Model.InventoryItem.t);
+
+[@deriving json]
 type payload = {
-  config: config_payload,
+  config: config,
   unit: PeriodList.Unit.t,
 };
 
-type patch =
-  | InventoryUpsert(inventory_patch_data)
-  | InventoryDelete(string);
-
-let payloadOfConfig = (config: config): payload => ...;
-let configOfPayload = (payload: payload): config => ...;
-
-let makeStore = (~config, ~payload, ~derive=?, ()) => {
-  {
-    config,
-    premise_id:
-      StoreBuilder.projected(
-        ~derive?,
-        ~project,
-        ~serverSource=config,
-        ~fromStore=store => store.config,
-        ~select=projections => projections.premise_id,
-        (),
-      ),
-    unit:
-      StoreBuilder.current(
-        ~derive?,
-        ~client=PeriodList.Unit.value,
-        ~server=() => payload.unit,
-        (),
-      ),
-  };
+type store = {
+  premise_id: string,
+  config: config,
+  period_list: array(Model.Pricing.period),
+  unit: PeriodList.Unit.t,
 };
-
-let decodePatch =
-  StorePatch.compose([
-    StorePatch.Pg.decodeAs(
-      ~table="inventory",
-      ~decodeRow=inventory_patch_data_of_json,
-      ~insert=data => InventoryUpsert(data),
-      ~update=data => InventoryUpsert(data),
-      ~delete=id => InventoryDelete(id),
-      (),
-    ),
-  ]);
-
-let updateOfPatch = patch =>
-  switch (patch) {
-  | InventoryUpsert(data) => config => ...
-  | InventoryDelete(id) => config => ...
-  };
 
 module Runtime = StoreBuilder.Runtime.Make({
   type nonrec config = config;
@@ -163,22 +130,91 @@ module Runtime = StoreBuilder.Runtime.Make({
   type nonrec store = store;
   type nonrec subscription = subscription;
 
-  let emptyStore = emptyStore;
-  let stateElementId = stateElementId;
-  let payloadOfConfig = payloadOfConfig;
-  let configOfPayload = configOfPayload;
-  let makeStore = makeStore;
+  let emptyStore: store = {
+    premise_id: "",
+    config: Model.SSR.empty,
+    period_list: [||],
+    unit: PeriodList.Unit.defaultState,
+  };
+  let stateElementId = "initial-store";
+
+  let payloadOfConfig = (config: config): payload => {
+    config,
+    unit:
+      switch%platform (Runtime.platform) {
+      | Server => PeriodList.Unit.defaultState
+      | Client => PeriodList.Unit.get()
+      },
+  };
+  let configOfPayload = (payload: payload): config => payload.config;
+
+  let makeStore =
+      (~config: config, ~payload: payload, ~derive: option(Tilia.Core.deriver(store))=?, ()) =>
+    store => {
+    {
+      premise_id:
+        StoreBuilder.projected(
+          ~derive?,
+          ~project,
+          ~serverSource=config,
+          ~fromStore=store => store.config,
+          ~select=projections => projections.premise_id,
+          (),
+        ),
+      config,
+      period_list:
+        StoreBuilder.projected(
+          ~derive?,
+          ~project,
+          ~serverSource=config,
+          ~fromStore=store => store.config,
+          ~select=projections => projections.period_list,
+          (),
+        ),
+      unit:
+        StoreBuilder.current(
+          ~derive?,
+          ~client=PeriodList.Unit.value,
+          ~server=() => payload.unit,
+          (),
+        ),
+    };
+  };
+
   let config_of_json = config_of_json;
   let config_to_json = config_to_json;
   let payload_of_json = payload_of_json;
   let payload_to_json = payload_to_json;
-  let decodePatch = decodePatch;
-  let subscriptionOfConfig = subscriptionOfConfig;
-  let encodeSubscription = encodeSubscription;
-  let updatedAtOf = updatedAtOf;
-  let updateOfPatch = updateOfPatch;
-  let eventUrl = eventUrl;
-  let baseUrl = baseUrl;
+
+  let decodePatch =
+    StorePatch.compose([
+      StoreCrud.decodePatch(
+        ~table=RealtimeSchema.table_name("inventory"),
+        ~decodeRow=Model.InventoryItem.of_json,
+        (),
+      ),
+    ]);
+
+  let updateOfPatch = StoreCrud.updateOfPatch(
+    ~getId=(item: Model.InventoryItem.t) => item.id,
+    ~getItems=(config: config) => config.inventory,
+    ~setItems=(config: config, items) => {...config, inventory: items},
+  );
+
+  let subscriptionOfConfig = (config: config): option(subscription) =>
+    switch (config.premise) {
+    | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
+    | None => None
+    };
+  let encodeSubscription = RealtimeSubscription.encode;
+
+  let updatedAtOf = (config: config) =>
+    switch (config.premise) {
+    | Some(premise) => premise.updated_at->Js.Date.getTime
+    | None => 0.0
+    };
+  let eventUrl = Constants.event_url;
+  let baseUrl = Constants.base_url;
 });
 
 include (
@@ -189,29 +225,43 @@ include (
       and type t := store
 );
 
+type t = store;
+
 module Context = Runtime.Context;
 ```
 
 For a persisted client-side store, use `StoreBuilder.Persisted.Make`.
 
-## 4. Use typed patches, not raw string tuples
+## 4. Use typed patches with `StoreCrud`
 
-Do not leave patch handling at the level of:
+Use `StoreCrud.patch('row)` as your patch type and `StoreCrud.decodePatch`/`StoreCrud.updateOfPatch` for standard CRUD tables:
 
 ```reason
-(patch.type_, patch.table_, patch.action)
+type patch = StoreCrud.patch(MyItem.t);
+
+let decodePatch =
+  StorePatch.compose([
+    StoreCrud.decodePatch(
+      ~table=RealtimeSchema.table_name("items"),
+      ~decodeRow=MyItem.of_json,
+      (),
+    ),
+  ]);
+
+let updateOfPatch = StoreCrud.updateOfPatch(
+  ~getId=(item: MyItem.t) => item.id,
+  ~getItems=(config: config) => config.items,
+  ~setItems=(config: config, items) => {...config, items},
+);
 ```
 
-Instead:
+For multi-table patches with different config fields, use a wrapped variant:
 
-- decode transport envelopes into app-specific variants
-- convert each patch into an updater function
-- let `StoreSync` push those updaters into the Tilia-backed source
-
-That keeps the store API more FRP-like:
-
-- snapshots become `source.set(snapshot)`
-- patches become `source.update(updateOfPatch(patch))`
+```reason
+type patch =
+  | ItemsPatch(StoreCrud.patch(Item.t))
+  | UsersPatch(StoreCrud.patch(User.t));
+```
 
 ## 5. Sync with `RealtimeClient`
 
@@ -228,6 +278,8 @@ The store module provides:
 - `baseUrl`
 
 That is enough for `StoreSync` to call `RealtimeClient.Socket.subscribe(...)` for you.
+
+If your app does not run on the default ecommerce port, set `baseUrl` explicitly from app constants rather than relying on `RealtimeClient.Socket.defaultBaseUrl`.
 
 At a low level, the flow is:
 
@@ -251,6 +303,17 @@ The important part is that sync talks to the captured `StoreSource` actions:
 - patches call `source.update(updateOfPatch(patch))`
 
 That keeps realtime updates flowing through the same Tilia-backed source that hydration and local actions use.
+
+Named mutations use the same active websocket connection. At a low level the client-side write path is:
+
+```reason
+RealtimeClient.Socket.sendMutation(
+  "add_todo",
+  StoreJson.stringify(add_todo_input_to_json, {list_id, text}),
+);
+```
+
+That sends `mutation add_todo <json>` over the active socket. The server executes the write, Postgres triggers emit a patch, and `StoreSync` applies the returned patch to the captured source state.
 
 For the ecommerce demo, the relevant wiring lives in:
 
@@ -337,7 +400,7 @@ In `server.ml`, keep explicit non-page Dream routes first, then mount the univer
 
 ```reason
 Dream.router([
-  Dream.get "/_events" realtime_handler,
+  Middleware.route "/_events" realtime_middleware,
   Dream.get "/static/**" (Dream.static doc_root),
   Dream.get "/app.js" app_js_handler,
   Dream.get "/style.css" css_handler,
@@ -345,6 +408,8 @@ Dream.router([
   Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app),
 ]);
 ```
+
+If you are using PostgreSQL-backed realtime tables, make sure your setup applies the generated `realtime.sql` triggers before expecting websocket patches to arrive.
 
 ## 9. Hydrate on the client
 

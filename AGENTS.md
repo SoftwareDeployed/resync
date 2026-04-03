@@ -1,0 +1,223 @@
+# AGENTS.md
+
+Instructions for AI agents working on this codebase.
+
+## Project Overview
+
+Resync is a framework for building realtime universal (SSR + client) Reason React applications with PostgreSQL-backed state. The monorepo contains reusable packages and demo apps.
+
+## Build & Run
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build everything (continuous watch)
+pnpm run dune:watch
+
+# Run ecommerce demo (requires separate terminal for each)
+pnpm run ecommerce:watch    # restarts server on UI rebuild
+
+# Run todo demo
+pnpm run todo:watch         # restarts server on UI rebuild
+
+# Build a specific target
+dune build @app                                    # ecommerce client (from demos/ecommerce)
+dune build demos/ecommerce/server/src/server.exe   # ecommerce server (from repo root)
+dune build demos/todo/ui/src/.build_stamp          # todo client (from repo root)
+dune build demos/todo/server/src/server.exe        # todo server (from repo root)
+```
+
+### Build verification
+
+After making changes, always rebuild to verify:
+1. `dune build @app` from `demos/ecommerce` (or equivalent for the target you changed)
+2. `dune build demos/<demo>/server/src/server.exe` from repo root
+
+### Environment variables
+
+Each demo requires specific env vars in `.envrc`:
+- **Ecommerce**: `DB_URL`, `API_BASE_URL`, `ECOMMERCE_DOC_ROOT`
+- **Todo**: `TODO_DOC_ROOT` (set to `./_build/default/demos/todo/ui/src/`)
+- **Todo Multiplayer**: `DB_URL`, `TODO_MP_DOC_ROOT` (set to `./_build/default/demos/todo-multiplayer/ui/src/`)
+
+### Docker
+
+Ecommerce demo uses Docker for PostgreSQL:
+```bash
+docker compose up -d    # starts postgres with auto-initialized schema + triggers
+```
+
+## Testing
+
+Use Playwright MCP for end-to-end browser testing. Do NOT create Node.js test scripts.
+
+## Project Structure
+
+```
+packages/
+  realtime-schema/          # SQL annotation parser, codegen, PPX, CLI
+    src/
+      Realtime_schema_types.ml
+      Realtime_schema_parser.ml
+      Realtime_schema_codegen.ml
+      Realtime_schema_ppx.ml
+      Realtime_schema_caqti.ml
+  universal-reason-react/
+    router/                 # Universal router (shared route tree for server + client)
+    store/                  # Tilia-backed store with SSR, persistence, realtime sync
+      js/                   # JS/Melange implementations
+        StoreBuilder.re     # Functor-based store construction
+        StoreCrud.re        # Generic CRUD helpers for realtime patches
+        StorePatch.re       # Patch decoding infrastructure
+        StoreSource.re      # Tilia source wrappers
+        StoreSync.re        # Realtime websocket sync
+      native/               # Server-side copies
+  reason-realtime/
+    pgnotify-adapter/       # PostgreSQL LISTEN/NOTIFY adapter
+    dream-middleware/       # Dream websocket middleware
+  esbuild-plugin/           # Client component extraction
+  universal-reason-react/   # Also: components, lucide-icons, intl
+
+demos/
+  ecommerce/                # Full demo: DB, realtime, SSR
+    server/sql/             # Annotated SQL files (source of truth)
+      generated/            # Auto-generated triggers, migrations, snapshots
+    server/src/             # Dream server
+    ui/src/                 # Client UI (Reason React)
+    shared/js/              # Shared types (Model.re, RealtimeSchema.ml)
+    shared/native/          # Server-side shared types
+  todo/                     # Minimal demo: SSR, hydration, no DB/realtime
+```
+
+## Universal Rendering with server-reason-react
+
+This project uses **server-reason-react** to render the same ReasonReact code on both the server (native OCaml) and the client (JavaScript via Melange). This is not an isomorphic Node.js setup — the server is a compiled native binary.
+
+### How it works
+
+- **Melange** compiles `.re` files to `.js` in a `(melange.emit ...)` target directory (e.g., `app/`)
+- **esbuild** bundles the Melange JS output into `Index.re.js` and `Index.re.css` for the browser
+- The **server** compiles the same `.re` files as native OCaml via `server-reason-react`'s PPX transforms
+- The server's dune file copies `.re` sources from `ui/src/` into the server build context using `(copy_files)`
+- Shared types live in `shared/js/` (Melange) and `shared/native/` (native), each with their own dune library
+
+### Dual compilation constraints
+
+Code that runs on both server and client must compile under both targets. This means:
+
+- **Use `Js.Array.*` for array operations** — these are polyfilled by server-reason-react for native. Do NOT use `Array.append` (OCaml stdlib) or `List.*` for store collections.
+- **Use `->` chaining for `Js.Array.*` methods** — they use `[@mel.this]` binding: `items->Js.Array.filter(~f=...)`
+- **Use `switch%platform`** for platform-specific behavior (DOM access, localStorage, etc.)
+- **Use `[@platform js]` / `[@platform native]`** for platform-specific module implementations (provided by server-reason-react PPX)
+- **Do not use browser-only APIs** outside of `[@platform js]` blocks (e.g., `document`, `window`, `fetch`)
+- **Do not use Node.js APIs or npm packages** — the server is native OCaml, not Node
+
+### Dune library structure
+
+Each package that needs to work on both targets has two dune libraries:
+```
+shared/
+  js/dune       # (library ...) with melange PPX preprocessors
+  native/dune   # (library ...) with native PPX preprocessors
+```
+
+The server depends on `*_native` libraries; the client depends on `*_js` libraries. Both compile the same `.re` source files.
+
+## Code Conventions
+
+### Language
+
+- Reason (`*.re`) for application code and store/router libraries
+- OCaml (`*.ml`) for infrastructure (PPX, codegen, CLI, native adapters)
+- SQL (`*.sql`) with comment annotations for schema definitions
+
+### Store pattern
+
+All stores use `StoreBuilder.Runtime.Make` (or `Persisted.Make`) with values defined inline in the functor body. Do NOT define top-level bindings and then pass them through as `let x = x`:
+
+```reason
+// CORRECT: inline in functor body
+module Runtime = StoreBuilder.Runtime.Make({
+  type nonrec config = config;
+  // ...
+  let emptyStore: store = { /* ... */ };
+  let decodePatch = StorePatch.compose([ /* ... */ ]);
+  let updateOfPatch = StoreCrud.updateOfPatch(/* ... */);
+  // ...
+});
+
+// WRONG: top-level bindings passed to functor
+let emptyStore = { /* ... */ };
+let decodePatch = /* ... */;
+module Runtime = StoreBuilder.Runtime.Make({
+  let emptyStore = emptyStore;
+  let decodePatch = decodePatch;
+});
+```
+
+### Collections use `array`, not `list`
+
+Store state uses `array` throughout. Use `Js.Array.*` functions (which work in both Melange JS and native via server-reason-react):
+- `Js.Array.filter(~f=..., items)` — not `List.filter`
+- `Js.Array.map(~f=..., items)` — not `List.map`
+- `Js.Array.concat(~other=..., items)` — not `Array.append` or `List.append`
+- Use `->` chaining for `Js.Array.*` methods (they use `[@mel.this]`): `items->Js.Array.filter(~f=...)`
+- `Array.length` is fine for getting length
+
+### Patch handling with StoreCrud
+
+Use `StoreCrud` for standard CRUD tables. Do NOT write custom patch types, upsert/delete functions, or manual `StorePatch.Pg.decodeAs` wiring:
+
+```reason
+type patch = StoreCrud.patch(MyItem.t);
+
+// Inside functor body:
+let decodePatch =
+  StorePatch.compose([
+    StoreCrud.decodePatch(
+      ~table=RealtimeSchema.table_name("items"),
+      ~decodeRow=MyItem.of_json,
+      (),
+    ),
+  ]);
+
+let updateOfPatch = StoreCrud.updateOfPatch(
+  ~getId=(item: MyItem.t) => item.id,
+  ~getItems=(config: config) => config.items,
+  ~setItems=(config: config, items) => {...config, items},
+);
+```
+
+For multi-table stores, compose decoders and use a wrapped variant:
+```reason
+type patch =
+  | ItemsPatch(StoreCrud.patch(Item.t))
+  | UsersPatch(StoreCrud.patch(User.t));
+```
+
+### SQL-first schema
+
+Annotated SQL files in `server/sql/` are the source of truth. The PPX reads them at compile time.
+
+Key annotations:
+- `-- @table <name>` — marks a table for realtime
+- `-- @id_column <col>` — primary key column
+- `-- @broadcast_channel column=<col>` — which column determines the NOTIFY channel
+- `-- @broadcast_parent table=<parent> query=<named_query>` — child table triggers parent re-broadcast
+- `-- @composite_key <col1>, <col2>` — composite primary key
+- `-- @query <name>` — named query in block comments (`/* ... */`)
+- `-- @json_column <col>` — column returned as `::text` that needs JSON normalization in triggers
+
+### Don't modify files the user didn't ask about
+
+Especially `package.json`, watch scripts, or unrelated config files.
+
+## Key Documentation
+
+- `REALTIME_QUERY_REFACTOR.md` — full architecture plan for the realtime schema system
+- `docs/universal-reason-react.store.md` — store API reference and patterns
+- `docs/dream-router-store-setup.md` — step-by-step guide for Dream + Router + Store setup
+- `docs/API_REFERENCE.md` — complete API reference for all packages
+- `docs/reason-realtime.pgnotify-adapter.md` — PostgreSQL adapter docs
+- `docs/reason-realtime.dream-middleware.md` — Dream websocket middleware docs

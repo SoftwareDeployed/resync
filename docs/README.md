@@ -8,7 +8,7 @@ This documentation covers the complete stack for building universal Reason React
 
 - **Universal Router**: Shared routing between server and client
 - **Store System**: Tilia-backed state management with SSR hydration and persistence
-- **Real-time Sync**: WebSocket-based live updates via PostgreSQL LISTEN/NOTIFY
+- **Real-time Sync**: WebSocket-based live updates and mutation commands via PostgreSQL LISTEN/NOTIFY
 - **Component System**: Universal rendering helpers and icon support
 
 ## Quick Start
@@ -47,9 +47,9 @@ Use the checked-in `demos/todo` demo as the first app walkthrough.
 - client hydration in `ui/`
 
 ```bash
-dune build demos/todo
-export DOC_ROOT="./demos/todo/_build/default/demos/todo/ui/src/app/"
-dune exec demos/todo/server/src/server.exe
+export TODO_DOC_ROOT="./_build/default/demos/todo/ui/src/"
+pnpm run todo:dune:watch
+pnpm run todo:watch
 ```
 
 Open `http://localhost:8080`.
@@ -60,7 +60,10 @@ Key files to inspect:
 - `demos/todo/ui/src/Index.re` — hydration entry point
 - `demos/todo/ui/src/Routes.re` — route configuration
 
-After the basics are working, move to the [ecommerce demo](../demos/ecommerce/) for persistence and real-time extensions.
+After the basics are working, move to:
+
+- [todo-multiplayer](../demos/todo-multiplayer/) for SSR + websocket mutations + PostgreSQL-backed realtime patches
+- [ecommerce demo](../demos/ecommerce/) for a larger multi-store realtime app
 
 ## Package Documentation
 
@@ -75,7 +78,7 @@ After the basics are working, move to the [ecommerce demo](../demos/ecommerce/) 
 
 ### Real-time Packages
 
-- **[reason-realtime/dream-middleware](reason-realtime.dream-middleware.md)** - Dream websocket middleware for server-to-client real-time delivery.
+- **[reason-realtime/dream-middleware](reason-realtime.dream-middleware.md)** - Dream websocket middleware for server-to-client realtime delivery and websocket mutation commands.
 - **[reason-realtime/pgnotify-adapter](reason-realtime.pgnotify-adapter.md)** - PostgreSQL LISTEN/NOTIFY adapter for database-driven real-time events.
 
 ### Setup Guides
@@ -104,18 +107,21 @@ After the basics are working, move to the [ecommerce demo](../demos/ecommerce/) 
 2. **SSR Hydration**: Server renders initial state, client hydrates without refetching
 3. **Source State Pattern**: Single source of truth with derived projections
 4. **Real-time Patches**: Typed patch system for live updates without full re-renders
+5. **WebSocket Mutations**: UI actions can send named mutation commands over the active realtime socket
 
 ## Development
 
-### Running the Demo
+### Running the Demos
 
 ```bash
-cd demos/ecommerce
-export DB_URL="postgres://user:pass@localhost:5432/db"
-export API_BASE_URL="http://localhost:8899"
-export DOC_ROOT="./_build/default/demos/ecommerce/ui/src/app/"
+# todo-multiplayer
+pnpm run todo-mp:db:init
+pnpm run todo-mp:dune:watch
+pnpm run todo-mp:watch
 
-dune exec -- ./server/bin/main.exe
+# ecommerce
+pnpm run ecommerce:dune:watch
+pnpm run ecommerce:watch
 ```
 
 ### Building Documentation

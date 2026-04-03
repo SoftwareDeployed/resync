@@ -198,7 +198,7 @@ ws.onmessage = (e) => console.log('Message:', e.data);
 2. **Verify PostgreSQL triggers:**
 ```sql
 -- Check triggers exist
-SELECT * FROM pg_trigger WHERE tgname LIKE '%changes%';
+SELECT * FROM pg_trigger WHERE tgname LIKE 'realtime_notify_%';
 
 -- Test notification manually
 SELECT pg_notify('items_changes', '{"test": true}');
@@ -218,6 +218,16 @@ let subscriptionOfConfig = (config) => {
 ```reason
 // server.ml
 Dream.logger @@ Dream.run(...)
+```
+
+5. **Verify mutation commands are leaving the browser:**
+```javascript
+// Browser console
+const originalSend = WebSocket.prototype.send;
+WebSocket.prototype.send = function (message) {
+  console.log('ws send', message);
+  return originalSend.call(this, message);
+};
 ```
 
 ### Database connection errors

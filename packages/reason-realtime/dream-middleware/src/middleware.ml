@@ -4,14 +4,16 @@ type t = {
   adapter : Adapter.packed;
   resolve_subscription : Dream.request -> string -> string option Lwt.t;
   load_snapshot : Dream.request -> string -> string Lwt.t;
+  handle_mutation : (Dream.request -> string -> string -> unit Lwt.t) option;
   subscriptions : (string, Dream.websocket list) Hashtbl.t;
 }
 
-let create ~adapter ~resolve_subscription ~load_snapshot =
+let create ~adapter ~resolve_subscription ~load_snapshot ?handle_mutation () =
   {
     adapter;
     resolve_subscription;
     load_snapshot;
+    handle_mutation;
     subscriptions = Hashtbl.create 32;
   }
 
@@ -77,7 +79,8 @@ let subscribe_websocket t request websocket current_channel channel =
   Lwt.return_some channel
 
 let handle_message t request websocket current_channel message =
-  match String.split_on_char ' ' message with
+  let parts = String.split_on_char ' ' message in
+  match parts with
   | ["ping"] ->
       let* () = Dream.send websocket "pong" in
       Lwt.return current_channel
@@ -87,6 +90,15 @@ let handle_message t request websocket current_channel message =
       | Some channel ->
           subscribe_websocket t request websocket current_channel channel
       | None -> Lwt.return current_channel)
+  | "mutation" :: name :: _ when List.length parts >= 3 -> (
+      let payload = String.concat " " (List.tl (List.tl parts)) in
+      match t.handle_mutation with
+      | Some handler ->
+          let* () = handler request name payload in
+          Lwt.return current_channel
+      | None ->
+          let* () = Dream.send websocket "Mutations not supported" in
+          Lwt.return current_channel)
   | _ ->
       let* () = Dream.send websocket "Unknown command" in
       Lwt.return current_channel

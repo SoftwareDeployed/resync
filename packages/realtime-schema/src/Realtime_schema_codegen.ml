@@ -71,28 +71,36 @@ let table_record_literal (table : table) =
     (ocaml_of_broadcast_parent table.broadcast_parent)
     table.create_sql table.source_file
 
+let string_of_handler = function Sql -> "Sql" | Ocaml -> "Ocaml"
+
+let params_literal params =
+  params
+  |> List.map (fun param ->
+         Printf.sprintf
+           "{ index = %d; column_ref = %s; ocaml_type = %S; sql_type = %S }"
+           param.index
+           (match param.column_ref with
+           | None -> "None"
+           | Some (table_name, column_name) ->
+               Printf.sprintf "Some (%S, %S)" table_name column_name)
+           param.ocaml_type param.sql_type)
+  |> String.concat "; "
+  |> Printf.sprintf "[%s]"
+
 let query_record_literal (query : query) =
-  let params_literal =
-    query.params
-    |> List.map (fun param ->
-           Printf.sprintf
-             "{ index = %d; column_ref = %s; ocaml_type = %S; sql_type = %S }"
-             param.index
-             (match param.column_ref with
-             | None -> "None"
-             | Some (table_name, column_name) ->
-                 Printf.sprintf "Some (%S, %S)" table_name column_name)
-             param.ocaml_type param.sql_type)
-    |> String.concat "; "
-    |> Printf.sprintf "[%s]"
-  in
   let json_columns_literal = string_list_literal query.json_columns in
   Printf.sprintf
-    "{ name = %S; sql = %S; source_file = %S; cache_key = %s; return_table = %s; json_columns = %s; params = %s }"
+    "{ name = %S; sql = %S; source_file = %S; cache_key = %s; return_table = %s; json_columns = %s; params = %s; handler = %s }"
     query.name query.sql query.source_file
     (match query.cache_key with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
     (match query.return_table with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
-    json_columns_literal params_literal
+    json_columns_literal (params_literal query.params) (string_of_handler query.handler)
+
+let mutation_record_literal (mutation : mutation) =
+  Printf.sprintf
+    "{ name = %S; sql = %S; source_file = %S; params = %s; handler = %s }"
+    mutation.name mutation.sql mutation.source_file
+    (params_literal mutation.params) (string_of_handler mutation.handler)
 
 let column_type_annotation (column : column) =
   match ocaml_type_of_sql_type column.sql_type with
@@ -119,10 +127,21 @@ let query_module_declaration (query : query) =
     |> String.concat "; "
   in
   Printf.sprintf
-    "module %s = struct\n  let name = %S\n  let sql = %S\n  let params = [%s]\n  let return_table = %s\n  let json_columns = %s\nend"
+    "module %s = struct\n  let name = %S\n  let sql = %S\n  let params = [%s]\n  let return_table = %s\n  let json_columns = %s\n  let handler = %s\nend"
     (module_name_of_table query.name) query.name query.sql params_literal
     (match query.return_table with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
-    (string_list_literal query.json_columns)
+    (string_list_literal query.json_columns) (string_of_handler query.handler)
+
+let mutation_module_declaration (mutation : mutation) =
+  let params_literal =
+    mutation.params
+    |> List.map (fun param -> Printf.sprintf "(%d, %S, %S)" param.index param.ocaml_type param.sql_type)
+    |> String.concat "; "
+  in
+  Printf.sprintf
+    "module %s = struct\n  let name = %S\n  let sql = %S\n  let params = [%s]\n  let handler = %s\nend"
+    (module_name_of_table mutation.name) mutation.name mutation.sql params_literal
+    (string_of_handler mutation.handler)
 
 let table_id_expression row_alias (table : table) =
   match table.id_column with
@@ -613,7 +632,9 @@ let module_source (schema : schema) =
   let table_types = schema.tables |> List.map record_type_declaration |> String.concat "\n\n" in
   let table_values = schema.tables |> List.map table_record_literal |> String.concat ";\n  " in
   let query_values = schema.queries |> List.map query_record_literal |> String.concat ";\n  " in
+  let mutation_values = schema.mutations |> List.map mutation_record_literal |> String.concat ";\n  " in
   let query_modules = schema.queries |> List.map query_module_declaration |> String.concat "\n\n" in
+  let mutation_modules = schema.mutations |> List.map mutation_module_declaration |> String.concat "\n\n" in
   let table_modules =
     schema.tables
     |> List.map (fun (table : table) ->
@@ -626,10 +647,11 @@ let module_source (schema : schema) =
   in
   let _, migration_sql = migration_sql schema in
   Printf.sprintf
-    "include struct\n\ntype sql_type =\n  | Uuid\n  | Varchar\n  | Text\n  | Int\n  | Bigint\n  | Boolean\n  | Timestamp\n  | Timestamptz\n  | Json\n  | Jsonb\n  | Custom of string\n\ntype foreign_key = {\n  column : string;\n  referenced_table : string;\n  referenced_column : string;\n}\n\ntype broadcast_channel =\n  | Column of string\n  | Computed of string\n  | Conditional of string\n  | Subquery of string\n\ntype broadcast_parent = {\n  parent_table : string;\n  query_name : string;\n}\n\ntype column_metadata = {\n  name : string;\n  sql_type : sql_type;\n  sql_type_raw : string;\n  nullable : bool;\n  primary_key : bool;\n  default : string option;\n  foreign_key : foreign_key option;\n  definition_sql : string;\n}\n\ntype table_metadata = {\n  name : string;\n  columns : column_metadata list;\n  id_column : string option;\n  composite_key : string list;\n  broadcast_channel : broadcast_channel option;\n  broadcast_parent : broadcast_parent option;\n  create_sql : string;\n  source_file : string;\n}\n\ntype query_param = {\n  index : int;\n  column_ref : (string * string) option;\n  ocaml_type : string;\n  sql_type : string;\n}\n\ntype query_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  cache_key : string option;\n  return_table : string option;\n  json_columns : string list;\n  params : query_param list;\n}\n\n%s\n\nlet schema_hash = %S\n\nlet source_files = %s\n\nlet tables : table_metadata list = [\n  %s\n]\n\nlet queries : query_metadata list = [\n  %s\n]\n\nlet generated_triggers_sql = %S\n\nlet latest_migration_sql = %S\n\nlet find_query name = List.find_opt (fun (query : query_metadata) -> query.name = name) queries\n\nlet find_table name = List.find_opt (fun (table : table_metadata) -> table.name = name) tables\n\nlet find_column table_name column_name =\n  match find_table table_name with\n  | Some table -> List.find_opt (fun (column : column_metadata) -> column.name = column_name) table.columns\n  | None -> None\n\nlet table_name name = match find_table name with Some table -> table.name | None -> name\n\nmodule Tables = struct\n%s\nend\n\nmodule Queries = struct\n%s\nend\nend"
+    "include struct\n\ntype sql_type =\n  | Uuid\n  | Varchar\n  | Text\n  | Int\n  | Bigint\n  | Boolean\n  | Timestamp\n  | Timestamptz\n  | Json\n  | Jsonb\n  | Custom of string\n\ntype foreign_key = {\n  column : string;\n  referenced_table : string;\n  referenced_column : string;\n}\n\ntype broadcast_channel =\n  | Column of string\n  | Computed of string\n  | Conditional of string\n  | Subquery of string\n\ntype broadcast_parent = {\n  parent_table : string;\n  query_name : string;\n}\n\ntype column_metadata = {\n  name : string;\n  sql_type : sql_type;\n  sql_type_raw : string;\n  nullable : bool;\n  primary_key : bool;\n  default : string option;\n  foreign_key : foreign_key option;\n  definition_sql : string;\n}\n\ntype table_metadata = {\n  name : string;\n  columns : column_metadata list;\n  id_column : string option;\n  composite_key : string list;\n  broadcast_channel : broadcast_channel option;\n  broadcast_parent : broadcast_parent option;\n  create_sql : string;\n  source_file : string;\n}\n\ntype handler = Sql | Ocaml\n\ntype query_param = {\n  index : int;\n  column_ref : (string * string) option;\n  ocaml_type : string;\n  sql_type : string;\n}\n\ntype query_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  cache_key : string option;\n  return_table : string option;\n  json_columns : string list;\n  params : query_param list;\n  handler : handler;\n}\n\ntype mutation_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  params : query_param list;\n  handler : handler;\n}\n\n%s\n\nlet schema_hash = %S\n\nlet source_files = %s\n\nlet tables : table_metadata list = [\n  %s\n]\n\nlet queries : query_metadata list = [\n  %s\n]\n\nlet mutations : mutation_metadata list = [\n  %s\n]\n\nlet generated_triggers_sql = %S\n\nlet latest_migration_sql = %S\n\nlet find_query name = List.find_opt (fun (query : query_metadata) -> query.name = name) queries\n\nlet find_mutation name = List.find_opt (fun (mutation : mutation_metadata) -> mutation.name = name) mutations\n\nlet find_table name = List.find_opt (fun (table : table_metadata) -> table.name = name) tables\n\nlet find_column table_name column_name =\n  match find_table table_name with\n  | Some table -> List.find_opt (fun (column : column_metadata) -> column.name = column_name) table.columns\n  | None -> None\n\nlet table_name name = match find_table name with Some table -> table.name | None -> name\n\nmodule Tables = struct\n%s\nend\n\nmodule Queries = struct\n%s\nend\n\nmodule Mutations = struct\n%s\nend\nend"
     table_types schema.schema_hash (string_list_literal schema.source_files)
-    (indent table_values) (indent query_values) (generated_triggers_sql schema)
-    migration_sql (indent table_modules) (indent query_modules)
+    (indent table_values) (indent query_values) (indent mutation_values)
+    (generated_triggers_sql schema) migration_sql
+    (indent table_modules) (indent query_modules) (indent mutation_modules)
 
 let write_file path contents =
   let channel = open_out_bin path in

@@ -31,10 +31,10 @@ let make =
 
     let completed_count =
       store.todos
-      |> List.filter((todo: TodoStore.todo) => todo.completed)
-      |> List.length;
+      ->Js.Array.filter(~f=(todo: TodoStore.todo) => todo.completed)
+      ->Array.length;
 
-    let total_count = List.length(store.todos);
+    let total_count = Array.length(store.todos);
 
     let handleSubmit = event => {
       preventDefault(event);
@@ -79,29 +79,28 @@ let make =
              </div>;
           } else {
              store.todos
-             |> List.map((todo: TodoStore.todo) => {
+             |> Js.Array.map(~f=(todo: TodoStore.todo) => {
                  let textClassName =
                    "todo-text " ++ (todo.completed ? "completed" : "");
 
-                <div key={todo.id} className="todo-item">
-                  <input
-                     className="todo-checkbox"
-                     type_="checkbox"
-                     checked={todo.completed}
-                     onChange={_ => handleToggleTodo(todo.id)}
-                   />
-                  <span className=textClassName>
-                    {React.string(todo.text)}
-                  </span>
-                     <button
-                       className="todo-delete"
-                      onClick={_ => handleRemoveTodo(todo.id)}>
-                      <Lucide.IconX size=20 />
-                     </button>
+                 <div key={todo.id} className="todo-item">
+                   <input
+                      className="todo-checkbox"
+                      type_="checkbox"
+                      checked={todo.completed}
+                      onChange={_ => handleToggleTodo(todo.id)}
+                    />
+                   <span className=textClassName>
+                     {React.string(todo.text)}
+                   </span>
+                      <button
+                        className="todo-delete"
+                       onClick={_ => handleRemoveTodo(todo.id)}>
+                       <Lucide.IconX size=20 />
+                      </button>
                   </div>;
                 })
-            |> Array.of_list
-            |> React.array;
+             |> React.array;
           }}
         </div>
        {if (total_count > 0) {

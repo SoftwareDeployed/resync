@@ -1,0 +1,87 @@
+{
+  "schema_hash": "a374e4303e53d12ca1f2e027416034c0",
+  "tables": [
+    {
+      "table_name": "todo_lists",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": "uuid",
+          "nullable": true,
+          "primary_key": true,
+          "default": "gen_random_uuid()",
+          "foreign_key": null
+        },
+        {
+          "name": "name",
+          "sql_type": "text",
+          "nullable": false,
+          "primary_key": false,
+          "default": "'My Todo List'",
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "sql_type": "timestamptz",
+          "nullable": false,
+          "primary_key": false,
+          "default": "NOW()",
+          "foreign_key": null
+        }
+      ],
+      "id_column": "id",
+      "composite_key": []
+    },
+    {
+      "table_name": "todos",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": "uuid",
+          "nullable": true,
+          "primary_key": true,
+          "default": "gen_random_uuid()",
+          "foreign_key": null
+        },
+        {
+          "name": "list_id",
+          "sql_type": "uuid",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": {
+            "column": "list_id",
+            "referenced_table": "todo_lists",
+            "referenced_column": "id"
+          }
+        },
+        {
+          "name": "text",
+          "sql_type": "text",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "completed",
+          "sql_type": "boolean",
+          "nullable": false,
+          "primary_key": false,
+          "default": "false",
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "sql_type": "timestamptz",
+          "nullable": false,
+          "primary_key": false,
+          "default": "NOW()",
+          "foreign_key": null
+        }
+      ],
+      "id_column": "id",
+      "composite_key": []
+    }
+  ]
+}

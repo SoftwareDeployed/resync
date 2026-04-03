@@ -50,6 +50,10 @@ type table = {
   source_file : string;
 }
 
+type handler =
+  | Sql
+  | Ocaml
+
 type query_param = {
   index : int;
   column_ref : (string * string) option;
@@ -65,11 +69,21 @@ type query = {
   return_table : string option;
   json_columns : string list;
   params : query_param list;
+  handler : handler;
+}
+
+type mutation = {
+  name : string;
+  sql : string;
+  source_file : string;
+  params : query_param list;
+  handler : handler;
 }
 
 type schema = {
   tables : table list;
   queries : query list;
+  mutations : mutation list;
   source_files : string list;
   schema_hash : string;
 }

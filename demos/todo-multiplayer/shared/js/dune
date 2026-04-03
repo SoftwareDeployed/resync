@@ -1,0 +1,15 @@
+(library
+ (name todo_multiplayer_js)
+ (public_name resync.todo_multiplayer_js)
+ (modules Model Constants RealtimeSchema)
+ (wrapped false)
+ (libraries
+   melange-json
+   universal_reason_react_store_js)
+ (modes melange)
+ (preprocess
+  (pps
+   realtime_schema_ppx
+   server-reason-react.browser_ppx -js
+   melange.ppx
+   melange-json.ppx)))

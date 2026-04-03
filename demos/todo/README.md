@@ -34,7 +34,7 @@ pnpm install
 Configure environment variables. For development, add to `.envrc` at the repo root:
 
 ```bash
-export TODO_DOC_ROOT="./_build/default/demos/todo/ui/src/app/"
+export TODO_DOC_ROOT="./_build/default/demos/todo/ui/src/"
 ```
 
 ### Run the Demo

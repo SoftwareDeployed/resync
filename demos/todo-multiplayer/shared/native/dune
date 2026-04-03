@@ -1,0 +1,20 @@
+(library
+ (name todo_multiplayer_native)
+ (public_name resync.todo_multiplayer_native)
+ (modules Model Constants RealtimeSchema)
+ (wrapped false)
+ (libraries
+   melange-json-native
+   server-reason-react.js
+   universal_reason_react_store_native
+   str)
+ (preprocess
+  (pps
+   realtime_schema_ppx
+   server-reason-react.browser_ppx
+   server-reason-react.melange_ppx
+   melange-json-native.ppx))
+ (modes native))
+
+(copy_files
+ (files ../js/*.re))

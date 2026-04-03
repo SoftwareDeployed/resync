@@ -8,88 +8,42 @@ type todo = {
 };
 
 [@deriving json]
-type config = {todos: list(todo)};
+type config = {todos: array(todo)};
 
 [@deriving json]
-type payload = {todos: list(todo)};
+type payload = {todos: array(todo)};
 
 type patch = unit;
 type subscription = unit;
 
 type store = {
-  todos: list(todo),
+  todos: array(todo),
   completed_count: int,
   total_count: int,
 };
 
-let nextTodoId = (todos: list(todo)) => {
+let nextTodoId = (todos: array(todo)) => {
   let next =
-    List.fold_left(
-      (next, todo: todo) =>
-        switch (
-          try(Some(int_of_string(todo.id))) {
-          | Failure(_) => None
-          }
-        ) {
-        | Some(id) when id >= next => id + 1
-        | _ => next
-        },
-      1,
-      todos,
-    );
+    Array.to_list(todos)
+    |> List.fold_left(
+         (next, todo: todo) =>
+           switch (
+             try(Some(int_of_string(todo.id))) {
+             | Failure(_) => None
+             }
+           ) {
+           | Some(id) when id >= next => id + 1
+           | _ => next
+           },
+         1,
+       );
   string_of_int(next);
 };
 
-let stateElementId = "initial-store";
+let todosSourceRef: ref(option(StoreSource.t(array(todo)))) = ref(None);
 
-let payloadOfStore = (store: store) => { todos: store.todos };
-
-let emptyConfig: config = { todos: [] };
-
-let emptyStore = {
-  todos: [],
-  completed_count: 0,
-  total_count: 0,
-};
-
-let payloadOfConfig = (config: config): payload => { todos: config.todos };
-
-let configOfPayload = (payload: payload): config => { todos: payload.todos };
-
-let completedCount = (todos: list(todo)) =>
-  todos |> List.filter((todo: todo) => todo.completed) |> List.length;
-
-let todosSourceRef: ref(option(StoreSource.t(list(todo)))) = ref(None);
-
-let makeStore =
-    (
-      ~config: config,
-      ~payload: payload,
-      ~derive: option(Tilia.Core.deriver(store))=?,
-      (),
-    )
-    : store => {
-  let todosSource = StoreSource.make(payload.todos);
-  todosSourceRef := Some(todosSource);
-
-  {
-    todos: todosSource.value,
-    completed_count:
-      StoreBuilder.derived(
-        ~derive?,
-        ~client=store => completedCount(store.todos),
-        ~server=() => completedCount(config.todos),
-        (),
-      ),
-    total_count:
-      StoreBuilder.derived(
-        ~derive?,
-        ~client=store => List.length(store.todos),
-        ~server=() => List.length(config.todos),
-        (),
-      ),
-  };
-};
+let completedCount = (todos: array(todo)) =>
+  todos->Js.Array.filter(~f=(todo: todo) => todo.completed)->Array.length;
 
 module Runtime =
   StoreBuilder.Runtime.Make({
@@ -99,11 +53,50 @@ module Runtime =
     type nonrec store = store;
     type nonrec subscription = subscription;
 
-    let emptyStore = emptyStore;
-    let stateElementId = stateElementId;
-    let payloadOfConfig = payloadOfConfig;
-    let configOfPayload = configOfPayload;
-    let makeStore = makeStore;
+    let emptyStore: store = {
+      todos: [||],
+      completed_count: 0,
+      total_count: 0,
+    };
+    let stateElementId = "initial-store";
+
+    let payloadOfConfig = (config: config): payload => {
+      todos: config.todos,
+    };
+    let configOfPayload = (payload: payload): config => {
+      todos: payload.todos,
+    };
+
+    let makeStore =
+        (
+          ~config: config,
+          ~payload: payload,
+          ~derive: option(Tilia.Core.deriver(store))=?,
+          (),
+        )
+        : store => {
+      let todosSource = StoreSource.make(payload.todos);
+      todosSourceRef := Some(todosSource);
+
+      {
+        todos: todosSource.value,
+        completed_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => completedCount(store.todos),
+            ~server=() => completedCount(config.todos),
+            (),
+          ),
+        total_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => Array.length(store.todos),
+            ~server=() => Array.length(config.todos),
+            (),
+          ),
+      };
+    };
+
     let config_of_json = config_of_json;
     let config_to_json = config_to_json;
     let payload_of_json = payload_of_json;
@@ -118,12 +111,12 @@ module Runtime =
   });
 
 include (
-          Runtime:
-            StoreBuilder.Runtime.Exports with
-              type config := config and
-              type payload := payload and
-              type t := store
-        );
+  Runtime:
+    StoreBuilder.Runtime.Exports
+      with type config := config
+      and type payload := payload
+      and type t := store
+);
 
 type t = store;
 
@@ -135,12 +128,12 @@ let log = (label: string, value: 'a) =>
   | Server => ()
   };
 
-let logTodoIds = (label: string, todos: list(todo)) => {
+let logTodoIds = (label: string, todos: array(todo)) => {
   let summary =
-    todos
+    Array.to_list(todos)
     |> List.map((todo: todo) => todo.id ++ ": " ++ todo.text)
     |> String.concat(", ");
-  log(label ++ " (" ++ string_of_int(List.length(todos)) ++ "): ", summary);
+  log(label ++ " (" ++ string_of_int(Array.length(todos)) ++ "): ", summary);
 };
 
 let hydrateStore = () => Runtime.hydrateStore();
@@ -175,22 +168,17 @@ let addTodo = (store: t, text: string) => {
     completed: false,
   };
   log("[todo] addTodo", newTodo);
-  updateTodos(~store, todos => [newTodo, ...todos]);
+  updateTodos(~store, todos =>
+    StoreCrud.upsert(~getId=(todo: todo) => todo.id, todos, newTodo)
+  );
 };
 
 let toggleTodo = (store: t, id: string) => {
   log("[todo] toggleTodo", id);
   updateTodos(~store, todos =>
-    List.map(
-      (todo: todo) =>
-        if (todo.id == id) {
-          {
-            ...todo,
-            completed: !todo.completed,
-          };
-        } else {
-          todo;
-        },
+    Js.Array.map(
+      ~f=(todo: todo) =>
+        todo.id == id ? {...todo, completed: !todo.completed} : todo,
       todos,
     )
   );
@@ -199,6 +187,6 @@ let toggleTodo = (store: t, id: string) => {
 let removeTodo = (store: t, id: string) => {
   log("[todo] removeTodo", id);
   updateTodos(~store, todos =>
-    List.filter((todo: todo) => todo.id != id, todos)
+    StoreCrud.remove(~getId=(todo: todo) => todo.id, todos, id)
   );
 };

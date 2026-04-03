@@ -16,8 +16,8 @@ let () =
        [
          Dream.get "/app.js" (fun req ->
              Dream.from_filesystem doc_root "Index.re.js" req);
-         Dream.get "/style.css" (fun req ->
-             Dream.from_filesystem doc_root "Index.re.css" req);
+          Dream.get "/style.css" (fun req ->
+              Dream.from_filesystem doc_root "Index.re.css" req);
          Dream.get "/" (UniversalRouterDream.handler ~app:EntryServer.app);
          Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
        ]

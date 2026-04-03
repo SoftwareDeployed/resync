@@ -1,8 +1,8 @@
 # resync
 
-`resync` is an early alpha monorepo for building universal Reason React applications with synchronized store state, realtime delivery, and optional client persistence on top of a Dream server.
+`resync` is an early alpha monorepo for building universal Reason React applications with synchronized store state, realtime delivery, websocket mutation commands, and optional client persistence on top of a Dream server.
 
-The repository currently ships with an ecommerce demo that exercises the shared packages.
+The repository currently ships with ecommerce, todo, and todo-multiplayer demos that exercise the shared packages.
 
 Note: parts of this README and `docs/` are AI-generated drafts. Human review and editing are required before treating them as finalized documentation.
 
@@ -32,6 +32,13 @@ demos/
     server/                Dream server demo
     shared/                Shared ecommerce domain types for native + Melange
     ui/                    Reason React / Melange frontend demo
+  todo/
+    server/                Minimal SSR + hydration demo
+    ui/                    Minimal client demo
+  todo-multiplayer/
+    server/                PostgreSQL-backed realtime todo demo
+    shared/                Shared schema + model types
+    ui/                    Realtime todo frontend
 ```
 
 ## What is in the store package?
@@ -67,7 +74,7 @@ In practice, the opinionated stack looks like this:
 - `universal-reason-react/router` shares route definitions between Dream and Reason React
 - `universal-reason-react/components` renders the document shell consistently on server and client
 - `universal-reason-react/store` hydrates initial state and keeps it reactive in the browser
-- `reason-realtime/*` pushes server-side changes into the client store after the initial SSR render
+- `reason-realtime/*` pushes server-side changes into the client store after the initial SSR render and accepts mutation commands over the same websocket connection
 
 If you want to understand how the pieces fit together, start with the ecommerce demo and the package-level docs under `docs/`.
 
@@ -79,6 +86,13 @@ Realtime support is split into packages under `packages/reason-realtime`.
 - `pgnotify-adapter` is the first adapter and uses PostgreSQL `LISTEN/NOTIFY`
 
 The ecommerce demo uses this stack to stream inventory updates into the client store.
+
+The todo-multiplayer demo uses the same stack for both reads and writes:
+
+- initial state is rendered into the HTML payload
+- the browser subscribes to `/_events`
+- UI actions send `mutation <name> <json>` commands over that websocket
+- PostgreSQL triggers broadcast patches back to the subscribed list channel
 
 Current Dune public libraries publish under the `resync.*` namespace, including:
 
@@ -152,7 +166,7 @@ docker compose up ecommerce-demo
 Start PostgreSQL:
 
 ```bash
-docker compose -f demos/ecommerce/server/docker-compose.yml up -d
+docker compose up -d postgres
 ```
 
 Configure environment variables. For development, `.envrc` is recommended:
@@ -163,6 +177,7 @@ export DB_URL="postgres://executor:executor-password@localhost:5432/executor_db"
 export API_BASE_URL="http://localhost:8899"
 export ECOMMERCE_DOC_ROOT="./_build/default/demos/ecommerce/ui/src"
 export TODO_DOC_ROOT="./_build/default/demos/todo/ui/src"
+export TODO_MP_DOC_ROOT="./_build/default/demos/todo-multiplayer/ui/src"
 ```
 
 The server fails fast unless `DB_URL` and `ECOMMERCE_DOC_ROOT` are set.
@@ -207,6 +222,33 @@ Open:
 http://localhost:8080
 ```
 
+### Todo multiplayer demo
+
+The todo-multiplayer demo shares the root PostgreSQL service and applies both schema DDL and generated realtime triggers.
+
+Run the demo (requires two terminals):
+
+```bash
+# One-time or after schema changes
+pnpm todo-mp:db:init
+
+# Terminal 1: Build watch
+pnpm todo-mp:dune:watch
+
+# Terminal 2: Run server (restarts on UI changes)
+pnpm todo-mp:watch
+```
+
+> **Note:** Set `TODO_MP_DOC_ROOT` in `.envrc` as shown above. The server fails fast unless this is set.
+
+> **Note:** `pnpm todo-mp:db:init` regenerates `demos/todo-multiplayer/server/sql/generated/realtime.sql` before applying the schema and triggers.
+
+Open:
+
+```text
+http://localhost:8898
+```
+
 ### Available scripts
 
 | Script | Description |
@@ -215,6 +257,10 @@ http://localhost:8080
 | `ecommerce:watch` | Run ecommerce server, restart on .build_stamp changes |
 | `todo:dune:watch` | Dune build watch for todo |
 | `todo:watch` | Run todo server, restart on .build_stamp changes |
+| `todo-mp:schema:generate` | Generate todo-multiplayer realtime SQL artifacts |
+| `todo-mp:db:init` | Apply todo-multiplayer schema and generated realtime triggers |
+| `todo-mp:dune:watch` | Dune build watch for todo-multiplayer |
+| `todo-mp:watch` | Run todo-multiplayer server, restart on .build_stamp changes |
 
 ## Build
 
@@ -223,6 +269,7 @@ Build specific demos from the repo root:
 ```bash
 dune build @ecommerce-app @ecommerce-server
 dune build @todo-app @todo-server
+dune build demos/todo-multiplayer/ui/src/.build_stamp demos/todo-multiplayer/server/src/server.exe
 ```
 
 Or build all:
@@ -244,6 +291,12 @@ The todo demo uses:
 
 - `TODO_DOC_ROOT=./_build/default/demos/todo/ui/src`
 - server port `8080`
+
+The todo-multiplayer demo uses:
+
+- `TODO_MP_DOC_ROOT=./_build/default/demos/todo-multiplayer/ui/src`
+- `DB_URL=postgres://executor:executor-password@localhost:5432/executor_db`
+- server port `8898`
 
 ## Demo behavior
 

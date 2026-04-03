@@ -1,0 +1,9 @@
+{
+  "name": "todo-multiplayer-ui",
+  "module": "src/Index.js",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "esbuild": "^0.27.2"
+  }
+}
