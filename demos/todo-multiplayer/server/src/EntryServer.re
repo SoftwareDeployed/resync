@@ -60,7 +60,7 @@ let getServerState = (context: UniversalRouterDream.serverContext(TodoStore.t)) 
 
 let render = (~context, ~serverState: TodoStore.t, ()) => {
   let store = serverState;
-  let serializedState = TodoStore.serializeState(serverState.config);
+  let serializedState = TodoStore.serializeState(serverState.state);
   let UniversalRouterDream.{
     basePath,
     pathname: serverPathname,

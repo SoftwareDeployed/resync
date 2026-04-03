@@ -9,6 +9,8 @@
    StoreCore
    StoreCrud
    StoreJson
+   StoreLayer
+   StoreLocal
    StorePatch
    StorePersist
    StoreRuntime

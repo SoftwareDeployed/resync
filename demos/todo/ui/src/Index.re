@@ -14,7 +14,7 @@ let root =
   | None => failwith("No root element found")
   };
 
-let store = TodoStore.hydrateStoreWithLogs();
+let store = TodoStore.hydrateStore();
 
 let app =
   React.createElement(

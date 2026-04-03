@@ -43,14 +43,14 @@ module Make = (Schema: Schema) => {
   });
 
   module Sync = StoreSync.Make({
-    type config = Schema.config;
+    type state = Schema.config;
     type patch = Schema.patch;
     type subscription = Schema.subscription;
 
-      let subscriptionOfConfig = Schema.subscriptionOfConfig;
+      let subscriptionOfState = Schema.subscriptionOfConfig;
       let encodeSubscription = Schema.encodeSubscription;
       let updatedAtOf = Schema.updatedAtOf;
-      let config_of_json = Schema.config_of_json;
+      let state_of_json = Schema.config_of_json;
       let decodePatch = Schema.decodePatch;
       let updateOfPatch = Schema.updateOfPatch;
       let eventUrl = Schema.eventUrl;

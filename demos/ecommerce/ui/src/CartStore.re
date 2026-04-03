@@ -19,7 +19,7 @@ module CartItem = {
 };
 
 [@deriving json]
-type config = {items: StoreJson.Dict.t(CartItem.t)};
+type state = {items: StoreJson.Dict.t(CartItem.t)};
 
 type items = StoreJson.Dict.t(CartItem.t);
 
@@ -30,31 +30,38 @@ type payload = {
 };
 
 type store = {
-  items,
+  state: state,
   item_count: int,
 };
 
 let storageKey = "ecommerce.cart";
+let stateElementId = "cart-store";
 
 let defaultItems: items = Js.Dict.empty();
+
+let normalizeItems = items =>
+  try({
+    ignore(items->Js.Dict.keys);
+    items;
+  }) {
+  | _ => defaultItems
+  };
 
 let emptyPayload: payload = {
   items: Some(defaultItems),
 };
 
-let payloadOfConfig = (config: config): payload => {items: Some(config.items)};
+let payloadOfState = (state: state): payload => {items: Some(state.items)};
 
-let configOfPayload = (payload: payload): config => {
+let stateOfPayload = (payload: payload): state => {
   items:
     switch (payload.items) {
-    | Some(items) => items
+    | Some(items) => normalizeItems(items)
     | None => defaultItems
     },
 };
 
-let payloadOfStore = (store: store): payload => {items: Some(store.items)};
-
-let emptyConfig = configOfPayload(emptyPayload);
+let emptyState = stateOfPayload(emptyPayload);
 
 let itemCountOfItems = items =>
   Array.fold_left(
@@ -68,11 +75,11 @@ let itemCountOfItems = items =>
     items->Js.Dict.keys,
   );
 
-let itemCount = (config: config) => itemCountOfItems(config.items);
+let itemCount = (state: state) => itemCountOfItems(state.items);
 
 let makeStore =
     (
-      ~config: config,
+      ~state: state,
       ~payload: payload,
       ~derive: option(Tilia.Core.deriver(store))=?,
       (),
@@ -80,20 +87,24 @@ let makeStore =
     store => {
   let _ = payload;
   {
-    items: config.items,
+    state:
+      StoreBuilder.current(
+        ~derive?,
+        ~client=state,
+        ~server=() => state,
+        (),
+      ),
     item_count:
       StoreBuilder.derived(
         ~derive?,
-        ~client=store => itemCountOfItems(store.items),
-        ~server=() => itemCount(config),
+        ~client=store => itemCount(store.state),
+        ~server=() => itemCount(state),
         (),
       ),
   };
 };
 
-let emptyStore = makeStore(~config=emptyConfig, ~payload=emptyPayload, ());
-
-let itemsSourceRef: ref(option(StoreSource.t(items))) = ref(None);
+let emptyStore = makeStore(~state=emptyState, ~payload=emptyPayload, ());
 
 let log = (label: string, value: 'a) =>
   switch%platform (Runtime.platform) {
@@ -101,52 +112,52 @@ let log = (label: string, value: 'a) =>
   | Server => ()
   };
 
-let transformConfig = (config: config): config =>
-  switch%platform (Runtime.platform) {
-  | Client => {
-      log("[cart] sourceItems init count", config.items->Js.Dict.keys->Array.length);
-      let itemsSource = StoreSource.make(config.items);
-      itemsSourceRef := Some(itemsSource);
-      {items: itemsSource.value};
-    }
-  | Server => {
-      let itemsSource = StoreSource.make(config.items);
-      itemsSourceRef := Some(itemsSource);
-      {items: itemsSource.value};
-    }
-  };
+module Local = StoreLocal.Make({
+  type nonrec state = state;
+  type nonrec payload = payload;
 
-module Runtime = StoreBuilder.Persisted.Make({
-  type nonrec config = config;
+  module Adapter = StoreLocal.LocalStorageAdapter;
+
+  let storageKeyOfState = (_state: state) => storageKey;
+  let payloadOfState = payloadOfState;
+  let stateOfPayload = stateOfPayload;
+  let payload_of_json = payload_of_json;
+  let payload_to_json = payload_to_json;
+});
+
+module Layered = StoreBuilder.Layered.Make({
+  type nonrec state = state;
   type nonrec payload = payload;
   type nonrec store = store;
 
-  let storageKey = storageKey;
   let emptyStore = emptyStore;
-  let payloadOfConfig = payloadOfConfig;
-  let configOfPayload = configOfPayload;
-  let payloadOfStore = payloadOfStore;
+  let emptyPayload = emptyPayload;
+  let stateElementId = stateElementId;
+  let payloadOfState = payloadOfState;
+  let stateOfPayload = stateOfPayload;
+  let state_of_json = state_of_json;
+  let state_to_json = state_to_json;
   let payload_of_json = payload_of_json;
   let payload_to_json = payload_to_json;
-  let transformConfig = transformConfig;
+  let clientLayers = [|Local.hooks|];
   let makeStore = makeStore;
 });
 
 include (
-  Runtime:
-    StoreBuilder.Persisted.Exports
-      with type config := config
+  Layered:
+    StoreBuilder.Layered.Exports
+      with type state := state
       and type payload := payload
       and type t := store
 );
 
 type t = store;
 
-module Context = Runtime.Context;
+module Context = Layered.Context;
 
 let hydrateStore = () => {
-  let store = Runtime.hydrateStore();
-  log("[cart] hydrated count", store.items->Js.Dict.keys->Array.length);
+  let store = Layered.hydrateStore();
+  log("[cart] hydrated", "ok");
   store;
 };
 
@@ -178,7 +189,7 @@ let removeItemById = (items: items, inventoryId: string) => {
   nextItems;
 };
 
-let setItemQuantity = (items: items, ~inventoryId, ~quantity) => {
+let setItemQuantity = (items: items, ~inventoryId, ~quantity) =>
   if (quantity <= 0) {
     removeItemById(items, inventoryId);
   } else {
@@ -198,29 +209,19 @@ let setItemQuantity = (items: items, ~inventoryId, ~quantity) => {
     nextItems->Js.Dict.set(inventoryId, nextItem);
     nextItems;
   };
-};
 
 let updateItems = (~store: t, ~label, reducer) => {
-  let source = itemsSourceRef.contents;
-  let currentItems =
-    switch (source) {
-    | Some(itemsSource) => itemsSource.get()
-    | None => store.items
-    };
-  let beforeCount = itemCountOfItems(currentItems);
-  let nextItems =
-    switch (source) {
-    | Some(itemsSource) => {
-        itemsSource.update(current => reducer(copyItems(current)));
-        itemsSource.get();
-      }
-    | None => reducer(copyItems(currentItems))
-    };
-  let afterCount = itemCountOfItems(nextItems);
+  let beforeCount = itemCount(store.state);
   log(label ++ " before count", beforeCount);
-  log(label ++ " after count", afterCount);
-  log(label ++ " persisting", nextItems);
-  Runtime.persistPayload({items: Some(nextItems)});
+  Local.update(state => {
+    let nextItems = reducer(copyItems(state.items));
+    log(label ++ " persisting", nextItems);
+    {items: nextItems};
+  });
+  switch (Local.get()) {
+  | Some(state) => log(label ++ " after count", itemCount(state))
+  | None => ()
+  };
 };
 
 let increment_item = (store: t, inventoryId: string) => {
@@ -258,3 +259,5 @@ let add_to_cart = (store: t, item: Model.InventoryItem.t) => {
   log("[cart] add_to_cart item", item.id);
   increment_item(store, item.id);
 };
+
+let clear = () => Local.clearCurrent();

@@ -2,7 +2,7 @@ open Lwt.Syntax;
 
 let getServerState =
     (_context: UniversalRouterDream.serverContext(TodoStore.t)) => {
-  let config: TodoStore.config = {
+  let state: TodoStore.state = {
     todos: [|
       {
         id: "1",
@@ -22,7 +22,7 @@ let getServerState =
     |],
   };
 
-  let store = TodoStore.createStore(config);
+  let store = TodoStore.createStore(state);
   Lwt.return(UniversalRouterDream.State(store));
 };
 
@@ -34,7 +34,7 @@ let render = (~context, ~serverState: TodoStore.t, ()) => {
   } = context;
 
   let serializedState =
-    TodoStore.serializeState({todos: serverState.todos});
+    TodoStore.serializeState(serverState.state);
 
   let app =
     <UniversalRouter

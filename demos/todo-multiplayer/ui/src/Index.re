@@ -11,7 +11,10 @@ let%browser_only _ =
         {
           "value": store,
           "children":
-            <UniversalRouter router=Routes.router state=store />,
+            React.array([|
+              <UniversalRouter key="router" router=Routes.router state=store />,
+              <ClientOnly key="toaster"> {() => Sonner.renderToaster()} </ClientOnly>,
+            |]),
         },
       );
 

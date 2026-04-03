@@ -39,15 +39,16 @@ let create_list = (list_id: string) => {
   };
 };
 
-let add_todo = (list_id: string, text: string) => {
+let add_todo = args => {
+  let (id, list_id, text) = args;
   let query =
     Caqti_request.Infix.(
-      (T.t2(T.string, T.string) ->. T.unit)(
+      (T.t3(T.string, T.string, T.string) ->. T.unit)(
         RealtimeSchema.Mutations.AddTodo.sql,
       )
     );
   (module Db: DB) => {
-    let* result = Db.exec(query, (list_id, text));
+    let* result = Db.exec(query, (id, list_id, text));
     Caqti_lwt.or_fail(result);
   };
 };

@@ -2,6 +2,7 @@ type actions('a) = {
   get: unit => 'a,
   set: 'a => unit,
   update: ('a => 'a) => unit,
+  revision: unit => int,
 };
 
 type t('a) = {
@@ -9,12 +10,15 @@ type t('a) = {
   get: unit => 'a,
   set: 'a => unit,
   update: ('a => 'a) => unit,
+  revision: unit => int,
 };
 
 let make = (~afterSet=((_next: 'a) => ()), ~mount: option(actions('a) => unit)=?, initial: 'a) : t('a) => {
   let currentValue = ref(initial);
+  let revisionValue = ref(0);
   let setValueRef = ref((next: 'a) => {
     currentValue := next;
+    revisionValue := revisionValue.contents + 1;
     afterSet(next);
   });
 
@@ -22,6 +26,7 @@ let make = (~afterSet=((_next: 'a) => ()), ~mount: option(actions('a) => unit)=?
     get: () => currentValue.contents,
     set: next => setValueRef.contents(next),
     update: reducer => setValueRef.contents(reducer(currentValue.contents)),
+    revision: () => revisionValue.contents,
   };
 
   let value =
@@ -47,5 +52,6 @@ let make = (~afterSet=((_next: 'a) => ()), ~mount: option(actions('a) => unit)=?
     get: actions.get,
     set: actions.set,
     update: actions.update,
+    revision: actions.revision,
   };
 };

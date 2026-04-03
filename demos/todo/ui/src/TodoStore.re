@@ -8,19 +8,20 @@ type todo = {
 };
 
 [@deriving json]
-type config = {todos: array(todo)};
+type state = {todos: array(todo)};
 
 [@deriving json]
-type payload = {todos: array(todo)};
-
-type patch = unit;
-type subscription = unit;
+type payload = state;
 
 type store = {
-  todos: array(todo),
+  state: state,
   completed_count: int,
   total_count: int,
 };
+
+let storageKey = "todo.simple";
+let emptyState: state = {todos: [||]};
+let emptyPayload: payload = emptyState;
 
 let nextTodoId = (todos: array(todo)) => {
   let next =
@@ -40,153 +41,113 @@ let nextTodoId = (todos: array(todo)) => {
   string_of_int(next);
 };
 
-let todosSourceRef: ref(option(StoreSource.t(array(todo)))) = ref(None);
-
 let completedCount = (todos: array(todo)) =>
   todos->Js.Array.filter(~f=(todo: todo) => todo.completed)->Array.length;
 
-module Runtime =
-  StoreBuilder.Runtime.Make({
-    type nonrec config = config;
-    type nonrec patch = patch;
-    type nonrec payload = payload;
-    type nonrec store = store;
-    type nonrec subscription = subscription;
+module Local = StoreLocal.Make({
+  type nonrec state = state;
+  type nonrec payload = payload;
 
-    let emptyStore: store = {
-      todos: [||],
-      completed_count: 0,
-      total_count: 0,
-    };
-    let stateElementId = "initial-store";
+  module Adapter = StoreLocal.LocalStorageAdapter;
 
-    let payloadOfConfig = (config: config): payload => {
-      todos: config.todos,
-    };
-    let configOfPayload = (payload: payload): config => {
-      todos: payload.todos,
-    };
+  let storageKeyOfState = (_state: state) => storageKey;
+  let payloadOfState = (state: state): payload => state;
+  let stateOfPayload = (payload: payload): state => payload;
+  let payload_of_json = payload_of_json;
+  let payload_to_json = payload_to_json;
+});
 
-    let makeStore =
-        (
-          ~config: config,
-          ~payload: payload,
-          ~derive: option(Tilia.Core.deriver(store))=?,
+module Layered = StoreBuilder.Layered.Make({
+  type nonrec state = state;
+  type nonrec payload = payload;
+  type nonrec store = store;
+
+  let emptyStore: store = {
+    state: emptyState,
+    completed_count: 0,
+    total_count: 0,
+  };
+  let emptyPayload = emptyPayload;
+  let stateElementId = "initial-store";
+  let payloadOfState = (state: state): payload => state;
+  let stateOfPayload = (payload: payload): state => payload;
+  let state_of_json = state_of_json;
+  let state_to_json = state_to_json;
+  let payload_of_json = payload_of_json;
+  let payload_to_json = payload_to_json;
+  let clientLayers = [|Local.hooks|];
+
+  let makeStore =
+      (
+        ~state: state,
+        ~payload: payload,
+        ~derive: option(Tilia.Core.deriver(store))=?,
+        (),
+      ):
+      store => {
+    let _ = payload;
+    {
+      state:
+        StoreBuilder.current(
+          ~derive?,
+          ~client=state,
+          ~server=() => state,
           (),
-        )
-        : store => {
-      let todosSource = StoreSource.make(payload.todos);
-      todosSourceRef := Some(todosSource);
-
-      {
-        todos: todosSource.value,
-        completed_count:
-          StoreBuilder.derived(
-            ~derive?,
-            ~client=store => completedCount(store.todos),
-            ~server=() => completedCount(config.todos),
-            (),
-          ),
-        total_count:
-          StoreBuilder.derived(
-            ~derive?,
-            ~client=store => Array.length(store.todos),
-            ~server=() => Array.length(config.todos),
-            (),
-          ),
-      };
+        ),
+      completed_count:
+        StoreBuilder.derived(
+          ~derive?,
+          ~client=store => completedCount(store.state.todos),
+          ~server=() => completedCount(state.todos),
+          (),
+        ),
+      total_count:
+        StoreBuilder.derived(
+          ~derive?,
+          ~client=store => Array.length(store.state.todos),
+          ~server=() => Array.length(state.todos),
+          (),
+        ),
     };
-
-    let config_of_json = config_of_json;
-    let config_to_json = config_to_json;
-    let payload_of_json = payload_of_json;
-    let payload_to_json = payload_to_json;
-    let decodePatch = _json => None;
-    let subscriptionOfConfig = _config => None;
-    let encodeSubscription = _subscription => "";
-    let updatedAtOf = _config => 0.0;
-    let updateOfPatch = (_patch: patch, config) => config;
-    let eventUrl = "";
-    let baseUrl = "";
-  });
+  };
+});
 
 include (
-  Runtime:
-    StoreBuilder.Runtime.Exports
-      with type config := config
+  Layered:
+    StoreBuilder.Layered.Exports
+      with type state := state
       and type payload := payload
       and type t := store
 );
 
 type t = store;
 
-module Context = Runtime.Context;
+module Context = Layered.Context;
 
-let log = (label: string, value: 'a) =>
-  switch%platform (Runtime.platform) {
-  | Client => Js.log2(label, value)
-  | Server => ()
-  };
-
-let logTodoIds = (label: string, todos: array(todo)) => {
-  let summary =
-    Array.to_list(todos)
-    |> List.map((todo: todo) => todo.id ++ ": " ++ todo.text)
-    |> String.concat(", ");
-  log(label ++ " (" ++ string_of_int(Array.length(todos)) ++ "): ", summary);
-};
-
-let hydrateStore = () => Runtime.hydrateStore();
-
-let hydrateStoreWithLogs = () => {
-  let store = hydrateStore();
-  logTodoIds("[todo] hydrated todos", store.todos);
-  store;
-};
-
-let serializeState = (config: config) => Runtime.serializeState(config);
-
-let updateTodos = (~store: t, reducer) => {
-  let source =
-    switch (todosSourceRef.contents) {
-    | Some(todosSource) => todosSource
-    | None =>
-      let todosSource = StoreSource.make(store.todos);
-      todosSourceRef := Some(todosSource);
-      todosSource;
-    };
-
-  logTodoIds("[todo] updateTodos before", source.get());
-  source.update(current => reducer(current));
-  logTodoIds("[todo] updateTodos after", source.get());
+let updateTodos = (~store: t, reducer: array(todo) => array(todo)) => {
+  Local.set(({todos: reducer(store.state.todos)}: state));
 };
 
 let addTodo = (store: t, text: string) => {
   let newTodo: todo = {
-    id: nextTodoId(store.todos),
+    id: nextTodoId(store.state.todos),
     text,
     completed: false,
   };
-  log("[todo] addTodo", newTodo);
   updateTodos(~store, todos =>
     StoreCrud.upsert(~getId=(todo: todo) => todo.id, todos, newTodo)
   );
 };
 
-let toggleTodo = (store: t, id: string) => {
-  log("[todo] toggleTodo", id);
+let toggleTodo = (store: t, id: string) =>
   updateTodos(~store, todos =>
     Js.Array.map(
-      ~f=(todo: todo) =>
-        todo.id == id ? {...todo, completed: !todo.completed} : todo,
+      ~f=(todo: todo) => todo.id == id ? {...todo, completed: !todo.completed} : todo,
       todos,
     )
   );
-};
 
-let removeTodo = (store: t, id: string) => {
-  log("[todo] removeTodo", id);
+let removeTodo = (store: t, id: string) =>
   updateTodos(~store, todos =>
     StoreCrud.remove(~getId=(todo: todo) => todo.id, todos, id)
   );
-};

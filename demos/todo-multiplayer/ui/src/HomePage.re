@@ -16,7 +16,7 @@ let copyUrl = () =>
   | Server => ()
   | Client => {
       [@platform js]
-      ()
+      ignore(Sonner.copyCurrentUrl())
     }
   };
 
@@ -51,9 +51,9 @@ let make = () => {
   useTilia();
   let store = TodoStore.Context.useStore();
   let (newTodoText, setNewTodoText) = React.useState(() => "");
-  let todos = store.config.todos;
+  let todos = store.state.todos;
   let listName =
-    switch (store.config.list) {
+    switch (store.state.list) {
     | Some(list) => list.name
     | None => "My Todo List"
     };

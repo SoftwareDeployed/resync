@@ -48,6 +48,7 @@ module Socket = {
     url->Webapi.Url.setProtocol("ws");
 
     let ws = WebSocket.make(url->Webapi.Url.href);
+    let snapshotRevision = source.revision();
     sendRef := Some(message => {
       if (ws->WebSocket.readyState == 1) {
         ws->WebSocket.send_string(message);
@@ -135,14 +136,22 @@ module Socket = {
                 switch (StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rawType)) {
                 | Some("patch") => ()
                 | _ =>
+                  if (source.revision() == snapshotRevision) {
+                    let snapshot = decodeSnapshot(json);
+                    setUpdatedTs(updatedAtOf(snapshot));
+                    source.set(snapshot);
+                  } else {
+                    ()
+                  }
+                }
+              | None =>
+                if (source.revision() == snapshotRevision) {
                   let snapshot = decodeSnapshot(json);
                   setUpdatedTs(updatedAtOf(snapshot));
                   source.set(snapshot);
+                } else {
+                  ()
                 }
-              | None =>
-                let snapshot = decodeSnapshot(json);
-                setUpdatedTs(updatedAtOf(snapshot));
-                source.set(snapshot);
               }
             }
           | None => ()

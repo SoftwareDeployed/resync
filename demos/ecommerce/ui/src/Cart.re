@@ -21,7 +21,7 @@ module Contents = {
       useTilia();
       let cart_store = CartStore.Context.useStore();
       let main_store = Store.Context.useStore();
-      let cart_ids = cart_store.items->Js.Dict.keys;
+      let cart_ids = cart_store.state.items->Js.Dict.keys;
 
       if (cart_ids->Array.length == 0) {
         <p className="m-2 text-sm text-slate-600">
@@ -31,7 +31,7 @@ module Contents = {
         <ul className="m-2 flex flex-col gap-2">
           {cart_ids
            |> Array.map(cart_id =>
-                switch (cart_store.items->Js.Dict.get(cart_id)) {
+                switch (cart_store.state.items->Js.Dict.get(cart_id)) {
                 | None => React.null
                 | Some(cart_item) =>
                   let label =

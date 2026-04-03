@@ -25,7 +25,7 @@
 ; Rule that runs esbuild and creates stamp file
 
 (rule
- (targets .build_stamp)
+ (targets .build_stamp Index.re.js Index.re.css)
   (deps
    (package resync)
    (alias_rec melange)
@@ -46,6 +46,6 @@
 
 (alias
  (name app)
- (deps .build_stamp))
+ (deps .build_stamp Index.re.js Index.re.css))
 
 (include_subdirs qualified)

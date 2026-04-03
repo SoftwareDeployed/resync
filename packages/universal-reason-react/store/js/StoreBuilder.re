@@ -182,3 +182,89 @@ module Persisted = {
     module Context = Core.Context;
   };
 };
+
+module Layered = {
+  module type Exports = {
+    type state;
+    type payload;
+    type t;
+
+    let empty: t;
+    let createStore: state => t;
+    let hydrateStore: unit => t;
+    let serializeState: state => string;
+    let serializeSnapshot: state => string;
+  };
+
+  module type Schema = {
+    type state;
+    type payload;
+    type store;
+
+    let emptyStore: store;
+    let emptyPayload: payload;
+    let stateElementId: string;
+
+    let payloadOfState: state => payload;
+    let stateOfPayload: payload => state;
+    let state_of_json: StoreJson.json => state;
+    let state_to_json: state => StoreJson.json;
+    let payload_of_json: StoreJson.json => payload;
+    let payload_to_json: payload => StoreJson.json;
+    let clientLayers: array(StoreLayer.hooks(state));
+
+    let makeStore:
+      (~state: state, ~payload: payload, ~derive: Tilia.Core.deriver(store)=?, unit) =>
+      store;
+  };
+
+  module Make = (Schema: Schema) => {
+    module Core = StoreCore.Make({
+      type config = Schema.state;
+      type payload = Schema.payload;
+      type projections = unit;
+      type store = Schema.store;
+
+      let emptyStore = Schema.emptyStore;
+      let payloadOfConfig = Schema.payloadOfState;
+      let configOfPayload = Schema.stateOfPayload;
+      let project = (_config: config) => ();
+      let makeStore = (~config: config, ~payload) =>
+        StoreComputed.make(
+          ~client=derive => Schema.makeStore(~state=config, ~payload, ~derive, ()),
+          ~server=() => Schema.makeStore(~state=config, ~payload, ()),
+        );
+    });
+
+    type state = Schema.state;
+    type payload = Schema.payload;
+    type t = Schema.store;
+
+    let transformState = (state: state) =>
+      StoreLayer.source(~layers=Schema.clientLayers, state);
+
+    let buildStore = (payload: payload) =>
+      Core.buildStore(~configTransform=transformState, payload);
+
+    let empty = Schema.emptyStore;
+
+    let createStore = (state: state) =>
+      Core.createStore(~configTransform=transformState, state);
+
+    let hydrateStore = () =>
+      Hydration.hydrateStore(
+        ~emptyStore=buildStore(Schema.emptyPayload),
+        ~makeStore=buildStore,
+        ~decodeState=Schema.payload_of_json,
+        ~stateElementId=Schema.stateElementId,
+      );
+
+    let serializeState = (state: state) =>
+      StoreJson.stringify(Schema.payload_to_json, state->Schema.payloadOfState);
+
+    let serializeSnapshot = (state: state) =>
+      StoreJson.stringify(Schema.state_to_json, state);
+
+    module Context = Core.Context;
+  };
+};

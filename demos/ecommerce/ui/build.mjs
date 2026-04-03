@@ -32,10 +32,10 @@ async function build(entryPoints, { env, output, extract, mockWebpackRequire }) 
 		const result = await Esbuild.build({
 			publicPath: "/static/",
 			loader: {
-				'.woff': 'file',
-				'.woff2': 'file',
-				'.eot': 'file',
-				'.ttf': 'file',
+				'.woff': 'dataurl',
+				'.woff2': 'dataurl',
+				'.eot': 'dataurl',
+				'.ttf': 'dataurl',
 				'.svg': 'file',
 			},
 			entryPoints,

@@ -30,11 +30,11 @@ let make =
     let (newTodoText, setNewTodoText) = React.useState(() => "");
 
     let completed_count =
-      store.todos
+      store.state.todos
       ->Js.Array.filter(~f=(todo: TodoStore.todo) => todo.completed)
       ->Array.length;
 
-    let total_count = Array.length(store.todos);
+    let total_count = Array.length(store.state.todos);
 
     let handleSubmit = event => {
       preventDefault(event);
@@ -77,8 +77,8 @@ let make =
              <div className="todo-empty">
                {React.string("No todos yet. Add one above!")}
              </div>;
-          } else {
-             store.todos
+            } else {
+             store.state.todos
              |> Js.Array.map(~f=(todo: TodoStore.todo) => {
                  let textClassName =
                    "todo-text " ++ (todo.completed ? "completed" : "");

@@ -48,9 +48,10 @@ let handle_mutation request name payload =
   in
   match name with
   | "add_todo" ->
+      let id = match get_field "id" json with `String s -> s | _ -> "" in
       let list_id = match get_field "list_id" json with `String s -> s | _ -> "" in
       let text = match get_field "text" json with `String s -> s | _ -> "" in
-      let* () = Dream.sql request (Database.Todo.add_todo list_id text) in
+      let* () = Dream.sql request (Database.Todo.add_todo (id, list_id, text)) in
       Lwt.return ()
   | "toggle_todo" ->
       let id = match get_field "id" json with `String s -> s | _ -> "" in

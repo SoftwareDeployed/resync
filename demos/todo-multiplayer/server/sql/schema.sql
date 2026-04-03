@@ -33,7 +33,7 @@ INSERT INTO todo_lists (id) VALUES ($1);
 
 /*
 @mutation add_todo
-INSERT INTO todos (list_id, text) VALUES ($1, $2);
+INSERT INTO todos (id, list_id, text) VALUES ($1, $2, $3);
 */
 
 /*

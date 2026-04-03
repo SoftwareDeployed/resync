@@ -49,4 +49,8 @@
 (copy_files
  (files "../../ui/src/.build_stamp"))
 
+(alias
+ (name ecommerce-server)
+ (deps server.exe))
+
 (include_subdirs qualified)

@@ -44,6 +44,10 @@ let realtime_middleware =
   Middleware.create ~adapter:realtime_adapter ~resolve_subscription
     ~load_snapshot:get_config_json ()
 
+let static_asset_path request =
+  let path, _search = Dream.target(request) |> Dream.split_target in
+  Filename.basename path
+
 let () =
   (match Lwt_main.run (Adapter.start realtime_adapter) with
   | () -> ()
@@ -53,12 +57,13 @@ let () =
   @@ Dream.sql_pool ~size:50 db_uri
   @@ Dream.router
        [
-          Middleware.route "_events" realtime_middleware;
-          Dream.get "/static/**" (Dream.static doc_root);
-          Dream.get "/app.js" (fun req ->
-              Dream.from_filesystem doc_root "Index.re.js" req);
-          Dream.get "/style.css" (fun req ->
-              Dream.from_filesystem doc_root "Index.re.css" req);
+           Middleware.route "_events" realtime_middleware;
+           Dream.get "/static/**" (fun req ->
+               Dream.from_filesystem doc_root (static_asset_path req) req);
+           Dream.get "/app.js" (fun req ->
+               Dream.from_filesystem doc_root "Index.re.js" req);
+           Dream.get "/style.css" (fun req ->
+               Dream.from_filesystem doc_root "Index.re.css" req);
          Dream.get "/" (UniversalRouterDream.handler ~app:EntryServer.app);
          Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
        ]
