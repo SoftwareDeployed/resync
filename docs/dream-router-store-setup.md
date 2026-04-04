@@ -11,7 +11,7 @@ The ecommerce demo is the reference implementation:
 
 - routes: `demos/ecommerce/ui/src/Routes.re`
 - main store: `demos/ecommerce/ui/src/Store.re`
-- persisted cart store: `demos/ecommerce/ui/src/CartStore.re`
+- local-only cart store: `demos/ecommerce/ui/src/CartStore.re`
 - server state + render: `demos/ecommerce/server/src/EntryServer.re`
 - Dream wiring: `demos/ecommerce/server/src/server.ml`
 
@@ -100,73 +100,84 @@ Keep route definitions close to the page and layout components they reference.
 
 ## 3. Define a store with `StoreBuilder`
 
-For an SSR + realtime store, use `StoreBuilder.Runtime.Make`. Define all values inline inside the functor body.
+For an SSR + realtime store, use `StoreBuilder.Runtime.MakeSynced`. For a local-only store, use `StoreBuilder.Runtime.Make`.
+
+Both builders:
+
+- hydrate synchronously from SSR
+- reconcile confirmed state from IndexedDB after mount
+- use `storeName` plus `scopeKeyOfState` as the browser persistence identity
+
+`MakeSynced` additionally:
+
+- persists an IndexedDB action ledger
+- sends typed JSON actions over the websocket
+- reconciles with ack, patch, and snapshot frames
 
 ```reason
 [@deriving json]
-type config = Model.t;
+type state = Model.t;
 
 type subscription = RealtimeSubscription.t;
 
 type patch = StoreCrud.patch(Model.InventoryItem.t);
 
-[@deriving json]
-type payload = {
-  config: config,
-  unit: PeriodList.Unit.t,
-};
+type action = Noop;
 
 type store = {
   premise_id: string,
-  config: config,
+  config: state,
   period_list: array(Model.Pricing.period),
   unit: PeriodList.Unit.t,
 };
 
-module Runtime = StoreBuilder.Runtime.Make({
-  type nonrec config = config;
+module Runtime = StoreBuilder.Runtime.MakeSynced({
+  type nonrec state = state;
+  type nonrec action = action;
   type nonrec patch = patch;
-  type nonrec payload = payload;
   type nonrec store = store;
   type nonrec subscription = subscription;
 
-  let emptyStore: store = {
-    premise_id: "",
-    config: Model.SSR.empty,
-    period_list: [||],
-    unit: PeriodList.Unit.defaultState,
-  };
+  let reduce = (~state: state, ~action: action) => state;
+  let emptyState = Model.SSR.empty;
+  let storeName = "ecommerce.inventory";
   let stateElementId = "initial-store";
+  let scopeKeyOfState = (state: state) =>
+    switch (state.premise) {
+    | Some(premise) => premise.id
+    | None => "default"
+    };
+  let timestampOfState = (state: state) =>
+    switch (state.premise) {
+    | Some(premise) => premise.updated_at->Js.Date.getTime
+    | None => 0.0
+    };
+  let setTimestamp = (~state: state, ~timestamp: float) =>
+    switch (state.premise) {
+    | Some(premise) => {
+        ...state,
+        premise: Some({...premise, updated_at: Js.Date.fromFloat(timestamp)}),
+      }
+    | None => state
+    };
 
-  let payloadOfConfig = (config: config): payload => {
-    config,
-    unit:
-      switch%platform (Runtime.platform) {
-      | Server => PeriodList.Unit.defaultState
-      | Client => PeriodList.Unit.get()
-      },
-  };
-  let configOfPayload = (payload: payload): config => payload.config;
-
-  let makeStore =
-      (~config: config, ~payload: payload, ~derive: option(Tilia.Core.deriver(store))=?, ()) =>
-    store => {
+  let makeStore = (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
     {
       premise_id:
         StoreBuilder.projected(
           ~derive?,
           ~project,
-          ~serverSource=config,
+          ~serverSource=state,
           ~fromStore=store => store.config,
           ~select=projections => projections.premise_id,
           (),
         ),
-      config,
+      config: state,
       period_list:
         StoreBuilder.projected(
           ~derive?,
           ~project,
-          ~serverSource=config,
+          ~serverSource=state,
           ~fromStore=store => store.config,
           ~select=projections => projections.period_list,
           (),
@@ -175,16 +186,16 @@ module Runtime = StoreBuilder.Runtime.Make({
         StoreBuilder.current(
           ~derive?,
           ~client=PeriodList.Unit.value,
-          ~server=() => payload.unit,
+          ~server=() => PeriodList.Unit.defaultState,
           (),
         ),
     };
   };
 
-  let config_of_json = config_of_json;
-  let config_to_json = config_to_json;
-  let payload_of_json = payload_of_json;
-  let payload_to_json = payload_to_json;
+  let state_of_json = state_of_json;
+  let state_to_json = state_to_json;
+  let action_of_json = _json => Noop;
+  let action_to_json = _action => StoreJson.parse("{\"kind\":\"noop\"}");
 
   let decodePatch =
     StorePatch.compose([
@@ -195,24 +206,19 @@ module Runtime = StoreBuilder.Runtime.Make({
       ),
     ]);
 
-  let updateOfPatch = StoreCrud.updateOfPatch(
-    ~getId=(item: Model.InventoryItem.t) => item.id,
-    ~getItems=(config: config) => config.inventory,
-    ~setItems=(config: config, items) => {...config, inventory: items},
-  );
+  let updateOfPatch =
+    StoreCrud.updateOfPatch(
+      ~getId=(item: Model.InventoryItem.t) => item.id,
+      ~getItems=(state: state) => state.inventory,
+      ~setItems=(state: state, items) => {...state, inventory: items},
+    );
 
-  let subscriptionOfConfig = (config: config): option(subscription) =>
-    switch (config.premise) {
+  let subscriptionOfState = (state: state): option(subscription) =>
+    switch (state.premise) {
     | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
     | None => None
     };
   let encodeSubscription = RealtimeSubscription.encode;
-
-  let updatedAtOf = (config: config) =>
-    switch (config.premise) {
-    | Some(premise) => premise.updated_at->Js.Date.getTime
-    | None => 0.0
-    };
   let eventUrl = Constants.event_url;
   let baseUrl = Constants.base_url;
 });
@@ -220,8 +226,8 @@ module Runtime = StoreBuilder.Runtime.Make({
 include (
   Runtime:
     StoreBuilder.Runtime.Exports
-      with type config := config
-      and type payload := payload
+      with type state := state
+      and type action := action
       and type t := store
 );
 
@@ -230,7 +236,7 @@ type t = store;
 module Context = Runtime.Context;
 ```
 
-For a persisted client-side store, use `StoreBuilder.Persisted.Make`.
+For a local-only client store such as the ecommerce cart, use `StoreBuilder.Runtime.Make`. It still uses IndexedDB for confirmed state and syncs newer confirmed snapshots across tabs with `BroadcastChannel`, but it does not create an action ledger or open a websocket.
 
 ## 4. Use typed patches with `StoreCrud`
 
@@ -265,60 +271,52 @@ type patch =
 
 ## 5. Sync with `RealtimeClient`
 
-If you use `StoreBuilder.Runtime.Make`, realtime sync is usually configured through the store schema and then wired automatically through `StoreSync`.
+If you use `StoreBuilder.Runtime.MakeSynced`, realtime sync is configured through the store schema and wired automatically by the runtime builder.
 
 The store module provides:
 
-- `subscriptionOfConfig`
+- `subscriptionOfState`
 - `encodeSubscription`
-- `updatedAtOf`
+- `timestampOfState`
 - `decodePatch`
 - `updateOfPatch`
 - `eventUrl`
 - `baseUrl`
+- `action_of_json`
+- `action_to_json`
 
-That is enough for `StoreSync` to call `RealtimeClient.Socket.subscribe(...)` for you.
+That is enough for `StoreBuilder.Runtime.MakeSynced` to:
+
+- subscribe over the active websocket
+- persist confirmed snapshots and queued actions to IndexedDB
+- send `{type: "mutation", actionId, action}` frames
+- handle `ack`, `patch`, and `snapshot` frames
 
 If your app does not run on the default ecommerce port, set `baseUrl` explicitly from app constants rather than relying on `RealtimeClient.Socket.defaultBaseUrl`.
 
 At a low level, the flow is:
 
-```reason
-RealtimeClient.Socket.subscribe(
-  ~source,
-  ~subscription=Schema.encodeSubscription(subscription),
-  ~updatedAt=Schema.updatedAtOf(config),
-  ~decodePatch=Schema.decodePatch,
-  ~updateOfPatch=Schema.updateOfPatch,
-  ~decodeSnapshot=Schema.config_of_json,
-  ~updatedAtOf=Schema.updatedAtOf,
-  ~eventUrl=Schema.eventUrl,
-  ~baseUrl=Schema.baseUrl,
-);
-```
-
-The important part is that sync talks to the captured `StoreSource` actions:
+The important part is that sync talks to the captured `StoreSource` actions and a persisted confirmed snapshot:
 
 - full snapshots call `source.set(snapshot)`
 - patches call `source.update(updateOfPatch(patch))`
+- optimistic actions are replayed from the IndexedDB action ledger until confirmed
 
 That keeps realtime updates flowing through the same Tilia-backed source that hydration and local actions use.
 
-Named mutations use the same active websocket connection. At a low level the client-side write path is:
+Typed runtime actions use the same active websocket connection. The client-side write path is:
 
 ```reason
-RealtimeClient.Socket.sendMutation(
-  "add_todo",
-  StoreJson.stringify(add_todo_input_to_json, {list_id, text}),
-);
+dispatch(AddTodo({id, list_id, text}));
 ```
 
-That sends `mutation add_todo <json>` over the active socket. The server executes the write, Postgres triggers emit a patch, and `StoreSync` applies the returned patch to the captured source state.
+That reduces optimistically, writes the queued action to IndexedDB, sends a JSON mutation frame over the socket, and waits for an `ack`, patch, or snapshot to advance confirmed state.
 
 For the ecommerce demo, the relevant wiring lives in:
 
 - `packages/universal-reason-react/store/js/RealtimeClient.re`
-- `packages/universal-reason-react/store/js/StoreSync.re`
+- `packages/universal-reason-react/store/js/StoreOffline.re`
+- `packages/universal-reason-react/store/js/StoreIndexedDB.re`
 - `demos/ecommerce/ui/src/Store.re`
 
 ## 6. Define `getServerState` in the server entry module

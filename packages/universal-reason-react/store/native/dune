@@ -5,20 +5,17 @@
    Hydration
    RealtimeClient
    StoreBuilder
+   StoreActionLedger
    StoreComputed
-   StoreCore
    StoreCrud
+   StoreIndexedDB
    StoreJson
-   StoreLayer
-   StoreLocal
+   StoreOffline
    StorePatch
-   StorePersist
-   StoreRuntime
    StoreSignal
    StoreSource
-   StoreState
-   StoreSync
    Tilia
+   UUID
    WebSocket)
  (wrapped false)
  (libraries

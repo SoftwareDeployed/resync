@@ -8,10 +8,20 @@ type todo = {
 };
 
 [@deriving json]
-type state = {todos: array(todo)};
+type state = {
+  todos: array(todo),
+  updated_at: float,
+};
 
-[@deriving json]
-type payload = state;
+type set_completed = {
+  id: string,
+  completed: bool,
+};
+
+type action =
+  | AddTodo(todo)
+  | SetTodoCompleted(set_completed)
+  | RemoveTodo(string);
 
 type store = {
   state: state,
@@ -19,135 +29,173 @@ type store = {
   total_count: int,
 };
 
-let storageKey = "todo.simple";
-let emptyState: state = {todos: [||]};
-let emptyPayload: payload = emptyState;
+let storeName = "todo.simple";
+
+let emptyState: state = {
+  todos: [||],
+  updated_at: 0.0,
+};
 
 let nextTodoId = (todos: array(todo)) => {
   let next =
     Array.to_list(todos)
     |> List.fold_left(
-         (next, todo: todo) =>
+         (current, item: todo) =>
            switch (
-             try(Some(int_of_string(todo.id))) {
+             try (Some(int_of_string(item.id))) {
              | Failure(_) => None
              }
            ) {
-           | Some(id) when id >= next => id + 1
-           | _ => next
+           | Some(id) when id >= current => id + 1
+           | _ => current
            },
          1,
        );
   string_of_int(next);
 };
 
-let completedCount = (todos: array(todo)) =>
-  todos->Js.Array.filter(~f=(todo: todo) => todo.completed)->Array.length;
+let completedCount = todos =>
+  todos->Js.Array.filter(~f=(item: todo) => item.completed)->Array.length;
 
-module Local = StoreLocal.Make({
+let action_to_json = action =>
+  switch (action) {
+  | AddTodo(todo) =>
+    StoreJson.parse(
+      "{\"kind\":\"add_todo\",\"todo\":" ++ StoreJson.stringify(todo_to_json, todo) ++ "}",
+    )
+  | SetTodoCompleted(input) =>
+    StoreJson.parse(
+      "{\"kind\":\"set_todo_completed\",\"id\":"
+      ++ string_to_json(input.id)->Melange_json.to_string
+      ++ ",\"completed\":"
+      ++ bool_to_json(input.completed)->Melange_json.to_string
+      ++ "}",
+    )
+  | RemoveTodo(id) =>
+    StoreJson.parse(
+      "{\"kind\":\"remove_todo\",\"id\":"
+      ++ string_to_json(id)->Melange_json.to_string
+      ++ "}",
+    )
+  };
+
+let action_of_json = json => {
+  let kind =
+    StoreJson.requiredField(
+      ~json,
+      ~fieldName="kind",
+      ~decode=string_of_json,
+    );
+  switch (kind) {
+  | "add_todo" =>
+    AddTodo(
+      StoreJson.requiredField(~json, ~fieldName="todo", ~decode=todo_of_json),
+    )
+  | "set_todo_completed" =>
+    SetTodoCompleted({
+      id: StoreJson.requiredField(~json, ~fieldName="id", ~decode=string_of_json),
+      completed:
+        StoreJson.requiredField(
+          ~json,
+          ~fieldName="completed",
+          ~decode=bool_of_json,
+        ),
+    })
+  | _ =>
+    RemoveTodo(
+      StoreJson.requiredField(~json, ~fieldName="id", ~decode=string_of_json),
+    )
+  };
+};
+
+let reduce = (~state: state, ~action: action) => {
+  let updated_at = Js.Date.now();
+  switch (action) {
+  | AddTodo(todo) => {
+      todos: StoreCrud.upsert(~getId=(item: todo) => item.id, state.todos, todo),
+      updated_at,
+    }
+  | SetTodoCompleted(input) => {
+      todos:
+        Js.Array.map(
+          ~f=(item: todo) =>
+            item.id == input.id ? {...item, completed: input.completed} : item,
+          state.todos,
+        ),
+      updated_at,
+    }
+  | RemoveTodo(id) => {
+      todos: StoreCrud.remove(~getId=(item: todo) => item.id, state.todos, id),
+      updated_at,
+    }
+  };
+};
+
+module Runtime = StoreBuilder.Runtime.Make({
   type nonrec state = state;
-  type nonrec payload = payload;
-
-  module Adapter = StoreLocal.LocalStorageAdapter;
-
-  let storageKeyOfState = (_state: state) => storageKey;
-  let payloadOfState = (state: state): payload => state;
-  let stateOfPayload = (payload: payload): state => payload;
-  let payload_of_json = payload_of_json;
-  let payload_to_json = payload_to_json;
-});
-
-module Layered = StoreBuilder.Layered.Make({
-  type nonrec state = state;
-  type nonrec payload = payload;
+  type nonrec action = action;
   type nonrec store = store;
 
-  let emptyStore: store = {
-    state: emptyState,
-    completed_count: 0,
-    total_count: 0,
-  };
-  let emptyPayload = emptyPayload;
+  let reduce = reduce;
+  let emptyState = emptyState;
+  let storeName = storeName;
   let stateElementId = "initial-store";
-  let payloadOfState = (state: state): payload => state;
-  let stateOfPayload = (payload: payload): state => payload;
+  let scopeKeyOfState = (_state: state) => "default";
+  let timestampOfState = (state: state) => state.updated_at;
   let state_of_json = state_of_json;
   let state_to_json = state_to_json;
-  let payload_of_json = payload_of_json;
-  let payload_to_json = payload_to_json;
-  let clientLayers = [|Local.hooks|];
-
-  let makeStore =
-      (
-        ~state: state,
-        ~payload: payload,
-        ~derive: option(Tilia.Core.deriver(store))=?,
+  let action_of_json = action_of_json;
+  let action_to_json = action_to_json;
+  let makeStore = (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+    state:
+      StoreBuilder.current(
+        ~derive?,
+        ~client=state,
+        ~server=() => state,
         (),
-      ):
-      store => {
-    let _ = payload;
-    {
-      state:
-        StoreBuilder.current(
-          ~derive?,
-          ~client=state,
-          ~server=() => state,
-          (),
-        ),
-      completed_count:
-        StoreBuilder.derived(
-          ~derive?,
-          ~client=store => completedCount(store.state.todos),
-          ~server=() => completedCount(state.todos),
-          (),
-        ),
-      total_count:
-        StoreBuilder.derived(
-          ~derive?,
-          ~client=store => Array.length(store.state.todos),
-          ~server=() => Array.length(state.todos),
-          (),
-        ),
-    };
+      ),
+    completed_count:
+      StoreBuilder.derived(
+        ~derive?,
+        ~client=store => completedCount(store.state.todos),
+        ~server=() => completedCount(state.todos),
+        (),
+      ),
+    total_count:
+      StoreBuilder.derived(
+        ~derive?,
+        ~client=store => Array.length(store.state.todos),
+        ~server=() => Array.length(state.todos),
+        (),
+      ),
   };
 });
 
 include (
-  Layered:
-    StoreBuilder.Layered.Exports
+  Runtime:
+    StoreBuilder.Runtime.Exports
       with type state := state
-      and type payload := payload
+      and type action := action
       and type t := store
 );
 
 type t = store;
 
-module Context = Layered.Context;
-
-let updateTodos = (~store: t, reducer: array(todo) => array(todo)) => {
-  Local.set(({todos: reducer(store.state.todos)}: state));
-};
+module Context = Runtime.Context;
 
 let addTodo = (store: t, text: string) => {
-  let newTodo: todo = {
+  let _ = store;
+  dispatch(AddTodo({
     id: nextTodoId(store.state.todos),
     text,
     completed: false,
-  };
-  updateTodos(~store, todos =>
-    StoreCrud.upsert(~getId=(todo: todo) => todo.id, todos, newTodo)
-  );
+  }));
 };
 
 let toggleTodo = (store: t, id: string) =>
-  updateTodos(~store, todos =>
-    Js.Array.map(
-      ~f=(todo: todo) => todo.id == id ? {...todo, completed: !todo.completed} : todo,
-      todos,
-    )
-  );
+  switch (Js.Array.find(~f=(item: todo) => item.id == id, store.state.todos)) {
+  | Some(todo) => dispatch(SetTodoCompleted({id, completed: !todo.completed}))
+  | None => ()
+  };
 
-let removeTodo = (store: t, id: string) =>
-  updateTodos(~store, todos =>
-    StoreCrud.remove(~getId=(todo: todo) => todo.id, todos, id)
-  );
+let removeTodo = (_store: t, id: string) => dispatch(RemoveTodo(id));

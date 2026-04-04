@@ -15,6 +15,7 @@ module TodoList = {
   type t = {
     id: string,
     name: string,
+    updated_at: float,
   };
 };
 

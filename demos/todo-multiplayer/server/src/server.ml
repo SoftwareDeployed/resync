@@ -15,6 +15,11 @@ let server_interface =
   | Some interface -> interface
   | None -> "127.0.0.1"
 
+let server_port =
+  match Sys.getenv_opt "SERVER_PORT" with
+  | Some port -> int_of_string(port)
+  | None -> 8898
+
 let get_config request list_id =
   let* list_info = Dream.sql request (Database.Todo.get_list_info list_id) in
   let* todos = Dream.sql request (Database.Todo.get_list list_id) in
@@ -39,29 +44,61 @@ let realtime_adapter =
     (module Pgnotify_adapter : Adapter.S with type t = Pgnotify_adapter.t)
     (Pgnotify_adapter.create ~db_uri ())
 
-let handle_mutation request name payload =
-  let json = Yojson.Basic.from_string payload in
-  let get_field f = function
-    | `Assoc fields ->
-        (try List.assoc f fields with Not_found -> `Null)
-    | _ -> `Null
+let assoc key = function
+  | `Assoc fields -> List.assoc_opt key fields
+  | _ -> None
+
+let required_string key json =
+  match assoc key json with
+  | Some (`String value) -> Ok value
+  | _ -> Error ("Missing string field: " ^ key)
+
+let required_bool key json =
+  match assoc key json with
+  | Some (`Bool value) -> Ok value
+  | _ -> Error ("Missing bool field: " ^ key)
+
+let handle_mutation request ~action_id action =
+  let kind =
+    match assoc "kind" action with
+    | Some (`String value) -> Ok value
+    | _ -> Error "Missing action kind"
   in
-  match name with
-  | "add_todo" ->
-      let id = match get_field "id" json with `String s -> s | _ -> "" in
-      let list_id = match get_field "list_id" json with `String s -> s | _ -> "" in
-      let text = match get_field "text" json with `String s -> s | _ -> "" in
-      let* () = Dream.sql request (Database.Todo.add_todo (id, list_id, text)) in
-      Lwt.return ()
-  | "toggle_todo" ->
-      let id = match get_field "id" json with `String s -> s | _ -> "" in
-      let* () = Dream.sql request (Database.Todo.toggle_todo id) in
-      Lwt.return ()
-  | "remove_todo" ->
-      let id = match get_field "id" json with `String s -> s | _ -> "" in
-      let* () = Dream.sql request (Database.Todo.remove_todo id) in
-      Lwt.return ()
-  | _ -> Lwt.return ()
+  match kind with
+  | Error error -> Lwt.return (Error error)
+  | Ok "add_todo" -> (
+      match assoc "payload" action with
+      | Some payload -> (
+          match
+            ( required_string "id" payload,
+              required_string "list_id" payload,
+              required_string "text" payload )
+          with
+          | Ok id, Ok list_id, Ok text ->
+              let* () = Dream.sql request (Database.Todo.add_todo (action_id, id, list_id, text)) in
+              Lwt.return (Ok ())
+          | Error error, _, _ | _, Error error, _ | _, _, Error error ->
+              Lwt.return (Error error))
+      | None -> Lwt.return (Error "Missing add_todo payload"))
+  | Ok "set_todo_completed" -> (
+      match assoc "payload" action with
+      | Some payload -> (
+          match (required_string "id" payload, required_bool "completed" payload) with
+          | Ok id, Ok completed ->
+              let* () = Dream.sql request (Database.Todo.set_todo_completed (action_id, id, completed)) in
+              Lwt.return (Ok ())
+          | Error error, _ | _, Error error -> Lwt.return (Error error))
+      | None -> Lwt.return (Error "Missing set_todo_completed payload"))
+  | Ok "remove_todo" -> (
+      match assoc "payload" action with
+      | Some payload -> (
+          match required_string "id" payload with
+          | Ok id ->
+              let* () = Dream.sql request (Database.Todo.remove_todo (action_id, id)) in
+              Lwt.return (Ok ())
+          | Error error -> Lwt.return (Error error))
+      | None -> Lwt.return (Error "Missing remove_todo payload"))
+  | Ok _ -> Lwt.return (Error "Unknown action kind")
 
 let realtime_middleware =
   Middleware.create ~adapter:realtime_adapter ~resolve_subscription
@@ -90,7 +127,7 @@ let () =
   | () -> ()
   | exception Failure msg ->
     Printf.eprintf "Failed to connect notification listener: %s\n" msg);
-  Dream.run ~interface:server_interface ~port:8898 @@ Dream.logger
+  Dream.run ~interface:server_interface ~port:server_port @@ Dream.logger
   @@ Dream.sql_pool ~size:10 db_uri
   @@ Dream.router
        [

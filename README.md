@@ -1,6 +1,6 @@
 # resync
 
-`resync` is an early alpha monorepo for building universal Reason React applications with synchronized store state, realtime delivery, websocket mutation commands, and optional client persistence on top of a Dream server.
+`resync` is an early alpha monorepo for building universal Reason React applications with synchronized store state, realtime delivery, JSON websocket actions, and IndexedDB-backed browser persistence on top of a Dream server.
 
 The repository currently ships with ecommerce, todo, and todo-multiplayer demos that exercise the shared packages.
 
@@ -25,7 +25,7 @@ packages/
     components/            Universal document components for SSR + hydration
     lucide-icons/          Universal Lucide icon rendering for SSR + hydration
     router/                Shared nested routing for Dream + Reason React
-    store/                 Composable store layers: core, state, sync, persist
+    store/                 Runtime store builders and browser persistence
 
 demos/
   ecommerce/
@@ -45,17 +45,17 @@ demos/
 
 `packages/universal-reason-react/store` is designed so stores do not have to use realtime sync.
 
-Current layers:
+Current runtime pieces:
 
-- `StoreCore` - schema-driven store construction, projections, and React context
-- `StoreState` - SSR serialization and hydration
-- `StoreSync` - realtime websocket sync for schema-backed stores
-- `StorePersist` - client persistence adapters, currently `localStorage`
+- `StoreBuilder.Runtime` - public store builder API for local-only and synced stores
+- `StoreOffline` - internal offline-first runtime implementation
+- `StoreIndexedDB` - browser persistence for confirmed snapshots and action ledgers
+- `StoreActionLedger` - queued synced actions with ack and retry metadata
 
-The ecommerce demo uses these layers in two different ways:
+The ecommerce demo uses these runtimes in two different ways:
 
-- inventory store = core + state + sync
-- cart store = core + persist
+- inventory store = synced runtime with IndexedDB confirmed snapshots plus action ledger support
+- cart store = local-only runtime with IndexedDB confirmed snapshots and cross-tab sync
 
 ## Monorepo subpackages
 
@@ -91,7 +91,7 @@ The todo-multiplayer demo uses the same stack for both reads and writes:
 
 - initial state is rendered into the HTML payload
 - the browser subscribes to `/_events`
-- UI actions send `mutation <name> <json>` commands over that websocket
+- UI actions send JSON mutation envelopes over that websocket
 - PostgreSQL triggers broadcast patches back to the subscribed list channel
 
 Current Dune public libraries publish under the `resync.*` namespace, including:
@@ -243,6 +243,17 @@ pnpm todo-mp:watch
 
 > **Note:** `pnpm todo-mp:db:init` regenerates `demos/todo-multiplayer/server/sql/generated/realtime.sql` before applying the schema and triggers.
 
+### Ecommerce database setup
+
+The ecommerce demo also has a one-shot database bootstrap command outside Docker.
+
+```bash
+# One-time or after schema changes
+pnpm ecommerce:db:init
+```
+
+> **Note:** `pnpm ecommerce:db:init` regenerates `demos/ecommerce/server/sql/generated/realtime.sql` before applying the initial schema and triggers.
+
 Open:
 
 ```text
@@ -253,6 +264,7 @@ http://localhost:8898
 
 | Script | Description |
 |--------|-------------|
+| `ecommerce:db:init` | Apply ecommerce schema and generated realtime triggers |
 | `ecommerce:dune:watch` | Dune build watch for ecommerce |
 | `ecommerce:watch` | Run ecommerce server, restart on .build_stamp changes |
 | `todo:dune:watch` | Dune build watch for todo |
@@ -302,7 +314,7 @@ The todo-multiplayer demo uses:
 
 - inventory is rendered on the server and hydrated in the browser
 - inventory realtime updates come from PostgreSQL notifications over websockets
-- the cart is client-side and persisted to `localStorage`
+- the cart is client-side and persisted to IndexedDB
 - the demo still uses `reason-react-day-picker` in the storefront UI
 
 ## Notes for contributors

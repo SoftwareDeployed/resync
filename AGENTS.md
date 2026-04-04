@@ -65,13 +65,13 @@ packages/
       Realtime_schema_caqti.ml
   universal-reason-react/
     router/                 # Universal router (shared route tree for server + client)
-    store/                  # Tilia-backed store with SSR, persistence, realtime sync
+    store/                  # Tilia-backed offline-first store with SSR, persistence, realtime sync
       js/                   # JS/Melange implementations
-        StoreBuilder.re     # Functor-based store construction
+        StoreBuilder.re     # Offline-first store construction helpers
         StoreCrud.re        # Generic CRUD helpers for realtime patches
+        StoreOffline.re     # Local and synced offline-first runtimes
         StorePatch.re       # Patch decoding infrastructure
         StoreSource.re      # Tilia source wrappers
-        StoreSync.re        # Realtime websocket sync
       native/               # Server-side copies
   reason-realtime/
     pgnotify-adapter/       # PostgreSQL LISTEN/NOTIFY adapter
@@ -134,25 +134,27 @@ The server depends on `*_native` libraries; the client depends on `*_js` librari
 
 ### Store pattern
 
-All stores use `StoreBuilder.Runtime.Make` (or `Persisted.Make`) with values defined inline in the functor body. Do NOT define top-level bindings and then pass them through as `let x = x`:
+All stores use `StoreBuilder.Runtime.Make` or `StoreBuilder.Runtime.MakeSynced` with values defined inline in the functor body. Do NOT define top-level bindings and then pass them through as `let x = x`:
 
 ```reason
 // CORRECT: inline in functor body
 module Runtime = StoreBuilder.Runtime.Make({
-  type nonrec config = config;
+  type nonrec state = state;
+  type nonrec action = action;
   // ...
-  let emptyStore: store = { /* ... */ };
-  let decodePatch = StorePatch.compose([ /* ... */ ]);
-  let updateOfPatch = StoreCrud.updateOfPatch(/* ... */);
+  let emptyState: state = { /* ... */ };
+  let reduce = (~state, ~action) => state;
+  let scopeKeyOfState = _state => "default";
+  let timestampOfState = state => state.updated_at;
   // ...
 });
 
 // WRONG: top-level bindings passed to functor
-let emptyStore = { /* ... */ };
-let decodePatch = /* ... */;
+let emptyState = { /* ... */ };
+let reduce = (~state, ~action) => state;
 module Runtime = StoreBuilder.Runtime.Make({
-  let emptyStore = emptyStore;
-  let decodePatch = decodePatch;
+  let emptyState = emptyState;
+  let reduce = reduce;
 });
 ```
 

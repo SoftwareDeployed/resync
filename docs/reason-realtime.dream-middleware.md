@@ -2,17 +2,17 @@
 
 > ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
 
-Dream websocket middleware and adapter hook for realtime server-to-client updates and client-to-server mutation commands.
+Dream websocket middleware and adapter hook for realtime server-to-client updates and client-to-server JSON action frames.
 
 ## Overview
 
-This package provides a minimal websocket transport for pushing messages from server-side data sources into connected Dream clients and for accepting plain-text mutation commands from connected browsers.
+This package provides a minimal websocket transport for pushing messages from server-side data sources into connected Dream clients and for accepting JSON mutation frames from connected browsers.
 
 The middleware owns websocket lifecycle and channel subscriptions; it delegates three important decisions to your app:
 
 - how a client selection string maps to a channel (`~resolve_subscription`)
 - how to load a channel snapshot (`~load_snapshot`)
-- how to execute a named mutation command (`~handle_mutation`, optional)
+- how to execute a typed action frame (`~handle_mutation`, optional)
 
 ## Features
 
@@ -21,7 +21,7 @@ The middleware owns websocket lifecycle and channel subscriptions; it delegates 
 - Snapshot loading on subscription
 - Adapter integration for backend message sources (PostgreSQL adapter, custom adapters)
 - Broadcast fan-out to all sockets subscribed to a channel
-- Optional mutation dispatch callback for commands like `mutation add_todo {"text":"..."}`
+- Optional action callback for frames like `{type: "mutation", actionId, action}`
 
 ## Installation
 
@@ -127,12 +127,12 @@ let create: (
   ~adapter: Adapter.packed,
   ~resolve_subscription: (Dream.request => string => string option Lwt.t),
   ~load_snapshot: (Dream.request => string => string Lwt.t),
-  ?handle_mutation: (Dream.request => string => string => unit Lwt.t),
+  ?handle_mutation: (Dream.request => action_id:string => Yojson.Basic.t => (unit, string) result Lwt.t),
   unit,
 ) => Middleware.t;
 ```
 
-Build middleware and provide callbacks for subscription resolution, snapshot loading, and optional mutation execution.
+Build middleware and provide callbacks for subscription resolution, snapshot loading, and optional action execution.
 
 #### `Middleware.route`
 
@@ -174,29 +174,30 @@ let unsubscribe : packed -> channel:string -> unit Lwt.t
 
 ## Message Protocol
 
-Clients send plain text commands over websocket.
+Clients send JSON messages over websocket.
 
-Supported commands:
+Supported messages:
 
 - `ping` → server replies with `pong`
-- `select <channel>` → subscribe/replace active subscription
-- `mutation <name> <json>` → invoke `~handle_mutation` with the mutation name and raw JSON payload
+- `{type: "select", subscription, updatedAt}` → subscribe or replace the active subscription
+- `{type: "mutation", actionId, action}` → invoke `~handle_mutation`
 
-Responses are plain text payloads sent by the server (for example snapshots and adapter messages).
+Responses are JSON payloads sent by the server, including `snapshot`, `patch`, `ack`, and `pong`.
 
 ### Mutation Example
 
 ```reason
-let handle_mutation request name payload =
-  switch (name) {
+let handle_mutation request ~action_id action = {
+  let kind = (* decode action.kind from Yojson.Basic.t *) "add_todo";
+  switch (kind) {
   | "add_todo" => {
-      let json = Yojson.Basic.from_string(payload);
-      let listId = (* decode list_id from json *) "...";
-      let text = (* decode text from json *) "...";
-      let* () = Dream.sql(request, Database.Todo.add_todo(listId, text)) in
-      Lwt.return();
+      let payload = (* decode action.payload *) action;
+      let listId = "...";
+      let text = "...";
+      let* () = Dream.sql(request, Database.Todo.add_todo((action_id, listId, text))) in
+      Lwt.return(Ok(()));
     }
-  | _ => Lwt.return()
+  | _ => Lwt.return(Error("Unknown action kind"))
   };
 
 let middleware =
@@ -222,7 +223,7 @@ let middleware =
 1. Confirm adapter is running and emitting messages.
 2. Confirm `resolve_subscription` returns the same channel the client selects.
 3. Confirm `load_snapshot` returns a JSON string for that channel.
-4. Confirm your mutation handler executes database writes that trigger broadcasts on the selected channel.
+4. Confirm your action handler executes database writes that trigger broadcasts on the selected channel.
 
 ### Unexpected Subscriptions
 

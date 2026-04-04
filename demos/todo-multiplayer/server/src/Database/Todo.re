@@ -40,37 +40,86 @@ let create_list = (list_id: string) => {
 };
 
 let add_todo = args => {
-  let (id, list_id, text) = args;
+  let (action_id, id, list_id, text) = args;
   let query =
     Caqti_request.Infix.(
-      (T.t3(T.string, T.string, T.string) ->. T.unit)(
-        RealtimeSchema.Mutations.AddTodo.sql,
+      (T.t4(T.string, T.string, T.string, T.string) ->. T.unit)(
+        {sql|
+          WITH action_guard AS (
+            INSERT INTO processed_actions (id)
+            VALUES ($1::uuid)
+            ON CONFLICT DO NOTHING
+            RETURNING id
+          ), inserted AS (
+            INSERT INTO todos (id, list_id, text)
+            SELECT $2::uuid, $3::uuid, $4 FROM action_guard
+            RETURNING list_id
+          )
+          UPDATE todo_lists
+          SET updated_at = NOW()
+          WHERE id IN (SELECT list_id FROM inserted)
+        |sql},
       )
     );
   (module Db: DB) => {
-    let* result = Db.exec(query, (id, list_id, text));
+    let* result = Db.exec(query, (action_id, id, list_id, text));
     Caqti_lwt.or_fail(result);
   };
 };
 
-let toggle_todo = (todo_id: string) => {
+let set_todo_completed = args => {
+  let (action_id, todo_id, completed) = args;
   let query =
     Caqti_request.Infix.(
-      (T.string ->. T.unit)(RealtimeSchema.Mutations.ToggleTodo.sql)
+      (T.t3(T.string, T.string, T.bool) ->. T.unit)(
+        {sql|
+          WITH action_guard AS (
+            INSERT INTO processed_actions (id)
+            VALUES ($1::uuid)
+            ON CONFLICT DO NOTHING
+            RETURNING id
+          ), updated AS (
+            UPDATE todos
+            SET completed = $3
+            WHERE id = $2::uuid AND EXISTS (SELECT 1 FROM action_guard)
+            RETURNING list_id
+          )
+          UPDATE todo_lists
+          SET updated_at = NOW()
+          WHERE id IN (SELECT list_id FROM updated)
+        |sql},
+      )
     );
   (module Db: DB) => {
-    let* result = Db.exec(query, todo_id);
+    let* result = Db.exec(query, (action_id, todo_id, completed));
     Caqti_lwt.or_fail(result);
   };
 };
 
-let remove_todo = (todo_id: string) => {
+let remove_todo = args => {
+  let (action_id, todo_id) = args;
   let query =
     Caqti_request.Infix.(
-      (T.string ->. T.unit)(RealtimeSchema.Mutations.RemoveTodo.sql)
+      (T.t2(T.string, T.string) ->. T.unit)(
+        {sql|
+          WITH action_guard AS (
+            INSERT INTO processed_actions (id)
+            VALUES ($1::uuid)
+            ON CONFLICT DO NOTHING
+            RETURNING id
+          ), deleted AS (
+            DELETE FROM todos
+            WHERE id = $2::uuid AND EXISTS (SELECT 1 FROM action_guard)
+            RETURNING list_id
+          )
+          UPDATE todo_lists
+          SET updated_at = NOW()
+          WHERE id IN (SELECT list_id FROM deleted)
+        |sql},
+      )
     );
   (module Db: DB) => {
-    let* result = Db.exec(query, todo_id);
+    let* result = Db.exec(query, (action_id, todo_id));
     Caqti_lwt.or_fail(result);
   };
 };
@@ -90,17 +139,19 @@ let rename_list = (list_id: string, name: string) => {
 
 let get_list_info = (list_id: string) => {
   let list_caqti_type =
-    T.product((id, name) => {
+    T.product((id, name, updated_at) => {
       Model.TodoList.id: id,
       name: name,
+      updated_at: updated_at,
     })
       @@ T.proj(T.string, ((list: Model.TodoList.t) => list.id))
       @@ T.proj(T.string, ((list: Model.TodoList.t) => list.name))
+      @@ T.proj(T.float, ((list: Model.TodoList.t) => list.updated_at))
       @@ T.proj_end;
   let query =
     Caqti_request.Infix.(
       (T.string ->? list_caqti_type)(
-        {sql|SELECT id, name FROM todo_lists WHERE id = $1|sql},
+        {sql|SELECT id, name, EXTRACT(EPOCH FROM updated_at) * 1000 AS updated_at FROM todo_lists WHERE id = $1|sql},
       )
     );
   (module Db: DB) => {

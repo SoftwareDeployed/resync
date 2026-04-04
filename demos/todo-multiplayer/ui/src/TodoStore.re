@@ -7,8 +7,21 @@ type subscription = RealtimeSubscription.t;
 
 type patch = StoreCrud.patch(Model.Todo.t);
 
-[@deriving json]
-type payload = state;
+type add_todo_payload = {
+  id: string,
+  list_id: string,
+  text: string,
+};
+
+type set_todo_completed_payload = {
+  id: string,
+  completed: bool,
+};
+
+type action =
+  | AddTodo(add_todo_payload)
+  | SetTodoCompleted(set_todo_completed_payload)
+  | RemoveTodo(string);
 
 type store = {
   list_id: string,
@@ -17,132 +30,148 @@ type store = {
   total_count: int,
 };
 
-[@deriving json]
-type add_todo_input = {
-  id: string,
-  list_id: string,
-  text: string,
-};
-
-[@deriving json]
-type todo_id_input = {id: string};
-
 let emptyState: state = {
   todos: [||],
   list: None,
 };
 
-let emptyPayload: payload = emptyState;
+let storeName = "todo-multiplayer";
 
-let storageKeyOfState = (state: state) =>
+let scopeKeyOfState = (state: state) =>
   switch (state.list) {
-  | Some(list) => "todo-multiplayer." ++ list.id
-  | None => "todo-multiplayer"
+  | Some(list) => list.id
+  | None => "default"
   };
 
-let randomHex = length => {
-  let chars = "0123456789abcdef";
-  let buffer = Buffer.create(length);
-  for (i in 1 to length) {
-    let _ = i;
-    Buffer.add_char(buffer, chars.[Random.int(16)]);
+let timestampOfState = (state: state) =>
+  switch (state.list) {
+  | Some(list) => list.updated_at
+  | None => 0.0
   };
-  Buffer.contents(buffer);
+
+let setTimestamp = (~state: state, ~timestamp: float) =>
+  switch (state.list) {
+  | Some(list) => {
+      ...state,
+      list: Some({...list, updated_at: timestamp}),
+    }
+  | None => state
+  };
+
+let action_to_json = action =>
+  switch (action) {
+  | AddTodo(payload) =>
+    StoreJson.parse(
+      "{\"kind\":\"add_todo\",\"payload\":{\"id\":"
+      ++ string_to_json(payload.id)->Melange_json.to_string
+      ++ ",\"list_id\":"
+      ++ string_to_json(payload.list_id)->Melange_json.to_string
+      ++ ",\"text\":"
+      ++ string_to_json(payload.text)->Melange_json.to_string
+      ++ "}}",
+    )
+  | SetTodoCompleted(payload) =>
+    StoreJson.parse(
+      "{\"kind\":\"set_todo_completed\",\"payload\":{\"id\":"
+      ++ string_to_json(payload.id)->Melange_json.to_string
+      ++ ",\"completed\":"
+      ++ bool_to_json(payload.completed)->Melange_json.to_string
+      ++ "}}",
+    )
+  | RemoveTodo(id) =>
+    StoreJson.parse(
+      "{\"kind\":\"remove_todo\",\"payload\":{\"id\":"
+      ++ string_to_json(id)->Melange_json.to_string
+      ++ "}}",
+    )
+  };
+
+let action_of_json = json => {
+  let kind =
+    StoreJson.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
+  let payload =
+    StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
+  switch (kind) {
+  | "add_todo" =>
+    AddTodo({
+      id: StoreJson.requiredField(~json=payload, ~fieldName="id", ~decode=string_of_json),
+      list_id:
+        StoreJson.requiredField(~json=payload, ~fieldName="list_id", ~decode=string_of_json),
+      text: StoreJson.requiredField(~json=payload, ~fieldName="text", ~decode=string_of_json),
+    })
+  | "set_todo_completed" =>
+    SetTodoCompleted({
+      id: StoreJson.requiredField(~json=payload, ~fieldName="id", ~decode=string_of_json),
+      completed:
+        StoreJson.requiredField(~json=payload, ~fieldName="completed", ~decode=bool_of_json),
+    })
+  | _ =>
+    RemoveTodo(
+      StoreJson.requiredField(~json=payload, ~fieldName="id", ~decode=string_of_json),
+    )
+  };
 };
 
-let randomUuid = () => {
-  Random.self_init();
-  Printf.sprintf(
-    "%s-%s-%s-%s-%s",
-    randomHex(8),
-    randomHex(4),
-    randomHex(4),
-    randomHex(4),
-    randomHex(12),
-  );
+let reduce = (~state: state, ~action: action) => {
+  let updatedAt = Js.Date.now();
+  let withTimestamp = nextState => setTimestamp(~state=nextState, ~timestamp=updatedAt);
+  switch (action) {
+  | AddTodo(payload) =>
+    withTimestamp({
+      ...state,
+      todos:
+        StoreCrud.upsert(
+          ~getId=(item: Model.Todo.t) => item.id,
+          state.todos,
+          {
+            id: payload.id,
+            list_id: payload.list_id,
+            text: payload.text,
+            completed: false,
+          },
+        ),
+    })
+  | SetTodoCompleted(payload) =>
+    withTimestamp({
+      ...state,
+      todos:
+        Js.Array.map(
+          ~f=(item: Model.Todo.t) =>
+            item.id == payload.id ? {...item, completed: payload.completed} : item,
+          state.todos,
+        ),
+    })
+  | RemoveTodo(id) =>
+    withTimestamp({
+      ...state,
+      todos: StoreCrud.remove(~getId=(item: Model.Todo.t) => item.id, state.todos, id),
+    })
+  };
 };
 
-module Local = StoreLocal.Make({
+module Runtime = StoreBuilder.Runtime.MakeSynced({
   type nonrec state = state;
-  type nonrec payload = payload;
-
-  module Adapter = StoreLocal.LocalStorageAdapter;
-
-  let storageKeyOfState = storageKeyOfState;
-  let payloadOfState = (state: state): payload => state;
-  let stateOfPayload = (payload: payload): state => payload;
-  let payload_of_json = payload_of_json;
-  let payload_to_json = payload_to_json;
-});
-
-module Remote = StoreSync.Make({
-  type nonrec state = state;
-  type nonrec patch = patch;
-  type nonrec subscription = subscription;
-
-  let subscriptionOfState = (state: state): option(subscription) =>
-    switch (state.list) {
-    | Some(list) => Some(RealtimeSubscription.list(list.id))
-    | None => None
-    };
-  let encodeSubscription = RealtimeSubscription.encode;
-  let updatedAtOf = (_state: state) => 0.0;
-  let state_of_json = state_of_json;
-
-  let decodePatch =
-    StorePatch.compose([
-      StoreCrud.decodePatch(
-        ~table=RealtimeSchema.table_name("todos"),
-        ~decodeRow=Model.Todo.of_json,
-        (),
-      ),
-    ]);
-
-  let updateOfPatch = StoreCrud.updateOfPatch(
-    ~getId=(todo: Model.Todo.t) => todo.id,
-    ~getItems=(state: state) => state.todos,
-    ~setItems=(state: state, items) => {...state, todos: items},
-  );
-
-  let eventUrl = Constants.event_url;
-  let baseUrl = Constants.base_url;
-});
-
-module Layered = StoreBuilder.Layered.Make({
-  type nonrec state = state;
-  type nonrec payload = payload;
+  type nonrec action = action;
   type nonrec store = store;
+  type nonrec subscription = subscription;
+  type nonrec patch = patch;
 
-  let emptyStore: store = {
-    list_id: "",
-    state: emptyState,
-    completed_count: 0,
-    total_count: 0,
-  };
-  let emptyPayload = emptyPayload;
+  let reduce = reduce;
+  let emptyState = emptyState;
+  let storeName = storeName;
   let stateElementId = "initial-store";
-
-  let payloadOfState = (state: state): payload => state;
-  let stateOfPayload = (payload: payload): state => payload;
+  let scopeKeyOfState = scopeKeyOfState;
+  let timestampOfState = timestampOfState;
+  let setTimestamp = setTimestamp;
   let state_of_json = state_of_json;
   let state_to_json = state_to_json;
-  let payload_of_json = payload_of_json;
-  let payload_to_json = payload_to_json;
-  let clientLayers = [|Local.hooks, Remote.hooks|];
-
-  let makeStore =
-      (
-        ~state: state,
-        ~payload: payload,
-        ~derive: option(Tilia.Core.deriver(store))=?,
-        (),
-      ):
-      store => {
-    let _ = payload;
+  let action_of_json = action_of_json;
+  let action_to_json = action_to_json;
+  let makeStore = (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
     let todos = state.todos;
-    let completedCount = (todos: array(Model.Todo.t)) =>
-      todos
-      ->Js.Array.filter(~f=(todo: Model.Todo.t) => todo.completed)
+    let completedCount = (items: array(Model.Todo.t)) =>
+      items
+      ->Js.Array.filter(~f=(item: Model.Todo.t) => item.completed)
       ->Array.length;
     {
       list_id:
@@ -167,32 +196,41 @@ module Layered = StoreBuilder.Layered.Make({
         ),
     };
   };
+  let subscriptionOfState = (state: state): option(subscription) =>
+    switch (state.list) {
+    | Some(list) => Some(RealtimeSubscription.list(list.id))
+    | None => None
+    };
+  let encodeSubscription = RealtimeSubscription.encode;
+  let eventUrl = Constants.event_url;
+  let baseUrl = Constants.base_url;
+  let decodePatch =
+    StorePatch.compose([
+      StoreCrud.decodePatch(
+        ~table=RealtimeSchema.table_name("todos"),
+        ~decodeRow=Model.Todo.of_json,
+        (),
+      ),
+    ]);
+  let updateOfPatch =
+    StoreCrud.updateOfPatch(
+      ~getId=(todo: Model.Todo.t) => todo.id,
+      ~getItems=(state: state) => state.todos,
+      ~setItems=(state: state, items) => {...state, todos: items},
+    );
 });
 
 include (
-  Layered:
-    StoreBuilder.Layered.Exports
+  Runtime:
+    StoreBuilder.Runtime.Exports
       with type state := state
-      and type payload := payload
+      and type action := action
       and type t := store
 );
 
 type t = store;
 
-module Context = Layered.Context;
-
-let optimisticUpsert = (todo: Model.Todo.t) =>
-  Local.update(state => {
-    let todos =
-      StoreCrud.upsert(~getId=(item: Model.Todo.t) => item.id, state.todos, todo);
-    {...state, todos};
-  });
-
-let optimisticRemove = (id: string) =>
-  Local.update(state => {
-    let todos = StoreCrud.remove(~getId=(todo: Model.Todo.t) => todo.id, state.todos, id);
-    {...state, todos};
-  });
+module Context = Runtime.Context;
 
 let addTodo = (store: t, text: string) => {
   let list_id =
@@ -200,34 +238,17 @@ let addTodo = (store: t, text: string) => {
     | Some(list) => list.id
     | None => store.list_id
     };
-  let id = randomUuid();
-  optimisticUpsert({
-    id,
+  dispatch(AddTodo({
+    id: UUID.make(),
     list_id,
     text,
-    completed: false,
-  });
-  RealtimeClient.Socket.sendMutation(
-    "add_todo",
-    StoreJson.stringify(add_todo_input_to_json, {id, list_id, text}),
-  );
+  }));
 };
 
-let toggleTodo = (store: t, id: string) => {
+let toggleTodo = (store: t, id: string) =>
   switch (Js.Array.find(~f=(todo: Model.Todo.t) => todo.id == id, store.state.todos)) {
-  | Some(todo) => optimisticUpsert({...todo, completed: !todo.completed})
+  | Some(todo) => dispatch(SetTodoCompleted({id, completed: !todo.completed}))
   | None => ()
   };
-  RealtimeClient.Socket.sendMutation(
-    "toggle_todo",
-    StoreJson.stringify(todo_id_input_to_json, {id: id}),
-  );
-};
 
-let removeTodo = (_store: t, id: string) => {
-  optimisticRemove(id);
-  RealtimeClient.Socket.sendMutation(
-    "remove_todo",
-    StoreJson.stringify(todo_id_input_to_json, {id: id}),
-  );
-};
+let removeTodo = (_store: t, id: string) => dispatch(RemoveTodo(id));

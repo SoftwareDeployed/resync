@@ -7,8 +7,8 @@ A comprehensive framework for building universal (SSR + client-side) Reason Reac
 This documentation covers the complete stack for building universal Reason React applications:
 
 - **Universal Router**: Shared routing between server and client
-- **Store System**: Tilia-backed state management with SSR hydration and persistence
-- **Real-time Sync**: WebSocket-based live updates and mutation commands via PostgreSQL LISTEN/NOTIFY
+- **Store System**: Tilia-backed runtime stores with synchronous SSR hydration and IndexedDB persistence
+- **Real-time Sync**: WebSocket-based live updates and typed JSON actions via PostgreSQL LISTEN/NOTIFY
 - **Component System**: Universal rendering helpers and icon support
 
 ## Quick Start
@@ -78,7 +78,7 @@ After the basics are working, move to:
 
 ### Real-time Packages
 
-- **[reason-realtime/dream-middleware](reason-realtime.dream-middleware.md)** - Dream websocket middleware for server-to-client realtime delivery and websocket mutation commands.
+- **[reason-realtime/dream-middleware](reason-realtime.dream-middleware.md)** - Dream websocket middleware for server-to-client realtime delivery and JSON action handling.
 - **[reason-realtime/pgnotify-adapter](reason-realtime.pgnotify-adapter.md)** - PostgreSQL LISTEN/NOTIFY adapter for database-driven real-time events.
 
 ### Setup Guides
@@ -96,8 +96,8 @@ After the basics are working, move to:
          │                                           │
          ▼                                           ▼
 ┌─────────────────┐                         ┌─────────────────┐
-│  PostgreSQL DB  │◄────────────────────────►│  RealtimeClient │
-│  LISTEN/NOTIFY  │   WebSocket Events      │  (Store Sync)   │
+│  PostgreSQL DB  │◄────────────────────────►│ Runtime Store   │
+│  LISTEN/NOTIFY  │   WebSocket Events      │ + RealtimeClient│
 └─────────────────┘                         └─────────────────┘
 ```
 
@@ -107,7 +107,7 @@ After the basics are working, move to:
 2. **SSR Hydration**: Server renders initial state, client hydrates without refetching
 3. **Source State Pattern**: Single source of truth with derived projections
 4. **Real-time Patches**: Typed patch system for live updates without full re-renders
-5. **WebSocket Mutations**: UI actions can send named mutation commands over the active realtime socket
+5. **WebSocket Actions**: UI actions can send typed JSON actions over the active realtime socket
 
 ## Development
 
@@ -120,6 +120,7 @@ pnpm run todo-mp:dune:watch
 pnpm run todo-mp:watch
 
 # ecommerce
+pnpm run ecommerce:db:init
 pnpm run ecommerce:dune:watch
 pnpm run ecommerce:watch
 ```

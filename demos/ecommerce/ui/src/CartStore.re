@@ -19,49 +19,45 @@ module CartItem = {
 };
 
 [@deriving json]
-type state = {items: StoreJson.Dict.t(CartItem.t)};
+type state = {
+  items: StoreJson.Dict.t(CartItem.t),
+  updated_at: float,
+};
 
 type items = StoreJson.Dict.t(CartItem.t);
 
-[@deriving json]
-type payload = {
-  [@json.option]
-  items: option(StoreJson.Dict.t(CartItem.t)),
+type quantity_input = {
+  inventory_id: string,
+  quantity: int,
 };
+
+type action =
+  | SetItemQuantity(quantity_input)
+  | RemoveItem(string)
+  | ClearCart;
 
 type store = {
   state: state,
   item_count: int,
 };
 
-let storageKey = "ecommerce.cart";
+let storeName = "ecommerce.cart";
 let stateElementId = "cart-store";
 
 let defaultItems: items = Js.Dict.empty();
 
 let normalizeItems = items =>
-  try({
+  try ({
     ignore(items->Js.Dict.keys);
     items;
   }) {
   | _ => defaultItems
   };
 
-let emptyPayload: payload = {
-  items: Some(defaultItems),
+let emptyState: state = {
+  items: defaultItems,
+  updated_at: 0.0,
 };
-
-let payloadOfState = (state: state): payload => {items: Some(state.items)};
-
-let stateOfPayload = (payload: payload): state => {
-  items:
-    switch (payload.items) {
-    | Some(items) => normalizeItems(items)
-    | None => defaultItems
-    },
-};
-
-let emptyState = stateOfPayload(emptyPayload);
 
 let itemCountOfItems = items =>
   Array.fold_left(
@@ -76,90 +72,6 @@ let itemCountOfItems = items =>
   );
 
 let itemCount = (state: state) => itemCountOfItems(state.items);
-
-let makeStore =
-    (
-      ~state: state,
-      ~payload: payload,
-      ~derive: option(Tilia.Core.deriver(store))=?,
-      (),
-    ):
-    store => {
-  let _ = payload;
-  {
-    state:
-      StoreBuilder.current(
-        ~derive?,
-        ~client=state,
-        ~server=() => state,
-        (),
-      ),
-    item_count:
-      StoreBuilder.derived(
-        ~derive?,
-        ~client=store => itemCount(store.state),
-        ~server=() => itemCount(state),
-        (),
-      ),
-  };
-};
-
-let emptyStore = makeStore(~state=emptyState, ~payload=emptyPayload, ());
-
-let log = (label: string, value: 'a) =>
-  switch%platform (Runtime.platform) {
-  | Client => Js.log2(label, value)
-  | Server => ()
-  };
-
-module Local = StoreLocal.Make({
-  type nonrec state = state;
-  type nonrec payload = payload;
-
-  module Adapter = StoreLocal.LocalStorageAdapter;
-
-  let storageKeyOfState = (_state: state) => storageKey;
-  let payloadOfState = payloadOfState;
-  let stateOfPayload = stateOfPayload;
-  let payload_of_json = payload_of_json;
-  let payload_to_json = payload_to_json;
-});
-
-module Layered = StoreBuilder.Layered.Make({
-  type nonrec state = state;
-  type nonrec payload = payload;
-  type nonrec store = store;
-
-  let emptyStore = emptyStore;
-  let emptyPayload = emptyPayload;
-  let stateElementId = stateElementId;
-  let payloadOfState = payloadOfState;
-  let stateOfPayload = stateOfPayload;
-  let state_of_json = state_of_json;
-  let state_to_json = state_to_json;
-  let payload_of_json = payload_of_json;
-  let payload_to_json = payload_to_json;
-  let clientLayers = [|Local.hooks|];
-  let makeStore = makeStore;
-});
-
-include (
-  Layered:
-    StoreBuilder.Layered.Exports
-      with type state := state
-      and type payload := payload
-      and type t := store
-);
-
-type t = store;
-
-module Context = Layered.Context;
-
-let hydrateStore = () => {
-  let store = Layered.hydrateStore();
-  log("[cart] hydrated", "ok");
-  store;
-};
 
 let copyItems = (items: items) => {
   let nextItems = Js.Dict.empty();
@@ -210,54 +122,147 @@ let setItemQuantity = (items: items, ~inventoryId, ~quantity) =>
     nextItems;
   };
 
-let updateItems = (~store: t, ~label, reducer) => {
-  let beforeCount = itemCount(store.state);
-  log(label ++ " before count", beforeCount);
-  Local.update(state => {
-    let nextItems = reducer(copyItems(state.items));
-    log(label ++ " persisting", nextItems);
-    {items: nextItems};
-  });
-  switch (Local.get()) {
-  | Some(state) => log(label ++ " after count", itemCount(state))
-  | None => ()
+let action_to_json = action =>
+  switch (action) {
+  | SetItemQuantity(input) =>
+    StoreJson.parse(
+      "{\"kind\":\"set_item_quantity\",\"inventory_id\":"
+      ++ string_to_json(input.inventory_id)->Melange_json.to_string
+      ++ ",\"quantity\":"
+      ++ int_to_json(input.quantity)->Melange_json.to_string
+      ++ "}",
+    )
+  | RemoveItem(id) =>
+    StoreJson.parse(
+      "{\"kind\":\"remove_item\",\"inventory_id\":"
+      ++ string_to_json(id)->Melange_json.to_string
+      ++ "}",
+    )
+  | ClearCart => StoreJson.parse("{\"kind\":\"clear_cart\"}")
+  };
+
+let action_of_json = json => {
+  let kind =
+    StoreJson.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
+  switch (kind) {
+  | "set_item_quantity" =>
+    SetItemQuantity({
+      inventory_id:
+        StoreJson.requiredField(
+          ~json,
+          ~fieldName="inventory_id",
+          ~decode=string_of_json,
+        ),
+      quantity:
+        StoreJson.requiredField(~json, ~fieldName="quantity", ~decode=int_of_json),
+    })
+  | "remove_item" =>
+    RemoveItem(
+      StoreJson.requiredField(
+        ~json,
+        ~fieldName="inventory_id",
+        ~decode=string_of_json,
+      ),
+    )
+  | _ => ClearCart
   };
 };
 
+let reduce = (~state: state, ~action: action) => {
+  let updated_at = Js.Date.now();
+  switch (action) {
+  | SetItemQuantity(input) => {
+      items:
+        setItemQuantity(
+          copyItems(state.items),
+          ~inventoryId=input.inventory_id,
+          ~quantity=input.quantity,
+        ),
+      updated_at,
+    }
+  | RemoveItem(inventoryId) => {
+      items: removeItemById(state.items, inventoryId),
+      updated_at,
+    }
+  | ClearCart => {
+      items: defaultItems,
+      updated_at,
+    }
+  };
+};
+
+module Runtime = StoreBuilder.Runtime.Make({
+  type nonrec state = state;
+  type nonrec action = action;
+  type nonrec store = store;
+
+  let reduce = reduce;
+  let emptyState = emptyState;
+  let storeName = storeName;
+  let stateElementId = stateElementId;
+  let scopeKeyOfState = (_state: state) => "default";
+  let timestampOfState = (state: state) => state.updated_at;
+  let state_of_json = state_of_json;
+  let state_to_json = state_to_json;
+  let action_of_json = action_of_json;
+  let action_to_json = action_to_json;
+  let makeStore = (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+    state:
+      StoreBuilder.current(
+        ~derive?,
+        ~client=state,
+        ~server=() => state,
+        (),
+      ),
+    item_count:
+      StoreBuilder.derived(
+        ~derive?,
+        ~client=store => itemCount(store.state),
+        ~server=() => itemCount(state),
+        (),
+      ),
+  };
+});
+
+include (
+  Runtime:
+    StoreBuilder.Runtime.Exports
+      with type state := state
+      and type action := action
+      and type t := store
+);
+
+type t = store;
+
+module Context = Runtime.Context;
+
+let setQuantity = (store: t, ~inventoryId, ~quantity) => {
+  let _ = store;
+  dispatch(SetItemQuantity({inventory_id: inventoryId, quantity}));
+};
+
 let increment_item = (store: t, inventoryId: string) => {
-  log("[cart] increment item", inventoryId);
-  updateItems(~store, ~label="[cart] increment", items => {
-    let nextQuantity =
-      switch (items->Js.Dict.get(inventoryId)) {
-      | Some((cartItem: CartItem.t)) => cartItem.quantity + 1
-      | None => 1
-      };
-    setItemQuantity(items, ~inventoryId, ~quantity=nextQuantity);
-  });
+  let nextQuantity =
+    switch (store.state.items->Js.Dict.get(inventoryId)) {
+    | Some((cartItem: CartItem.t)) => cartItem.quantity + 1
+    | None => 1
+    };
+  setQuantity(store, ~inventoryId, ~quantity=nextQuantity);
 };
 
 let decrement_item = (store: t, inventoryId: string) => {
-  log("[cart] decrement item", inventoryId);
-  updateItems(~store, ~label="[cart] decrement", items => {
-    let nextQuantity =
-      switch (items->Js.Dict.get(inventoryId)) {
-      | Some((cartItem: CartItem.t)) => cartItem.quantity - 1
-      | None => 0
-      };
-    setItemQuantity(items, ~inventoryId, ~quantity=nextQuantity);
-  });
+  let nextQuantity =
+    switch (store.state.items->Js.Dict.get(inventoryId)) {
+    | Some((cartItem: CartItem.t)) => cartItem.quantity - 1
+    | None => 0
+    };
+  setQuantity(store, ~inventoryId, ~quantity=nextQuantity);
 };
 
-let remove_item = (store: t, inventoryId: string) => {
-  log("[cart] remove item", inventoryId);
-  updateItems(~store, ~label="[cart] remove", items =>
-    removeItemById(items, inventoryId)
-  );
-};
+let remove_item = (_store: t, inventoryId: string) => dispatch(RemoveItem(inventoryId));
 
 let add_to_cart = (store: t, item: Model.InventoryItem.t) => {
-  log("[cart] add_to_cart item", item.id);
   increment_item(store, item.id);
 };
 
-let clear = () => Local.clearCurrent();
+let clear = () => dispatch(ClearCart);

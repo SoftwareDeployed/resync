@@ -297,81 +297,93 @@ Opaque subscription type for real-time sync.
 
 ### StoreBuilder.Runtime.Make
 
-Module functor for creating runtime stores. Define all values inline inside the functor body.
+Module functor for creating local-only runtime stores. Define all values inline inside the functor body.
 
 **Signature:**
 ```reason
 module Runtime = StoreBuilder.Runtime.Make({
-  type config;
-  type patch;
-  type payload;
+  type state;
+  type action;
   type store;
-  type subscription;
 
-  let emptyStore: store;
+  let reduce: (~state: state, ~action: action) => state;
+  let emptyState: state;
+  let storeName: string;
   let stateElementId: string;
-  let payloadOfConfig: config => payload;
-  let configOfPayload: payload => config;
-  let subscriptionOfConfig: config => option(subscription);
-  let encodeSubscription: subscription => string;
-  let updatedAtOf: config => float;
-  let eventUrl: string;
-  let baseUrl: string;
-  let updateOfPatch: patch => config => config;
-  let decodePatch: StoreJson.json => option(patch);
-  let config_of_json: StoreJson.json => config;
-  let config_to_json: config => StoreJson.json;
-  let payload_of_json: StoreJson.json => payload;
-  let payload_to_json: payload => StoreJson.json;
+  let scopeKeyOfState: state => string;
+  let timestampOfState: state => float;
+  let state_of_json: StoreJson.json => state;
+  let state_to_json: state => StoreJson.json;
+  let action_of_json: StoreJson.json => action;
+  let action_to_json: action => StoreJson.json;
+  let makeStore:
+    (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
 });
 ```
 
 **Exports:**
 - `type t`: The store type
-- `type config`: Configuration type
-- `type payload`: Payload type
-- `let createStore: config => t`: Create new store
+- `type state`: Source state type
+- `type action`: Action type
+- `let createStore: state => t`: Create new store
 - `let hydrateStore: unit => t`: Hydrate from SSR
-- `let serializeState: config => string`: Serialize for SSR
-- `let serializeSnapshot: config => string`: Serialize for snapshot
-- `let useStore: unit => t`: Hook to access store
-- `let Context: React.context(t)`: React context
+- `let serializeState: state => string`: Serialize for SSR
+- `let serializeSnapshot: state => string`: Serialize for snapshot
+- `let dispatch: action => unit`: Dispatch a typed action
 
-### StoreBuilder.Persisted.Make
+### StoreBuilder.Runtime.MakeSynced
 
-Module functor for creating persisted stores.
+Module functor for creating realtime runtime stores with IndexedDB-backed action replay.
 
 **Signature:**
 ```reason
-module Persisted = StoreBuilder.Persisted.Make({
-  type config;
-  type payload;
+module Runtime = StoreBuilder.Runtime.MakeSynced({
+  type state;
+  type action;
   type store;
+  type subscription;
+  type patch;
 
-  let storageKey: string;
-  let emptyStore: store;
-  let payloadOfConfig: config => payload;
-  let configOfPayload: payload => config;
-  let payloadOfStore: store => payload;
-  let payload_of_json: StoreJson.json => payload;
-  let payload_to_json: payload => StoreJson.json;
-  let transformConfig: config => config;
+  let reduce: (~state: state, ~action: action) => state;
+  let emptyState: state;
+  let storeName: string;
+  let stateElementId: string;
+  let scopeKeyOfState: state => string;
+  let timestampOfState: state => float;
+  let setTimestamp: (~state: state, ~timestamp: float) => state;
+  let state_of_json: StoreJson.json => state;
+  let state_to_json: state => StoreJson.json;
+  let action_of_json: StoreJson.json => action;
+  let action_to_json: action => StoreJson.json;
   let makeStore:
-    (~config: config, ~payload: payload, ~derive: Tilia.Core.deriver(store)=?, unit) =>
-    store;
+    (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
+  let subscriptionOfState: state => option(subscription);
+  let encodeSubscription: subscription => string;
+  let eventUrl: string;
+  let baseUrl: string;
+  let decodePatch: StoreJson.json => option(patch);
+  let updateOfPatch: patch => state => state;
 });
 ```
 
 **Exports:**
 - `type t`: The store type
-- `let empty: t`: Empty store
-- `let createStore: config => t`: Create new store
-- `let hydrateStore: unit => t`: Hydrate from localStorage
-- `let serializeState: config => string`: Serialize state
-- `let persistPayload: payload => unit`: Persist payload
-- `let persistStore: t => unit`: Persist store
-- `let clear: unit => unit`: Clear persisted data
-- `let Context: React.context(t)`: React context
+- `type state`: Source state type
+- `type action`: Action type
+- `let createStore: state => t`: Create new store
+- `let hydrateStore: unit => t`: Hydrate from SSR and reconcile IndexedDB after mount
+- `let serializeState: state => string`: Serialize for SSR
+- `let serializeSnapshot: state => string`: Serialize for snapshot/debugging
+- `let dispatch: action => unit`: Dispatch an optimistic typed action
+
+### IndexedDB Behavior
+
+Both runtime builders use IndexedDB:
+
+- `confirmed_state` stores `{scopeKey, value, timestamp}`
+- synced runtimes also use `actions` for queued typed actions and ack state
+
+`storeName` identifies the IndexedDB database and `scopeKeyOfState` identifies the logical store instance within that database.
 
 ### StoreCrud
 
@@ -576,12 +588,12 @@ let create: (
   ~adapter: Adapter.packed,
   ~resolve_subscription: Dream.request => string => string option Lwt.t,
   ~load_snapshot: Dream.request => string => string Lwt.t,
-  ?handle_mutation: Dream.request => string => string => unit Lwt.t,
+  ?handle_mutation: Dream.request => action_id:string => Yojson.Basic.t => (unit, string) result Lwt.t,
   unit,
 ) => Middleware.t;
 ```
 
-Creates middleware instance. `~handle_mutation` is optional and receives websocket commands in the form `mutation <name> <json>`.
+Creates middleware instance. `~handle_mutation` is optional and receives JSON mutation frames in the form `{type: "mutation", actionId, action}`.
 
 #### `Middleware.route`
 
@@ -601,13 +613,13 @@ Broadcasts a payload string to all connected clients.
 
 ### Realtime Client Socket
 
-#### `RealtimeClient.Socket.sendMutation`
+#### `RealtimeClient.Socket.sendAction`
 
 ```reason
-let sendMutation: (string, string) => unit;
+let sendAction: (~actionId: string, ~action: StoreJson.json) => unit;
 ```
 
-Send a named mutation command over the currently active realtime websocket. The first argument is the mutation name and the second argument is the JSON payload string.
+Send a typed JSON action over the currently active realtime websocket.
 
 #### `Adapter.pack`
 

@@ -206,9 +206,9 @@ SELECT pg_notify('items_changes', '{"test": true}');
 
 3. **Check subscription encoding:**
 ```reason
-// Verify subscriptionOfConfig returns correct structure
-let subscriptionOfConfig = (config) => {
-  config.user |> Option.map(user => {
+// Verify subscriptionOfState returns correct structure
+let subscriptionOfState = (state) => {
+  state.user |> Option.map(user => {
     userId: user.id  // Must match server expectation
   });
 };

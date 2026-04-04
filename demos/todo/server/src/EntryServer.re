@@ -20,6 +20,7 @@ let getServerState =
         completed: false,
       },
     |],
+    updated_at: 0.0,
   };
 
   let store = TodoStore.createStore(state);
