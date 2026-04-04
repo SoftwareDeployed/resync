@@ -7,8 +7,8 @@ maintainer: ["Brian Kaplan <brian@equalslashed.net>"]
 authors: ["Brian Kaplan <brian@equalslashed.net>"]
 license: "MIT"
 tags: ["web" "commerce" "lease" "subscription" "cart"]
-homepage: "https://github.com/Software-Deployed/resync"
-bug-reports: "https://github.com/Software-Deployed/resync/issues"
+homepage: "https://github.com/SoftwareDeployed/resync"
+bug-reports: "https://github.com/SoftwareDeployed/resync/issues"
 depends: [
   "dune" {>= "3.21"}
   "ocaml" {= "5.4.0"}
@@ -44,5 +44,5 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/Software-Deployed/resync.git"
+dev-repo: "git+https://github.com/SoftwareDeployed/resync.git"
 x-maintenance-intent: ["(latest)"]

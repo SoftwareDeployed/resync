@@ -5,7 +5,7 @@
 (generate_opam_files true)
 
 (source
- (github Software-Deployed/resync))
+ (github SoftwareDeployed/resync))
 
 (authors "Brian Kaplan <brian@equalslashed.net>")
 
@@ -32,7 +32,7 @@
 
 (pin
  (url
-  "git+https://github.com/Software-Deployed/reason-react-day-picker.git#reason-native")
+  "git+https://github.com/SoftwareDeployed/reason-react-day-picker.git#reason-native")
  (package
   (name reason-react-day-picker)))
 
