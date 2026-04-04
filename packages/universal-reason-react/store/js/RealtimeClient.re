@@ -37,7 +37,7 @@ let pingFrameString = () => "";
 [@platform native]
 module Socket = {
   let defaultBaseUrl = "http://localhost:8899";
-  let sendAction = (~actionId: string, ~action: StoreJson.json) => ();
+  let sendAction = (~actionId: string, ~action: StoreJson.json) => false;
 
   let subscribeSynced =
       (~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ()) => {
@@ -67,12 +67,12 @@ module Socket = {
 
   let pingTimeoutSeconds = 5.0;
   let intervalRef: ref(option(int)) = ref(None);
-  let sendRef: ref(option(string => unit)) = ref(None);
+  let sendRef: ref(option(string => bool)) = ref(None);
 
   let sendFrame = message =>
     switch (sendRef.contents) {
     | Some(send) => send(message)
-    | None => ()
+    | None => false
     };
 
   let sendAction = (~actionId: string, ~action: StoreJson.json) =>
@@ -87,6 +87,9 @@ module Socket = {
     sendRef := Some(message => {
       if (ws->WebSocket.readyState == 1) {
         ws->WebSocket.send_string(message);
+        true;
+      } else {
+        false;
       };
     });
 
@@ -102,7 +105,7 @@ module Socket = {
 
     let sendPing = () => {
       if (ws->WebSocket.readyState == 1) {
-        sendFrame(pingFrameString());
+        let _ = sendFrame(pingFrameString());
         setLastPingTs(Js.Date.now());
       };
     };
@@ -119,7 +122,7 @@ module Socket = {
     };
 
     WebSocket.onOpen(ws, () => {
-      sendFrame(selectFrameString(subscription, updatedAt));
+      let _ = sendFrame(selectFrameString(subscription, updatedAt));
       onOpen();
     });
 

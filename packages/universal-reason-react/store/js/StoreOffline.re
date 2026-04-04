@@ -250,6 +250,43 @@ module Local = {
 };
 
 module Synced = {
+  type broadcast_channel;
+
+  [@platform js]
+  let openBroadcastChannel: string => broadcast_channel =
+    [%raw {|
+      function(name) {
+        return new BroadcastChannel(name);
+      }
+    |}];
+
+  [@platform native]
+  let openBroadcastChannel = (_name: string) => Obj.magic(());
+
+  [@platform js]
+  let postBroadcastMessage: (broadcast_channel, string) => unit =
+    [%raw {|
+      function(channel, message) {
+        channel.postMessage(message);
+      }
+    |}];
+
+  [@platform native]
+  let postBroadcastMessage = (_channel, _message) => ();
+
+  [@platform js]
+  let setBroadcastHandler: (broadcast_channel, string => unit) => unit =
+    [%raw {|
+      function(channel, handler) {
+        channel.onmessage = function(event) {
+          handler(event.data);
+        };
+      }
+    |}];
+
+  [@platform native]
+  let setBroadcastHandler = (_channel, _handler) => ();
+
   [@platform js]
   external setTimeout: (unit => unit, int) => int = "setTimeout";
 
@@ -304,6 +341,8 @@ module Synced = {
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
     let timersRef: ref(Js.Dict.t(int)) = ref(Js.Dict.empty());
+    let channelRef: ref(option(broadcast_channel)) = ref(None);
+    let suppressPublishRef: ref(bool) = ref(false);
 
     let empty = Schema.makeStore(~state=Schema.emptyState, ());
 
@@ -313,6 +352,54 @@ module Synced = {
       StoreJson.stringify(Schema.state_to_json, state);
 
     let serializeSnapshot = serializeState;
+
+    let broadcastOptimisticAction = (record: StoreActionLedger.t) =>
+      switch%platform (Runtime.platform) {
+      | Client =>
+        switch (channelRef.contents) {
+        | Some(channel) =>
+          postBroadcastMessage(
+            channel,
+            StoreJson.stringify(
+              json => json,
+              StoreJson.parse(
+                "{\"type\":\"optimistic_action\",\"scopeKey\":"
+                ++ Melange_json.Primitives.string_to_json(record.scopeKey)->Melange_json.to_string
+                ++ ",\"actionId\":"
+                ++ Melange_json.Primitives.string_to_json(record.id)->Melange_json.to_string
+                ++ "}",
+              ),
+            ),
+          )
+        | None => ()
+        }
+      | Server => ()
+      };
+
+    let broadcastConfirmedState = (state: state) =>
+      switch%platform (Runtime.platform) {
+      | Client =>
+        switch (channelRef.contents) {
+        | Some(channel) =>
+          postBroadcastMessage(
+            channel,
+            StoreJson.stringify(
+              json => json,
+              StoreJson.parse(
+                "{\"type\":\"confirmed_state\",\"scopeKey\":"
+                ++ Melange_json.Primitives.string_to_json(Schema.scopeKeyOfState(state))->Melange_json.to_string
+                ++ ",\"timestamp\":"
+                ++ Melange_json.Primitives.float_to_json(Schema.timestampOfState(state))->Melange_json.to_string
+                ++ ",\"state\":"
+                ++ StoreJson.stringify(Schema.state_to_json, state)
+                ++ "}",
+              ),
+            ),
+          )
+        | None => ()
+        }
+      | Server => ()
+      };
 
     let persistConfirmedState = (state: state) =>
       switch%platform (Runtime.platform) {
@@ -326,6 +413,11 @@ module Synced = {
               timestamp: Schema.timestampOfState(state),
             },
           );
+        if (suppressPublishRef.contents) {
+          suppressPublishRef := false;
+        } else {
+          broadcastConfirmedState(state);
+        };
         ()
       | Server => ()
       };
@@ -424,17 +516,35 @@ module Synced = {
       | Server => ()
       }
 
+    and applyExternalConfirmedState = (~actions: StoreSource.actions(state), nextState: state) => {
+      suppressPublishRef := true;
+      confirmedStateRef := nextState;
+      actions.set(nextState);
+      refreshOptimisticState();
+    }
+
     and sendQueuedRecord = (record: StoreActionLedger.t) => {
-      let syncingRecord = {
-        ...record,
-        status: StoreActionLedger.statusToString(Syncing),
+      let sent =
+        RealtimeClient.Socket.sendAction(
+          ~actionId=record.id,
+          ~action=record.action,
+        );
+      let nextRecord =
+        if (sent) {
+          {
+            ...record,
+            status: StoreActionLedger.statusToString(Syncing),
+          };
+        } else {
+          {
+            ...record,
+            status: StoreActionLedger.statusToString(Pending),
+          };
+        };
+      let _ = StoreActionLedger.put(~storeName=Schema.storeName, nextRecord);
+      if (sent) {
+        scheduleAckTimeout(nextRecord.id);
       };
-      let _ = StoreActionLedger.put(~storeName=Schema.storeName, syncingRecord);
-      RealtimeClient.Socket.sendAction(
-        ~actionId=syncingRecord.id,
-        ~action=syncingRecord.action,
-      );
-      scheduleAckTimeout(syncingRecord.id);
     }
 
     and handleAckTimeout = actionId =>
@@ -604,6 +714,51 @@ module Synced = {
             ~afterSet=_next => (),
             ~mount=actions => {
               sourceRef := Some(actions);
+              let channel = openBroadcastChannel("resync.store." ++ Schema.storeName);
+              channelRef := Some(channel);
+              setBroadcastHandler(
+                channel,
+                message => {
+                  switch (StoreJson.tryParse(message)) {
+                  | Some(json) =>
+                    let messageType =
+                      StoreJson.optionalField(
+                        ~json,
+                        ~fieldName="type",
+                        ~decode=Melange_json.Primitives.string_of_json,
+                      );
+                    let scopeKey =
+                      StoreJson.requiredField(
+                        ~json,
+                        ~fieldName="scopeKey",
+                        ~decode=Melange_json.Primitives.string_of_json,
+                      );
+                    let currentConfirmedState = confirmedStateRef.contents;
+                    if (scopeKey == Schema.scopeKeyOfState(currentConfirmedState)) {
+                      switch (messageType) {
+                      | Some("optimistic_action") => refreshOptimisticState()
+                      | _ =>
+                        let timestamp =
+                          StoreJson.requiredField(
+                            ~json,
+                            ~fieldName="timestamp",
+                            ~decode=Melange_json.Primitives.float_of_json,
+                          );
+                        if (timestamp > Schema.timestampOfState(currentConfirmedState)) {
+                          let nextState =
+                            StoreJson.requiredField(
+                              ~json,
+                              ~fieldName="state",
+                              ~decode=Schema.state_of_json,
+                            );
+                          applyExternalConfirmedState(~actions, nextState);
+                        };
+                      };
+                    };
+                  | None => ()
+                  };
+                },
+              );
               let _ =
                 Js.Promise.then_(
                   persistedState => {
@@ -656,8 +811,19 @@ module Synced = {
               (),
             );
           actions.set(nextState);
-          let _ = StoreActionLedger.put(~storeName=Schema.storeName, record);
-          sendQueuedRecord(record);
+          let _ =
+            Js.Promise.then_(
+              _ => {
+                broadcastOptimisticAction(record);
+                sendQueuedRecord(record);
+                Js.Promise.resolve();
+              },
+              StoreActionLedger.put(~storeName=Schema.storeName, record),
+            )
+            |> Js.Promise.catch(_ => {
+                 sendQueuedRecord(record);
+                 Js.Promise.resolve();
+               });
         }
       | None => ()
       };
