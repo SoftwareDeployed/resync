@@ -1414,6 +1414,13 @@ let make = (
         "children": renderedElement,
       },
     )
-  | Server => provider(~value=routerState, ~children=renderedElement, ())
+  | Server =>
+    React.Context.provider(
+      context,
+      {
+        "value": routerState,
+        "children": renderedElement,
+      },
+    )
   };
 };
