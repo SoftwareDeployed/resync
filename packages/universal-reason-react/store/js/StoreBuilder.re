@@ -86,6 +86,7 @@ module Runtime = {
     let baseUrl: string;
     let decodePatch: StoreJson.json => option(patch);
     let updateOfPatch: patch => state => state;
+    let onActionError: string => unit;
   };
 
   module MakeSynced = StoreOffline.Synced.Make;

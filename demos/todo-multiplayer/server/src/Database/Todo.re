@@ -124,6 +124,25 @@ let remove_todo = args => {
   };
 };
 
+let fail_query_like_mutation = () => {
+  let query =
+    Caqti_request.Infix.(
+      (T.unit ->. T.unit)(
+        {sql|
+          DO $$
+          BEGIN
+            PERFORM 1 / 0;
+          END
+          $$;
+        |sql},
+      )
+    );
+  (module Db: DB) => {
+    let* result = Db.exec(query, ());
+    Caqti_lwt.or_fail(result);
+  };
+};
+
 let rename_list = (list_id: string, name: string) => {
   let query =
     Caqti_request.Infix.(

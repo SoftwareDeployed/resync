@@ -331,6 +331,7 @@ module Synced = {
     let baseUrl: string;
     let decodePatch: StoreJson.json => option(patch);
     let updateOfPatch: patch => state => state;
+    let onActionError: string => unit;
   };
 
   module Make = (Schema: Schema) => {
@@ -561,6 +562,7 @@ module Synced = {
                 | Pending
                 | Syncing =>
                   if (record.retryCount >= StoreActionLedger.maxRetries) {
+                    Schema.onActionError("Timed out waiting for acknowledgement");
                     Js.Promise.then_(
                       _ => {
                         refreshOptimisticState();
@@ -631,6 +633,12 @@ module Synced = {
           );
         ()
       | "error" =>
+        Schema.onActionError(
+          switch (error) {
+          | Some(message) => message
+          | None => "Mutation failed"
+          },
+        );
         let _ =
           Js.Promise.then_(
             _ => {

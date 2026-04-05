@@ -21,7 +21,9 @@ type set_todo_completed_payload = {
 type action =
   | AddTodo(add_todo_payload)
   | SetTodoCompleted(set_todo_completed_payload)
-  | RemoveTodo(string);
+  | RemoveTodo(string)
+  | FailServerMutation
+  | FailClientMutation;
 
 type store = {
   list_id: string,
@@ -84,6 +86,10 @@ let action_to_json = action =>
       ++ string_to_json(id)->Melange_json.to_string
       ++ "}}",
     )
+  | FailServerMutation =>
+    StoreJson.parse("{\"kind\":\"fail_server_mutation\",\"payload\":{}}")
+  | FailClientMutation =>
+    StoreJson.parse("{\"kind\":\"fail_client_mutation\",\"payload\":{}}")
   };
 
 let action_of_json = json => {
@@ -105,10 +111,12 @@ let action_of_json = json => {
       completed:
         StoreJson.requiredField(~json=payload, ~fieldName="completed", ~decode=bool_of_json),
     })
-  | _ =>
+  | "remove_todo" =>
     RemoveTodo(
       StoreJson.requiredField(~json=payload, ~fieldName="id", ~decode=string_of_json),
     )
+  | "fail_server_mutation" => FailServerMutation
+  | _ => FailClientMutation
   };
 };
 
@@ -146,8 +154,16 @@ let reduce = (~state: state, ~action: action) => {
       ...state,
       todos: StoreCrud.remove(~getId=(item: Model.Todo.t) => item.id, state.todos, id),
     })
+  | FailServerMutation
+  | FailClientMutation => state
   };
 };
+
+[@platform js]
+let onActionError = message => Sonner.showError(message);
+
+[@platform native]
+let onActionError = _message => ();
 
 module Runtime = StoreBuilder.Runtime.MakeSynced({
   type nonrec state = state;
@@ -218,6 +234,7 @@ module Runtime = StoreBuilder.Runtime.MakeSynced({
       ~getItems=(state: state) => state.todos,
       ~setItems=(state: state, items) => {...state, todos: items},
     );
+  let onActionError = onActionError;
 });
 
 include (
@@ -252,3 +269,7 @@ let toggleTodo = (store: t, id: string) =>
   };
 
 let removeTodo = (_store: t, id: string) => dispatch(RemoveTodo(id));
+
+let failServerMutation = (_store: t) => dispatch(FailServerMutation);
+
+let failClientMutation = (_store: t) => dispatch(FailClientMutation);

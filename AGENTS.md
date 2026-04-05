@@ -67,9 +67,10 @@ packages/
     router/                 # Universal router (shared route tree for server + client)
     store/                  # Tilia-backed offline-first store with SSR, persistence, realtime sync
       js/                   # JS/Melange implementations
-        StoreBuilder.re     # Offline-first store construction helpers
+        StoreBuilder.re     # Public runtime store builders
         StoreCrud.re        # Generic CRUD helpers for realtime patches
-        StoreOffline.re     # Local and synced offline-first runtimes
+        StoreIndexedDB.re   # IndexedDB confirmed-state and action-ledger storage
+        StoreOffline.re     # Local and synced runtime implementations
         StorePatch.re       # Patch decoding infrastructure
         StoreSource.re      # Tilia source wrappers
       native/               # Server-side copies
@@ -157,6 +158,11 @@ module Runtime = StoreBuilder.Runtime.Make({
   let reduce = reduce;
 });
 ```
+
+Runtime behavior:
+- `StoreBuilder.Runtime.Make` is local-only and persists confirmed snapshots to IndexedDB, then propagates newer confirmed state across tabs with `BroadcastChannel`
+- `StoreBuilder.Runtime.MakeSynced` persists confirmed snapshots plus an IndexedDB action ledger, sends typed JSON actions over websocket, and propagates optimistic actions plus confirmed snapshots across tabs
+- For synced stores, cross-tab updates should not depend solely on websocket delivery; optimistic replay comes from the shared IndexedDB ledger
 
 ### Collections use `array`, not `list`
 

@@ -146,6 +146,7 @@ module Runtime = StoreBuilder.Runtime.MakeSynced({
       ~getItems=(config: config) => config.inventory,
       ~setItems=(config: config, items) => {...config, inventory: items},
     );
+  let onActionError = _message => ();
 });
 
 include (

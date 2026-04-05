@@ -58,6 +58,75 @@ let required_bool key json =
   | Some (`Bool value) -> Ok value
   | _ -> Error ("Missing bool field: " ^ key)
 
+type mutation_error =
+  | Client_error of string
+  | Caqti_error of Caqti_error.t
+  | Internal_error of exn
+
+let substring_after ~needle text =
+  let text_length = String.length text in
+  let needle_length = String.length needle in
+  let rec loop index =
+    if index + needle_length > text_length then
+      None
+    else if String.sub text index needle_length = needle then
+      Some (String.sub text (index + needle_length) (text_length - index - needle_length))
+    else
+      loop (index + 1)
+  in
+  loop 0
+
+let client_message_of_caqti_error error =
+  let first_line =
+    match String.split_on_char '\n' (Caqti_error.show error) with
+    | line :: _ -> String.trim line
+    | [] -> "Mutation failed"
+  in
+  match substring_after ~needle:"ERROR:" first_line with
+  | Some message -> String.trim message
+  | None -> (
+      match substring_after ~needle:"failed:" first_line with
+      | Some message -> String.trim message
+      | None -> first_line)
+
+let client_message_of_mutation_error = function
+  | Client_error message -> message
+  | Caqti_error error -> client_message_of_caqti_error error
+  | Internal_error _ -> "Mutation failed"
+
+let log_mutation_error ~action_id = function
+  | Client_error message ->
+      Printf.eprintf
+        "Mutation rejected for action %s: %s\n%!"
+        action_id
+        message
+  | Caqti_error error ->
+      Printf.eprintf
+        "Mutation failed for action %s: %s\n%!"
+        action_id
+        (Caqti_error.show error)
+  | Internal_error exn ->
+      Printf.eprintf
+        "Mutation failed for action %s: %s\n%!"
+        action_id
+        (Printexc.to_string exn)
+
+let mutation_result ~action_id operation =
+  Lwt.catch
+    (fun () ->
+      let* () = operation in
+      Lwt.return (Ok ()))
+    (function
+      | Caqti_error.Exn error -> Lwt.return (Error (Caqti_error error))
+      | exn -> Lwt.return (Error (Internal_error exn)))
+
+let finish_mutation_result ~action_id result =
+  match result with
+  | Ok () -> Lwt.return (Ok ())
+  | Error error ->
+      log_mutation_error ~action_id error;
+      Lwt.return (Error (client_message_of_mutation_error error))
+
 let handle_mutation request ~action_id action =
   let kind =
     match assoc "kind" action with
@@ -75,8 +144,12 @@ let handle_mutation request ~action_id action =
               required_string "text" payload )
           with
           | Ok id, Ok list_id, Ok text ->
-              let* () = Dream.sql request (Database.Todo.add_todo (action_id, id, list_id, text)) in
-              Lwt.return (Ok ())
+              let* result =
+                mutation_result ~action_id
+                  (Dream.sql request
+                     (Database.Todo.add_todo (action_id, id, list_id, text)))
+              in
+              finish_mutation_result ~action_id result
           | Error error, _, _ | _, Error error, _ | _, _, Error error ->
               Lwt.return (Error error))
       | None -> Lwt.return (Error "Missing add_todo payload"))
@@ -85,8 +158,12 @@ let handle_mutation request ~action_id action =
       | Some payload -> (
           match (required_string "id" payload, required_bool "completed" payload) with
           | Ok id, Ok completed ->
-              let* () = Dream.sql request (Database.Todo.set_todo_completed (action_id, id, completed)) in
-              Lwt.return (Ok ())
+              let* result =
+                mutation_result ~action_id
+                  (Dream.sql request
+                     (Database.Todo.set_todo_completed (action_id, id, completed)))
+              in
+              finish_mutation_result ~action_id result
           | Error error, _ | _, Error error -> Lwt.return (Error error))
       | None -> Lwt.return (Error "Missing set_todo_completed payload"))
   | Ok "remove_todo" -> (
@@ -94,10 +171,23 @@ let handle_mutation request ~action_id action =
       | Some payload -> (
           match required_string "id" payload with
           | Ok id ->
-              let* () = Dream.sql request (Database.Todo.remove_todo (action_id, id)) in
-              Lwt.return (Ok ())
+              let* result =
+                mutation_result ~action_id
+                  (Dream.sql request (Database.Todo.remove_todo (action_id, id)))
+              in
+              finish_mutation_result ~action_id result
           | Error error -> Lwt.return (Error error))
       | None -> Lwt.return (Error "Missing remove_todo payload"))
+  | Ok "fail_server_mutation" ->
+      let* result =
+        mutation_result ~action_id
+          (Dream.sql request (Database.Todo.fail_query_like_mutation ()))
+      in
+      finish_mutation_result ~action_id result
+  | Ok "fail_client_mutation" ->
+      finish_mutation_result
+        ~action_id
+        (Error (Client_error "Mutation failed from OCaml"))
   | Ok _ -> Lwt.return (Error "Unknown action kind")
 
 let realtime_middleware =

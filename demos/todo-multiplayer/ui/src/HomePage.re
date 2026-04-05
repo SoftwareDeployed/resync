@@ -64,9 +64,23 @@ let make = () => {
   <div className="todo-container">
     <div className="todo-header">
       <h1> {React.string(listName)} </h1>
-      <button className="share-button" onClick={_ => copyUrl()}>
-        {React.string("Share")}
-      </button>
+      <div>
+        <button className="share-button" type_="button" onClick={_ => copyUrl()}>
+          {React.string("Share")}
+        </button>
+        <button
+          className="share-button"
+          type_="button"
+          onClick={_ => TodoStore.failServerMutation(store)}>
+          {React.string("Fail Query")}
+        </button>
+        <button
+          className="share-button"
+          type_="button"
+          onClick={_ => TodoStore.failClientMutation(store)}>
+          {React.string("Fail Client")}
+        </button>
+      </div>
     </div>
     <form
       className="todo-form"
