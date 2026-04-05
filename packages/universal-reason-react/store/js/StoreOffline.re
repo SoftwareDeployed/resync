@@ -241,6 +241,10 @@ module Local = {
       let context = React.createContext(empty);
 
       module Provider = {
+        let makeProps = (~value, ~children, ()) => {
+          "value": value,
+          "children": children,
+        };
         let make = React.Context.provider(context);
       };
 
@@ -840,6 +844,10 @@ module Synced = {
       let context = React.createContext(empty);
 
       module Provider = {
+        let makeProps = (~value, ~children, ()) => {
+          "value": value,
+          "children": children,
+        };
         let make = React.Context.provider(context);
       };
 
