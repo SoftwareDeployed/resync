@@ -97,6 +97,9 @@ let broadcast_to_peers broadcast_fn peers except_id msg =
       Lwt.return_unit
   ) peers
 
+(* Store broadcast functions for each channel to enable media polling *)
+let broadcast_fns : (string, (string -> (string -> string) -> unit Lwt.t)) Hashtbl.t = Hashtbl.create 16
+
 let handle_mutation broadcast_fn _request ~action_id action =
   match get_string "kind" action with
 
@@ -105,21 +108,28 @@ let handle_mutation broadcast_fn _request ~action_id action =
     | Some payload ->
       (match (get_string "room_id" payload, get_string "peer_id" payload) with
       | Some room_id, Some peer_id ->
-        (* Get existing peers BEFORE adding new peer *)
+        (* Check if room already has 2 peers (limit for demo) *)
         let existing_peers = VideoChat_adapter.get_peers adapter ~room_id in
-        VideoChat_adapter.add_peer adapter ~room_id ~peer_id;
-        (* Notify existing peers about the new peer *)
-        let join_msg = patch_json "peer_joined"
-          (`Assoc [("room_id", `String room_id); ("peer_id", `String peer_id); ("joined_at", `Float (Unix.gettimeofday ()))]) in
-        let* () = broadcast_to_peers broadcast_fn existing_peers peer_id join_msg in
-        (* Notify new peer about ALL existing peers (including themselves) *)
-        let all_peers = peer_id :: existing_peers in
-  let* () = Lwt_list.iter_s (fun existing_peer_id ->
-    let peer_info_msg = patch_json "peer_joined"
-      (`Assoc [("room_id", `String room_id); ("peer_id", `String existing_peer_id); ("joined_at", `Float (Unix.gettimeofday ()))]) in
-    broadcast_fn peer_id (fun _ -> wrap_message peer_info_msg)
-  ) all_peers in
-        Lwt.return (Middleware.Ack (Ok ()))
+        if List.length existing_peers >= 2 then
+          Lwt.return (Middleware.Ack (Error "Room is full (max 2 peers)"))
+        else begin
+          (* Store broadcast_fn for this peer so they can receive media *)
+          Hashtbl.replace broadcast_fns peer_id broadcast_fn;
+          (* Add peer to room *)
+          VideoChat_adapter.add_peer adapter ~room_id ~peer_id;
+          (* Notify existing peers about the new peer *)
+          let join_msg = patch_json "peer_joined"
+            (`Assoc [("room_id", `String room_id); ("peer_id", `String peer_id); ("joined_at", `Float (Unix.gettimeofday ()))]) in
+          let* () = broadcast_to_peers broadcast_fn existing_peers peer_id join_msg in
+          (* Notify new peer about ALL existing peers (including themselves) *)
+          let all_peers = peer_id :: existing_peers in
+          let* () = Lwt_list.iter_s (fun existing_peer_id ->
+            let peer_info_msg = patch_json "peer_joined"
+              (`Assoc [("room_id", `String room_id); ("peer_id", `String existing_peer_id); ("joined_at", `Float (Unix.gettimeofday ()))]) in
+            broadcast_fn peer_id (fun _ -> wrap_message peer_info_msg)
+          ) all_peers in
+          Lwt.return (Middleware.Ack (Ok ()))
+        end
       | _ -> Lwt.return (Middleware.Ack (Error "Missing room_id or peer_id")))
     | None -> Lwt.return (Middleware.Ack (Error "Missing payload")))
   | Some "leave_room" ->
@@ -162,10 +172,6 @@ let handle_mutation broadcast_fn _request ~action_id action =
   | Some "noop" ->
     Lwt.return (Middleware.Ack (Ok ()))
   | _ -> Lwt.return (Middleware.Ack (Error "Unknown action kind"))
-
-(* Store broadcast functions for each channel to enable media polling *)
-let broadcast_fns : (string, (string -> (string -> string) -> unit Lwt.t)) Hashtbl.t = Hashtbl.create 16
-
 let handle_media broadcast_fn _request channel payload_str =
   (* Store broadcast_fn for this channel so polling loop can use it *)
   Hashtbl.replace broadcast_fns channel broadcast_fn;
