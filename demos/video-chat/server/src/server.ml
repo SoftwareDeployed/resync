@@ -182,11 +182,16 @@ let handle_media broadcast_fn _request channel payload_str =
     | Some peer_room_id when peer_room_id = room_id ->
       let media_msg = `Assoc [ ("type", `String "media"); ("payload", payload) ] |> Yojson.Basic.to_string in
       VideoChat_adapter.queue_media_frame adapter ~room_id ~except_id:peer_id media_msg;
-      Lwt.return_unit
+      Lwt.return (Ok ())
     | _ ->
       Printf.eprintf "[handle_media] rejecting media from peer %s - not in room %s\n%!" peer_id room_id;
-      Lwt.return_unit)
-  | _ -> Lwt.return_unit
+      let error_msg = `Assoc [
+        ("type", `String "error");
+        ("message", `String ("Peer " ^ peer_id ^ " is not in room " ^ room_id));
+      ] |> Yojson.Basic.to_string in
+      let* () = broadcast_fn peer_id (fun _ -> error_msg) in
+      Lwt.return (Error ("Peer " ^ peer_id ^ " is not in room " ^ room_id)))
+  | _ -> Lwt.return (Error "Missing room_id or peer_id")
 
 (* Polling loop that sends queued media frames *)
 let rec media_polling_loop () =

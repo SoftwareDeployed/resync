@@ -349,9 +349,11 @@ let baseUrl: string;
 let decodePatch: StoreJson.json => option(patch);
 let updateOfPatch: (patch, state) => state;
 let onActionError: string => unit;
+let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit);
 let onCustom: option(StoreJson.json => unit);
 let onMedia: option(StoreJson.json => unit);
-let onOpen: option(unit => unit);
+let onError: option((~dispatch: action => unit) => string => unit);
+let onOpen: option((~dispatch: action => unit) => unit);
 };
 
   module Make = (Schema: Schema) => {
@@ -662,16 +664,71 @@ let onOpen: option(unit => unit);
       | Server => ()
       };
 
+    let dispatch = (action: action) =>
+      switch (sourceRef.contents) {
+      | Some(actions) =>
+        let currentState = actions.get();
+        let nextState = Schema.reduce(~state=currentState, ~action);
+        let actionId = UUID.make();
+        let record =
+          StoreActionLedger.make(
+            ~id=actionId,
+            ~scopeKey=Schema.scopeKeyOfState(nextState),
+            ~action=Schema.action_to_json(action),
+            (),
+          );
+        actions.set(nextState);
+        let _ =
+          Js.Promise.then_(
+            _ => {
+              broadcastOptimisticAction(record);
+              sendQueuedRecord(record);
+              Js.Promise.resolve();
+            },
+            StoreActionLedger.put(~storeName=Schema.storeName, record),
+          )
+          |> Js.Promise.catch(_ => {
+               sendQueuedRecord(record);
+               Js.Promise.resolve();
+             });
+        ();
+      | None => ()
+      };
+
     let handleAck = (actionId: string, status: string, error: option(string)) => {
       clearAckTimeout(actionId);
       switch (status) {
       | "ok" =>
         let _ =
-          StoreActionLedger.updateStatus(
-            ~storeName=Schema.storeName,
-            ~id=actionId,
-            ~status=Acked,
-            (),
+          Js.Promise.then_(
+            record => {
+              switch (record) {
+              | Some(r: StoreActionLedger.t) =>
+                let _ =
+                  StoreActionLedger.updateStatus(
+                    ~storeName=Schema.storeName,
+                    ~id=actionId,
+                    ~status=Acked,
+                    (),
+                  );
+                switch (Schema.onActionAck) {
+                | Some(onActionAck) =>
+                  onActionAck(
+                    ~dispatch,
+                    ~action=Schema.action_of_json(r.action),
+                    ~actionId,
+                  )
+                | None => ()
+                };
+              | None => ()
+              };
+              Js.Promise.resolve();
+            },
+            StoreActionLedger.get(
+              ~storeName=Schema.storeName,
+              ~id=actionId,
+              (),
+            ),
           );
         ();
       | "error" =>
@@ -730,7 +787,7 @@ switch (Schema.subscriptionOfState(state)) {
     ~updatedAt=Schema.timestampOfState(state),
     ~onOpen=() => {
       switch (Schema.onOpen) {
-      | Some(onOpen) => onOpen()
+      | Some(onOpen) => onOpen(~dispatch)
       | None => ()
       };
       resumePendingActions();
@@ -745,6 +802,11 @@ switch (Schema.subscriptionOfState(state)) {
       switch (Schema.onMedia) {
       | Some(onMedia) => onMedia
       | None => ((_: Melange_json.t) => ())
+      },
+    ~onError=
+      switch (Schema.onError) {
+      | Some(onError) => onError(~dispatch)
+      | None => (_ => ())
       },
     ~onSnapshot=handleSnapshot,
     ~onAck=handleAck,
@@ -866,37 +928,6 @@ switch (Schema.subscriptionOfState(state)) {
       | Server => Schema.makeStore(~state=initialState, ())
       };
     };
-
-    let dispatch = (action: action) =>
-      switch (sourceRef.contents) {
-      | Some(actions) =>
-        let currentState = actions.get();
-        let nextState = Schema.reduce(~state=currentState, ~action);
-        let actionId = UUID.make();
-        let record =
-          StoreActionLedger.make(
-            ~id=actionId,
-            ~scopeKey=Schema.scopeKeyOfState(nextState),
-            ~action=Schema.action_to_json(action),
-            (),
-          );
-        actions.set(nextState);
-        let _ =
-          Js.Promise.then_(
-            _ => {
-              broadcastOptimisticAction(record);
-              sendQueuedRecord(record);
-              Js.Promise.resolve();
-            },
-            StoreActionLedger.put(~storeName=Schema.storeName, record),
-          )
-          |> Js.Promise.catch(_ => {
-               sendQueuedRecord(record);
-               Js.Promise.resolve();
-             });
-        ();
-      | None => ()
-      };
 
     module Context = {
       let context = React.createContext(empty);

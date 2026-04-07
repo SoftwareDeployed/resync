@@ -235,9 +235,11 @@ module Runtime = StoreBuilder.Runtime.MakeSynced({
       ~setItems=(state: state, items) => {...state, todos: items},
     );
 let onActionError = onActionError;
+let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit) = None;
 let onCustom: option(StoreJson.json => unit) = None;
 let onMedia: option(StoreJson.json => unit) = None;
-let onOpen: option(unit => unit) = None;
+let onError: option((~dispatch: action => unit) => string => unit) = None;
+let onOpen: option((~dispatch: action => unit) => unit) = None;
 });
 
 include (

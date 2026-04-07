@@ -121,38 +121,6 @@ module View = {
                   () => {
                     let peerId = VideoChatStore.joinRoom(store, roomIdValue);
                     Js.Console.log2("Joined room with peerId:", peerId);
-
-                    let _ =
-                      Js.Promise.then_(
-                        capture => {
-                          captureRef.current = Some(capture);
-                          switch (localVideoRef.current) {
-                          | Some(videoEl) =>
-                            MediaCapture.attachVideoElement(capture, videoEl)
-                          | None => ()
-                          };
-                          MediaCapture.startCapture(
-                            capture,
-                            ~onFrame=
-                              frameData =>
-                                MediaTransport.sendMediaFrame(
-                                  roomIdValue,
-                                  store.state.client_id,
-                                  frameData,
-                                ),
-                            ~onAudioChunk=
-                              chunkData =>
-                                MediaTransport.sendMediaAudio(
-                                  roomIdValue,
-                                  store.state.client_id,
-                                  chunkData,
-                                ),
-                          );
-                          Js.Promise.resolve();
-                        },
-                        MediaCapture.create(),
-                      );
-                    ();
                   },
                 500,
               );
@@ -160,15 +128,58 @@ module View = {
             Some(
               () => {
                 Js.Global.clearTimeout(timeoutId);
-                switch (captureRef.current) {
-                | Some(capture) => MediaCapture.stopCapture(capture)
-                | None => ()
-                };
                 VideoChatStore.leaveRoom(store);
               },
             );
           },
         [|roomIdValue|],
+      );
+
+      React.useEffect1(
+        () => {
+          if (store.state.is_joined) {
+            let _ =
+              Js.Promise.then_(
+                capture => {
+                  captureRef.current = Some(capture);
+                  switch (localVideoRef.current) {
+                  | Some(videoEl) =>
+                    MediaCapture.attachVideoElement(capture, videoEl)
+                  | None => ()
+                  };
+                  MediaCapture.startCapture(
+                    capture,
+                    ~onFrame=
+                      frameData =>
+                        MediaTransport.sendMediaFrame(
+                          roomIdValue,
+                          store.state.client_id,
+                          frameData,
+                        ),
+                    ~onAudioChunk=
+                      chunkData =>
+                        MediaTransport.sendMediaAudio(
+                          roomIdValue,
+                          store.state.client_id,
+                          chunkData,
+                        ),
+                  );
+                  Js.Promise.resolve();
+                },
+                MediaCapture.create(),
+              );
+            Some(
+              () =>
+                switch (captureRef.current) {
+                | Some(capture) => MediaCapture.stopCapture(capture)
+                | None => ()
+                },
+            );
+          } else {
+            None;
+          };
+        },
+        [|store.state.is_joined|],
       );
 
       let leaveRoom = () => {

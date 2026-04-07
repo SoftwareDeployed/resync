@@ -44,7 +44,8 @@ type action =
   | PeerLeft(peer_left_payload)
   | RemoteToggleVideo(remote_toggle_media_payload)
   | RemoteToggleAudio(remote_toggle_media_payload)
-  | ResetJoinStatus;
+  | ResetJoinStatus
+  | JoinRoomAcknowledged;
 
 type store = {
   room_id: string,
@@ -129,11 +130,12 @@ let action_to_json = action =>
       ++ bool_to_json(payload.enabled)->Melange_json.to_string
       ++ "}}",
     )
-  | RemoteToggleVideo(_) =>
-    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+  | RemoteToggleVideo(_)
   | RemoteToggleAudio(_) =>
     StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
   | ResetJoinStatus =>
+    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+  | JoinRoomAcknowledged =>
     StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
   };
 
@@ -498,6 +500,11 @@ let reduce = (~state: state, ~action: action) => {
       is_joined: false,
       updated_at,
     }
+  | JoinRoomAcknowledged => {
+      ...state,
+      is_joined: true,
+      updated_at,
+    }
   };
 };
 
@@ -562,6 +569,8 @@ module Runtime =
           | None => "None"
           },
         )
+      | JoinRoomAcknowledged =>
+        Js.Console.log("[reduce] JoinRoomAcknowledged")
       | LeaveRoom(_) =>
         Js.Console.log3(
           "[reduce] LeaveRoom",
@@ -629,7 +638,10 @@ module Runtime =
       };
     };
     let subscriptionOfState = (state: state): option(subscription) =>
-      Some(state.client_id);
+      switch (state.room) {
+      | Some(_) => Some(state.client_id)
+      | None => None
+      };
     let encodeSubscription = (sub: subscription) => sub;
     let eventUrl = Constants.event_url;
     let baseUrl = Constants.base_url;
@@ -639,11 +651,20 @@ module Runtime =
       | LeaveRoom(_)
       | ToggleVideo(_)
       | ToggleAudio(_)
-      | ResetJoinStatus => None
+      | ResetJoinStatus
+      | JoinRoomAcknowledged => None
       | patch => Some(patch)
       };
     let updateOfPatch = (patch, state) => reduce(~state, ~action=patch);
     let onActionError = onActionError;
+    let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit) =
+      Some((~dispatch, ~action, ~actionId: string) => {
+        ignore(actionId);
+        switch (action) {
+        | JoinRoom(_) => dispatch(JoinRoomAcknowledged)
+        | _ => ()
+        }
+      });
     let onCustom: option(StoreJson.json => unit) =
       Some(
         json => {
@@ -662,8 +683,13 @@ module Runtime =
           }
         },
       );
-    let onOpen: option(unit => unit) =
-      Some(() => dispatch(ResetJoinStatus));
+    let onError: option((~dispatch: action => unit) => string => unit) =
+      Some((~dispatch) => (message) => {
+        Js.Console.error("[VideoChatStore] Server error: " ++ message);
+        dispatch(ResetJoinStatus);
+      });
+    let onOpen: option((~dispatch: action => unit) => unit) =
+      Some((~dispatch) => dispatch(ResetJoinStatus));
   });
 
 include (
@@ -675,6 +701,8 @@ include (
 type t = store;
 
 module Context = Runtime.Context;
+
+let dispatch = Runtime.dispatch;
 
 let joinRoom = (store: t, room_id: string) => {
   let peer_id = store.state.client_id;

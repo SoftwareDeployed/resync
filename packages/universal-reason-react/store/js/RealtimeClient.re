@@ -40,13 +40,14 @@ module Socket = {
   let sendAction = (~actionId: string, ~action: StoreJson.json) => false;
 
 let subscribeSynced =
-(~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onCustom=?, ~onMedia=?, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ()) => {
+(~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onCustom=?, ~onMedia=?, ~onError=?, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ()) => {
 let _ = subscription;
 let _ = updatedAt;
 let _ = onOpen;
 let _ = onPatch;
 let _ = onCustom;
 let _ = onMedia;
+let _ = onError;
 let _ = onSnapshot;
 let _ = onAck;
 let _ = eventUrl;
@@ -73,6 +74,7 @@ let intervalRef: ref(option(int)) = ref(None);
 let sendRef: ref(option(string => bool)) = ref(None);
 let onCustomRef: ref(option(StoreJson.json => unit)) = ref(None);
 let onMediaRef: ref(option(StoreJson.json => unit)) = ref(None);
+let onErrorRef: ref(option(string => unit)) = ref(None);
 
   let sendFrame = message =>
   switch (sendRef.contents) {
@@ -84,13 +86,17 @@ let sendAction = (~actionId: string, ~action: StoreJson.json) =>
   sendFrame(mutationFrameString(actionId, StoreJson.stringify(json => json, action)));
 
 let rec subscribeSynced =
-(~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onCustom=?, ~onMedia=?, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ()) => {
+(~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onCustom=?, ~onMedia=?, ~onError=?, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ()) => {
   switch (onCustom) {
   | Some(h) => onCustomRef := Some(h)
   | None => ()
   };
   switch (onMedia) {
   | Some(h) => onMediaRef := Some(h)
+  | None => ()
+  };
+  switch (onError) {
+  | Some(h) => onErrorRef := Some(h)
   | None => ()
   };
     let url = Webapi.Url.makeWith(eventUrl, ~base=baseUrl);
@@ -182,14 +188,21 @@ let rec subscribeSynced =
     handler(payload)
   | None => ()
   }
-| Some("media") =>
-  switch (onMediaRef.contents) {
-  | Some(handler) =>
-    let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
-    handler(payload)
-  | None => ()
-  }
-| _ => ()
+            | Some("media") =>
+              switch (onMediaRef.contents) {
+              | Some(handler) =>
+                let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
+                handler(payload)
+              | None => ()
+              }
+            | Some("error") =>
+              switch (onErrorRef.contents) {
+              | Some(handler) =>
+                let message = StoreJson.requiredField(~json, ~fieldName="message", ~decode=Melange_json.Primitives.string_of_json);
+                handler(message)
+              | None => ()
+              }
+            | _ => ()
             }
           | None => ()
           }

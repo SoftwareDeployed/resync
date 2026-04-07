@@ -30,7 +30,7 @@ type t = {
   resolve_subscription : Dream.request -> string -> string option Lwt.t;
   load_snapshot : Dream.request -> string -> string Lwt.t;
   handle_mutation : (broadcast_fn -> Dream.request -> action_id:string -> Yojson.Basic.t -> mutation_result Lwt.t) option;
-  handle_media : (broadcast_fn -> Dream.request -> string -> string -> unit Lwt.t) option;
+  handle_media : (broadcast_fn -> Dream.request -> string -> string -> (unit, string) result Lwt.t) option;
   handle_disconnect : (broadcast_fn -> string -> unit Lwt.t) option;
   channels : (string, channel) Hashtbl.t;
 }
@@ -215,9 +215,18 @@ let handle_json_message t request websocket current_channel json =
       let wrapped = wrap "" in
       send_to_channel t target wrapped
     in
-    let* () = handler broadcast_fn request current payload_str in
-    Lwt.return current_channel
-  | _ ->
+    let* result = handler broadcast_fn request current payload_str in
+      (match result with
+      | Ok () -> Lwt.return current_channel
+      | Error error ->
+        let error_msg = `Assoc [
+          ("type", `String "error");
+          ("message", `String error);
+        ] |> json_string in
+        let* () = Dream.send websocket error_msg in
+        let* () = Dream.close_websocket websocket in
+        Lwt.return current_channel)
+    | _ ->
     Lwt.return current_channel)
 | _ -> Lwt.return current_channel
 

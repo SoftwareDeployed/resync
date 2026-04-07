@@ -87,9 +87,11 @@ let baseUrl: string;
 let decodePatch: StoreJson.json => option(patch);
 let updateOfPatch: patch => state => state;
 let onActionError: string => unit;
+let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit);
 let onCustom: option(StoreJson.json => unit);
 let onMedia: option(StoreJson.json => unit);
-let onOpen: option(unit => unit);
+let onError: option((~dispatch: action => unit) => string => unit);
+let onOpen: option((~dispatch: action => unit) => unit);
 };
 
   module MakeSynced = StoreOffline.Synced.Make;
