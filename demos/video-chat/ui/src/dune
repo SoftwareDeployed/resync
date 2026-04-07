@@ -1,0 +1,55 @@
+(melange.emit
+ (package resync)
+ (module_systems
+  (es6 "re.js"))
+ (target app)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -melange
+   server-reason-react.browser_ppx
+   -js
+   melange.ppx
+   melange-json.ppx
+   reason-react-ppx))
+ (runtime_deps style.css)
+ (libraries
+   video_chat_js
+   universal_reason_react_lucide_icons_js
+   universal_reason_react_router_js
+   universal_reason_react_store_js
+   melange-json
+   melange.belt
+   melange.dom
+   melange.js
+   reason-react))
+
+(rule
+ (targets .build_stamp Index.re.js Index.re.css)
+ (deps
+  (package resync)
+  (alias_rec melange)
+  (:script ../build.mjs)
+  (:entrypoints app/demos/video-chat/ui/src/Index.re.js)
+  (source_tree ../../../../node_modules)
+  (file ../package.json)
+  (source_tree ../../../../_opam/lib/server-reason-react/esbuild-plugin)
+  (universe))
+ (action
+  (progn
+   (run
+    node
+    %{script}
+    %{entrypoints}
+    --output=app
+    --extract=true
+    --env=%{env:DEMO_ENV='production'})
+   (with-stdout-to
+    .build_stamp
+    (system "date +%s")))))
+
+(alias
+ (name app)
+ (deps .build_stamp Index.re.js Index.re.css))
+
+(include_subdirs qualified)

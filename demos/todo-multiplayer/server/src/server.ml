@@ -122,19 +122,19 @@ let mutation_result ~action_id operation =
 
 let finish_mutation_result ~action_id result =
   match result with
-  | Ok () -> Lwt.return (Ok ())
+  | Ok () -> Lwt.return (Middleware.Ack (Ok ()))
   | Error error ->
-      log_mutation_error ~action_id error;
-      Lwt.return (Error (client_message_of_mutation_error error))
+    log_mutation_error ~action_id error;
+    Lwt.return (Middleware.Ack (Error (client_message_of_mutation_error error)))
 
-let handle_mutation request ~action_id action =
+let handle_mutation _broadcast_fn request ~action_id action =
   let kind =
     match assoc "kind" action with
     | Some (`String value) -> Ok value
     | _ -> Error "Missing action kind"
   in
   match kind with
-  | Error error -> Lwt.return (Error error)
+  | Error error -> Lwt.return (Middleware.Ack (Error error))
   | Ok "add_todo" -> (
       match assoc "payload" action with
       | Some payload -> (
@@ -148,11 +148,11 @@ let handle_mutation request ~action_id action =
                 mutation_result ~action_id
                   (Dream.sql request
                      (Database.Todo.add_todo (action_id, id, list_id, text)))
-              in
-              finish_mutation_result ~action_id result
-          | Error error, _, _ | _, Error error, _ | _, _, Error error ->
-              Lwt.return (Error error))
-      | None -> Lwt.return (Error "Missing add_todo payload"))
+	in
+	finish_mutation_result ~action_id result
+      | Error error, _, _ | _, Error error, _ | _, _, Error error ->
+	Lwt.return (Middleware.Ack (Error error)))
+    | None -> Lwt.return (Middleware.Ack (Error "Missing add_todo payload")))
   | Ok "set_todo_completed" -> (
       match assoc "payload" action with
       | Some payload -> (
@@ -164,8 +164,8 @@ let handle_mutation request ~action_id action =
                      (Database.Todo.set_todo_completed (action_id, id, completed)))
               in
               finish_mutation_result ~action_id result
-          | Error error, _ | _, Error error -> Lwt.return (Error error))
-      | None -> Lwt.return (Error "Missing set_todo_completed payload"))
+      | Error error, _ | _, Error error -> Lwt.return (Middleware.Ack (Error error)))
+    | None -> Lwt.return (Middleware.Ack (Error "Missing set_todo_completed payload")))
   | Ok "remove_todo" -> (
       match assoc "payload" action with
       | Some payload -> (
@@ -176,8 +176,8 @@ let handle_mutation request ~action_id action =
                   (Dream.sql request (Database.Todo.remove_todo (action_id, id)))
               in
               finish_mutation_result ~action_id result
-          | Error error -> Lwt.return (Error error))
-      | None -> Lwt.return (Error "Missing remove_todo payload"))
+      | Error error -> Lwt.return (Middleware.Ack (Error error)))
+    | None -> Lwt.return (Middleware.Ack (Error "Missing remove_todo payload")))
   | Ok "fail_server_mutation" ->
       let* result =
         mutation_result ~action_id
@@ -188,7 +188,7 @@ let handle_mutation request ~action_id action =
       finish_mutation_result
         ~action_id
         (Error (Client_error "Mutation failed from OCaml"))
-  | Ok _ -> Lwt.return (Error "Unknown action kind")
+  | Ok _ -> Lwt.return (Middleware.Ack (Error "Unknown action kind"))
 
 let realtime_middleware =
   Middleware.create ~adapter:realtime_adapter ~resolve_subscription

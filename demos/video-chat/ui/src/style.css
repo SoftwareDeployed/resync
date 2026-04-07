@@ -1,0 +1,13 @@
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-700, currentcolor);
+  }
+}
+
+@import "tailwindcss";
+
+@source "**/*.re";

@@ -82,12 +82,15 @@ module Runtime = {
       (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
     let subscriptionOfState: state => option(subscription);
     let encodeSubscription: subscription => string;
-    let eventUrl: string;
-    let baseUrl: string;
-    let decodePatch: StoreJson.json => option(patch);
-    let updateOfPatch: patch => state => state;
-    let onActionError: string => unit;
-  };
+let eventUrl: string;
+let baseUrl: string;
+let decodePatch: StoreJson.json => option(patch);
+let updateOfPatch: patch => state => state;
+let onActionError: string => unit;
+let onCustom: option(StoreJson.json => unit);
+let onMedia: option(StoreJson.json => unit);
+let disablePingPong: bool;
+};
 
   module MakeSynced = StoreOffline.Synced.Make;
 };

@@ -26,36 +26,39 @@ module Local = {
     type broadcast_channel;
 
     [@platform js]
-    let openBroadcastChannel: string => broadcast_channel =
-      [%raw {|
+    let openBroadcastChannel: string => broadcast_channel = [%raw
+      {|
         function(name) {
           return new BroadcastChannel(name);
         }
-      |}];
+      |}
+    ];
 
     [@platform native]
-    let openBroadcastChannel = (_name: string) => Obj.magic(());
+    let openBroadcastChannel = (_name: string) => Obj.magic();
 
     [@platform js]
-    let postBroadcastMessage: (broadcast_channel, string) => unit =
-      [%raw {|
+    let postBroadcastMessage: (broadcast_channel, string) => unit = [%raw
+      {|
         function(channel, message) {
           channel.postMessage(message);
         }
-      |}];
+      |}
+    ];
 
     [@platform native]
     let postBroadcastMessage = (_channel, _message) => ();
 
     [@platform js]
-    let setBroadcastHandler: (broadcast_channel, string => unit) => unit =
-      [%raw {|
+    let setBroadcastHandler: (broadcast_channel, string => unit) => unit = [%raw
+      {|
         function(channel, handler) {
           channel.onmessage = function(event) {
             handler(event.data);
           };
         }
-      |}];
+      |}
+    ];
 
     [@platform native]
     let setBroadcastHandler = (_channel, _handler) => ();
@@ -85,7 +88,7 @@ module Local = {
               timestamp: Schema.timestampOfState(state),
             },
           );
-        ()
+        ();
       | Server => ()
       };
 
@@ -100,9 +103,15 @@ module Local = {
               json => json,
               StoreJson.parse(
                 "{\"scopeKey\":"
-                ++ Melange_json.Primitives.string_to_json(Schema.scopeKeyOfState(state))->Melange_json.to_string
+                ++ Melange_json.Primitives.string_to_json(
+                     Schema.scopeKeyOfState(state),
+                   )
+                   ->Melange_json.to_string
                 ++ ",\"timestamp\":"
-                ++ Melange_json.Primitives.float_to_json(Schema.timestampOfState(state))->Melange_json.to_string
+                ++ Melange_json.Primitives.float_to_json(
+                     Schema.timestampOfState(state),
+                   )
+                   ->Melange_json.to_string
                 ++ ",\"state\":"
                 ++ StoreJson.stringify(Schema.state_to_json, state)
                 ++ "}",
@@ -114,7 +123,8 @@ module Local = {
       | Server => ()
       };
 
-    let setExternalState = (~actions: StoreSource.actions(state), nextState: state) => {
+    let setExternalState =
+        (~actions: StoreSource.actions(state), nextState: state) => {
       suppressPublishRef := true;
       actions.set(nextState);
     };
@@ -128,7 +138,7 @@ module Local = {
         } else {
           broadcastState(state);
         };
-        ()
+        ();
       | Server => ()
       };
 
@@ -140,12 +150,15 @@ module Local = {
           Js.Promise.then_(
             persistedState => {
               switch (persistedState) {
-              | Some((record: StoreIndexedDB.state_record)) =>
+              | Some(record: StoreIndexedDB.state_record) =>
                 if (record.timestamp > Schema.timestampOfState(actions.get())) {
-                  setExternalState(~actions, Schema.state_of_json(record.value));
+                  setExternalState(
+                    ~actions,
+                    Schema.state_of_json(record.value),
+                  );
                 } else {
                   writeStateRecord(actions.get());
-                };
+                }
               | None => writeStateRecord(actions.get())
               };
               Js.Promise.resolve();
@@ -156,7 +169,7 @@ module Local = {
               (),
             ),
           );
-        ()
+        ();
       | Server => ()
       };
 
@@ -181,13 +194,13 @@ module Local = {
         let source =
           StoreSource.make(
             ~afterSet=persistState,
-            ~mount=actions => {
-              sourceRef := Some(actions);
-              let channel = openBroadcastChannel("resync.store." ++ Schema.storeName);
-              channelRef := Some(channel);
-              setBroadcastHandler(
-                channel,
-                message => {
+            ~mount=
+              actions => {
+                sourceRef := Some(actions);
+                let channel =
+                  openBroadcastChannel("resync.store." ++ Schema.storeName);
+                channelRef := Some(channel);
+                setBroadcastHandler(channel, message => {
                   switch (StoreJson.tryParse(message)) {
                   | Some(json) =>
                     let scopeKey =
@@ -202,10 +215,8 @@ module Local = {
                         ~fieldName="timestamp",
                         ~decode=Melange_json.Primitives.float_of_json,
                       );
-                    if (
-                      scopeKey == Schema.scopeKeyOfState(actions.get())
-                      && timestamp > Schema.timestampOfState(actions.get())
-                    ) {
+                    if (scopeKey == Schema.scopeKeyOfState(actions.get())
+                        && timestamp > Schema.timestampOfState(actions.get())) {
                       let nextState =
                         StoreJson.requiredField(
                           ~json,
@@ -215,17 +226,17 @@ module Local = {
                       setExternalState(~actions, nextState);
                     };
                   | None => ()
-                  };
-                },
-              );
-              reconcilePersistedState(actions);
-            },
+                  }
+                });
+                reconcilePersistedState(actions);
+              },
             initialState,
           );
         StoreComputed.make(
-          ~client=derive => Schema.makeStore(~state=source.value, ~derive, ()),
+          ~client=
+            derive => Schema.makeStore(~state=source.value, ~derive, ()),
           ~server=() => Schema.makeStore(~state=initialState, ()),
-        )
+        );
       | Server => Schema.makeStore(~state=initialState, ())
       };
     };
@@ -257,36 +268,39 @@ module Synced = {
   type broadcast_channel;
 
   [@platform js]
-  let openBroadcastChannel: string => broadcast_channel =
-    [%raw {|
+  let openBroadcastChannel: string => broadcast_channel = [%raw
+    {|
       function(name) {
         return new BroadcastChannel(name);
       }
-    |}];
+    |}
+  ];
 
   [@platform native]
-  let openBroadcastChannel = (_name: string) => Obj.magic(());
+  let openBroadcastChannel = (_name: string) => Obj.magic();
 
   [@platform js]
-  let postBroadcastMessage: (broadcast_channel, string) => unit =
-    [%raw {|
+  let postBroadcastMessage: (broadcast_channel, string) => unit = [%raw
+    {|
       function(channel, message) {
         channel.postMessage(message);
       }
-    |}];
+    |}
+  ];
 
   [@platform native]
   let postBroadcastMessage = (_channel, _message) => ();
 
   [@platform js]
-  let setBroadcastHandler: (broadcast_channel, string => unit) => unit =
-    [%raw {|
+  let setBroadcastHandler: (broadcast_channel, string => unit) => unit = [%raw
+    {|
       function(channel, handler) {
         channel.onmessage = function(event) {
           handler(event.data);
         };
       }
-    |}];
+    |}
+  ];
 
   [@platform native]
   let setBroadcastHandler = (_channel, _handler) => ();
@@ -297,8 +311,7 @@ module Synced = {
   [@platform native]
   let setTimeout = (_callback, _timeout) => 0;
 
-  [@platform js]
-  external clearTimeout: int => unit = "clearTimeout";
+  [@platform js] external clearTimeout: int => unit = "clearTimeout";
 
   [@platform native]
   let clearTimeout = _id => ();
@@ -329,14 +342,17 @@ module Synced = {
     let action_to_json: action => StoreJson.json;
     let makeStore:
       (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
-    let subscriptionOfState: state => option(subscription);
-    let encodeSubscription: subscription => string;
-    let eventUrl: string;
-    let baseUrl: string;
-    let decodePatch: StoreJson.json => option(patch);
-    let updateOfPatch: patch => state => state;
-    let onActionError: string => unit;
-  };
+let subscriptionOfState: state => option(subscription);
+let encodeSubscription: subscription => string;
+let eventUrl: string;
+let baseUrl: string;
+let decodePatch: StoreJson.json => option(patch);
+let updateOfPatch: (patch, state) => state;
+let onActionError: string => unit;
+let onCustom: option(StoreJson.json => unit);
+let onMedia: option(StoreJson.json => unit);
+let disablePingPong: bool;
+};
 
   module Make = (Schema: Schema) => {
     type state = Schema.state;
@@ -369,9 +385,11 @@ module Synced = {
               json => json,
               StoreJson.parse(
                 "{\"type\":\"optimistic_action\",\"scopeKey\":"
-                ++ Melange_json.Primitives.string_to_json(record.scopeKey)->Melange_json.to_string
+                ++ Melange_json.Primitives.string_to_json(record.scopeKey)
+                   ->Melange_json.to_string
                 ++ ",\"actionId\":"
-                ++ Melange_json.Primitives.string_to_json(record.id)->Melange_json.to_string
+                ++ Melange_json.Primitives.string_to_json(record.id)
+                   ->Melange_json.to_string
                 ++ "}",
               ),
             ),
@@ -392,9 +410,15 @@ module Synced = {
               json => json,
               StoreJson.parse(
                 "{\"type\":\"confirmed_state\",\"scopeKey\":"
-                ++ Melange_json.Primitives.string_to_json(Schema.scopeKeyOfState(state))->Melange_json.to_string
+                ++ Melange_json.Primitives.string_to_json(
+                     Schema.scopeKeyOfState(state),
+                   )
+                   ->Melange_json.to_string
                 ++ ",\"timestamp\":"
-                ++ Melange_json.Primitives.float_to_json(Schema.timestampOfState(state))->Melange_json.to_string
+                ++ Melange_json.Primitives.float_to_json(
+                     Schema.timestampOfState(state),
+                   )
+                   ->Melange_json.to_string
                 ++ ",\"state\":"
                 ++ StoreJson.stringify(Schema.state_to_json, state)
                 ++ "}",
@@ -423,7 +447,7 @@ module Synced = {
         } else {
           broadcastConfirmedState(state);
         };
-        ()
+        ();
       | Server => ()
       };
 
@@ -434,7 +458,7 @@ module Synced = {
         if (index >= length) {
           current;
         } else {
-          let record: StoreActionLedger.t = Array.get(sorted, index);
+          let record: StoreActionLedger.t = sorted[index];
           loop(
             index + 1,
             Schema.reduce(
@@ -448,10 +472,9 @@ module Synced = {
 
     let clearAckTimeout = actionId => {
       switch (timersRef.contents->Js.Dict.get(actionId)) {
-      | Some(timerId) => {
-          clearTimeout(timerId);
-          deleteTimer(timersRef.contents, actionId);
-        }
+      | Some(timerId) =>
+        clearTimeout(timerId);
+        deleteTimer(timersRef.contents, actionId);
       | None => ()
       };
     };
@@ -468,15 +491,18 @@ module Synced = {
               records => {
                 let idsToDelete =
                   records
-                  ->Js.Array.filter(~f=((record: StoreActionLedger.t)) =>
+                  ->Js.Array.filter(~f=(record: StoreActionLedger.t) =>
                       switch (StoreActionLedger.statusOfString(record.status)) {
-                      | Acked => UUID.timestamp(record.id) <= confirmedTimestamp
+                      | Acked =>
+                        UUID.timestamp(record.id) <= confirmedTimestamp
                       | _ => false
                       }
                     )
-                  ->Js.Array.map(~f=((record: StoreActionLedger.t)) => record.id);
+                  ->Js.Array.map(~f=(record: StoreActionLedger.t) =>
+                      record.id
+                    );
                 let remaining =
-                  records->Js.Array.filter(~f=((record: StoreActionLedger.t)) =>
+                  records->Js.Array.filter(~f=(record: StoreActionLedger.t) =>
                     switch (StoreActionLedger.statusOfString(record.status)) {
                     | Pending
                     | Syncing => true
@@ -484,7 +510,12 @@ module Synced = {
                     | Failed => false
                     }
                   );
-                actions.set(replayActions(~confirmed=confirmedState, ~records=remaining));
+                actions.set(
+                  replayActions(
+                    ~confirmed=confirmedState,
+                    ~records=remaining,
+                  ),
+                );
                 if (Array.length(idsToDelete) > 0) {
                   let _ =
                     StoreActionLedger.deleteByIds(
@@ -502,7 +533,7 @@ module Synced = {
                 (),
               ),
             );
-          ()
+          ();
         | None => ()
         }
       | Server => ()
@@ -517,11 +548,12 @@ module Synced = {
             () => handleAckTimeout(actionId),
             StoreActionLedger.ackTimeoutMs,
           );
-        timersRef.contents->Js.Dict.set(actionId, timerId)
+        timersRef.contents->Js.Dict.set(actionId, timerId);
       | Server => ()
       }
 
-    and applyExternalConfirmedState = (~actions: StoreSource.actions(state), nextState: state) => {
+    and applyExternalConfirmedState =
+        (~actions: StoreSource.actions(state), nextState: state) => {
       suppressPublishRef := true;
       confirmedStateRef := nextState;
       actions.set(nextState);
@@ -559,14 +591,16 @@ module Synced = {
           Js.Promise.then_(
             current =>
               switch (current) {
-              | Some((record: StoreActionLedger.t)) =>
+              | Some(record: StoreActionLedger.t) =>
                 switch (StoreActionLedger.statusOfString(record.status)) {
                 | Acked
                 | Failed => Js.Promise.resolve()
                 | Pending
                 | Syncing =>
                   if (record.retryCount >= StoreActionLedger.maxRetries) {
-                    Schema.onActionError("Timed out waiting for acknowledgement");
+                    Schema.onActionError(
+                      "Timed out waiting for acknowledgement",
+                    );
                     Js.Promise.then_(
                       _ => {
                         refreshOptimisticState();
@@ -591,9 +625,13 @@ module Synced = {
                 }
               | None => Js.Promise.resolve()
               },
-            StoreActionLedger.get(~storeName=Schema.storeName, ~id=actionId, ()),
+            StoreActionLedger.get(
+              ~storeName=Schema.storeName,
+              ~id=actionId,
+              (),
+            ),
           );
-        ()
+        ();
       | Server => ()
       };
 
@@ -604,14 +642,14 @@ module Synced = {
           Js.Promise.then_(
             records => {
               StoreActionLedger.sortByEnqueuedAt(records)
-              ->Js.Array.forEach(~f=((record: StoreActionLedger.t) =>
+              ->Js.Array.forEach(~f=(record: StoreActionLedger.t) =>
                   switch (StoreActionLedger.statusOfString(record.status)) {
                   | Pending
                   | Syncing => sendQueuedRecord(record)
                   | Acked
                   | Failed => ()
                   }
-                ));
+                );
               Js.Promise.resolve();
             },
             StoreActionLedger.getByScope(
@@ -620,7 +658,7 @@ module Synced = {
               (),
             ),
           );
-        ()
+        ();
       | Server => ()
       };
 
@@ -635,7 +673,7 @@ module Synced = {
             ~status=Acked,
             (),
           );
-        ()
+        ();
       | "error" =>
         Schema.onActionError(
           switch (error) {
@@ -657,7 +695,7 @@ module Synced = {
               (),
             ),
           );
-        ()
+        ();
       | _ => ()
       };
     };
@@ -674,7 +712,7 @@ module Synced = {
       | Some(patch) =>
         let nextConfirmedState =
           Schema.setTimestamp(
-            ~state=Schema.updateOfPatch(patch)(confirmedStateRef.contents),
+            ~state=Schema.updateOfPatch(patch, confirmedStateRef.contents),
             ~timestamp,
           );
         confirmedStateRef := nextConfirmedState;
@@ -684,22 +722,34 @@ module Synced = {
       };
     };
 
-    let startSubscription = state =>
-      switch (Schema.subscriptionOfState(state)) {
-      | Some(subscription) =>
-        RealtimeClient.Socket.subscribeSynced(
-          ~subscription=Schema.encodeSubscription(subscription),
-          ~updatedAt=Schema.timestampOfState(state),
-          ~onOpen=resumePendingActions,
-          ~onPatch=handlePatch,
-          ~onSnapshot=handleSnapshot,
-          ~onAck=handleAck,
-          ~eventUrl=Schema.eventUrl,
-          ~baseUrl=Schema.baseUrl,
-          (),
-        )
-      | None => ()
-      };
+let startSubscription = state =>
+switch (Schema.subscriptionOfState(state)) {
+| Some(subscription) =>
+  RealtimeClient.Socket.subscribeSynced(
+    ~subscription=Schema.encodeSubscription(subscription),
+    ~updatedAt=Schema.timestampOfState(state),
+    ~onOpen=resumePendingActions,
+    ~onPatch=handlePatch,
+    ~onCustom=
+      switch (Schema.onCustom) {
+      | Some(onCustom) => onCustom
+      | None => ((_: Melange_json.t) => ())
+      },
+    ~onMedia=
+      switch (Schema.onMedia) {
+      | Some(onMedia) => onMedia
+      | None => ((_: Melange_json.t) => ())
+      },
+    ~onSnapshot=handleSnapshot,
+    ~onAck=handleAck,
+    ~eventUrl=Schema.eventUrl,
+    ~baseUrl=Schema.baseUrl,
+    ~disablePingPong=Schema.disablePingPong,
+    (),
+  )
+  ->ignore
+| None => ()
+};
 
     let hydrateStore = () => {
       let initialState =
@@ -724,13 +774,13 @@ module Synced = {
         let source =
           StoreSource.make(
             ~afterSet=_next => (),
-            ~mount=actions => {
-              sourceRef := Some(actions);
-              let channel = openBroadcastChannel("resync.store." ++ Schema.storeName);
-              channelRef := Some(channel);
-              setBroadcastHandler(
-                channel,
-                message => {
+            ~mount=
+              actions => {
+                sourceRef := Some(actions);
+                let channel =
+                  openBroadcastChannel("resync.store." ++ Schema.storeName);
+                channelRef := Some(channel);
+                setBroadcastHandler(channel, message => {
                   switch (StoreJson.tryParse(message)) {
                   | Some(json) =>
                     let messageType =
@@ -746,7 +796,8 @@ module Synced = {
                         ~decode=Melange_json.Primitives.string_of_json,
                       );
                     let currentConfirmedState = confirmedStateRef.contents;
-                    if (scopeKey == Schema.scopeKeyOfState(currentConfirmedState)) {
+                    if (scopeKey
+                        == Schema.scopeKeyOfState(currentConfirmedState)) {
                       switch (messageType) {
                       | Some("optimistic_action") => refreshOptimisticState()
                       | _ =>
@@ -756,7 +807,8 @@ module Synced = {
                             ~fieldName="timestamp",
                             ~decode=Melange_json.Primitives.float_of_json,
                           );
-                        if (timestamp > Schema.timestampOfState(currentConfirmedState)) {
+                        if (timestamp
+                            > Schema.timestampOfState(currentConfirmedState)) {
                           let nextState =
                             StoreJson.requiredField(
                               ~json,
@@ -768,75 +820,76 @@ module Synced = {
                       };
                     };
                   | None => ()
-                  };
-                },
-              );
-              let _ =
-                Js.Promise.then_(
-                  persistedState => {
-                  let baseState =
-                    switch (persistedState) {
-                    | Some((record: StoreIndexedDB.state_record)) =>
-                        if (record.timestamp > Schema.timestampOfState(initialState)) {
-                          Schema.state_of_json(record.value);
-                        } else {
-                          initialState;
-                        }
-                      | None => initialState
-                      };
-                    confirmedStateRef := baseState;
-                    persistConfirmedState(baseState);
-                    actions.set(baseState);
-                    refreshOptimisticState();
-                    startSubscription(baseState);
-                    Js.Promise.resolve();
-                  },
-                  StoreIndexedDB.getState(
-                    ~name=Schema.storeName,
-                    ~scopeKey=Schema.scopeKeyOfState(initialState),
-                    (),
-                  ),
-                );
-              ()
-            },
+                  }
+                });
+                let _ =
+                  Js.Promise.then_(
+                    persistedState => {
+                      let baseState =
+                        switch (persistedState) {
+                        | Some(record: StoreIndexedDB.state_record) =>
+                          if (record.timestamp
+                              > Schema.timestampOfState(initialState)) {
+                            Schema.state_of_json(record.value);
+                          } else {
+                            initialState;
+                          }
+                        | None => initialState
+                        };
+                      confirmedStateRef := baseState;
+                      persistConfirmedState(baseState);
+                      actions.set(baseState);
+                      refreshOptimisticState();
+                      startSubscription(baseState);
+                      Js.Promise.resolve();
+                    },
+                    StoreIndexedDB.getState(
+                      ~name=Schema.storeName,
+                      ~scopeKey=Schema.scopeKeyOfState(initialState),
+                      (),
+                    ),
+                  );
+                ();
+              },
             initialState,
           );
         StoreComputed.make(
-          ~client=derive => Schema.makeStore(~state=source.value, ~derive, ()),
+          ~client=
+            derive => Schema.makeStore(~state=source.value, ~derive, ()),
           ~server=() => Schema.makeStore(~state=initialState, ()),
-        )
+        );
       | Server => Schema.makeStore(~state=initialState, ())
       };
     };
 
     let dispatch = (action: action) =>
       switch (sourceRef.contents) {
-      | Some(actions) => {
-          let currentState = actions.get();
-          let nextState = Schema.reduce(~state=currentState, ~action);
-          let actionId = UUID.make();
-          let record =
-            StoreActionLedger.make(
-              ~id=actionId,
-              ~scopeKey=Schema.scopeKeyOfState(nextState),
-              ~action=Schema.action_to_json(action),
-              (),
-            );
-          actions.set(nextState);
-          let _ =
-            Js.Promise.then_(
-              _ => {
-                broadcastOptimisticAction(record);
-                sendQueuedRecord(record);
-                Js.Promise.resolve();
-              },
-              StoreActionLedger.put(~storeName=Schema.storeName, record),
-            )
-            |> Js.Promise.catch(_ => {
-                 sendQueuedRecord(record);
-                 Js.Promise.resolve();
-               });
-        }
+      | Some(actions) =>
+        let currentState = actions.get();
+        let nextState = Schema.reduce(~state=currentState, ~action);
+        let actionId = UUID.make();
+        let record =
+          StoreActionLedger.make(
+            ~id=actionId,
+            ~scopeKey=Schema.scopeKeyOfState(nextState),
+            ~action=Schema.action_to_json(action),
+            (),
+          );
+        actions.set(nextState);
+        let _ =
+          Js.Promise.then_(
+            _ => {
+              broadcastOptimisticAction(record);
+              sendQueuedRecord(record);
+              Js.Promise.resolve();
+            },
+            StoreActionLedger.put(~storeName=Schema.storeName, record),
+          )
+          |> Js.Promise.catch(_ => {
+               sendQueuedRecord(record);
+               Js.Promise.resolve();
+             });
+        ();
       | None => ()
       };
 

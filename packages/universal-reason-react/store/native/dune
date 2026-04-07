@@ -1,27 +1,27 @@
 (library
  (name universal_reason_react_store_native)
  (public_name resync.universal_reason_react_store_native)
-  (modules
-   Hydration
-   RealtimeClient
-   StoreBuilder
-   StoreActionLedger
-   StoreComputed
-   StoreCrud
-   StoreIndexedDB
-   StoreJson
-   StoreOffline
-   StorePatch
-   StoreSignal
-   StoreSource
-   Tilia
-   UUID
-   WebSocket)
+ (modules
+  Hydration
+  RealtimeClient
+  StoreBuilder
+  StoreActionLedger
+  StoreComputed
+  StoreCrud
+  StoreIndexedDB
+  StoreJson
+  StoreOffline
+  StorePatch
+  StoreSignal
+  StoreSource
+  Tilia
+  WebSocket)
  (wrapped false)
  (libraries
   melange-json-native
   server-reason-react.react
-  server-reason-react.js)
+  server-reason-react.js
+  universal_reason_react_uuid_native)
  (preprocess
   (pps
    server-reason-react.browser_ppx

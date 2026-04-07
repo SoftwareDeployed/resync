@@ -42,11 +42,8 @@ setup_toolchain() {
   echo "==> Updating opam metadata"
   opam update
 
-  echo "==> Pinning git dependencies"
-  opam pin add server-reason-react "git+https://github.com/ml-in-barcelona/server-reason-react.git#main" --yes --no-action
-  opam pin add reason-react "git+https://github.com/reasonml/reason-react.git" --yes --no-action
-  opam pin add reason-react-ppx "git+https://github.com/reasonml/reason-react.git" --yes --no-action
-  opam pin add reason-react-day-picker "git+https://github.com/Software-Deployed/reason-react-day-picker.git#reason-native" --yes --no-action
+  echo "==> Pinning dependencies from dune-project"
+  "$repo_root/scripts/opam-pin-from-dune-project.sh" "$repo_root/dune-project"
 
   echo "==> Installing opam dependencies"
   opam install . --deps-only --yes

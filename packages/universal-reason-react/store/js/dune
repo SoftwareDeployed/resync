@@ -1,29 +1,29 @@
 (library
  (name universal_reason_react_store_js)
  (public_name resync.universal_reason_react_store_js)
-  (modules
-   Hydration
-   RealtimeClient
-   StoreBuilder
-   StoreActionLedger
-   StoreComputed
-   StoreCrud
-   StoreIndexedDB
-   StoreJson
-   StoreOffline
-   StorePatch
-   StoreSignal
-   StoreSource
-   Tilia
-   UUID
-   WebSocket)
+ (modules
+  Hydration
+  RealtimeClient
+  StoreBuilder
+  StoreActionLedger
+  StoreComputed
+  StoreCrud
+  StoreIndexedDB
+  StoreJson
+  StoreOffline
+  StorePatch
+  StoreSignal
+  StoreSource
+  Tilia
+  WebSocket)
  (wrapped false)
  (libraries
   melange-json
   melange-webapi
   reason-react
   melange.dom
-   melange.js)
+   melange.js
+  universal_reason_react_uuid_js)
  (modes melange)
  (preprocess
   (pps

@@ -14,6 +14,8 @@
     "todo-mp:db:init": "pnpm run todo-mp:schema:generate && ./scripts/init-todo-mp-db.sh",
     "todo-mp:dune:watch": "opam exec -- dune build demos/todo-multiplayer/ui/src/.build_stamp demos/todo-multiplayer/server/src/server.exe --force -w",
     "todo-mp:watch": "watchexec --no-vcs-ignore -w ./_build/default/demos/todo-multiplayer/ui/src/.build_stamp -r -c -- ./_build/default/demos/todo-multiplayer/server/src/server.exe",
+    "video-chat:dune:watch": "opam exec -- dune build demos/video-chat/ui/src/.build_stamp demos/video-chat/server/src/server.exe --force -w",
+    "video-chat:watch": "watchexec --no-vcs-ignore -w ./_build/default/demos/video-chat/ui/src/.build_stamp -r -c -- ./_build/default/demos/video-chat/server/src/server.exe",
     "dune:watch": "opam exec dune build -w",
     "serve": "pnpm run ecommerce:serve",
     "watch": "pnpm run ecommerce:watch"
@@ -29,8 +31,10 @@
     "react-dom": "^19.2.4",
     "store-backend": "link:demos/ecommerce/server",
     "tilia": "5.0.0-beta.20251218T180640",
+    "uuidv7": "^1.2.1",
     "todo-multiplayer-ui": "link:demos/todo-multiplayer/ui",
-    "todo-ui": "link:demos/todo/ui"
+    "todo-ui": "link:demos/todo/ui",
+    "video-chat-ui": "link:demos/video-chat/ui"
   },
   "overrides": {
     "react": "^19.2.3",

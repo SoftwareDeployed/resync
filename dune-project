@@ -16,6 +16,13 @@
 (using melange 0.1)
 
 (pin
+ (package
+  (name gluten-lwt)
+  (version 0.5.2))
+ (url
+  "git+https://github.com/futurGH/gluten.git#956e753dc0ee81dbe53f0979fe89d57d960e7856"))
+
+(pin
  (url "git+https://github.com/ml-in-barcelona/server-reason-react.git")
  (package
   (name server-reason-react)))
@@ -43,10 +50,13 @@
   "Tools for creating a realtime universal reason react application")
  (depends
   (ocaml
-   (= "5.4.0"))
+   (= "5.4.1"))
+  (caqti-lwt
+   (= "2.2.4"))
+  (lwt
+   (= "5.9.2"))
   caqti-driver-postgresql
   dream
-  lwt
   melange
   melange-json
   melange-json-native
@@ -59,7 +69,8 @@
   reason-react-ppx
   reason-react
   reason-react-day-picker
-  server-reason-react)
+  server-reason-react
+  uuidm)
  (allow_empty)
  (tags
   ("web" "commerce" "lease" "subscription" "cart")))

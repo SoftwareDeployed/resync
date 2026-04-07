@@ -11,10 +11,11 @@ homepage: "https://github.com/SoftwareDeployed/resync"
 bug-reports: "https://github.com/SoftwareDeployed/resync/issues"
 depends: [
   "dune" {>= "3.21"}
-  "ocaml" {= "5.4.0"}
+  "ocaml" {= "5.4.1"}
+  "caqti-lwt" {= "2.2.4"}
+  "lwt" {= "5.9.2"}
   "caqti-driver-postgresql"
   "dream"
-  "lwt"
   "melange"
   "melange-json"
   "melange-json-native"
@@ -28,6 +29,7 @@ depends: [
   "reason-react"
   "reason-react-day-picker"
   "server-reason-react"
+  "uuidm"
   "odoc" {with-doc}
 ]
 build: [

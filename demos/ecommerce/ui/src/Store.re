@@ -146,7 +146,10 @@ module Runtime = StoreBuilder.Runtime.MakeSynced({
       ~getItems=(config: config) => config.inventory,
       ~setItems=(config: config, items) => {...config, inventory: items},
     );
-  let onActionError = _message => ();
+let onActionError = _message => ();
+let onCustom: option(StoreJson.json => unit) = None;
+let onMedia: option(StoreJson.json => unit) = None;
+let disablePingPong = false;
 });
 
 include (

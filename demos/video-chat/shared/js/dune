@@ -1,0 +1,15 @@
+(library
+ (name video_chat_js)
+ (public_name resync.video_chat_js)
+ (modules Model Constants RealtimeSchema)
+ (wrapped false)
+ (libraries
+   melange-json
+   universal_reason_react_store_js)
+ (modes melange)
+ (preprocess
+   (pps
+    realtime_schema_ppx
+    server-reason-react.browser_ppx -js
+    melange.ppx
+    melange-json.ppx)))

@@ -1,3 +1,4 @@
+demos/todo-multiplayer-docker
 .playwright-mcp
 .envrc
 _opam
@@ -125,3 +126,4 @@ dist
 # TernJS port file
 .tern-port
 .aider*
+WEBSOCKET_ERROR.md

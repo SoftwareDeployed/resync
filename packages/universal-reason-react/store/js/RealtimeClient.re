@@ -39,18 +39,20 @@ module Socket = {
   let defaultBaseUrl = "http://localhost:8899";
   let sendAction = (~actionId: string, ~action: StoreJson.json) => false;
 
-  let subscribeSynced =
-      (~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ()) => {
-    let _ = subscription;
-    let _ = updatedAt;
-    let _ = onOpen;
-    let _ = onPatch;
-    let _ = onSnapshot;
-    let _ = onAck;
-    let _ = eventUrl;
-    let _ = baseUrl;
-    ();
-  };
+let subscribeSynced =
+(~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onCustom=?, ~onMedia=?, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ~disablePingPong as _=false, ()) => {
+let _ = subscription;
+let _ = updatedAt;
+let _ = onOpen;
+let _ = onPatch;
+let _ = onCustom;
+let _ = onMedia;
+let _ = onSnapshot;
+let _ = onAck;
+let _ = eventUrl;
+let _ = baseUrl;
+();
+};
 };
 
 [@platform js]
@@ -65,23 +67,35 @@ module Socket = {
   external setInterval: (unit => unit, int) => int = "setInterval";
   external setTimeout: (unit => unit, int) => int = "setTimeout";
 
-  let pingTimeoutSeconds = 5.0;
-  let intervalRef: ref(option(int)) = ref(None);
-  let sendRef: ref(option(string => bool)) = ref(None);
+let pingIntervalMs = 5000.0;
+let pingTimeoutMs = 15000.0;
+let intervalRef: ref(option(int)) = ref(None);
+let sendRef: ref(option(string => bool)) = ref(None);
+let onCustomRef: ref(option(StoreJson.json => unit)) = ref(None);
+let onMediaRef: ref(option(StoreJson.json => unit)) = ref(None);
 
   let sendFrame = message =>
-    switch (sendRef.contents) {
-    | Some(send) => send(message)
-    | None => false
-    };
+  switch (sendRef.contents) {
+  | Some(send) => send(message)
+  | None => false
+  };
 
-  let sendAction = (~actionId: string, ~action: StoreJson.json) =>
-    sendFrame(mutationFrameString(actionId, StoreJson.stringify(json => json, action)));
+let sendAction = (~actionId: string, ~action: StoreJson.json) =>
+  sendFrame(mutationFrameString(actionId, StoreJson.stringify(json => json, action)));
 
-  let rec subscribeSynced =
-          (~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ()) => {
+let rec subscribeSynced =
+(~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onCustom=?, ~onMedia=?, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ~disablePingPong=false, ()) => {
+  switch (onCustom) {
+  | Some(h) => onCustomRef := Some(h)
+  | None => ()
+  };
+  switch (onMedia) {
+  | Some(h) => onMediaRef := Some(h)
+  | None => ()
+  };
     let url = Webapi.Url.makeWith(eventUrl, ~base=baseUrl);
-    url->Webapi.Url.setProtocol("ws");
+    let isSecure = Webapi.Url.protocol(url) == "https:";
+    url->Webapi.Url.setProtocol(isSecure ? "wss" : "ws");
 
     let ws = WebSocket.make(url->Webapi.Url.href);
     sendRef := Some(message => {
@@ -95,8 +109,8 @@ module Socket = {
 
     let timeoutSignal = Tilia.Core.signal;
     let lift = Tilia.Core.lift;
-    let (lastPongTs, setLastPongTs) = timeoutSignal(0.0);
-    let (lastPingTs, setLastPingTs) = timeoutSignal(0.0);
+    let (lastPongTs, setLastPongTs) = timeoutSignal(Js.Date.now());
+    let (lastPingTs, setLastPingTs) = timeoutSignal(Js.Date.now());
     let state =
       Tilia.Core.make({
         last_ping: lastPingTs->lift,
@@ -104,21 +118,26 @@ module Socket = {
       });
 
     let sendPing = () => {
-      if (ws->WebSocket.readyState == 1) {
+      if (!disablePingPong && ws->WebSocket.readyState == 1) {
         let _ = sendFrame(pingFrameString());
         setLastPingTs(Js.Date.now());
       };
     };
 
-    Tilia.Core.observe(() => {
-      if (state.last_pong -. state.last_ping > pingTimeoutSeconds) {
-        ws->WebSocket.close;
-      };
-    });
+    if (!disablePingPong) {
+      Tilia.Core.observe(() => {
+        if (state.last_pong -. state.last_ping > pingTimeoutMs) {
+          Js.Console.warn("RealtimeClient: Ping timeout, closing connection");
+          ws->WebSocket.close;
+        };
+      });
+    };
 
-    switch (intervalRef.contents) {
-    | Some(_) => ()
-    | None => intervalRef := Some(setInterval(sendPing, Float.to_int(pingTimeoutSeconds *. 1000.0)))
+    if (!disablePingPong) {
+      switch (intervalRef.contents) {
+      | Some(_) => ()
+      | None => intervalRef := Some(setInterval(sendPing, Float.to_int(pingIntervalMs)))
+      };
     };
 
     WebSocket.onOpen(ws, () => {
@@ -135,6 +154,7 @@ module Socket = {
       ws,
       event => {
         let data: string = event##data;
+        setLastPongTs(Js.Date.now());
         switch (StoreJson.tryParse(data)) {
         | Some(json) =>
           switch (StoreJson.field(json, "type")) {
@@ -150,14 +170,30 @@ module Socket = {
                 };
               onPatch(~payload, ~timestamp)
             | Some("snapshot") =>
+              Js.Console.log("RealtimeClient: Received snapshot");
               let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
               onSnapshot(payload)
             | Some("ack") =>
+              Js.Console.log("RealtimeClient: Received ack");
               let actionId = StoreJson.requiredField(~json, ~fieldName="actionId", ~decode=Melange_json.Primitives.string_of_json);
               let status = StoreJson.requiredField(~json, ~fieldName="status", ~decode=Melange_json.Primitives.string_of_json);
               let error = StoreJson.optionalField(~json, ~fieldName="error", ~decode=Melange_json.Primitives.string_of_json);
               onAck(actionId, status, error)
-            | _ => ()
+| Some("custom") =>
+  switch (onCustomRef.contents) {
+  | Some(handler) =>
+    let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
+    handler(payload)
+  | None => ()
+  }
+| Some("media") =>
+  switch (onMediaRef.contents) {
+  | Some(handler) =>
+    let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
+    handler(payload)
+  | None => ()
+  }
+| _ => ()
             }
           | None => ()
           }

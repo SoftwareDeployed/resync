@@ -9,7 +9,7 @@ Complete setup instructions for Universal Reason React applications.
 
 ### Required Software
 
-- **OCaml** (4.14.0 or later)
+- **OCaml** (= 5.4.0) - This version is required
 - **opam** (2.1.0 or later)
 - **PostgreSQL** (13 or later)
 - **Node.js** (18 or later) - for bundling
@@ -33,16 +33,18 @@ brew install opam
 # Ubuntu/Debian
 apt-get install opam
 
-# Initialize opam
+# Initialize opam (if not already initialized)
 opam init --bare
 
 eval $(opam env)
 
-# Create a switch (OCaml compiler)
-opam switch create 4.14.1
+# Create a local switch with OCaml 5.4.0 (recommended for this project)
+opam switch create . 5.4.0 --deps-only
 
 eval $(opam env)
 ```
+
+**Note:** Using a local switch (created in the project directory with `opam switch create .`) keeps all dependencies isolated to this project. The `.` creates a switch named after the current directory.
 
 ### 2. Clone and Setup Project
 
@@ -213,21 +215,21 @@ cd myapp
 (authors "Your Name")
 (maintainers "Your Name")
 
-(package
- (name myapp)
- (synopsis "My Universal Reason React App")
- (description "A full-stack Reason React application")
- (depends
-  (ocaml (>= 4.14.0))
-  dune
-  dream
-  reason
-  (universal-reason-react-router (>= 0.1.0))
-  (universal-reason-react-store (>= 0.1.0))
-  (server-reason-react (>= 0.1.0))
-  lwt
-  caqti
-  caqti-driver-postgresql))
+ (package
+  (name myapp)
+  (synopsis "My Universal Reason React App")
+  (description "A full-stack Reason React application")
+  (depends
+   (ocaml (= 5.4.0))
+   dune
+   dream
+   reason
+   (universal-reason-react-router (>= 0.1.0))
+   (universal-reason-react-store (>= 0.1.0))
+   (server-reason-react (>= 0.1.0))
+   lwt
+   caqti
+   caqti-driver-postgresql))
 ```
 
 ### 3. Setup Directory Structure
@@ -482,7 +484,7 @@ dune build --profile release
 
 ```dockerfile
 # Dockerfile
-FROM ocaml/opam:alpine-3.18-ocaml-4.14
+FROM ocaml/opam:alpine-ocaml-5.4
 
 WORKDIR /app
 
@@ -523,7 +525,9 @@ opam init --bare --disable-sandboxing
 
 # Or manually configure
 opam init --bare
-opam switch create 4.14.1 --jobs=4
+
+# Create a local switch with OCaml 5.4.0
+opam switch create . 5.4.0
 ```
 
 ### Dependencies fail to install
