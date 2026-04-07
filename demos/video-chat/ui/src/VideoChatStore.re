@@ -339,29 +339,29 @@ let currentRoomMatches = (state: state, room_id: string) =>
 let reduce = (~state: state, ~action: action) => {
   let updated_at = Js.Date.now();
   switch (action) {
-| JoinRoom(payload) =>
-  let alreadyInRoom =
-  switch (state.room) {
-  | Some(room) when room.id == payload.room_id => true
-  | _ => false
-  };
-  let room: Model.Room.t = {
-  id: payload.room_id,
-  created_at: updated_at,
-  peers:
-  switch (state.room) {
-  | Some(room) when room.id == payload.room_id => room.peers
-  | _ => [||]
-  },
-  };
-  {
-  ...state,
-  room: Some(room),
-  remote_peer_id: alreadyInRoom ? state.remote_peer_id : None,
-  remote_video_enabled: alreadyInRoom ? state.remote_video_enabled : true,
-  remote_audio_enabled: alreadyInRoom ? state.remote_audio_enabled : true,
-  updated_at,
-  };
+  | JoinRoom(payload) =>
+    let alreadyInRoom =
+      switch (state.room) {
+      | Some(room) when room.id == payload.room_id => true
+      | _ => false
+      };
+    let room: Model.Room.t = {
+      id: payload.room_id,
+      created_at: updated_at,
+      peers:
+        switch (state.room) {
+        | Some(room) when room.id == payload.room_id => room.peers
+        | _ => [||]
+        },
+    };
+    {
+      ...state,
+      room: Some(room),
+      remote_peer_id: alreadyInRoom ? state.remote_peer_id : None,
+      remote_video_enabled: alreadyInRoom ? state.remote_video_enabled : true,
+      remote_audio_enabled: alreadyInRoom ? state.remote_audio_enabled : true,
+      updated_at,
+    };
   | LeaveRoom(_payload) => {
       ...state,
       room: None,
@@ -390,40 +390,53 @@ let reduce = (~state: state, ~action: action) => {
     } else {
       state;
     }
-| PeerJoined(payload) =>
-  if (currentRoomMatches(state, payload.room_id) || state.room == None) {
-    let existingPeers = state.room->Belt.Option.map(r => r.peers)->Belt.Option.getWithDefault([||]);
-    let updatedPeers = upsertPeer(existingPeers, payload.peer);
-    let nextRemotePeerId =
-    resolveRemotePeerId(
-    ~current=state.remote_peer_id,
-    ~selfId=state.client_id,
-    ~peers=updatedPeers,
-    );
-    let remotePeerChanged = nextRemotePeerId != state.remote_peer_id;
-    {
-    ...state,
-    room:
-    Some({
-    id: payload.room_id,
-    created_at: updated_at,
-    peers: updatedPeers,
-    }),
-    remote_peer_id: nextRemotePeerId,
-    remote_video_enabled:
-    remotePeerChanged || nextRemotePeerId == None
-    ? true : state.remote_video_enabled,
-    remote_audio_enabled:
-    remotePeerChanged || nextRemotePeerId == None
-    ? true : state.remote_audio_enabled,
-    updated_at,
-    };
-  } else {
-    state;
-  }
+  | PeerJoined(payload) =>
+    if (currentRoomMatches(state, payload.room_id) || state.room == None) {
+      let existingPeers =
+        state.room
+        ->Belt.Option.map(r => r.peers)
+        ->Belt.Option.getWithDefault([||]);
+      let updatedPeers = upsertPeer(existingPeers, payload.peer);
+      let nextRemotePeerId =
+        resolveRemotePeerId(
+          ~current=state.remote_peer_id,
+          ~selfId=state.client_id,
+          ~peers=updatedPeers,
+        );
+      let remotePeerChanged = nextRemotePeerId != state.remote_peer_id;
+      {
+        ...state,
+        room:
+          Some({
+            id: payload.room_id,
+            created_at: updated_at,
+            peers: updatedPeers,
+          }),
+        remote_peer_id: nextRemotePeerId,
+        remote_video_enabled:
+          remotePeerChanged || nextRemotePeerId == None
+            ? true : state.remote_video_enabled,
+        remote_audio_enabled:
+          remotePeerChanged || nextRemotePeerId == None
+            ? true : state.remote_audio_enabled,
+        updated_at,
+      };
+    } else {
+      state;
+    }
   | PeerLeft(payload) =>
     if (currentRoomMatches(state, payload.room_id)) {
-      let updatedPeers = removePeer(state.room->Belt.Option.getWithDefault({id: payload.room_id, created_at: updated_at, peers: [||]}).peers, payload.peer_id);
+      let updatedPeers =
+        removePeer(
+          state.room
+          ->Belt.Option.getWithDefault({
+              id: payload.room_id,
+              created_at: updated_at,
+              peers: [||],
+            }).
+            peers,
+          payload.peer_id,
+        );
       let nextRemotePeerId =
         resolveRemotePeerId(
           ~current=state.remote_peer_id,
@@ -477,7 +490,10 @@ let reduce = (~state: state, ~action: action) => {
 };
 
 [@platform js]
-let onActionError = _message => ();
+let onActionError = message => {
+  Sonner.showError(message);
+  ReasonReactRouter.push("/");
+};
 
 [@platform native]
 let onActionError = _message => ();
@@ -604,14 +620,14 @@ module Runtime =
     let encodeSubscription = (sub: subscription) => sub;
     let eventUrl = Constants.event_url;
     let baseUrl = Constants.base_url;
-let decodePatch = json =>
-switch (action_of_json(json)) {
-| JoinRoom(_)
-| LeaveRoom(_)
-| ToggleVideo(_)
-| ToggleAudio(_) => None
-| patch => Some(patch)
-};
+    let decodePatch = json =>
+      switch (action_of_json(json)) {
+      | JoinRoom(_)
+      | LeaveRoom(_)
+      | ToggleVideo(_)
+      | ToggleAudio(_) => None
+      | patch => Some(patch)
+      };
     let updateOfPatch = (patch, state) => reduce(~state, ~action=patch);
     let onActionError = onActionError;
     let onCustom: option(StoreJson.json => unit) =

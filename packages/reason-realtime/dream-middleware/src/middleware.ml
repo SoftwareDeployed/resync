@@ -199,11 +199,13 @@ let handle_json_message t request websocket current_channel json =
       Lwt.return current_channel
     | Ack (Error error) ->
       let* () = Dream.send websocket (ack_message ~action_id ~status:"error" ~error ()) in
+      let* () = Dream.close_websocket websocket in
       Lwt.return current_channel
     | NoAck ->
       Lwt.return current_channel)
   | _ ->
     let* () = Dream.send websocket (ack_message ~action_id:"" ~status:"error" ~error:"Invalid mutation frame" ()) in
+    let* () = Dream.close_websocket websocket in
     Lwt.return current_channel)
 | Some "media" -> (
   match (assoc_json "payload" json, t.handle_media, current_channel) with

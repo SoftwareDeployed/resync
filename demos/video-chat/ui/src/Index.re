@@ -23,6 +23,7 @@ let%browser_only _ =
           "children":
             React.array([|
               <UniversalRouter key="router" router=Routes.router state=store />,
+              <ClientOnly key="toaster"> {() => Sonner.renderToaster()} </ClientOnly>,
             |]),
         },
       );
