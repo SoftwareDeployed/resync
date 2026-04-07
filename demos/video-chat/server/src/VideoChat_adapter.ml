@@ -61,7 +61,7 @@ let get_all_peer_ids t =
 
 let queue_media_frame t ~room_id ~except_id frame_data =
   let peers = get_peers t ~room_id in
-  let max_frames = 3 in  (* Keep only 3 most recent frames *)
+  let max_frames = 10 in  (* Keep 10 most recent frames *)
   List.iter (fun peer_id ->
     if peer_id <> except_id then
       match Hashtbl.find_opt t.send_queues peer_id with
