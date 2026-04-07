@@ -40,7 +40,7 @@ module Socket = {
   let sendAction = (~actionId: string, ~action: StoreJson.json) => false;
 
 let subscribeSynced =
-(~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onCustom=?, ~onMedia=?, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ~disablePingPong as _=false, ()) => {
+(~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onCustom=?, ~onMedia=?, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ()) => {
 let _ = subscription;
 let _ = updatedAt;
 let _ = onOpen;
@@ -84,7 +84,7 @@ let sendAction = (~actionId: string, ~action: StoreJson.json) =>
   sendFrame(mutationFrameString(actionId, StoreJson.stringify(json => json, action)));
 
 let rec subscribeSynced =
-(~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onCustom=?, ~onMedia=?, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ~disablePingPong=false, ()) => {
+(~subscription: string, ~updatedAt: float, ~onOpen=() => (), ~onPatch, ~onCustom=?, ~onMedia=?, ~onSnapshot, ~onAck, ~eventUrl: string, ~baseUrl: string, ()) => {
   switch (onCustom) {
   | Some(h) => onCustomRef := Some(h)
   | None => ()
@@ -118,26 +118,22 @@ let rec subscribeSynced =
       });
 
     let sendPing = () => {
-      if (!disablePingPong && ws->WebSocket.readyState == 1) {
+      if (ws->WebSocket.readyState == 1) {
         let _ = sendFrame(pingFrameString());
         setLastPingTs(Js.Date.now());
       };
     };
 
-    if (!disablePingPong) {
-      Tilia.Core.observe(() => {
-        if (state.last_pong -. state.last_ping > pingTimeoutMs) {
-          Js.Console.warn("RealtimeClient: Ping timeout, closing connection");
-          ws->WebSocket.close;
-        };
-      });
-    };
-
-    if (!disablePingPong) {
-      switch (intervalRef.contents) {
-      | Some(_) => ()
-      | None => intervalRef := Some(setInterval(sendPing, Float.to_int(pingIntervalMs)))
+    Tilia.Core.observe(() => {
+      if (state.last_pong -. state.last_ping > pingTimeoutMs) {
+        Js.Console.warn("RealtimeClient: Ping timeout, closing connection");
+        ws->WebSocket.close;
       };
+    });
+
+    switch (intervalRef.contents) {
+    | Some(_) => ()
+    | None => intervalRef := Some(setInterval(sendPing, Float.to_int(pingIntervalMs)))
     };
 
     WebSocket.onOpen(ws, () => {

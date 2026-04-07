@@ -237,7 +237,7 @@ module Runtime = StoreBuilder.Runtime.MakeSynced({
 let onActionError = onActionError;
 let onCustom: option(StoreJson.json => unit) = None;
 let onMedia: option(StoreJson.json => unit) = None;
-let disablePingPong = false;
+let onOpen: option(unit => unit) = None;
 });
 
 include (

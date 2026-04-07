@@ -89,7 +89,7 @@ let updateOfPatch: patch => state => state;
 let onActionError: string => unit;
 let onCustom: option(StoreJson.json => unit);
 let onMedia: option(StoreJson.json => unit);
-let disablePingPong: bool;
+let onOpen: option(unit => unit);
 };
 
   module MakeSynced = StoreOffline.Synced.Make;

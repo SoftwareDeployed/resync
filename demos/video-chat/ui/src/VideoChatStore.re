@@ -43,7 +43,8 @@ type action =
   | PeerJoined(peer_joined_payload)
   | PeerLeft(peer_left_payload)
   | RemoteToggleVideo(remote_toggle_media_payload)
-  | RemoteToggleAudio(remote_toggle_media_payload);
+  | RemoteToggleAudio(remote_toggle_media_payload)
+  | ResetJoinStatus;
 
 type store = {
   room_id: string,
@@ -54,6 +55,7 @@ type store = {
 let emptyState: state = {
   client_id: UUID.make(),
   room: None,
+  is_joined: false,
   local_video_enabled: true,
   local_audio_enabled: true,
   remote_peer_id: None,
@@ -130,6 +132,8 @@ let action_to_json = action =>
   | RemoteToggleVideo(_) =>
     StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
   | RemoteToggleAudio(_) =>
+    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+  | ResetJoinStatus =>
     StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
   };
 
@@ -365,6 +369,7 @@ let reduce = (~state: state, ~action: action) => {
   | LeaveRoom(_payload) => {
       ...state,
       room: None,
+      is_joined: false,
       remote_peer_id: None,
       remote_video_enabled: true,
       remote_audio_enabled: true,
@@ -404,6 +409,7 @@ let reduce = (~state: state, ~action: action) => {
           ~peers=updatedPeers,
         );
       let remotePeerChanged = nextRemotePeerId != state.remote_peer_id;
+      let isOwnJoin = payload.peer.id == state.client_id;
       {
         ...state,
         room:
@@ -412,6 +418,7 @@ let reduce = (~state: state, ~action: action) => {
             created_at: updated_at,
             peers: updatedPeers,
           }),
+        is_joined: isOwnJoin ? true : state.is_joined,
         remote_peer_id: nextRemotePeerId,
         remote_video_enabled:
           remotePeerChanged || nextRemotePeerId == None
@@ -485,6 +492,11 @@ let reduce = (~state: state, ~action: action) => {
       };
     } else {
       state;
+    }
+  | ResetJoinStatus => {
+      ...state,
+      is_joined: false,
+      updated_at,
     }
   };
 };
@@ -573,6 +585,7 @@ module Runtime =
         )
       | ToggleVideo(_) => ()
       | ToggleAudio(_) => ()
+      | ResetJoinStatus => ()
       };
       result;
     };
@@ -625,7 +638,8 @@ module Runtime =
       | JoinRoom(_)
       | LeaveRoom(_)
       | ToggleVideo(_)
-      | ToggleAudio(_) => None
+      | ToggleAudio(_)
+      | ResetJoinStatus => None
       | patch => Some(patch)
       };
     let updateOfPatch = (patch, state) => reduce(~state, ~action=patch);
@@ -648,7 +662,8 @@ module Runtime =
           }
         },
       );
-    let disablePingPong = true;
+    let onOpen: option(unit => unit) =
+      Some(() => dispatch(ResetJoinStatus));
   });
 
 include (
@@ -689,16 +704,16 @@ let leaveRoom = (store: t) =>
 
 let sendVideoFrame = (store: t, frame_data: string) =>
   switch (store.state.room) {
-  | Some(room) =>
+  | Some(room) when store.state.is_joined =>
     MediaTransport.sendMediaFrame(room.id, store.state.client_id, frame_data)
-  | None => ()
+  | _ => ()
   };
 
 let sendAudioChunk = (store: t, chunk_data: string) =>
   switch (store.state.room) {
-  | Some(room) =>
+  | Some(room) when store.state.is_joined =>
     MediaTransport.sendMediaAudio(room.id, store.state.client_id, chunk_data)
-  | None => ()
+  | _ => ()
   };
 
 let toggleVideo = (store: t, enabled: bool) =>

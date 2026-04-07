@@ -29,6 +29,7 @@ module RemoteAudioChunk = {
 type t = {
   client_id: string,
   room: option(Room.t),
+  is_joined: bool,
   local_video_enabled: bool,
   local_audio_enabled: bool,
   remote_peer_id: option(string),

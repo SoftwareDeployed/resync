@@ -173,16 +173,19 @@ let handle_mutation broadcast_fn _request ~action_id action =
     Lwt.return (Middleware.Ack (Ok ()))
   | _ -> Lwt.return (Middleware.Ack (Error "Unknown action kind"))
 let handle_media broadcast_fn _request channel payload_str =
-  (* Store broadcast_fn for this channel so polling loop can use it *)
   Hashtbl.replace broadcast_fns channel broadcast_fn;
 
   let payload = Yojson.Basic.from_string payload_str in
   match (get_string "room_id" payload, get_string "peer_id" payload) with
   | Some room_id, Some peer_id ->
-    (* Queue frame for each peer (drops old frames if queue full) *)
-    let media_msg = `Assoc [ ("type", `String "media"); ("payload", payload) ] |> Yojson.Basic.to_string in
-    VideoChat_adapter.queue_media_frame adapter ~room_id ~except_id:peer_id media_msg;
-    Lwt.return_unit
+    (match VideoChat_adapter.get_room adapter ~peer_id with
+    | Some peer_room_id when peer_room_id = room_id ->
+      let media_msg = `Assoc [ ("type", `String "media"); ("payload", payload) ] |> Yojson.Basic.to_string in
+      VideoChat_adapter.queue_media_frame adapter ~room_id ~except_id:peer_id media_msg;
+      Lwt.return_unit
+    | _ ->
+      Printf.eprintf "[handle_media] rejecting media from peer %s - not in room %s\n%!" peer_id room_id;
+      Lwt.return_unit)
   | _ -> Lwt.return_unit
 
 (* Polling loop that sends queued media frames *)

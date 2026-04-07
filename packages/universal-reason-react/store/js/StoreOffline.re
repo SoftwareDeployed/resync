@@ -351,7 +351,7 @@ let updateOfPatch: (patch, state) => state;
 let onActionError: string => unit;
 let onCustom: option(StoreJson.json => unit);
 let onMedia: option(StoreJson.json => unit);
-let disablePingPong: bool;
+let onOpen: option(unit => unit);
 };
 
   module Make = (Schema: Schema) => {
@@ -728,7 +728,13 @@ switch (Schema.subscriptionOfState(state)) {
   RealtimeClient.Socket.subscribeSynced(
     ~subscription=Schema.encodeSubscription(subscription),
     ~updatedAt=Schema.timestampOfState(state),
-    ~onOpen=resumePendingActions,
+    ~onOpen=() => {
+      switch (Schema.onOpen) {
+      | Some(onOpen) => onOpen()
+      | None => ()
+      };
+      resumePendingActions();
+    },
     ~onPatch=handlePatch,
     ~onCustom=
       switch (Schema.onCustom) {
@@ -744,7 +750,6 @@ switch (Schema.subscriptionOfState(state)) {
     ~onAck=handleAck,
     ~eventUrl=Schema.eventUrl,
     ~baseUrl=Schema.baseUrl,
-    ~disablePingPong=Schema.disablePingPong,
     (),
   )
   ->ignore
