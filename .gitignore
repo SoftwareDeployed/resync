@@ -126,4 +126,3 @@ dist
 # TernJS port file
 .tern-port
 .aider*
-WEBSOCKET_ERROR.md

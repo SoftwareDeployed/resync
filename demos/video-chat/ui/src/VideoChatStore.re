@@ -638,10 +638,7 @@ module Runtime =
       };
     };
     let subscriptionOfState = (state: state): option(subscription) =>
-      switch (state.room) {
-      | Some(_) => Some(state.client_id)
-      | None => None
-      };
+      Some(state.client_id);
     let encodeSubscription = (sub: subscription) => sub;
     let eventUrl = Constants.event_url;
     let baseUrl = Constants.base_url;
@@ -658,13 +655,7 @@ module Runtime =
     let updateOfPatch = (patch, state) => reduce(~state, ~action=patch);
     let onActionError = onActionError;
     let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit) =
-      Some((~dispatch, ~action, ~actionId: string) => {
-        ignore(actionId);
-        switch (action) {
-        | JoinRoom(_) => dispatch(JoinRoomAcknowledged)
-        | _ => ()
-        }
-      });
+      None;
     let onCustom: option(StoreJson.json => unit) =
       Some(
         json => {
