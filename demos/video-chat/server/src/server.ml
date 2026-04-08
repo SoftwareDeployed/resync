@@ -41,6 +41,7 @@ let load_snapshot _request channel =
     `Assoc [
       ("client_id", `String channel);
       ("room", room_json);
+      ("is_joined", `Bool false);
       ("local_video_enabled", `Bool true);
       ("local_audio_enabled", `Bool true);
       ("remote_peer_id", `Null);

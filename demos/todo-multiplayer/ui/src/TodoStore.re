@@ -5,8 +5,6 @@ type state = Model.t;
 
 type subscription = RealtimeSubscription.t;
 
-type patch = StoreCrud.patch(Model.Todo.t);
-
 type add_todo_payload = {
   id: string,
   list_id: string,
@@ -36,8 +34,6 @@ let emptyState: state = {
   todos: [||],
   list: None,
 };
-
-let storeName = "todo-multiplayer";
 
 let scopeKeyOfState = (state: state) =>
   switch (state.list) {
@@ -165,85 +161,89 @@ let onActionError = message => Sonner.showError(message);
 [@platform native]
 let onActionError = _message => ();
 
-module Runtime = StoreBuilder.Runtime.MakeSynced({
-  type nonrec state = state;
-  type nonrec action = action;
-  type nonrec store = store;
-  type nonrec subscription = subscription;
-  type nonrec patch = patch;
+/* ============================================================================
+   New Grouped API (Task 4/6) - Using Synced.DefineCrud
+   ============================================================================ */
 
-  let reduce = reduce;
-  let emptyState = emptyState;
-  let storeName = storeName;
-  let stateElementId = "initial-store";
-  let scopeKeyOfState = scopeKeyOfState;
-  let timestampOfState = timestampOfState;
-  let setTimestamp = setTimestamp;
-  let state_of_json = state_of_json;
-  let state_to_json = state_to_json;
-  let action_of_json = action_of_json;
-  let action_to_json = action_to_json;
-  let makeStore = (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-    let todos = state.todos;
-    let completedCount = (items: array(Model.Todo.t)) =>
-      items
-      ->Js.Array.filter(~f=(item: Model.Todo.t) => item.completed)
-      ->Array.length;
-    {
-      list_id:
-        switch (state.list) {
-        | Some(list) => list.id
-        | None => ""
-        },
-      state,
-      completed_count:
-        StoreBuilder.derived(
-          ~derive?,
-          ~client=(store: store) => completedCount(store.state.todos),
-          ~server=() => completedCount(todos),
-          (),
-        ),
-      total_count:
-        StoreBuilder.derived(
-          ~derive?,
-          ~client=(store: store) => Array.length(store.state.todos),
-          ~server=() => Array.length(todos),
-          (),
-        ),
+module StoreDef =
+  StoreBuilder.Synced.DefineCrud({
+    type nonrec state = state;
+    type nonrec action = action;
+    type nonrec store = store;
+    type nonrec subscription = subscription;
+    type row = Model.Todo.t;
+
+    let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
+      storeName: "todo-multiplayer",
+      emptyState,
+      reduce,
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore:
+        (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+        {
+          list_id:
+            switch (state.list) {
+            | Some(list) => list.id
+            | None => ""
+            },
+          state,
+          completed_count:
+            StoreBuilder.Synced.Crud.filteredCount(
+              ~derive?,
+              ~getItems=(store: store) => store.state.todos,
+              ~predicate=(item: Model.Todo.t) => item.completed,
+              (),
+            ),
+          total_count:
+            StoreBuilder.Synced.Crud.totalCount(
+              ~derive?,
+              ~getItems=(store: store) => store.state.todos,
+              (),
+            ),
+        };
+      },
+      scopeKeyOfState,
+      timestampOfState,
+      setTimestamp,
+      transport: {
+        subscriptionOfState: (state: state): option(subscription) =>
+          switch (state.list) {
+          | Some(list) => Some(RealtimeSubscription.list(list.id))
+          | None => None
+          },
+        encodeSubscription: RealtimeSubscription.encode,
+        eventUrl: Constants.event_url,
+        baseUrl: Constants.base_url,
+      },
+      stateElementId: Some("initial-store"),
+      hooks:
+        Some({
+          StoreBuilder.Sync.onActionError: Some(onActionError),
+          onActionAck: None,
+          onCustom: None,
+          onMedia: None,
+          onError: None,
+          onOpen: None,
+          onConnectionHandle: None,
+        }),
     };
-  };
-  let subscriptionOfState = (state: state): option(subscription) =>
-    switch (state.list) {
-    | Some(list) => Some(RealtimeSubscription.list(list.id))
-    | None => None
-    };
-  let encodeSubscription = RealtimeSubscription.encode;
-  let eventUrl = Constants.event_url;
-  let baseUrl = Constants.base_url;
-  let decodePatch =
-    StorePatch.compose([
-      StoreCrud.decodePatch(
+
+    let strategy: StoreBuilder.Sync.crudStrategy(state, Model.Todo.t) =
+      StoreBuilder.Sync.crud(
         ~table=RealtimeSchema.table_name("todos"),
         ~decodeRow=Model.Todo.of_json,
-        (),
-      ),
-    ]);
-  let updateOfPatch =
-    StoreCrud.updateOfPatch(
-      ~getId=(todo: Model.Todo.t) => todo.id,
-      ~getItems=(state: state) => state.todos,
-      ~setItems=(state: state, items) => {...state, todos: items},
-    );
-let onActionError = onActionError;
-let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit) = None;
-let onCustom: option(StoreJson.json => unit) = None;
-let onMedia: option(StoreJson.json => unit) = None;
-let onError: option((~dispatch: action => unit) => string => unit) = None;
-let onOpen: option((~dispatch: action => unit) => unit) = None;
-});
+        ~getId=(todo: Model.Todo.t) => todo.id,
+        ~getItems=(state: state) => state.todos,
+        ~setItems=(state: state, items) => {...state, todos: items},
+      );
+  });
 
+/* Re-export with the same interface as before */
 include (
-  Runtime:
+  StoreDef:
     StoreBuilder.Runtime.Exports
       with type state := state
       and type action := action
@@ -252,7 +252,7 @@ include (
 
 type t = store;
 
-module Context = Runtime.Context;
+module Context = StoreDef.Context;
 
 let addTodo = (store: t, text: string) => {
   let list_id =

@@ -191,41 +191,49 @@ let reduce = (~state: state, ~action: action) => {
   };
 };
 
-module Runtime = StoreBuilder.Runtime.Make({
-  type nonrec state = state;
-  type nonrec action = action;
-  type nonrec store = store;
+/* ============================================================================
+   New Grouped API (Task 7) - Using Local.Define
+   ============================================================================ */
 
-  let reduce = reduce;
-  let emptyState = emptyState;
-  let storeName = storeName;
-  let stateElementId = stateElementId;
-  let scopeKeyOfState = (_state: state) => "default";
-  let timestampOfState = (state: state) => state.updated_at;
-  let state_of_json = state_of_json;
-  let state_to_json = state_to_json;
-  let action_of_json = action_of_json;
-  let action_to_json = action_to_json;
-  let makeStore = (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-    state:
-      StoreBuilder.current(
-        ~derive?,
-        ~client=state,
-        ~server=() => state,
-        (),
-      ),
-    item_count:
-      StoreBuilder.derived(
-        ~derive?,
-        ~client=store => itemCount(store.state),
-        ~server=() => itemCount(state),
-        (),
-      ),
-  };
-});
+module StoreDef =
+  StoreBuilder.Local.Define({
+    type nonrec state = state;
+    type nonrec action = action;
+    type nonrec store = store;
+
+    let config: StoreBuilder.Local.config(state, action, store) = {
+      storeName,
+      emptyState,
+      reduce,
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore:
+        (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+        state:
+          StoreBuilder.current(
+            ~derive?,
+            ~client=state,
+            ~server=() => state,
+            (),
+          ),
+        item_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => itemCount(store.state),
+            ~server=() => itemCount(state),
+            (),
+          ),
+      },
+      scopeKeyOfState: (_state: state) => "default",
+      timestampOfState: (state: state) => state.updated_at,
+      stateElementId: Some(stateElementId),
+    };
+  });
 
 include (
-  Runtime:
+  StoreDef:
     StoreBuilder.Runtime.Exports
       with type state := state
       and type action := action
@@ -234,7 +242,7 @@ include (
 
 type t = store;
 
-module Context = Runtime.Context;
+module Context = StoreDef.Context;
 
 let setQuantity = (store: t, ~inventoryId, ~quantity) => {
   let _ = store;

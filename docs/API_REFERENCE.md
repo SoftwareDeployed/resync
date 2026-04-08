@@ -1,7 +1,6 @@
 # API Reference
 
-> ⚠️ **API Stability**: APIs are **not stable** and are **subject to change**.
-
+> **API Stability**: APIs are **not stable** and are **subject to change**.
 
 Complete API reference for Universal Reason React packages.
 
@@ -295,30 +294,99 @@ type subscription('a);
 
 Opaque subscription type for real-time sync.
 
-### StoreBuilder.Runtime.Make
+#### `listener_id`
 
-Module functor for creating local-only runtime stores. Define all values inline inside the functor body.
-
-**Signature:**
 ```reason
-module Runtime = StoreBuilder.Runtime.Make({
-  type state;
-  type action;
-  type store;
+type listener_id;
+```
 
-  let reduce: (~state: state, ~action: action) => state;
-  let emptyState: state;
-  let storeName: string;
-  let stateElementId: string;
-  let scopeKeyOfState: state => string;
-  let timestampOfState: state => float;
-  let state_of_json: StoreJson.json => state;
-  let state_to_json: state => StoreJson.json;
-  let action_of_json: StoreJson.json => action;
-  let action_to_json: action => StoreJson.json;
-  let makeStore:
-    (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
-});
+Opaque listener token returned from `Events.listen`.
+
+#### `store_event`
+
+```reason
+type store_event('action) =
+  | Open
+  | Close
+  | Reconnect
+  | ActionAcked({actionId: string, action: option('action)})
+  | ActionFailed({actionId: string, action: option('action), message: string})
+  | ConnectionError(string)
+  | CustomEvent(StoreJson.json)
+  | MediaEvent(StoreJson.json);
+```
+
+Typed store runtime event surface. This is intentionally a **store runtime** event model, not a raw websocket frame model. Snapshot and patch transport frames remain internal so reducers stay pure and observer code hooks into store outcomes instead of socket plumbing.
+
+### StoreBuilder.Local.Define
+
+Module functor for creating local-only runtime stores with grouped configuration. Local stores persist confirmed snapshots to IndexedDB and propagate newer confirmed state across tabs with `BroadcastChannel`.
+
+**Configuration Type:**
+```reason
+type config('state, 'action, 'store) = {
+  storeName: string,
+  emptyState: 'state,
+  reduce: (~state: 'state, ~action: 'action) => 'state,
+  state_of_json: StoreJson.json => 'state,
+  state_to_json: 'state => StoreJson.json,
+  action_of_json: StoreJson.json => 'action,
+  action_to_json: 'action => StoreJson.json,
+  makeStore: (~state: 'state, ~derive: Tilia.Core.deriver('store)=?, unit) => 'store,
+  scopeKeyOfState: 'state => string,
+  timestampOfState: 'state => float,
+  stateElementId: option(string),
+};
+```
+
+**Example:**
+```reason
+module StoreDef =
+  StoreBuilder.Local.Define({
+    type nonrec state = state;
+    type nonrec action = action;
+    type nonrec store = store;
+
+    let config: StoreBuilder.Local.config(state, action, store) = {
+      storeName: "ecommerce.cart",
+      emptyState,
+      reduce,
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore: (~state: state, ~derive: Tilia.Core.deriver(store)=?, ()) => {
+        state:
+          StoreBuilder.current(
+            ~derive?,
+            ~client=state,
+            ~server=() => state,
+            (),
+          ),
+        item_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => itemCount(store.state),
+            ~server=() => itemCount(state),
+            (),
+          ),
+      },
+      scopeKeyOfState: _state => "default",
+      timestampOfState: state => state.updated_at,
+      stateElementId: Some("cart-store"),
+    };
+  });
+
+include (
+  StoreDef:
+    StoreBuilder.Runtime.Exports
+      with type state := state
+      and type action := action
+      and type t := store
+);
+
+type t = store;
+module Context = StoreDef.Context;
 ```
 
 **Exports:**
@@ -330,64 +398,552 @@ module Runtime = StoreBuilder.Runtime.Make({
 - `let serializeState: state => string`: Serialize for SSR
 - `let serializeSnapshot: state => string`: Serialize for snapshot
 - `let dispatch: action => unit`: Dispatch a typed action
+- `module Context`: React context for store access
+- `module Events`: Event listener module
 
-### StoreBuilder.Runtime.MakeSynced
+### StoreBuilder.Synced.Define
 
-Module functor for creating realtime runtime stores with IndexedDB-backed action replay.
+Module functor for creating custom synced runtime stores. Synced stores persist confirmed snapshots plus an IndexedDB action ledger, send typed JSON actions over websocket, and propagate optimistic actions plus confirmed snapshots across tabs.
 
-**Signature:**
+**Base Configuration Type:**
 ```reason
-module Runtime = StoreBuilder.Runtime.MakeSynced({
-  type state;
-  type action;
-  type store;
-  type subscription;
-  type patch;
+type baseConfig('state, 'action, 'store, 'subscription) = {
+  storeName: string,
+  emptyState: 'state,
+  reduce: (~state: 'state, ~action: 'action) => 'state,
+  state_of_json: StoreJson.json => 'state,
+  state_to_json: 'state => StoreJson.json,
+  action_of_json: StoreJson.json => 'action,
+  action_to_json: 'action => StoreJson.json,
+  makeStore: (~state: 'state, ~derive: Tilia.Core.deriver('store)=?, unit) => 'store,
+  scopeKeyOfState: 'state => string,
+  timestampOfState: 'state => float,
+  setTimestamp: (~state: 'state, ~timestamp: float) => 'state,
+  transport: transportConfig('state, 'subscription),
+  stateElementId: option(string),
+  hooks: option(Sync.hooks('action)),
+};
+```
 
-  let reduce: (~state: state, ~action: action) => state;
-  let emptyState: state;
-  let storeName: string;
-  let stateElementId: string;
-  let scopeKeyOfState: state => string;
-  let timestampOfState: state => float;
-  let setTimestamp: (~state: state, ~timestamp: float) => state;
-  let state_of_json: StoreJson.json => state;
-  let state_to_json: state => StoreJson.json;
-  let action_of_json: StoreJson.json => action;
-  let action_to_json: action => StoreJson.json;
-  let makeStore:
-    (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
-  let subscriptionOfState: state => option(subscription);
-  let encodeSubscription: subscription => string;
-  let eventUrl: string;
-  let baseUrl: string;
-  let decodePatch: StoreJson.json => option(patch);
-  let updateOfPatch: patch => state => state;
+**Transport Configuration:**
+```reason
+type transportConfig('state, 'subscription) = {
+  subscriptionOfState: 'state => option('subscription),
+  encodeSubscription: 'subscription => string,
+  eventUrl: string,
+  baseUrl: string,
+};
+```
+
+**Hooks Configuration:**
+```reason
+type hooks('action) = {
+  onActionError: option(string => unit),
+  onActionAck: option((~dispatch: 'action => unit, ~action: 'action, ~actionId: string) => unit),
+  onCustom: option(StoreJson.json => unit),
+  onMedia: option(StoreJson.json => unit),
+  onError: option((~dispatch: 'action => unit) => string => unit),
+  onOpen: option((~dispatch: 'action => unit) => unit),
+  onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit),
+};
+```
+
+**Strategy (Custom):**
+```reason
+type customStrategy('state, 'patch) = {
+  decodePatch: StoreJson.json => option('patch),
+  updateOfPatch: ('patch, 'state) => 'state,
+};
+```
+
+**Example:**
+```reason
+module StoreDef =
+  StoreBuilder.Synced.Define({
+    type nonrec state = state;
+    type nonrec action = action;
+    type nonrec store = store;
+    type nonrec subscription = subscription;
+    type patch = action;
+
+    let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
+      storeName: "video-chat",
+      emptyState,
+      reduce,
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore: (~state: state, ~derive: Tilia.Core.deriver(store)=?, ()) => {
+        room_id:
+          switch (state.room) {
+          | Some(room) => room.id
+          | None => ""
+          },
+        state,
+        peers_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store =>
+              switch (store.state.room) {
+              | Some(room) => Array.length(room.peers)
+              | None => 0
+              },
+            ~server=() =>
+              switch (state.room) {
+              | Some(room) => Array.length(room.peers)
+              | None => 0
+              },
+            (),
+          ),
+      },
+      scopeKeyOfState: state => state.client_id,
+      timestampOfState: state => state.updated_at,
+      setTimestamp,
+      transport: {
+        subscriptionOfState: state => Some(state.client_id),
+        encodeSubscription: sub => sub,
+        eventUrl: Constants.event_url,
+        baseUrl: Constants.base_url,
+      },
+      stateElementId: Some("initial-store"),
+      hooks:
+        Some({
+          StoreBuilder.Sync.onActionError: Some(onActionError),
+          onActionAck: None,
+          onCustom: None,
+          onMedia: None,
+          onError:
+            Some((~dispatch) => message => {
+              Js.Console.error("[VideoChatStore] Server error: " ++ message);
+              dispatch(ResetJoinStatus);
+            }),
+          onOpen: Some((~dispatch) => dispatch(ResetJoinStatus)),
+          onConnectionHandle:
+            Some(handle => MediaTransport.setHandle(Some(handle))),
+        }),
+    };
+
+    let strategy: StoreBuilder.Sync.customStrategy(state, patch) =
+      StoreBuilder.Sync.custom(
+        ~decodePatch=json =>
+          switch (action_of_json(json)) {
+          | JoinRoom(_) | LeaveRoom(_) | ToggleVideo(_) | ToggleAudio(_)
+          | ResetJoinStatus | JoinRoomAcknowledged => None
+          | patch => Some(patch)
+          },
+        ~updateOfPatch=(patch, state) => reduce(~state, ~action=patch),
+      );
+  });
+
+include (
+  StoreDef:
+    StoreBuilder.Runtime.Exports
+      with type state := state
+      and type action := action
+      and type t := store
+);
+
+type t = store;
+module Context = StoreDef.Context;
+```
+
+### StoreBuilder.Synced.DefineCrud
+
+Module functor for creating CRUD synced runtime stores. Uses the `Sync.crud` strategy for standard table-backed stores with automatic patch handling.
+
+**Strategy (CRUD):**
+```reason
+type crudStrategy('state, 'row) = {
+  crud: {
+    table: string,
+    decodeRow: StoreJson.json => 'row,
+    getId: 'row => string,
+    getItems: 'state => array('row),
+    setItems: ('state, array('row)) => 'state,
+  },
+};
+```
+
+**Example:**
+```reason
+module StoreDef =
+  StoreBuilder.Synced.DefineCrud({
+    type nonrec state = state;
+    type nonrec action = action;
+    type nonrec store = store;
+    type nonrec subscription = subscription;
+    type row = Model.Todo.t;
+
+    let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
+      storeName: "todo-multiplayer",
+      emptyState,
+      reduce,
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore: (~state: state, ~derive: Tilia.Core.deriver(store)=?, ()) => {
+        list_id:
+          switch (state.list) {
+          | Some(list) => list.id
+          | None => ""
+          },
+        state,
+        completed_count:
+          StoreBuilder.Synced.Crud.filteredCount(
+            ~derive?,
+            ~getItems=(store: store) => store.state.todos,
+            ~predicate=(item: Model.Todo.t) => item.completed,
+            (),
+          ),
+        total_count:
+          StoreBuilder.Synced.Crud.totalCount(
+            ~derive?,
+            ~getItems=(store: store) => store.state.todos,
+            (),
+          ),
+      },
+      scopeKeyOfState,
+      timestampOfState,
+      setTimestamp,
+      transport: {
+        subscriptionOfState: state =>
+          switch (state.list) {
+          | Some(list) => Some(RealtimeSubscription.list(list.id))
+          | None => None
+          },
+        encodeSubscription: RealtimeSubscription.encode,
+        eventUrl: Constants.event_url,
+        baseUrl: Constants.base_url,
+      },
+      stateElementId: Some("initial-store"),
+      hooks:
+        Some({
+          StoreBuilder.Sync.onActionError: Some(onActionError),
+          onActionAck: None,
+          onCustom: None,
+          onMedia: None,
+          onError: None,
+          onOpen: None,
+          onConnectionHandle: None,
+        }),
+    };
+
+    let strategy: StoreBuilder.Sync.crudStrategy(state, Model.Todo.t) =
+      StoreBuilder.Sync.crud(
+        ~table=RealtimeSchema.table_name("todos"),
+        ~decodeRow=Model.Todo.of_json,
+        ~getId=(todo: Model.Todo.t) => todo.id,
+        ~getItems=(state: state) => state.todos,
+        ~setItems=(state: state, items) => {...state, todos: items},
+      );
+  });
+
+include (
+  StoreDef:
+    StoreBuilder.Runtime.Exports
+      with type state := state
+      and type action := action
+      and type t := store
+);
+
+type t = store;
+module Context = StoreDef.Context;
+```
+
+### Sync Strategies
+
+#### `StoreBuilder.Sync.custom`
+
+Creates a custom patch handling strategy for synced stores.
+
+```reason
+let custom:
+  (~decodePatch: StoreJson.json => option('patch), ~updateOfPatch: ('patch, 'state) => 'state)
+  => customStrategy('state, 'patch);
+```
+
+Use this when you need full control over patch decoding and application. The `decodePatch` function returns `None` for actions that should be handled by the reducer instead of as patches.
+
+#### `StoreBuilder.Sync.crud`
+
+Creates a CRUD patch handling strategy for table-backed stores.
+
+```reason
+let crud:
+  (
+    ~table: string,
+    ~decodeRow: StoreJson.json => 'row,
+    ~getId: 'row => string,
+    ~getItems: 'state => array('row),
+    ~setItems: ('state, array('row)) => 'state
+  )
+  => crudStrategy('state, 'row);
+```
+
+### StoreBuilder.Selectors
+
+Convenience functions for common selector patterns that reduce boilerplate for projection authoring.
+
+#### `Selectors.passthrough`
+
+```reason
+let passthrough: (~derive: option(Tilia.Core.deriver('store))=?, ~value: 'a, unit) => 'a;
+```
+
+Returns the value as-is on both client and server. Useful for simple state fields.
+
+#### `Selectors.clientOnly`
+
+```reason
+let clientOnly:
+  (~derive: option(Tilia.Core.deriver('store))=?, ~client: 'a, ~serverDefault: 'a, unit)
+  => 'a;
+```
+
+Uses the client value on the client and a default on the server. Useful for client-specific state like UI toggle flags.
+
+#### `Selectors.arrayLength`
+
+```reason
+let arrayLength:
+  (~derive: option(Tilia.Core.deriver('store))=?, ~getArray: 'store => array('a), unit)
+  => int;
+```
+
+Derived count from array length. Returns 0 on the server.
+
+#### `Selectors.filteredCount`
+
+```reason
+let filteredCount:
+  (
+    ~derive: option(Tilia.Core.deriver('store))=?,
+    ~getArray: 'store => array('a),
+    ~predicate: 'a => bool,
+    unit
+  )
+  => int;
+```
+
+Derived count of items matching a predicate. Returns 0 on the server.
+
+#### `Selectors.field`
+
+```reason
+let field:
+  (
+    ~derive: option(Tilia.Core.deriver('store))=?,
+    ~serverSource: 'state,
+    ~fromStore: 'store => 'state,
+    ~getField: 'state => 'field,
+    unit
+  )
+  => 'field;
+```
+
+Extracts a nested field with proper SSR/hydration handling.
+
+#### `Selectors.computed`
+
+```reason
+let computed:
+  (
+    ~derive: option(Tilia.Core.deriver('store))=?,
+    ~serverSource: 'state,
+    ~fromStore: 'store => 'state,
+    ~compute: 'state => 'result,
+    unit
+  )
+  => 'result;
+```
+
+Applies a transform function to state.
+
+### StoreBuilder.Synced.Crud
+
+Convenience helpers layered on top of `DefineCrud` for common CRUD patterns.
+
+#### `Synced.Crud.totalCount`
+
+```reason
+let totalCount:
+  (~derive: option(Tilia.Core.deriver('store))=?, ~getItems: 'store => array('row), unit)
+  => int;
+```
+
+Total items count derived selector. Returns 0 on the server.
+
+**Example:**
+```reason
+total_count:
+  StoreBuilder.Synced.Crud.totalCount(
+    ~derive?,
+    ~getItems=(store: store) => store.state.todos,
+    (),
+  ),
+```
+
+#### `Synced.Crud.filteredCount`
+
+```reason
+let filteredCount:
+  (
+    ~derive: option(Tilia.Core.deriver('store))=?,
+    ~getItems: 'store => array('row),
+    ~predicate: 'row => bool,
+    unit
+  )
+  => int;
+```
+
+Filtered items count derived selector. Returns 0 on the server.
+
+**Example:**
+```reason
+completed_count:
+  StoreBuilder.Synced.Crud.filteredCount(
+    ~derive?,
+    ~getItems=(store: store) => store.state.todos,
+    ~predicate=(item: Model.Todo.t) => item.completed,
+    (),
+  ),
+```
+
+### StoreBuilder.Bootstrap
+
+Provider and hydration helpers that reduce boilerplate for store initialization.
+
+#### `Bootstrap.withHydratedProvider`
+
+```reason
+let withHydratedProvider:
+  (~hydrateStore: unit => 'store, ~provider: 'provider, ~children: React.element)
+  => {store: 'store, element: React.element};
+```
+
+Hydrates a store and wraps children with its provider. Returns a record with both the store and the wrapped element.
+
+**Example:**
+```reason
+let result =
+  StoreBuilder.Bootstrap.withHydratedProvider(
+    ~hydrateStore=TodoStore.hydrateStore,
+    ~provider=TodoStore.Context.Provider.make,
+    ~children=<App />,
+  );
+ReactDOM.Client.hydrateRoot(domNode, result.element)->ignore;
+```
+
+#### `Bootstrap.withHydratedProviders`
+
+```reason
+let withHydratedProviders:
+  (
+    ~stores: array((string, unit => 'store, 'provider)),
+    ~children: React.element
+  )
+  => {stores: array('store), element: React.element};
+```
+
+Hydrates multiple stores and wraps children with nested providers. Stores are hydrated in order, with the first store as the outermost provider.
+
+**Example:**
+```reason
+let result = StoreBuilder.Bootstrap.withHydratedProviders(
+  ~stores=[|
+    ("store", Store.hydrateStore, Store.Context.Provider.make),
+    ("cart", CartStore.hydrateStore, CartStore.Context.Provider.make),
+  |],
+  ~children=<App />,
+);
+ReactDOM.Client.hydrateRoot(domNode, result.element)->ignore;
+```
+
+#### `Bootstrap.withCreatedProvider`
+
+```reason
+let withCreatedProvider:
+  (
+    ~createStore: 'state => 'store,
+    ~provider: 'provider,
+    ~initialState: 'state,
+    ~children: React.element
+  )
+  => {store: 'store, element: React.element};
+```
+
+Creates a store on the server and wraps children with its provider. For SSR entrypoints that use `createStore` instead of `hydrateStore`.
+
+**Example:**
+```reason
+let result =
+  StoreBuilder.Bootstrap.withCreatedProvider(
+    ~createStore=TodoStore.createStore,
+    ~provider=TodoStore.Context.Provider.make,
+    ~initialState=preloadedState,
+    ~children=<App />,
+  );
+```
+
+### Event Listeners
+
+#### `Events.listen`
+
+```reason
+let listen: (store_event('action) => unit) => listener_id;
+```
+
+Subscribe to typed store events. Returns a listener id for use with `unlisten`.
+
+#### `Events.unlisten`
+
+```reason
+let unlisten: listener_id => unit;
+```
+
+Remove a previously registered listener.
+
+**Lifecycle Pattern:**
+```reason
+React.useEffect0(() => {
+  let listenerId =
+    VideoChatStore.Events.listen(event => {
+      switch (event) {
+      | MediaEvent(json) => handleMedia(json)
+      | CustomEvent(json) => handleCustom(json)
+      | ActionAcked({actionId, action}) => handleAck(actionId, action)
+      | ActionFailed({actionId, message}) => handleError(actionId, message)
+      | _ => ()
+      }
+    });
+  Some(() => VideoChatStore.Events.unlisten(listenerId));
 });
 ```
 
-**Exports:**
-- `type t`: The store type
-- `type state`: Source state type
-- `type action`: Action type
-- `let createStore: state => t`: Create new store
-- `let hydrateStore: unit => t`: Hydrate from SSR and reconcile IndexedDB after mount
-- `let serializeState: state => string`: Serialize for SSR
-- `let serializeSnapshot: state => string`: Serialize for snapshot/debugging
-- `let dispatch: action => unit`: Dispatch an optimistic typed action
+**Important:** Always call `Events.unlisten` in your effect cleanup to prevent memory leaks and stale callbacks.
+
+#### Synced Runtime Ordering Contract
+
+- Confirmed snapshot application completes before any snapshot-adjacent notifications fire
+- Confirmed patch application completes before any patch-adjacent notifications fire
+- `ActionAcked` and `ActionFailed` are emitted after ledger status updates complete
+- `Open`, `Close`, `Reconnect`, and `ConnectionError` are emitted from the runtime-owned sync layer
+- Raw `snapshot` and `patch` frames are intentionally not the primary public event model
 
 ### IndexedDB Behavior
 
 Both runtime builders use IndexedDB:
 
 - `confirmed_state` stores `{scopeKey, value, timestamp}`
-- synced runtimes also use `actions` for queued typed actions and ack state
+- Synced runtimes also use `actions` for queued typed actions and ack state
 
 `storeName` identifies the IndexedDB database and `scopeKeyOfState` identifies the logical store instance within that database.
 
 ### StoreCrud
 
-Generic CRUD helpers for realtime patch handling.
+Generic CRUD helpers for realtime patch handling. Used internally by `DefineCrud` but available for custom implementations.
 
 #### `StoreCrud.patch`
 
@@ -463,6 +1019,19 @@ let current: (
 ```
 
 Returns different values on client vs server.
+
+#### `StoreBuilder.derived`
+
+```reason
+let derived: (
+  ~derive: option(Tilia.Core.deriver('store))=?,
+  ~client: 'store => 'a,
+  ~server: unit => 'a,
+  unit,
+) => 'a;
+```
+
+Creates a derived value with SSR/hydration support.
 
 ### StorePatch Functions
 

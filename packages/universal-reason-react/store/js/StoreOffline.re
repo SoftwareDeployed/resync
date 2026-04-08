@@ -22,6 +22,9 @@ module Local = {
     type state = Schema.state;
     type action = Schema.action;
     type t = Schema.store;
+    type listener_id = StoreEvents.listener_id;
+    type store_event = StoreEvents.store_event(action);
+    type listener = StoreEvents.listener(action);
 
     type broadcast_channel;
 
@@ -66,6 +69,7 @@ module Local = {
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let channelRef: ref(option(broadcast_channel)) = ref(None);
     let suppressPublishRef: ref(bool) = ref(false);
+    let listenersRef: StoreEvents.registry(action) = ref([||]);
 
     let empty = Schema.makeStore(~state=Schema.emptyState, ());
 
@@ -248,6 +252,14 @@ module Local = {
       | None => ()
       };
 
+    module Events = {
+      let listen = (listener: listener) =>
+        StoreEvents.Events.listen(~registry=listenersRef, listener);
+
+      let unlisten = (listenerId: listener_id) =>
+        StoreEvents.Events.unlisten(~registry=listenersRef, listenerId);
+    };
+
     module Context = {
       let context = React.createContext(empty);
 
@@ -322,6 +334,137 @@ module Synced = {
   [@platform native]
   let deleteTimer = (_dict, _key) => ();
 
+  /* SyncController: centralized sync state and listener management.
+     Owns connection state, ack timers, typed listener registry, and
+     queued nested dispatch behavior. */
+  module type SyncController = {
+    type action;
+    type store_event = StoreEvents.store_event(action);
+    type listener = StoreEvents.listener(action);
+    type listener_id = StoreEvents.listener_id;
+
+    /* Connection state owned by controller */
+    let getConnectionHandle: unit => option(RealtimeClient.Socket.connection_handle);
+    let setConnectionHandle: option(RealtimeClient.Socket.connection_handle) => unit;
+    let disposeConnectionHandle: unit => unit;
+    let getHasOpened: unit => bool;
+    let setHasOpened: bool => unit;
+
+    /* Cross-tab broadcast channel */
+    let getBroadcastChannel: unit => option(broadcast_channel);
+    let setBroadcastChannel: option(broadcast_channel) => unit;
+
+    /* Ack timers */
+    let clearAckTimeout: string => unit;
+    let scheduleAckTimeout: (string, unit => unit) => unit;
+
+    /* Typed listener registry with queued dispatch */
+    let subscribe: listener => listener_id;
+    let unsubscribe: listener_id => unit;
+    let emit: store_event => unit;
+
+    /* Pending dispatch queue for nested dispatch safety */
+    let queueDispatch: (unit => unit) => unit;
+    let isEmitting: unit => bool;
+  };
+
+  module MakeSyncController = (Config: {type action;}) : (SyncController with type action = Config.action) => {
+    type action = Config.action;
+    type store_event = StoreEvents.store_event(action);
+    type listener = StoreEvents.listener(action);
+    type listener_id = StoreEvents.listener_id;
+
+    /* Connection state */
+    let connectionHandleRef: ref(option(RealtimeClient.Socket.connection_handle)) = ref(None);
+    let hasOpenedRef: ref(bool) = ref(false);
+
+    let getConnectionHandle = () => connectionHandleRef.contents;
+    let setConnectionHandle = handle => connectionHandleRef := handle;
+
+    let disposeConnectionHandle = () => {
+      switch (connectionHandleRef.contents) {
+      | Some(handle) =>
+        RealtimeClient.Socket.disposeHandle(handle);
+        connectionHandleRef := None;
+      | None => ()
+      };
+    };
+
+    let getHasOpened = () => hasOpenedRef.contents;
+    let setHasOpened = value => hasOpenedRef := value;
+
+    /* Cross-tab broadcast channel */
+    let channelRef: ref(option(broadcast_channel)) = ref(None);
+    let getBroadcastChannel = () => channelRef.contents;
+    let setBroadcastChannel = channel => channelRef := channel;
+
+    /* Ack timers */
+    let timersRef: ref(Js.Dict.t(int)) = ref(Js.Dict.empty());
+
+    let clearAckTimeout = actionId => {
+      switch (timersRef.contents->Js.Dict.get(actionId)) {
+      | Some(timerId) =>
+        clearTimeout(timerId);
+        deleteTimer(timersRef.contents, actionId);
+      | None => ()
+      };
+    };
+
+    let scheduleAckTimeout = (actionId, callback) => {
+      clearAckTimeout(actionId);
+      let timerId = setTimeout(callback, StoreActionLedger.ackTimeoutMs);
+      timersRef.contents->Js.Dict.set(actionId, timerId);
+    };
+
+    /* Typed listener registry */
+    let listenersRef: StoreEvents.registry(Config.action) = ref([||]);
+
+    let subscribe = (listener: listener): listener_id => {
+      let listenerId = UUID.make();
+      listenersRef.contents =
+        Js.Array.concat(~other=[|(listenerId, listener)|], listenersRef.contents);
+      listenerId;
+    };
+
+    let unsubscribe = (listenerId: listener_id) => {
+      listenersRef.contents =
+        listenersRef.contents->Js.Array.filter(~f=((currentId, _listener)) =>
+          currentId != listenerId
+        );
+    };
+
+    /* Queued nested dispatch: when emit is active, dispatches are queued
+       and drained after the current listener batch completes. This prevents
+       reentrancy while preserving FIFO ordering. */
+    let pendingDispatchesRef: ref(array(unit => unit)) = ref([||]);
+    let isEmittingRef: ref(bool) = ref(false);
+
+    let isEmitting = () => isEmittingRef.contents;
+
+    let queueDispatch = (dispatchFn: unit => unit) => {
+      pendingDispatchesRef.contents =
+        Js.Array.concat(~other=[|dispatchFn|], pendingDispatchesRef.contents);
+    };
+
+    let drainPendingDispatches = () => {
+      let toDrain = pendingDispatchesRef.contents;
+      pendingDispatchesRef.contents = [||];
+      toDrain->Js.Array.forEach(~f=fn => fn());
+    };
+
+    let emit = (event: store_event) => {
+      /* Capture stable snapshot of listeners before iteration.
+         listen/unlisten during emit affect subsequent batches only. */
+      let snapshot = listenersRef.contents;
+      isEmittingRef := true;
+
+      snapshot->Js.Array.forEach(~f=((_, listener)) => listener(event));
+
+      isEmittingRef := false;
+      drainPendingDispatches();
+    };
+  };
+
   module type Schema = {
     type state;
     type action;
@@ -342,30 +485,43 @@ module Synced = {
     let action_to_json: action => StoreJson.json;
     let makeStore:
       (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
-let subscriptionOfState: state => option(subscription);
-let encodeSubscription: subscription => string;
-let eventUrl: string;
-let baseUrl: string;
-let decodePatch: StoreJson.json => option(patch);
-let updateOfPatch: (patch, state) => state;
-let onActionError: string => unit;
-let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit);
-let onCustom: option(StoreJson.json => unit);
-let onMedia: option(StoreJson.json => unit);
-let onError: option((~dispatch: action => unit) => string => unit);
-let onOpen: option((~dispatch: action => unit) => unit);
-};
+    let subscriptionOfState: state => option(subscription);
+    let encodeSubscription: subscription => string;
+    let eventUrl: string;
+    let baseUrl: string;
+    let decodePatch: StoreJson.json => option(patch);
+    let updateOfPatch: (patch, state) => state;
+    /* Legacy compatibility hooks. New code should prefer Runtime.Events.listen and
+       the narrow StoreEvents.store_event surface instead of raw per-frame callback
+       registration. */
+    let onActionError: string => unit;
+    let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit);
+    let onCustom: option(StoreJson.json => unit);
+    let onMedia: option(StoreJson.json => unit);
+    let onError: option((~dispatch: action => unit) => string => unit);
+    let onOpen: option((~dispatch: action => unit) => unit);
+    /* Optional hook called when a connection handle is created. Allows external
+       code (e.g., video-chat media transport) to access the handle for sending
+       raw frames without storing singleton state in RealtimeClient. */
+    let onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit);
+  };
 
   module Make = (Schema: Schema) => {
     type state = Schema.state;
     type action = Schema.action;
     type t = Schema.store;
+    type listener_id = StoreEvents.listener_id;
+    type store_event = StoreEvents.store_event(action);
+    type listener = StoreEvents.listener(action);
 
+    /* Hydration and source state stay outside the controller */
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
-    let timersRef: ref(Js.Dict.t(int)) = ref(Js.Dict.empty());
-    let channelRef: ref(option(broadcast_channel)) = ref(None);
     let suppressPublishRef: ref(bool) = ref(false);
+
+    /* Initialize the SyncController that owns connection state, timers,
+       listeners, and queued dispatch behavior. */
+    module Controller = MakeSyncController({type action = Schema.action;});
 
     let empty = Schema.makeStore(~state=Schema.emptyState, ());
 
@@ -376,10 +532,20 @@ let onOpen: option((~dispatch: action => unit) => unit);
 
     let serializeSnapshot = serializeState;
 
+    let actionOptionOfRecord = record =>
+      switch (record) {
+      | Some(record: StoreActionLedger.t) =>
+        Some(Schema.action_of_json(record.action))
+      | None => None
+      };
+
+    /* Emit through the controller for stable snapshot and queued dispatch */
+    let emitEvent = (event: store_event) => Controller.emit(event);
+
     let broadcastOptimisticAction = (record: StoreActionLedger.t) =>
       switch%platform (Runtime.platform) {
       | Client =>
-        switch (channelRef.contents) {
+        switch (Controller.getBroadcastChannel()) {
         | Some(channel) =>
           postBroadcastMessage(
             channel,
@@ -404,7 +570,7 @@ let onOpen: option((~dispatch: action => unit) => unit);
     let broadcastConfirmedState = (state: state) =>
       switch%platform (Runtime.platform) {
       | Client =>
-        switch (channelRef.contents) {
+        switch (Controller.getBroadcastChannel()) {
         | Some(channel) =>
           postBroadcastMessage(
             channel,
@@ -472,15 +638,6 @@ let onOpen: option((~dispatch: action => unit) => unit);
       loop(0, confirmed);
     };
 
-    let clearAckTimeout = actionId => {
-      switch (timersRef.contents->Js.Dict.get(actionId)) {
-      | Some(timerId) =>
-        clearTimeout(timerId);
-        deleteTimer(timersRef.contents, actionId);
-      | None => ()
-      };
-    };
-
     let rec refreshOptimisticState = () =>
       switch%platform (Runtime.platform) {
       | Client =>
@@ -541,19 +698,6 @@ let onOpen: option((~dispatch: action => unit) => unit);
       | Server => ()
       }
 
-    and scheduleAckTimeout = actionId =>
-      switch%platform (Runtime.platform) {
-      | Client =>
-        clearAckTimeout(actionId);
-        let timerId =
-          setTimeout(
-            () => handleAckTimeout(actionId),
-            StoreActionLedger.ackTimeoutMs,
-          );
-        timersRef.contents->Js.Dict.set(actionId, timerId);
-      | Server => ()
-      }
-
     and applyExternalConfirmedState =
         (~actions: StoreSource.actions(state), nextState: state) => {
       suppressPublishRef := true;
@@ -564,10 +708,15 @@ let onOpen: option((~dispatch: action => unit) => unit);
 
     and sendQueuedRecord = (record: StoreActionLedger.t) => {
       let sent =
-        RealtimeClient.Socket.sendAction(
-          ~actionId=record.id,
-          ~action=record.action,
-        );
+        switch (Controller.getConnectionHandle()) {
+        | Some(handle) =>
+          RealtimeClient.Socket.sendAction(
+            ~handle,
+            ~actionId=record.id,
+            ~action=record.action,
+          )
+        | None => false
+        };
       let nextRecord =
         if (sent) {
           {
@@ -582,7 +731,10 @@ let onOpen: option((~dispatch: action => unit) => unit);
         };
       let _ = StoreActionLedger.put(~storeName=Schema.storeName, nextRecord);
       if (sent) {
-        scheduleAckTimeout(nextRecord.id);
+        Controller.scheduleAckTimeout(
+          nextRecord.id,
+          () => handleAckTimeout(nextRecord.id),
+        );
       };
     }
 
@@ -600,19 +752,28 @@ let onOpen: option((~dispatch: action => unit) => unit);
                 | Pending
                 | Syncing =>
                   if (record.retryCount >= StoreActionLedger.maxRetries) {
-                    Schema.onActionError(
-                      "Timed out waiting for acknowledgement",
-                    );
+                    let message = "Timed out waiting for acknowledgement";
                     Js.Promise.then_(
                       _ => {
                         refreshOptimisticState();
+                        /* Failure ordering contract: the action ledger status is
+                           updated before the public ActionFailed event and any
+                           legacy callback fire. */
+                        emitEvent(
+                          StoreEvents.ActionFailed({
+                            actionId,
+                            action: Some(Schema.action_of_json(record.action)),
+                            message,
+                          }),
+                        );
+                        Schema.onActionError(message);
                         Js.Promise.resolve();
                       },
                       StoreActionLedger.updateStatus(
                         ~storeName=Schema.storeName,
                         ~id=actionId,
                         ~status=Failed,
-                        ~error="Timed out waiting for acknowledgement",
+                        ~error=message,
                         (),
                       ),
                     );
@@ -637,34 +798,9 @@ let onOpen: option((~dispatch: action => unit) => unit);
       | Server => ()
       };
 
-    let resumePendingActions = () =>
-      switch%platform (Runtime.platform) {
-      | Client =>
-        let _ =
-          Js.Promise.then_(
-            records => {
-              StoreActionLedger.sortByEnqueuedAt(records)
-              ->Js.Array.forEach(~f=(record: StoreActionLedger.t) =>
-                  switch (StoreActionLedger.statusOfString(record.status)) {
-                  | Pending
-                  | Syncing => sendQueuedRecord(record)
-                  | Acked
-                  | Failed => ()
-                  }
-                );
-              Js.Promise.resolve();
-            },
-            StoreActionLedger.getByScope(
-              ~storeName=Schema.storeName,
-              ~scopeKey=Schema.scopeKeyOfState(confirmedStateRef.contents),
-              (),
-            ),
-          );
-        ();
-      | Server => ()
-      };
-
-    let dispatch = (action: action) =>
+    /* Core dispatch implementation with ledger persistence and optimistic broadcast.
+       This is the actual workhorse that executes the dispatch. */
+    let rec executeDispatch = (action: action) =>
       switch (sourceRef.contents) {
       | Some(actions) =>
         let currentState = actions.get();
@@ -693,36 +829,90 @@ let onOpen: option((~dispatch: action => unit) => unit);
              });
         ();
       | None => ()
+      }
+
+    /* Public dispatch that respects controller emission gating.
+       When emitted during an active listener batch, dispatch is queued
+       and executed after the batch completes. This prevents reentrancy
+       while preserving FIFO ordering for both typed listeners and legacy callbacks. */
+    and dispatch = (action: action) => {
+      if (Controller.isEmitting()) {
+        Controller.queueDispatch(() => executeDispatch(action));
+      } else {
+        executeDispatch(action);
+      }
+    }
+
+    /* Legacy callback dispatch wrapper - calls the main dispatch
+       since both respect emission gating uniformly. */
+    and safeDispatch = (action: action) => dispatch(action);
+
+    let resumePendingActions = () =>
+      switch%platform (Runtime.platform) {
+      | Client =>
+        let _ =
+          Js.Promise.then_(
+            records => {
+              StoreActionLedger.sortByEnqueuedAt(records)
+              ->Js.Array.forEach(~f=(record: StoreActionLedger.t) =>
+                  switch (StoreActionLedger.statusOfString(record.status)) {
+                  | Pending
+                  | Syncing => sendQueuedRecord(record)
+                  | Acked
+                  | Failed => ()
+                  }
+                );
+              Js.Promise.resolve();
+            },
+            StoreActionLedger.getByScope(
+              ~storeName=Schema.storeName,
+              ~scopeKey=Schema.scopeKeyOfState(confirmedStateRef.contents),
+              (),
+            ),
+          );
+        ();
+      | Server => ()
       };
 
     let handleAck = (actionId: string, status: string, error: option(string)) => {
-      clearAckTimeout(actionId);
+      Controller.clearAckTimeout(actionId);
       switch (status) {
       | "ok" =>
         let _ =
           Js.Promise.then_(
             record => {
-              switch (record) {
-              | Some(r: StoreActionLedger.t) =>
-                let _ =
-                  StoreActionLedger.updateStatus(
-                    ~storeName=Schema.storeName,
-                    ~id=actionId,
-                    ~status=Acked,
-                    (),
+              Js.Promise.then_(
+                _ => {
+                  /* Ack ordering contract: the action ledger status is updated
+                     before ActionAcked listeners or legacy callbacks run. */
+                  emitEvent(
+                    StoreEvents.ActionAcked({
+                      actionId,
+                      action: actionOptionOfRecord(record),
+                    }),
                   );
-                switch (Schema.onActionAck) {
-                | Some(onActionAck) =>
-                  onActionAck(
-                    ~dispatch,
-                    ~action=Schema.action_of_json(r.action),
-                    ~actionId,
-                  )
-                | None => ()
-                };
-              | None => ()
-              };
-              Js.Promise.resolve();
+                  switch (record) {
+                  | Some(r: StoreActionLedger.t) =>
+                    switch (Schema.onActionAck) {
+                    | Some(onActionAck) =>
+                      onActionAck(
+                        ~dispatch=safeDispatch,
+                        ~action=Schema.action_of_json(r.action),
+                        ~actionId,
+                      )
+                    | None => ()
+                    }
+                  | None => ()
+                  };
+                  Js.Promise.resolve();
+                },
+                StoreActionLedger.updateStatus(
+                  ~storeName=Schema.storeName,
+                  ~id=actionId,
+                  ~status=Acked,
+                  (),
+                ),
+              );
             },
             StoreActionLedger.get(
               ~storeName=Schema.storeName,
@@ -732,23 +922,41 @@ let onOpen: option((~dispatch: action => unit) => unit);
           );
         ();
       | "error" =>
-        Schema.onActionError(
+        let message =
           switch (error) {
           | Some(message) => message
           | None => "Mutation failed"
-          },
-        );
+          };
         let _ =
           Js.Promise.then_(
-            _ => {
-              refreshOptimisticState();
-              Js.Promise.resolve();
+            record => {
+              Js.Promise.then_(
+                _ => {
+                  refreshOptimisticState();
+                  /* Failure ordering contract: emit ActionFailed only after the
+                     ledger status reflects the failed action. */
+                  emitEvent(
+                    StoreEvents.ActionFailed({
+                      actionId,
+                      action: actionOptionOfRecord(record),
+                      message,
+                    }),
+                  );
+                  Schema.onActionError(message);
+                  Js.Promise.resolve();
+                },
+                StoreActionLedger.updateStatus(
+                  ~storeName=Schema.storeName,
+                  ~id=actionId,
+                  ~status=Failed,
+                  ~error?,
+                  (),
+                ),
+              );
             },
-            StoreActionLedger.updateStatus(
+            StoreActionLedger.get(
               ~storeName=Schema.storeName,
               ~id=actionId,
-              ~status=Failed,
-              ~error?,
               (),
             ),
           );
@@ -759,6 +967,10 @@ let onOpen: option((~dispatch: action => unit) => unit);
 
     let handleSnapshot = (snapshotJson: StoreJson.json) => {
       let snapshotState = Schema.state_of_json(snapshotJson);
+      /* Ordering contract: snapshot application, persistence, and optimistic
+         replay complete before any future snapshot-adjacent events fire. Raw
+         snapshot transport frames are intentionally not part of the public
+         event surface. */
       confirmedStateRef := snapshotState;
       persistConfirmedState(snapshotState);
       refreshOptimisticState();
@@ -772,6 +984,9 @@ let onOpen: option((~dispatch: action => unit) => unit);
             ~state=Schema.updateOfPatch(patch, confirmedStateRef.contents),
             ~timestamp,
           );
+        /* Ordering contract: patch application, persistence, and optimistic
+           replay complete before any patch-adjacent events fire. Raw patch
+           frames stay internal to the synced runtime. */
         confirmedStateRef := nextConfirmedState;
         persistConfirmedState(nextConfirmedState);
         refreshOptimisticState();
@@ -779,44 +994,71 @@ let onOpen: option((~dispatch: action => unit) => unit);
       };
     };
 
-let startSubscription = state =>
-switch (Schema.subscriptionOfState(state)) {
-| Some(subscription) =>
-  RealtimeClient.Socket.subscribeSynced(
-    ~subscription=Schema.encodeSubscription(subscription),
-    ~updatedAt=Schema.timestampOfState(state),
-    ~onOpen=() => {
-      switch (Schema.onOpen) {
-      | Some(onOpen) => onOpen(~dispatch)
-      | None => ()
+    let startSubscription = state =>
+      switch (Schema.subscriptionOfState(state)) {
+      | Some(subscription) =>
+        {
+          Controller.disposeConnectionHandle();
+          let handle =
+            RealtimeClient.Socket.subscribeSynced(
+              ~subscription=Schema.encodeSubscription(subscription),
+              ~updatedAt=Schema.timestampOfState(state),
+              ~onOpen=() => {
+                let lifecycleEvent =
+                  if (Controller.getHasOpened()) {
+                    StoreEvents.Reconnect;
+                  } else {
+                    Controller.setHasOpened(true);
+                    StoreEvents.Open;
+                  };
+                /* Lifecycle events originate from the store-owned sync runtime instead
+                   of demo code so reconnect/open ordering stays centralized. */
+                emitEvent(lifecycleEvent);
+                switch (Schema.onOpen) {
+                | Some(onOpen) => onOpen(~dispatch=safeDispatch)
+                | None => ()
+                };
+                resumePendingActions();
+              },
+              ~onClose=() => emitEvent(StoreEvents.Close),
+              ~onPatch=handlePatch,
+              ~onCustom=json => {
+                emitEvent(StoreEvents.CustomEvent(json));
+                switch (Schema.onCustom) {
+                | Some(onCustom) => onCustom(json)
+                | None => ()
+                };
+              },
+              ~onMedia=json => {
+                emitEvent(StoreEvents.MediaEvent(json));
+                switch (Schema.onMedia) {
+                | Some(onMedia) => onMedia(json)
+                | None => ()
+                };
+              },
+              ~onError=message => {
+                /* Connection errors are surfaced from the runtime-owned sync layer, not
+                   by ad hoc demo-owned socket hooks. */
+                emitEvent(StoreEvents.ConnectionError(message));
+                switch (Schema.onError) {
+                | Some(onError) => onError(~dispatch=safeDispatch)(message)
+                | None => ()
+                };
+              },
+              ~onSnapshot=handleSnapshot,
+              ~onAck=handleAck,
+              ~eventUrl=Schema.eventUrl,
+              ~baseUrl=Schema.baseUrl,
+              (),
+            );
+          Controller.setConnectionHandle(Some(handle));
+          switch (Schema.onConnectionHandle) {
+          | Some(callback) => callback(handle)
+          | None => ()
+          };
+        }
+      | None => Controller.disposeConnectionHandle()
       };
-      resumePendingActions();
-    },
-    ~onPatch=handlePatch,
-    ~onCustom=
-      switch (Schema.onCustom) {
-      | Some(onCustom) => onCustom
-      | None => ((_: Melange_json.t) => ())
-      },
-    ~onMedia=
-      switch (Schema.onMedia) {
-      | Some(onMedia) => onMedia
-      | None => ((_: Melange_json.t) => ())
-      },
-    ~onError=
-      switch (Schema.onError) {
-      | Some(onError) => onError(~dispatch)
-      | None => (_ => ())
-      },
-    ~onSnapshot=handleSnapshot,
-    ~onAck=handleAck,
-    ~eventUrl=Schema.eventUrl,
-    ~baseUrl=Schema.baseUrl,
-    (),
-  )
-  ->ignore
-| None => ()
-};
 
     let hydrateStore = () => {
       let initialState =
@@ -835,6 +1077,8 @@ switch (Schema.subscriptionOfState(state)) {
         };
 
       confirmedStateRef := initialState;
+      Controller.setHasOpened(false);
+      Controller.disposeConnectionHandle();
 
       switch%platform (Runtime.platform) {
       | Client =>
@@ -846,7 +1090,7 @@ switch (Schema.subscriptionOfState(state)) {
                 sourceRef := Some(actions);
                 let channel =
                   openBroadcastChannel("resync.store." ++ Schema.storeName);
-                channelRef := Some(channel);
+                Controller.setBroadcastChannel(Some(channel));
                 setBroadcastHandler(channel, message => {
                   switch (StoreJson.tryParse(message)) {
                   | Some(json) =>
@@ -927,6 +1171,12 @@ switch (Schema.subscriptionOfState(state)) {
         );
       | Server => Schema.makeStore(~state=initialState, ())
       };
+    };
+
+    module Events = {
+      let listen = (listener: listener) => Controller.subscribe(listener);
+
+      let unlisten = (listenerId: listener_id) => Controller.unsubscribe(listenerId);
     };
 
     module Context = {

@@ -55,58 +55,64 @@ module View = {
       let captureRef = React.useRef(None);
       let remotePeerRef = React.useRef(None);
 
+      /* Media event listener - lifecycle tied via Events.listen/unlisten */
       React.useEffect0(() => {
-        VideoChatStore.registerMediaHandler(json => {
-          // Media messages are wrapped: {"type": "media", "payload": {...}}
-          let payload =
-            StoreJson.optionalField(~json, ~fieldName="payload", ~decode=value =>
-              value
-            );
-          let actualPayload =
-            switch (payload) {
-            | Some(p) => p
-            | None => json
-            };
-          let frameData =
-            StoreJson.optionalField(
-              ~json=actualPayload,
-              ~fieldName="frame_data",
-              ~decode=Melange_json.Primitives.string_of_json,
-            );
-          let peerId =
-            StoreJson.optionalField(
-              ~json=actualPayload,
-              ~fieldName="peer_id",
-              ~decode=Melange_json.Primitives.string_of_json,
-            );
-          let roomId =
-            StoreJson.optionalField(
-              ~json=actualPayload,
-              ~fieldName="room_id",
-              ~decode=Melange_json.Primitives.string_of_json,
-            );
-          switch (frameData, peerId, roomId) {
-          | (Some(data), Some(pid), Some(_rid)) =>
-            remotePeerRef.current = Some(pid);
-            switch (remoteCanvasRef.current) {
-            | Some(canvas) => drawVideoFrame(canvas, data)
-            | None => ()
-            };
-            ();
-          | _ => ()
-          };
-          let chunkData =
-            StoreJson.optionalField(
-              ~json=actualPayload,
-              ~fieldName="chunk_data",
-              ~decode=Melange_json.Primitives.string_of_json,
-            );
-          switch (chunkData) {
-          | Some(data) => playAudioChunk(data)
-          | None => ()
-          };
-        });
-        Some(() => ());
+        let listenerId =
+          VideoChatStore.Events.listen(event => {
+            switch (event) {
+            | MediaEvent(json) =>
+              // Media messages are wrapped: {"type": "media", "payload": {...}}
+              let payload =
+                StoreJson.optionalField(~json, ~fieldName="payload", ~decode=value =>
+                  value
+                );
+              let actualPayload =
+                switch (payload) {
+                | Some(p) => p
+                | None => json
+                };
+              let frameData =
+                StoreJson.optionalField(
+                  ~json=actualPayload,
+                  ~fieldName="frame_data",
+                  ~decode=Melange_json.Primitives.string_of_json,
+                );
+              let peerId =
+                StoreJson.optionalField(
+                  ~json=actualPayload,
+                  ~fieldName="peer_id",
+                  ~decode=Melange_json.Primitives.string_of_json,
+                );
+              let roomId =
+                StoreJson.optionalField(
+                  ~json=actualPayload,
+                  ~fieldName="room_id",
+                  ~decode=Melange_json.Primitives.string_of_json,
+                );
+              switch (frameData, peerId, roomId) {
+              | (Some(data), Some(pid), Some(_rid)) =>
+                remotePeerRef.current = Some(pid);
+                switch (remoteCanvasRef.current) {
+                | Some(canvas) => drawVideoFrame(canvas, data)
+                | None => ()
+                };
+                ();
+              | _ => ()
+              };
+              let chunkData =
+                StoreJson.optionalField(
+                  ~json=actualPayload,
+                  ~fieldName="chunk_data",
+                  ~decode=Melange_json.Primitives.string_of_json,
+                );
+              switch (chunkData) {
+              | Some(data) => playAudioChunk(data)
+              | None => ()
+              };
+            | _ => ()
+            }
+          });
+        Some(() => VideoChatStore.Events.unlisten(listenerId));
       });
 
       React.useEffect1(

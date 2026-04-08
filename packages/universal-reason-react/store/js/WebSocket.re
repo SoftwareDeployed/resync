@@ -6,7 +6,7 @@ external makeWithProtocols: (. string, ws_protocols) => 'a = "WebSocket";
 
 [@mel.new] external make: string => 'a = "WebSocket";
 
-[@mel.send] external close: unit => unit = "close";
+[@mel.send] external close: 'a => unit = "close";
 
 [@mel.send] external send_string: ('a, string) => unit = "send";
 

@@ -3,8 +3,6 @@ type config = Model.t;
 
 type subscription = RealtimeSubscription.t;
 
-type patch = StoreCrud.patch(Model.InventoryItem.t);
-
 type action = Noop;
 
 type projections = {
@@ -70,92 +68,95 @@ let setTimestamp = (~state: config, ~timestamp: float) =>
   | None => state
   };
 
-module Runtime = StoreBuilder.Runtime.MakeSynced({
-  type nonrec state = config;
-  type nonrec action = action;
-  type nonrec store = store;
-  type nonrec subscription = subscription;
-  type nonrec patch = patch;
+/* ============================================================================
+   New Grouped API (Task 4/6) - Using Synced.DefineCrud
+   ============================================================================ */
 
-  let reduce = reduce;
-  let emptyState = emptyConfig;
-  let storeName = "ecommerce.inventory";
-  let stateElementId = "initial-store";
-  let scopeKeyOfState = (config: config) =>
-    switch (config.premise) {
-    | Some(premise) => premise.id
-    | None => "default"
+module StoreDef =
+  StoreBuilder.Synced.DefineCrud({
+    type nonrec state = config;
+    type nonrec action = action;
+    type nonrec store = store;
+    type nonrec subscription = subscription;
+    type row = Model.InventoryItem.t;
+
+    let base: StoreBuilder.Synced.baseConfig(config, action, store, subscription) = {
+      storeName: "ecommerce.inventory",
+      emptyState: emptyConfig,
+      reduce,
+      state_of_json: config_of_json,
+      state_to_json: config_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore:
+        (~state: config, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+        {
+          premise_id:
+            StoreBuilder.projected(
+              ~derive?,
+              ~project,
+              ~serverSource=state,
+              ~fromStore=store => store.config,
+              ~select=projections => projections.premise_id,
+              (),
+            ),
+          config: state,
+          period_list:
+            StoreBuilder.projected(
+              ~derive?,
+              ~project,
+              ~serverSource=state,
+              ~fromStore=store => store.config,
+              ~select=projections => projections.period_list,
+              (),
+            ),
+          unit:
+            StoreBuilder.current(
+              ~derive?,
+              ~client=PeriodList.Unit.value,
+              ~server=() => PeriodList.Unit.defaultState,
+              (),
+            ),
+        };
+      },
+      scopeKeyOfState: (config: config) =>
+        switch (config.premise) {
+        | Some(premise) => premise.id
+        | None => "default"
+        },
+      timestampOfState: (config: config) =>
+        switch (config.premise) {
+        | Some(premise) => premise.updated_at->Js.Date.getTime
+        | None => 0.0
+        },
+      setTimestamp,
+      transport: {
+        subscriptionOfState: (config: config): option(subscription) =>
+          switch (config.premise) {
+          | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
+          | None => None
+          },
+        encodeSubscription: RealtimeSubscription.encode,
+        eventUrl: Constants.event_url,
+        baseUrl: RealtimeClient.Socket.defaultBaseUrl,
+      },
+      stateElementId: Some("initial-store"),
+      hooks: None,
     };
-  let timestampOfState = (config: config) =>
-    switch (config.premise) {
-    | Some(premise) => premise.updated_at->Js.Date.getTime
-    | None => 0.0
-    };
-  let setTimestamp = setTimestamp;
-  let state_of_json = config_of_json;
-  let state_to_json = config_to_json;
-  let action_of_json = action_of_json;
-  let action_to_json = action_to_json;
-  let makeStore = (~state: config, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-    premise_id:
-      StoreBuilder.projected(
-        ~derive?,
-        ~project,
-        ~serverSource=state,
-        ~fromStore=store => store.config,
-        ~select=projections => projections.premise_id,
-        (),
-      ),
-    config: state,
-    period_list:
-      StoreBuilder.projected(
-        ~derive?,
-        ~project,
-        ~serverSource=state,
-        ~fromStore=store => store.config,
-        ~select=projections => projections.period_list,
-        (),
-      ),
-    unit:
-      StoreBuilder.current(
-        ~derive?,
-        ~client=PeriodList.Unit.value,
-        ~server=() => PeriodList.Unit.defaultState,
-        (),
-      ),
-  };
-  let subscriptionOfState = (config: config): option(subscription) =>
-    switch (config.premise) {
-    | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
-    | None => None
-    };
-  let encodeSubscription = RealtimeSubscription.encode;
-  let eventUrl = Constants.event_url;
-  let baseUrl = RealtimeClient.Socket.defaultBaseUrl;
-  let decodePatch =
-    StorePatch.compose([
-      StoreCrud.decodePatch(
+
+    let strategy: StoreBuilder.Sync.crudStrategy(config, Model.InventoryItem.t) =
+      StoreBuilder.Sync.crud(
         ~table=RealtimeSchema.table_name("inventory"),
         ~decodeRow=Model.InventoryItem.of_json,
-        (),
-      ),
-    ]);
-  let updateOfPatch =
-    StoreCrud.updateOfPatch(
-      ~getId=(item: Model.InventoryItem.t) => item.id,
-      ~getItems=(config: config) => config.inventory,
-      ~setItems=(config: config, items) => {...config, inventory: items},
-    );
-let onActionError = _message => ();
-let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit) = None;
-let onCustom: option(StoreJson.json => unit) = None;
-let onMedia: option(StoreJson.json => unit) = None;
-let onError: option((~dispatch: action => unit) => string => unit) = None;
-let onOpen: option((~dispatch: action => unit) => unit) = None;
-});
+        ~getId=(item: Model.InventoryItem.t) => item.id,
+        ~getItems=(config: config) => config.inventory,
+        ~setItems=(config: config, items) => {...config, inventory: items},
+      );
+  });
 
+/* Re-export with the same interface as before */
 include (
-  Runtime:
+  StoreDef:
     StoreBuilder.Runtime.Exports
       with type state := config
       and type action := action
@@ -164,6 +165,6 @@ include (
 
 type t = store;
 
-module Context = Runtime.Context;
+module Context = StoreDef.Context;
 
 module CartStore = CartStore;

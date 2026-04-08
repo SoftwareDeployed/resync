@@ -8,6 +8,7 @@
   StoreActionLedger
   StoreComputed
   StoreCrud
+  StoreEvents
   StoreIndexedDB
   StoreJson
   StoreOffline

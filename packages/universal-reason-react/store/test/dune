@@ -1,0 +1,24 @@
+(executable
+ (name store_runtime_test)
+ (modules
+  store_runtime_test
+  test_framework
+  store_events_test
+  store_action_ledger_test
+  store_events_behavior_test
+  store_runtime_behavior_test)
+ (libraries
+  melange-json-native
+  universal_reason_react_store_native
+  universal_reason_react_uuid_native)
+ (modes native)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.ppx
+   server-reason-react.melange_ppx
+   melange-json-native.ppx)))
+
+(alias
+ (name store-runtime-tests)
+ (deps store_runtime_test.exe))

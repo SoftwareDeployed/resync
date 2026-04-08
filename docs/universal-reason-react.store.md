@@ -8,8 +8,9 @@ Tilia-backed store tooling for universal Reason React applications with synchron
 
 The current store model is runtime-first:
 
-- `StoreBuilder.Runtime.Make` builds a local-only runtime store
-- `StoreBuilder.Runtime.MakeSynced` builds a realtime runtime store
+- `StoreBuilder.Local.Define` builds a local-only runtime store
+- `StoreBuilder.Synced.Define` builds a realtime runtime store
+- `StoreBuilder.Synced.DefineCrud` builds a realtime runtime store with CRUD patches
 - SSR always hydrates synchronously from the server-rendered payload
 - IndexedDB is the browser persistence layer
 - local-only stores persist confirmed snapshots to IndexedDB and sync across tabs with `BroadcastChannel`
@@ -17,26 +18,23 @@ The current store model is runtime-first:
 
 ## Builder Choice
 
-### `StoreBuilder.Runtime.Make`
+### `StoreBuilder.Local.Define`
 
 Use this for local-only state such as the simple todo demo or the ecommerce cart.
 
-Required schema fields:
+Required config fields:
 
-- `type state`
-- `type action`
-- `type store`
-- `reduce`
-- `emptyState`
 - `storeName`
-- `stateElementId`
-- `scopeKeyOfState`
-- `timestampOfState`
+- `emptyState`
+- `reduce`
 - `state_of_json`
 - `state_to_json`
 - `action_of_json`
 - `action_to_json`
 - `makeStore`
+- `scopeKeyOfState`
+- `timestampOfState`
+- `stateElementId` (`option(string)`)
 
 Behavior:
 
@@ -49,53 +47,65 @@ Behavior:
 Example:
 
 ```reason
-module Runtime = StoreBuilder.Runtime.Make({
-  type nonrec state = state;
-  type nonrec action = action;
-  type nonrec store = store;
+module StoreDef =
+  StoreBuilder.Local.Define({
+    type nonrec state = state;
+    type nonrec action = action;
+    type nonrec store = store;
 
-  let reduce = reduce;
-  let emptyState = emptyState;
-  let storeName = "todo.simple";
-  let stateElementId = "initial-store";
-  let scopeKeyOfState = (_state: state) => "default";
-  let timestampOfState = (state: state) => state.updated_at;
-  let state_of_json = state_of_json;
-  let state_to_json = state_to_json;
-  let action_of_json = action_of_json;
-  let action_to_json = action_to_json;
-  let makeStore = (~state, ~derive=?, ()) => {
-    state:
-      StoreBuilder.current(
-        ~derive?,
-        ~client=state,
-        ~server=() => state,
-        (),
-      ),
-    total_count:
-      StoreBuilder.derived(
-        ~derive?,
-        ~client=store => Array.length(store.state.todos),
-        ~server=() => Array.length(state.todos),
-        (),
-      ),
-  };
-});
+    let config: StoreBuilder.Local.config(state, action, store) = {
+      storeName: "todo.simple",
+      emptyState: {todos: [||], updated_at: 0.0},
+      reduce: (~state, ~action) => state,
+      scopeKeyOfState: _state => "default",
+      timestampOfState: state => state.updated_at,
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore: (~state, ~derive=?, ()) => {
+        state:
+          StoreBuilder.current(
+            ~derive?,
+            ~client=state,
+            ~server=() => state,
+            (),
+          ),
+        total_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => Array.length(store.state.todos),
+            ~server=() => Array.length(state.todos),
+            (),
+          ),
+      },
+      stateElementId: Some("initial-store"),
+    };
+  });
+
+include (
+  StoreDef:
+    StoreBuilder.Runtime.Exports
+      with type state := state
+      and type action := action
+      and type t := store
+);
+
+module Context = StoreDef.Context;
 ```
 
-### `StoreBuilder.Runtime.MakeSynced`
+### `StoreBuilder.Synced.Define`
 
 Use this for realtime state such as `todo-multiplayer` or ecommerce inventory.
 
-Additional schema fields:
+Additional base config fields (beyond `Local.Define`):
 
-- `type subscription`
-- `type patch`
 - `setTimestamp`
-- `subscriptionOfState`
-- `encodeSubscription`
-- `eventUrl`
-- `baseUrl`
+- `transport` (containing `subscriptionOfState`, `encodeSubscription`, `eventUrl`, `baseUrl`)
+- `hooks` (optional, containing `onActionError`, `onActionAck`, `onCustom`, `onMedia`, `onError`, `onOpen`, `onConnectionHandle`)
+
+Additional strategy fields:
+
 - `decodePatch`
 - `updateOfPatch`
 
@@ -112,41 +122,107 @@ Behavior:
 Example:
 
 ```reason
-module Runtime = StoreBuilder.Runtime.MakeSynced({
-  type nonrec state = state;
-  type nonrec action = action;
-  type nonrec store = store;
-  type nonrec subscription = subscription;
-  type nonrec patch = patch;
+module StoreDef =
+  StoreBuilder.Synced.Define({
+    type nonrec state = state;
+    type nonrec action = action;
+    type nonrec store = store;
+    type nonrec subscription = subscription;
+    type nonrec patch = patch;
 
-  let reduce = reduce;
-  let emptyState = emptyState;
-  let storeName = "todo-multiplayer";
-  let stateElementId = "initial-store";
-  let scopeKeyOfState = scopeKeyOfState;
-  let timestampOfState = timestampOfState;
-  let setTimestamp = setTimestamp;
-  let state_of_json = state_of_json;
-  let state_to_json = state_to_json;
-  let action_of_json = action_of_json;
-  let action_to_json = action_to_json;
-  let makeStore = (~state, ~derive=?, ()) => {
-    state,
-    total_count:
-      StoreBuilder.derived(
-        ~derive?,
-        ~client=store => Array.length(store.state.todos),
-        ~server=() => Array.length(state.todos),
-        (),
-      ),
-  };
-  let subscriptionOfState = subscriptionOfState;
-  let encodeSubscription = RealtimeSubscription.encode;
-  let eventUrl = Constants.event_url;
-  let baseUrl = Constants.base_url;
-  let decodePatch = decodePatch;
-  let updateOfPatch = updateOfPatch;
-});
+    let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
+      storeName: "todo-multiplayer",
+      emptyState: {todos: [||], updated_at: 0.0},
+      reduce,
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore: (~state, ~derive=?, ()) => {
+        state,
+        total_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => Array.length(store.state.todos),
+            ~server=() => Array.length(state.todos),
+            (),
+          ),
+      },
+      scopeKeyOfState,
+      timestampOfState,
+      setTimestamp,
+      transport: {
+        subscriptionOfState,
+        encodeSubscription: RealtimeSubscription.encode,
+        eventUrl: Constants.event_url,
+        baseUrl: Constants.base_url,
+      },
+      stateElementId: Some("initial-store"),
+      hooks: None,
+    };
+
+    let strategy =
+      StoreBuilder.Sync.custom(
+        ~decodePatch,
+        ~updateOfPatch,
+      );
+  });
+
+include (
+  StoreDef:
+    StoreBuilder.Runtime.Exports
+      with type state := state
+      and type action := action
+      and type t := store
+);
+
+module Context = StoreDef.Context;
+```
+
+### `StoreBuilder.Synced.DefineCrud`
+
+For stores using standard CRUD patches, use `DefineCrud` which pre-wires the patch decoding:
+
+```reason
+module StoreDef =
+  StoreBuilder.Synced.DefineCrud({
+    type nonrec state = state;
+    type nonrec action = action;
+    type nonrec store = store;
+    type nonrec subscription = subscription;
+    type nonrec row = TodoItem.t;
+
+    let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
+      storeName: "todo.crud",
+      emptyState,
+      reduce,
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore,
+      scopeKeyOfState,
+      timestampOfState,
+      setTimestamp,
+      transport: {
+        subscriptionOfState,
+        encodeSubscription: RealtimeSubscription.encode,
+        eventUrl: Constants.event_url,
+        baseUrl: Constants.base_url,
+      },
+      stateElementId: None,
+      hooks: None,
+    };
+
+    let strategy =
+      StoreBuilder.Sync.crud(
+        ~table=RealtimeSchema.table_name("todos"),
+        ~decodeRow=TodoItem.of_json,
+        ~getId=(item: TodoItem.t) => item.id,
+        ~getItems=(state: state) => state.todos,
+        ~setItems=(state: state, todos) => {...state, todos},
+      );
+  });
 ```
 
 ## IndexedDB Layout
@@ -230,17 +306,17 @@ let updateOfPatch =
 The generated runtime module exposes `Context` in addition to the builder exports.
 
 ```reason
-let store = Runtime.hydrateStore();
+let store = StoreDef.hydrateStore();
 
-<Runtime.Context.Provider value=store>
+<StoreDef.Context.Provider value=store>
   <App />
-</Runtime.Context.Provider>
+</StoreDef.Context.Provider>
 ```
 
 In components:
 
 ```reason
-let store = Runtime.Context.useStore();
+let store = StoreDef.Context.useStore();
 ```
 
 ## Troubleshooting
@@ -267,5 +343,5 @@ let store = Runtime.Context.useStore();
 
 - local-only runtime: `demos/todo/ui/src/TodoStore.re`
 - local-only runtime with IndexedDB cart persistence: `demos/ecommerce/ui/src/CartStore.re`
-- synced runtime: `demos/todo-multiplayer/ui/src/TodoStore.re`
+- synced runtime with CRUD patches: `demos/todo-multiplayer/ui/src/TodoStore.re`
 - synced runtime with projected values: `demos/ecommerce/ui/src/Store.re`

@@ -135,20 +135,40 @@ The server depends on `*_native` libraries; the client depends on `*_js` librari
 
 ### Store pattern
 
-All stores use `StoreBuilder.Runtime.Make` or `StoreBuilder.Runtime.MakeSynced` with values defined inline in the functor body. Do NOT define top-level bindings and then pass them through as `let x = x`:
+All stores use the grouped functor APIs (`StoreBuilder.Local.Define`, `StoreBuilder.Synced.Define`, or `StoreBuilder.Synced.DefineCrud`) with a config record defined inline. Do NOT define top-level bindings and then pass them through as `let x = x`:
 
 ```reason
-// CORRECT: inline in functor body
-module Runtime = StoreBuilder.Runtime.Make({
-  type nonrec state = state;
-  type nonrec action = action;
-  // ...
-  let emptyState: state = { /* ... */ };
-  let reduce = (~state, ~action) => state;
-  let scopeKeyOfState = _state => "default";
-  let timestampOfState = state => state.updated_at;
-  // ...
-});
+// CORRECT: grouped API with inline config record
+module StoreDef =
+  StoreBuilder.Local.Define({
+    type nonrec state = state;
+    type nonrec action = action;
+    type nonrec store = store;
+
+    let config: StoreBuilder.Local.config(state, action, store) = {
+      storeName: "todo.simple",
+      emptyState: { /* ... */ },
+      reduce: (~state, ~action) => state,
+      scopeKeyOfState: _state => "default",
+      timestampOfState: state => state.updated_at,
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore: (~state, ~derive=?, ()) => { /* ... */ },
+      stateElementId: None, // or Some("custom-id")
+    };
+  });
+
+include (
+  StoreDef:
+    StoreBuilder.Runtime.Exports
+      with type state := state
+      and type action := action
+      and type t := store
+);
+
+module Context = StoreDef.Context;
 
 // WRONG: top-level bindings passed to functor
 let emptyState = { /* ... */ };
@@ -160,8 +180,8 @@ module Runtime = StoreBuilder.Runtime.Make({
 ```
 
 Runtime behavior:
-- `StoreBuilder.Runtime.Make` is local-only and persists confirmed snapshots to IndexedDB, then propagates newer confirmed state across tabs with `BroadcastChannel`
-- `StoreBuilder.Runtime.MakeSynced` persists confirmed snapshots plus an IndexedDB action ledger, sends typed JSON actions over websocket, and propagates optimistic actions plus confirmed snapshots across tabs
+- `StoreBuilder.Local.Define` is local-only and persists confirmed snapshots to IndexedDB, then propagates newer confirmed state across tabs with `BroadcastChannel`
+- `StoreBuilder.Synced.Define` and `StoreBuilder.Synced.DefineCrud` persist confirmed snapshots plus an IndexedDB action ledger, send typed JSON actions over websocket, and propagate optimistic actions plus confirmed snapshots across tabs
 - For synced stores, cross-tab updates should not depend solely on websocket delivery; optimistic replay comes from the shared IndexedDB ledger
 
 ### Collections use `array`, not `list`

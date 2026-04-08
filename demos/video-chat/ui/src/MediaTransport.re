@@ -8,9 +8,24 @@ type remote_audio = {
   peer_id: string,
 };
 
+/* Transport-specific handle ref. This is NOT singleton active connection state;
+   it's the transport layer's local reference to the current connection handle.
+   The handle is owned by the store runtime and set via setHandle when connected. */
+let handleRef: ref(option(RealtimeClient.Socket.connection_handle)) = ref(None);
+
+/* Set the current connection handle. Called by store runtime on connect. */
+let setHandle = (handle: option(RealtimeClient.Socket.connection_handle)) => {
+  handleRef := handle;
+};
+
 let sendRaw = dict => {
-  let _ = RealtimeClient.Socket.sendFrame(Js.Json.stringify(Js.Json.object_(dict)));
-  ();
+  let frame = Js.Json.stringify(Js.Json.object_(dict));
+  switch (handleRef.contents) {
+  | Some(handle) =>
+    let _ = RealtimeClient.Socket.sendFrame(~handle, ~frame);
+    ();
+  | None => ()
+  };
 };
 
 let lastFrameSent: ref(option(string)) = ref(None);

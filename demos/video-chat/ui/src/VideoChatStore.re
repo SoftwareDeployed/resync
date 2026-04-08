@@ -517,183 +517,110 @@ let onActionError = message => {
 [@platform native]
 let onActionError = _message => ();
 
-let onCustomRef: ref(option(StoreJson.json => unit)) = ref(None);
+/* ============================================================================
+   New Grouped API (Task 7) - Using Synced.Define with custom strategy
+   ============================================================================ */
 
-let registerCustomHandler = (handler: StoreJson.json => unit) => {
-  onCustomRef := Some(handler);
-};
-
-let onMediaRef: ref(option(StoreJson.json => unit)) = ref(None);
-
-let registerMediaHandler = (handler: StoreJson.json => unit) => {
-  onMediaRef := Some(handler);
-};
-
-module Runtime =
-  StoreBuilder.Runtime.MakeSynced({
+module StoreDef =
+  StoreBuilder.Synced.Define({
     type nonrec state = state;
     type nonrec action = action;
     type nonrec store = store;
     type nonrec subscription = subscription;
-    type nonrec patch = action;
+    type patch = action;
 
-    let reduce = (~state: state, ~action: action) => {
-      let result = reduce(~state, ~action);
-      switch (action) {
-      | PeerJoined(p) =>
-        Js.Console.log4(
-          "[reduce] PeerJoined room_id=" ++ p.room_id,
-          "peer_id=" ++ p.peer.id,
-          "remote_peer_id:",
-          switch (result.remote_peer_id) {
-          | Some(id) => id
-          | None => "None"
-          },
-        )
-      | PeerLeft(p) =>
-        Js.Console.log4(
-          "[reduce] PeerLeft room_id=" ++ p.room_id,
-          "peer_id=" ++ p.peer_id,
-          "remote_peer_id:",
-          switch (result.remote_peer_id) {
-          | Some(id) => id
-          | None => "None"
-          },
-        )
-      | JoinRoom(p) =>
-        Js.Console.log3(
-          "[reduce] JoinRoom room_id=" ++ p.room_id,
-          "remote_peer_id:",
-          switch (result.remote_peer_id) {
-          | Some(id) => id
-          | None => "None"
-          },
-        )
-      | JoinRoomAcknowledged =>
-        Js.Console.log("[reduce] JoinRoomAcknowledged")
-      | LeaveRoom(_) =>
-        Js.Console.log3(
-          "[reduce] LeaveRoom",
-          "remote_peer_id:",
-          switch (result.remote_peer_id) {
-          | Some(id) => id
-          | None => "None"
-          },
-        )
-      | RemoteToggleVideo(p) =>
-        Js.Console.log3(
-          "[reduce] RemoteToggleVideo room_id=" ++ p.room_id,
-          "peer_id=" ++ p.peer_id,
-          "enabled=" ++ string_of_bool(p.enabled),
-        )
-      | RemoteToggleAudio(p) =>
-        Js.Console.log3(
-          "[reduce] RemoteToggleAudio room_id=" ++ p.room_id,
-          "peer_id=" ++ p.peer_id,
-          "enabled=" ++ string_of_bool(p.enabled),
-        )
-      | ToggleVideo(_) => ()
-      | ToggleAudio(_) => ()
-      | ResetJoinStatus => ()
-      };
-      result;
-    };
-    let emptyState = emptyState;
-    let storeName = storeName;
-    let stateElementId = "initial-store";
-    let scopeKeyOfState = scopeKeyOfState;
-    let timestampOfState = timestampOfState;
-    let setTimestamp = setTimestamp;
-    let state_of_json = state_of_json;
-    let state_to_json = state_to_json;
-    let action_of_json = action_of_json;
-    let action_to_json = action_to_json;
-    let makeStore =
+    let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
+      storeName,
+      emptyState,
+      reduce,
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore:
         (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-      let room_id =
-        switch (state.room) {
-        | Some(room) => room.id
-        | None => ""
+        let room_id =
+          switch (state.room) {
+          | Some(room) => room.id
+          | None => ""
+          };
+        {
+          room_id,
+          state,
+          peers_count:
+            StoreBuilder.derived(
+              ~derive?,
+              ~client=
+                (store: store) =>
+                  switch (store.state.room) {
+                  | Some(room) => Array.length(room.peers)
+                  | None => 0
+                  },
+              ~server=
+                () =>
+                  switch (state.room) {
+                  | Some(room) => Array.length(room.peers)
+                  | None => 0
+                  },
+              (),
+            ),
         };
-      {
-        room_id,
-        state,
-        peers_count:
-          StoreBuilder.derived(
-            ~derive?,
-            ~client=
-              (store: store) =>
-                switch (store.state.room) {
-                | Some(room) => Array.length(room.peers)
-                | None => 0
-                },
-            ~server=
-              () =>
-                switch (state.room) {
-                | Some(room) => Array.length(room.peers)
-                | None => 0
-                },
-            (),
-          ),
-      };
+      },
+      scopeKeyOfState,
+      timestampOfState,
+      setTimestamp,
+      transport: {
+        subscriptionOfState: (state: state): option(subscription) =>
+          Some(state.client_id),
+        encodeSubscription: (sub: subscription) => sub,
+        eventUrl: Constants.event_url,
+        baseUrl: Constants.base_url,
+      },
+      stateElementId: Some("initial-store"),
+      hooks:
+        Some({
+          StoreBuilder.Sync.onActionError: Some(onActionError),
+          onActionAck: None,
+          onCustom: None,
+          onMedia: None,
+          onError:
+            Some((~dispatch) => (message) => {
+              Js.Console.error("[VideoChatStore] Server error: " ++ message);
+              dispatch(ResetJoinStatus);
+            }),
+          onOpen: Some((~dispatch) => dispatch(ResetJoinStatus)),
+          onConnectionHandle:
+            Some((handle) => MediaTransport.setHandle(Some(handle))),
+        }),
     };
-    let subscriptionOfState = (state: state): option(subscription) =>
-      Some(state.client_id);
-    let encodeSubscription = (sub: subscription) => sub;
-    let eventUrl = Constants.event_url;
-    let baseUrl = Constants.base_url;
-    let decodePatch = json =>
-      switch (action_of_json(json)) {
-      | JoinRoom(_)
-      | LeaveRoom(_)
-      | ToggleVideo(_)
-      | ToggleAudio(_)
-      | ResetJoinStatus
-      | JoinRoomAcknowledged => None
-      | patch => Some(patch)
-      };
-    let updateOfPatch = (patch, state) => reduce(~state, ~action=patch);
-    let onActionError = onActionError;
-    let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit) =
-      None;
-    let onCustom: option(StoreJson.json => unit) =
-      Some(
-        json => {
-          switch (onCustomRef.contents) {
-          | Some(handler) => handler(json)
-          | None => ()
-          }
-        },
+
+    let strategy: StoreBuilder.Sync.customStrategy(state, patch) =
+      StoreBuilder.Sync.custom(
+        ~decodePatch=json =>
+          switch (action_of_json(json)) {
+          | JoinRoom(_)
+          | LeaveRoom(_)
+          | ToggleVideo(_)
+          | ToggleAudio(_)
+          | ResetJoinStatus
+          | JoinRoomAcknowledged => None
+          | patch => Some(patch)
+          },
+        ~updateOfPatch=(patch, state) => reduce(~state, ~action=patch),
       );
-    let onMedia: option(StoreJson.json => unit) =
-      Some(
-        json => {
-          switch (onMediaRef.contents) {
-          | Some(handler) => handler(json)
-          | None => ()
-          }
-        },
-      );
-    let onError: option((~dispatch: action => unit) => string => unit) =
-      Some((~dispatch) => (message) => {
-        Js.Console.error("[VideoChatStore] Server error: " ++ message);
-        dispatch(ResetJoinStatus);
-      });
-    let onOpen: option((~dispatch: action => unit) => unit) =
-      Some((~dispatch) => dispatch(ResetJoinStatus));
   });
 
 include (
-          Runtime:
-            StoreBuilder.Runtime.Exports with
-              type state := state and type action := action and type t := store
-        );
+  StoreDef:
+    StoreBuilder.Runtime.Exports with
+      type state := state and type action := action and type t := store
+);
 
 type t = store;
 
-module Context = Runtime.Context;
+module Context = StoreDef.Context;
 
-let dispatch = Runtime.dispatch;
+let dispatch = StoreDef.dispatch;
 
 let joinRoom = (store: t, room_id: string) => {
   let peer_id = store.state.client_id;

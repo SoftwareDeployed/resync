@@ -5,19 +5,17 @@ let%browser_only _ =
   | Some(domNode) =>
     let store = TodoStore.hydrateStore();
 
-    let appWithProvider =
-      React.createElement(
-        TodoStore.Context.Provider.make,
-        {
-          "value": store,
-          "children":
-            React.array([|
-              <UniversalRouter key="router" router=Routes.router state=store />,
-              <ClientOnly key="toaster"> {() => Sonner.renderToaster()} </ClientOnly>,
-            |]),
-        },
+    let result =
+      StoreBuilder.Bootstrap.withHydratedProvider(
+        ~hydrateStore=() => store,
+        ~provider=TodoStore.Context.Provider.make,
+        ~children=
+          React.array([|
+            <UniversalRouter key="router" router=Routes.router state=store />,
+            <ClientOnly key="toaster"> {() => Sonner.renderToaster()} </ClientOnly>,
+          |]),
       );
 
-    ReactDOM.Client.hydrateRoot(domNode, appWithProvider)->ignore;
+    ReactDOM.Client.hydrateRoot(domNode, result.element)->ignore;
   | None => Js.log("No root element found")
   };
