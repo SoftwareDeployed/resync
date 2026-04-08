@@ -1,0 +1,15 @@
+(executable
+ (name todo_multiplayer_server_test)
+ (modules todo_multiplayer_server_test test_framework server_http_test server_test_support)
+ (libraries
+  caqti-driver-postgresql
+  dream
+  lwt.unix
+  todo_multiplayer_native
+  yojson)
+ (preprocess (pps lwt_ppx))
+ (modes native))
+
+(alias
+ (name todo-mp-server-tests)
+ (deps todo_multiplayer_server_test.exe))
