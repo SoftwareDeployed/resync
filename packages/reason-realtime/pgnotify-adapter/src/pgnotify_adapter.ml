@@ -153,19 +153,21 @@ let rec poll t =
   else
     with_connection t (fun conn ->
         let* () = Lwt_unix.sleep 0.1 in
-        (try
-           conn#consume_input;
-           let rec drain () =
-             match conn#notifies with
-             | None -> ()
-             | Some notification ->
-                 Lwt.async (fun () ->
-                     dispatch t notification.name notification.extra);
-                 drain ()
-           in
-           drain ()
-         with Postgresql.Error _ -> ());
-        poll t)
+         (try
+            conn#consume_input;
+            let rec drain () =
+              match conn#notifies with
+              | None -> ()
+              | Some notification ->
+                  Lwt.async (fun () ->
+                      dispatch t notification.name notification.extra);
+                  drain ()
+            in
+            drain ()
+          with
+          | Postgresql.Error _ -> ()
+          | Failure _ -> ());
+         poll t)
 
 let start t =
   let* () = connect t in
