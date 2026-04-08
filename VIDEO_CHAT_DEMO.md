@@ -20,6 +20,16 @@ export VIDEO_CHAT_SERVER_PORT=8897
 
 Open `http://127.0.0.1:8897/` in a browser. Create a room, then open a second tab and join with the room ID.
 
+## Testing Status
+
+The current automated coverage added in this repo focuses on the shared framework layers rather than a full video-chat end-to-end suite.
+
+- Browser automation exists for the shared browser-facing packages and the `todo` demo; run `pnpm run framework:test:browser`.
+- Native coverage now exists for the realtime middleware (`@dream-middleware-tests`) and PostgreSQL adapter (`@pgnotify-adapter-tests`).
+- The video-chat demo itself is still primarily validated through build checks and manual smoke testing because its transport path is in-memory and media-heavy.
+
+For the up-to-date test inventory and coverage guidance, see `docs/testing.md`.
+
 ## Architecture Overview
 
 ```

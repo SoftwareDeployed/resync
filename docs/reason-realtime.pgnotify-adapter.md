@@ -226,3 +226,28 @@ and actions to handle.
 - [reason-realtime/dream-middleware](reason-realtime.dream-middleware.md) - websocket middleware
 - [universal-reason-react/store](universal-reason-react.store.md) - store sync patterns
 - [PostgreSQL NOTIFY Documentation](https://www.postgresql.org/docs/current/sql-notify.html)
+
+## Testing
+
+This package now has DB-backed native integration coverage.
+
+Build:
+
+```bash
+DB_URL="postgres://executor:executor-password@localhost:5432/executor_db" \
+opam exec -- dune build @pgnotify-adapter-tests
+```
+
+Run:
+
+```bash
+DB_URL="postgres://executor:executor-password@localhost:5432/executor_db" \
+opam exec -- dune exec ./packages/reason-realtime/pgnotify-adapter/test/pgnotify_adapter_test.exe
+```
+
+Current native test cases in `packages/reason-realtime/pgnotify-adapter/test/pgnotify_adapter_behavior_test.ml`:
+
+- `subscribed handler receives patch notification`
+- `unsubscribe stops later delivery`
+
+These tests use a real PostgreSQL connection and real `NOTIFY` delivery. For the broader test inventory and coverage notes, see [testing.md](testing.md).

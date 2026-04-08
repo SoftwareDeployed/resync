@@ -1180,6 +1180,8 @@ let broadcast: (Middleware.t, string, string) => Lwt.t(unit);
 
 Broadcasts a payload string to all connected clients.
 
+**Test coverage:** Native protocol tests for ping/select/ack/error/media/detach behavior live under `packages/reason-realtime/dream-middleware/test`. See `docs/testing.md` for commands and the full case list.
+
 ### Realtime Client Socket
 
 #### `RealtimeClient.Socket.sendAction`
@@ -1287,6 +1289,8 @@ let unsubscribe: (Pgnotify_adapter.t, ~channel: string) => Lwt.t(unit);
 ```
 
 Stop listening on a channel and remove handlers.
+
+**Test coverage:** DB-backed integration tests for subscribe/delivery/unsubscribe live under `packages/reason-realtime/pgnotify-adapter/test`. See `docs/testing.md` for setup and commands.
 
 ## universal-reason-react/intl
 

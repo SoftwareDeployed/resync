@@ -233,3 +233,30 @@ All authorization and tenancy checks should happen in `resolve_subscription`/`lo
 
 - Use `reason-realtime/pgnotify-adapter` for Postgres-backed event sources.
 - For custom data sources, pass any adapter packed with `Adapter.pack`.
+
+## Testing
+
+Native protocol/lifecycle coverage now exists for this package.
+
+Build:
+
+```bash
+opam exec -- dune build @dream-middleware-tests
+```
+
+Run:
+
+```bash
+opam exec -- dune exec ./packages/reason-realtime/dream-middleware/test/dream_middleware_test.exe
+```
+
+Current native test cases in `packages/reason-realtime/dream-middleware/test/middleware_behavior_test.ml`:
+
+- `ping replies with pong`
+- `select subscribes and sends snapshot`
+- `mutation success sends ack ok`
+- `invalid mutation sends error ack`
+- `media handler error sends error frame`
+- `detach unsubscribes active channel`
+
+For the cross-package test inventory and current coverage notes, see [testing.md](testing.md).

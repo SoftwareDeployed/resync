@@ -437,15 +437,30 @@ db_url=$DB_URL dune exec -- ./server/bin/main.exe
 ### Testing
 
 ```bash
-# Run all tests
-dune test
+# Browser suites
+pnpm run framework:test:browser
 
-# Run specific test
-dune test -- test_my_feature
+# Native runtime suite
+opam exec -- dune exec ./packages/universal-reason-react/store/test/store_runtime_test.exe
 
-# With coverage
-dune runtest --instrument-with bisect_ppx
+# Native websocket middleware suite
+opam exec -- dune exec ./packages/reason-realtime/dream-middleware/test/dream_middleware_test.exe
+
+# Native PostgreSQL notification suite
+DB_URL="postgres://executor:executor-password@localhost:5432/executor_db" \
+opam exec -- dune exec ./packages/reason-realtime/pgnotify-adapter/test/pgnotify_adapter_test.exe
+
+# Native todo-multiplayer HTTP suite
+DB_URL="postgres://executor:executor-password@localhost:5432/executor_db" \
+TODO_MP_DOC_ROOT="./_build/default/demos/todo-multiplayer/ui/src/" \
+opam exec -- dune exec ./demos/todo-multiplayer/server/test/todo_multiplayer_server_test.exe
 ```
+
+For a complete test inventory and current coverage status, see `docs/testing.md`.
+
+### Coverage
+
+Behavioral coverage is available immediately through the test inventory in `docs/testing.md` and the suite commands above. Repo-wide OCaml line coverage is **not wired yet**: `bisect_ppx` is not installed in the current switch, and the executable-style native test targets are not instrumented.
 
 ### Formatting
 

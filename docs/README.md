@@ -84,6 +84,7 @@ After the basics are working, move to:
 ### Setup Guides
 
 - **[Dream Router Store Setup](dream-router-store-setup.md)** - Complete guide for wiring a Dream app with router and store.
+- **[Testing and Coverage](testing.md)** - Browser and native test inventory, commands, and current coverage guidance.
 
 ## Architecture Overview
 
