@@ -1,0 +1,45 @@
+(melange.emit
+ (package resync)
+ (alias sonner-browser-tests)
+ (module_systems (esm "mjs"))
+ (target dist)
+ (promote
+  (until-clean)
+  (into ./generated))
+ (libraries
+  reason-react
+  melange.dom
+  melange.js
+  playwright_js
+  universal_reason_react_sonner_js)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -melange
+   server-reason-react.browser_ppx
+   -js
+   melange.ppx
+   reason-react-ppx)))
+
+(rule
+ (target SonnerBrowserApp.bundle.js)
+ (deps
+  (package resync)
+  (:entrypoint dist/packages/universal-reason-react/sonner/test-browser/SonnerBrowserApp.mjs))
+ (mode
+  (promote
+   (until-clean)
+   (into generated)))
+ (alias sonner-browser-tests)
+ (action
+  (system "node -e \"require('esbuild').buildSync({entryPoints:['%{entrypoint}'],bundle:true,format:'iife',platform:'browser',outfile:'%{target}'})\"")))
+
+(rule
+ (target index.html)
+ (mode
+  (promote
+   (until-clean)
+   (into generated)))
+ (alias sonner-browser-tests)
+ (action
+  (write-file %{target} "<!doctype html><html><body><div id=\"root\"></div><script src=\"./SonnerBrowserApp.bundle.js\"></script></body></html>")))
