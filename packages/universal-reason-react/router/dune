@@ -1,1 +1,1 @@
-(dirs shared js native)
+(dirs shared js native test-browser)
