@@ -1,1 +1,1 @@
-(dirs js native test)
+(dirs js native test test-browser)
