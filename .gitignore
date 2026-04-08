@@ -1,3 +1,4 @@
+.sisyphus
 demos/todo-multiplayer-docker
 .playwright-mcp
 .envrc
@@ -5,7 +6,9 @@ _opam
 dune.lock
 dev-tools.locks
 bin
-_build
+_build*
+demos/todo/tests/browser/generated/
+packages/universal-reason-react/*/test-browser/generated/
 lib
 executor/lib
 executor-ui/lib
