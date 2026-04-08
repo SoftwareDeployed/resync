@@ -13,7 +13,7 @@
 
 (license MIT)
 
-(using melange 0.1)
+(using melange 1.0)
 
 (pin
  (package
