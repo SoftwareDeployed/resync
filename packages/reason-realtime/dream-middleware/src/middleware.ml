@@ -164,97 +164,122 @@ let assoc_json key = function
   | `Assoc fields -> List.assoc_opt key fields
   | _ -> None
 
-let handle_json_message t request websocket current_channel json =
+let handle_json_message_with_io t request current_channel json ~send ~close
+    ~subscribe =
   incr message_count;
   log_stats t;
   let msg_type = assoc_string "type" json in
   Printf.eprintf "[ws] message type: %s\n%!" (match msg_type with Some t -> t | None -> "unknown");
   match msg_type with
   | Some "ping" ->
-    let* () = Dream.send websocket pong_message in
+    let* () = send pong_message in
     Lwt.return current_channel
   | Some "select" -> (
     match assoc_string "subscription" json with
     | Some selection ->
       let* channel = t.resolve_subscription request selection in
       (match channel with
-      | Some channel ->
-        let* new_channel = subscribe_websocket t request websocket channel in
-        (match new_channel with
-        | Some ch -> Lwt.return (Some ch)
-        | None -> Lwt.return current_channel)
-      | None -> Lwt.return current_channel)
+       | Some channel ->
+         let* new_channel = subscribe channel in
+         (match new_channel with
+          | Some ch -> Lwt.return (Some ch)
+          | None -> Lwt.return current_channel)
+       | None -> Lwt.return current_channel)
     | None -> Lwt.return current_channel)
-| Some "mutation" -> (
-  match (assoc_string "actionId" json, assoc_json "action" json, t.handle_mutation) with
-  | Some action_id, Some action, Some handler ->
-    let broadcast_fn target wrap =
-      let wrapped = wrap "" in
-      send_to_channel t target wrapped
-    in
-    let* result = handler broadcast_fn request ~action_id action in
-    (match result with
-    | Ack (Ok ()) ->
-      let* () = Dream.send websocket (ack_message ~action_id ~status:"ok" ()) in
-      Lwt.return current_channel
-    | Ack (Error error) ->
-      let* () = Dream.send websocket (ack_message ~action_id ~status:"error" ~error ()) in
-      let* () = Dream.close_websocket websocket in
-      Lwt.return current_channel
-    | NoAck ->
-      Lwt.return current_channel)
-  | _ ->
-    let* () = Dream.send websocket (ack_message ~action_id:"" ~status:"error" ~error:"Invalid mutation frame" ()) in
-    let* () = Dream.close_websocket websocket in
-    Lwt.return current_channel)
-| Some "media" -> (
-  match (assoc_json "payload" json, t.handle_media, current_channel) with
-  | Some payload, Some handler, Some current ->
-    let payload_str = Yojson.Basic.to_string payload in
-    let broadcast_fn target wrap =
-      let wrapped = wrap "" in
-      send_to_channel t target wrapped
-    in
-    let* result = handler broadcast_fn request current payload_str in
-      (match result with
-      | Ok () -> Lwt.return current_channel
-      | Error error ->
-        let error_msg = `Assoc [
-          ("type", `String "error");
-          ("message", `String error);
-        ] |> json_string in
-        let* () = Dream.send websocket error_msg in
-        let* () = Dream.close_websocket websocket in
-        Lwt.return current_channel)
+  | Some "mutation" -> (
+      match
+        (assoc_string "actionId" json, assoc_json "action" json, t.handle_mutation)
+      with
+      | Some action_id, Some action, Some handler ->
+          let broadcast_fn target wrap =
+            let wrapped = wrap "" in
+            send_to_channel t target wrapped
+          in
+          let* result = handler broadcast_fn request ~action_id action in
+          (match result with
+          | Ack (Ok ()) ->
+              let* () = send (ack_message ~action_id ~status:"ok" ()) in
+              Lwt.return current_channel
+          | Ack (Error error) ->
+              let* () = send (ack_message ~action_id ~status:"error" ~error ()) in
+              let* () = close () in
+              Lwt.return current_channel
+          | NoAck -> Lwt.return current_channel)
+      | _ ->
+          let* () =
+            send
+              (ack_message ~action_id:"" ~status:"error"
+                 ~error:"Invalid mutation frame" ())
+          in
+          let* () = close () in
+          Lwt.return current_channel)
+  | Some "media" -> (
+      match (assoc_json "payload" json, t.handle_media, current_channel) with
+      | Some payload, Some handler, Some current ->
+          let payload_str = Yojson.Basic.to_string payload in
+          let broadcast_fn target wrap =
+            let wrapped = wrap "" in
+            send_to_channel t target wrapped
+          in
+          let* result = handler broadcast_fn request current payload_str in
+          (match result with
+          | Ok () -> Lwt.return current_channel
+          | Error error ->
+              let error_msg =
+                `Assoc
+                  [ ("type", `String "error"); ("message", `String error) ]
+                |> json_string
+              in
+              let* () = send error_msg in
+              let* () = close () in
+              Lwt.return current_channel)
     | _ ->
-    Lwt.return current_channel)
-| _ -> Lwt.return current_channel
+        Lwt.return current_channel)
+  | _ -> Lwt.return current_channel
 
-let handle_message t request websocket current_channel message =
+let handle_json_message t request websocket current_channel json =
+  handle_json_message_with_io t request current_channel json
+    ~send:(fun message -> Dream.send websocket message)
+    ~close:(fun () -> Dream.close_websocket websocket)
+    ~subscribe:(fun channel -> subscribe_websocket t request websocket channel)
+
+let handle_message_with_io t request current_channel message ~send ~close
+    ~subscribe =
   incr message_count;
   log_stats t;
   let start = Unix.gettimeofday () in
-  Printf.eprintf "[ws] received message: %s\n%!" (String.sub message 0 (min 200 (String.length message)));
+  Printf.eprintf "[ws] received message: %s\n%!"
+    (String.sub message 0 (min 200 (String.length message)));
   let result =
     match message with
     | "ping" ->
-      let* () = Dream.send websocket pong_message in
-      Lwt.return current_channel
-    | _ ->
-      let json =
-        try Some (Yojson.Basic.from_string message) with _ -> None
-      in
-      match json with
-      | Some json -> handle_json_message t request websocket current_channel json
-      | None ->
-        let* () = Dream.send websocket (ack_message ~action_id:"" ~status:"error" ~error:"Unknown message" ()) in
+        let* () = send pong_message in
         Lwt.return current_channel
+    | _ -> (
+        let json = try Some (Yojson.Basic.from_string message) with _ -> None in
+        match json with
+        | Some json ->
+            handle_json_message_with_io t request current_channel json ~send ~close
+              ~subscribe
+        | None ->
+            let* () =
+              send
+                (ack_message ~action_id:"" ~status:"error" ~error:"Unknown message" ())
+            in
+            Lwt.return current_channel)
   in
   let* final_result = result in
   let elapsed = Unix.gettimeofday () -. start in
   if elapsed > 0.001 then
-    Printf.eprintf "[handle_message] elapsed=%.3fs len=%d\n%!" elapsed (String.length message);
+    Printf.eprintf "[handle_message] elapsed=%.3fs len=%d\n%!" elapsed
+      (String.length message);
   Lwt.return final_result
+
+let handle_message t request websocket current_channel message =
+  handle_message_with_io t request current_channel message
+    ~send:(fun msg -> Dream.send websocket msg)
+    ~close:(fun () -> Dream.close_websocket websocket)
+    ~subscribe:(fun channel -> subscribe_websocket t request websocket channel)
 
 let rec websocket_handler t request websocket current_channel =
   let receive_start = Unix.gettimeofday () in

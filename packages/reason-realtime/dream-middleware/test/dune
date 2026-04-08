@@ -1,0 +1,17 @@
+(executable
+ (name dream_middleware_test)
+ (modules
+  dream_middleware_test
+  test_framework
+  middleware_behavior_test)
+ (libraries
+  dream
+  dream-pure
+  lwt.unix
+  reason_realtime_dream_middleware
+  yojson)
+ (modes native))
+
+(alias
+ (name dream-middleware-tests)
+ (deps dream_middleware_test.exe))
