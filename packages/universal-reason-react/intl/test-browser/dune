@@ -1,0 +1,42 @@
+(melange.emit
+ (package resync)
+ (alias intl-browser-tests)
+ (module_systems (esm "mjs"))
+ (target dist)
+ (promote
+  (until-clean)
+  (into ./generated))
+ (libraries
+  melange.js
+  playwright_js
+  universal_reason_react_intl_js)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -melange
+   server-reason-react.browser_ppx
+   -js
+   melange.ppx)))
+
+(rule
+ (target IntlBrowserApp.bundle.js)
+ (deps
+  (package resync)
+  (:entrypoint dist/packages/universal-reason-react/intl/test-browser/IntlBrowserApp.mjs))
+ (mode
+  (promote
+   (until-clean)
+   (into generated)))
+ (alias intl-browser-tests)
+ (action
+  (system "node -e \"require('esbuild').buildSync({entryPoints:['%{entrypoint}'],bundle:true,format:'iife',platform:'browser',outfile:'%{target}'})\"")))
+
+(rule
+ (target index.html)
+ (mode
+  (promote
+   (until-clean)
+   (into generated)))
+ (alias intl-browser-tests)
+ (action
+  (write-file %{target} "<!doctype html><html><body><div id=\"result\"></div><script src=\"./IntlBrowserApp.bundle.js\"></script></body></html>")))
