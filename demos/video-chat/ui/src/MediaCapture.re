@@ -1,271 +1,358 @@
-type handle;
-type mediaTrack;
+type realHandle = {
+  stream: MediaBindings.mediaStream,
+  canvas: MediaBindings.canvasElement,
+  ctx: MediaBindings.canvasRenderingContext2d,
+  captureVideo: MediaBindings.videoElement,
+  mutable captureInterval: option(int),
+  audioContext: option(MediaBindings.audioContext),
+  audioSource: option(MediaBindings.audioSourceNode),
+  audioProcessor: option(MediaBindings.scriptProcessorNode),
+  audioGain: option(MediaBindings.gainNode),
+  mutable audioEnabled: bool,
+};
 
-type t = handle;
+type mediaTrack = MediaBindings.mediaTrack;
+type t =
+  | Real(realHandle)
+  | Override(MediaCaptureOverride.implementation, MediaCaptureOverride.handle);
 
 let width = 640;
 let height = 480;
 
+let swallowPromise = promise => {
+  promise
+  |> Js.Promise.catch(_ => Js.Promise.resolve())
+  |> ignore;
+};
+
+let writeAscii = (view: MediaBindings.dataView, offset: int, text: string) => {
+  for (i in 0 to String.length(text) - 1) {
+    MediaBindings.setUint8(view, offset + i, Char.code(String.get(text, i)));
+  };
+};
+
+let wavDataUrlFromSamples = (samples: MediaBindings.float32Array, sampleRate: int) => {
+  let sampleCount = MediaBindings.float32Length(samples);
+  if (sampleCount == 0) {
+    None;
+  } else {
+    let buffer = MediaBindings.makeArrayBuffer(44 + sampleCount * 2);
+    let view = MediaBindings.makeDataView(buffer);
+    writeAscii(view, 0, "RIFF");
+    MediaBindings.setUint32(view, 4, 36 + sampleCount * 2, true);
+    writeAscii(view, 8, "WAVE");
+    writeAscii(view, 12, "fmt ");
+    MediaBindings.setUint32(view, 16, 16, true);
+    MediaBindings.setUint16(view, 20, 1, true);
+    MediaBindings.setUint16(view, 22, 1, true);
+    MediaBindings.setUint32(view, 24, sampleRate, true);
+    MediaBindings.setUint32(view, 28, sampleRate * 2, true);
+    MediaBindings.setUint16(view, 32, 2, true);
+    MediaBindings.setUint16(view, 34, 16, true);
+    writeAscii(view, 36, "data");
+    MediaBindings.setUint32(view, 40, sampleCount * 2, true);
+
+    let peak = ref(0.0);
+    for (i in 0 to sampleCount - 1) {
+      let sample = MediaBindings.float32At(samples, i);
+      let clamped = Float.min(1.0, Float.max(-1.0, sample));
+      let amplitude = abs_float(clamped);
+      if (amplitude > peak.contents) {
+        peak.contents = amplitude;
+      };
+      let pcm =
+        if (clamped < 0.0) {
+          int_of_float(clamped *. 32768.0);
+        } else {
+          int_of_float(clamped *. 32767.0);
+        };
+      MediaBindings.setInt16(view, 44 + i * 2, pcm, true);
+    };
+
+    if (peak.contents < 0.003) {
+      None;
+    } else {
+      let bytes = MediaBindings.makeUint8Array(buffer);
+      let binary = Buffer.create(MediaBindings.uint8Length(bytes));
+      for (i in 0 to MediaBindings.uint8Length(bytes) - 1) {
+        Buffer.add_string(binary, MediaBindings.fromCharCode(MediaBindings.uint8At(bytes, i)));
+      };
+      Some("data:audio/wav;base64," ++ Webapi.Base64.btoa(Buffer.contents(binary)));
+    };
+  };
+};
+
 [@platform js]
-let create: unit => Js.Promise.t(handle) = [%raw
-  {|
-  function() {
-    return navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(function(stream) {
-      const canvas = document.createElement("canvas");
-      canvas.width = 640;
-      canvas.height = 480;
-      const ctx = canvas.getContext("2d");
-      const captureVideo = document.createElement("video");
-      captureVideo.autoplay = true;
-      captureVideo.muted = true;
-      captureVideo.playsInline = true;
-      captureVideo.srcObject = stream;
-      const playPromise = captureVideo.play();
-      if (playPromise && playPromise.catch) {
-        playPromise.catch(() => undefined);
-      }
+let createReal = () => {
+  let constraints = [%obj {video: true, audio: true}];
+  Js.Promise.then_(
+    stream => {
+      let canvasEl = Webapi.Dom.Document.createElement("canvas", Webapi.Dom.document);
+      Webapi.Canvas.CanvasElement.setWidth(canvasEl, width);
+      Webapi.Canvas.CanvasElement.setHeight(canvasEl, height);
+      let ctx = Obj.magic(Webapi.Canvas.CanvasElement.getContext2d(canvasEl));
+      let canvas = Obj.magic(canvasEl);
 
-      let audioContext = null;
-      let audioSource = null;
-      let audioProcessor = null;
-      let audioGain = null;
-      try {
-        const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextCtor && stream.getAudioTracks().length > 0) {
-          audioContext = new AudioContextCtor({ sampleRate: 16000 });
-          audioSource = audioContext.createMediaStreamSource(stream);
-          audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
-          audioGain = audioContext.createGain();
-          audioGain.gain.value = 0;
-          audioSource.connect(audioProcessor);
-          audioProcessor.connect(audioGain);
-          audioGain.connect(audioContext.destination);
-          if (audioContext.state === "suspended" && audioContext.resume) {
-            audioContext.resume().catch(() => undefined);
+      let captureVideo = Obj.magic(Webapi.Dom.Document.createElement("video", Webapi.Dom.document));
+      MediaBindings.setAutoplay(captureVideo, true);
+      MediaBindings.setMuted(captureVideo, true);
+      MediaBindings.setPlaysInline(captureVideo, true);
+      MediaBindings.setVideoSrcObject(captureVideo, stream);
+      swallowPromise(MediaBindings.playVideo(captureVideo));
+
+      let audioSetup =
+        if (Array.length(MediaBindings.getAudioTracks(stream)) == 0) {
+          (None, None, None, None);
+        } else {
+          try({
+            let ctx = MediaBindings.makeAudioContext([%obj {sampleRate: 16000}]);
+            let source = MediaBindings.createMediaStreamSource(ctx, stream);
+            let processor = MediaBindings.createScriptProcessor(ctx, 4096, 1, 1);
+            let gain = MediaBindings.createGain(ctx);
+            MediaBindings.setAudioParamValue(MediaBindings.gainParam(gain), 0.0);
+            MediaBindings.connect(source, processor);
+            MediaBindings.connect(processor, gain);
+            MediaBindings.connect(gain, MediaBindings.audioContextDestination(ctx));
+            if (MediaBindings.audioContextState(ctx) == "suspended") {
+              swallowPromise(MediaBindings.resumeAudioContext(ctx));
+            };
+            (Some(ctx), Some(source), Some(processor), Some(gain));
+          }) {
+          | _ =>
+            try({
+              let ctx = MediaBindings.makeWebkitAudioContext([%obj {sampleRate: 16000}]);
+              let source = MediaBindings.createMediaStreamSource(ctx, stream);
+              let processor = MediaBindings.createScriptProcessor(ctx, 4096, 1, 1);
+              let gain = MediaBindings.createGain(ctx);
+              MediaBindings.setAudioParamValue(MediaBindings.gainParam(gain), 0.0);
+              MediaBindings.connect(source, processor);
+              MediaBindings.connect(processor, gain);
+              MediaBindings.connect(gain, MediaBindings.audioContextDestination(ctx));
+              if (MediaBindings.audioContextState(ctx) == "suspended") {
+                swallowPromise(MediaBindings.resumeAudioContext(ctx));
+              };
+              (Some(ctx), Some(source), Some(processor), Some(gain));
+            }) {
+            | _ => (None, None, None, None)
+            }
           }
-        }
-      } catch (_error) {
-        audioContext = null;
-        audioSource = null;
-        audioProcessor = null;
-        audioGain = null;
-      }
+        };
 
-      return {
+      let (audioContext, audioSource, audioProcessor, audioGain) = audioSetup;
+      Js.Promise.resolve({
         stream,
         canvas,
         ctx,
         captureVideo,
-        captureInterval: null,
+        captureInterval: None,
         audioContext,
         audioSource,
         audioProcessor,
         audioGain,
         audioEnabled: true,
-      };
-    });
-  }
-  |}
-];
+      });
+    },
+    MediaBindings.getUserMedia(
+      MediaBindings.mediaDevices(Obj.magic(Webapi.Dom.Window.navigator(Webapi.Dom.window))),
+      constraints,
+    ),
+  );
+};
+
+[@platform native]
+let createReal = () => Js.Promise.resolve(Obj.magic());
+
+[@platform js]
+let create = () =>
+  switch (MediaCaptureOverride.current()) {
+  | Some(implementation) =>
+    Js.Promise.then_(
+      handle => Js.Promise.resolve(Override(implementation, handle)),
+      MediaCaptureOverride.create(implementation),
+    )
+  | None =>
+    Js.Promise.then_(
+      capture => Js.Promise.resolve(Real(capture)),
+      createReal(),
+    )
+  };
 
 [@platform native]
 let create = () => Js.Promise.resolve(Obj.magic());
 
 [@platform js]
-let attachVideoElementJs: (handle, Dom.element) => unit = [%raw
-  {|
-  function(handle, videoEl) {
-    videoEl.srcObject = handle.stream;
-    videoEl.muted = true;
-    const playPromise = videoEl.play();
-    if (playPromise && playPromise.catch) {
-      playPromise.catch(() => undefined);
-    }
-  }
-  |}
-];
+let attachVideoElement = (capture: t, videoEl: Dom.element) =>
+  switch (capture) {
+  | Real(realCapture) =>
+    MediaBindings.setElementSrcObject(videoEl, realCapture.stream);
+    MediaBindings.setElementMuted(videoEl, true);
+    swallowPromise(MediaBindings.playElement(videoEl));
+  | Override(implementation, overrideHandle) =>
+    MediaCaptureOverride.attachVideoElement(implementation, overrideHandle, videoEl)
+  };
 
 [@platform native]
-let attachVideoElementJs = (_handle, _videoEl) => ();
-
-let attachVideoElement = (capture, videoEl) =>
-  attachVideoElementJs(capture, videoEl);
+let attachVideoElement = (_capture, _videoEl) => ();
 
 [@platform js]
-let startCaptureJs: (handle, string => unit, string => unit) => unit = [%raw
-  {|
-  (function() {
-    function writeAscii(view, offset, text) {
-      for (let i = 0; i < text.length; i++) {
-        view.setUint8(offset + i, text.charCodeAt(i));
-      }
-    }
-
-    function wavDataUrlFromSamples(samples, sampleRate) {
-      const buffer = new ArrayBuffer(44 + samples.length * 2);
-      const view = new DataView(buffer);
-      writeAscii(view, 0, "RIFF");
-      view.setUint32(4, 36 + samples.length * 2, true);
-      writeAscii(view, 8, "WAVE");
-      writeAscii(view, 12, "fmt ");
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      writeAscii(view, 36, "data");
-      view.setUint32(40, samples.length * 2, true);
-
-      let peak = 0;
-      for (let i = 0; i < samples.length; i++) {
-        const value = Math.max(-1, Math.min(1, samples[i]));
-        peak = Math.max(peak, Math.abs(value));
-        view.setInt16(44 + i * 2, value < 0 ? value * 0x8000 : value * 0x7fff, true);
-      }
-
-      if (peak < 0.003) {
-        return null;
-      }
-
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      const chunkSize = 0x8000;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, i + chunkSize);
-        binary += String.fromCharCode.apply(null, chunk);
-      }
-      return "data:audio/wav;base64," + btoa(binary);
-    }
-
- return function(handle, onFrame, onAudioChunk) {
- handle.captureInterval = setInterval(function() {
- try {
- handle.ctx.drawImage(handle.captureVideo, 0, 0, 640, 480);
- onFrame(handle.canvas.toDataURL("image/jpeg", 0.7));
- } catch (_error) {
- }
- }, 33);
-
-      if (handle.audioProcessor && handle.audioContext) {
-        handle.audioProcessor.onaudioprocess = function(event) {
-          if (!handle.audioEnabled) {
-            return;
+let startCapture = (capture: t, ~onFrame, ~onAudioChunk) =>
+  switch (capture) {
+  | Real(realCapture) =>
+    realCapture.captureInterval = Some(
+      MediaBindings.setInterval(
+        () => {
+          try({
+            MediaBindings.drawVideoImage(realCapture.ctx, realCapture.captureVideo, 0, 0, width, height);
+            onFrame(MediaBindings.toDataURL(realCapture.canvas, "image/jpeg", 0.7));
+          }) {
+          | _ => ()
           }
-          const input = event.inputBuffer.getChannelData(0);
-          if (!input || input.length === 0) {
-            return;
-          }
-          const wavDataUrl = wavDataUrlFromSamples(input, handle.audioContext.sampleRate || 16000);
-          if (wavDataUrl) {
-            onAudioChunk(wavDataUrl);
-          }
+        },
+        33,
+      )
+    );
+
+    switch (realCapture.audioProcessor, realCapture.audioContext) {
+    | (Some(processor), Some(audioContext)) =>
+      MediaBindings.setOnAudioProcess(processor, event => {
+        if (realCapture.audioEnabled) {
+          let samples = MediaBindings.getChannelData(MediaBindings.inputBuffer(event), 0);
+          if (MediaBindings.float32Length(samples) > 0) {
+            switch (wavDataUrlFromSamples(samples, MediaBindings.audioContextSampleRate(audioContext))) {
+            | Some(wavDataUrl) => onAudioChunk(wavDataUrl)
+            | None => ()
+            };
+          };
         };
-      }
+      })
+    | _ => ()
+    }
+  | Override(implementation, overrideHandle) =>
+    MediaCaptureOverride.startCapture(
+      implementation,
+      overrideHandle,
+      MediaCaptureOverride.makeStartCaptureCallbacks(~onFrame, ~onAudioChunk, ()),
+    )
+  };
+
+[@platform native]
+let startCapture = (_capture, ~onFrame: _, ~onAudioChunk: _) => ();
+
+[@platform js]
+let stopCapture = (capture: t) =>
+  switch (capture) {
+  | Real(realCapture) =>
+    switch (realCapture.captureInterval) {
+    | Some(intervalId) =>
+      MediaBindings.clearInterval(intervalId);
+      realCapture.captureInterval = None;
+    | None => ()
     };
-  })()
-  |}
-];
 
-[@platform native]
-let startCaptureJs = (_handle, _onFrame, _onAudioChunk) => ();
-
-let startCapture = (capture, ~onFrame, ~onAudioChunk) =>
-  startCaptureJs(capture, onFrame, onAudioChunk);
-
-[@platform js]
-let stopCaptureJs: handle => unit = [%raw
-  {|
-  function(handle) {
-    if (handle.captureInterval != null) {
-      clearInterval(handle.captureInterval);
-      handle.captureInterval = null;
-    }
-
-    if (handle.audioProcessor) {
-      try {
-        handle.audioProcessor.disconnect();
-      } catch (_error) {
+    switch (realCapture.audioProcessor) {
+    | Some(processor) =>
+      try({
+        MediaBindings.disconnect(processor);
+      }) {
+      | _ => ()
       }
-    }
+    | None => ()
+    };
 
-    if (handle.audioSource) {
-      try {
-        handle.audioSource.disconnect();
-      } catch (_error) {
+    switch (realCapture.audioSource) {
+    | Some(source) =>
+      try({
+        MediaBindings.disconnect(source);
+      }) {
+      | _ => ()
       }
-    }
+    | None => ()
+    };
 
-    if (handle.audioGain) {
-      try {
-        handle.audioGain.disconnect();
-      } catch (_error) {
+    switch (realCapture.audioGain) {
+    | Some(gain) =>
+      try({
+        MediaBindings.disconnect(gain);
+      }) {
+      | _ => ()
       }
+    | None => ()
+    };
+
+    switch (realCapture.audioContext) {
+    | Some(audioContext) => swallowPromise(MediaBindings.closeAudioContext(audioContext))
+    | None => ()
+    };
+
+    realCapture.stream
+    ->MediaBindings.getTracks
+    ->Js.Array.forEach(~f=track => {
+        MediaBindings.setEnabled(track, false);
+        MediaBindings.stopTrack(track);
+      })
+  | Override(implementation, overrideHandle) =>
+    MediaCaptureOverride.stopCapture(implementation, overrideHandle)
+  };
+
+[@platform native]
+let stopCapture = _capture => ();
+
+[@platform js]
+let getVideoTracks = capture =>
+  switch (capture) {
+  | Real(realCapture) => MediaBindings.getVideoTracks(realCapture.stream)
+  | Override(_, _) => [||]
+  };
+
+[@platform native]
+let getVideoTracks = _capture => [||];
+
+[@platform js]
+let getAudioTracks = capture =>
+  switch (capture) {
+  | Real(realCapture) => MediaBindings.getAudioTracks(realCapture.stream)
+  | Override(_, _) => [||]
+  };
+
+[@platform native]
+let getAudioTracks = _capture => [||];
+
+[@platform js]
+let setAudioCaptureEnabled = (capture: t, enabled: bool) =>
+  switch (capture) {
+  | Real(realCapture) => realCapture.audioEnabled = enabled
+  | Override(implementation, overrideHandle) =>
+    MediaCaptureOverride.setAudioEnabled(implementation, overrideHandle, enabled)
+  };
+
+[@platform native]
+let setAudioCaptureEnabled = (_capture, _enabled) => ();
+
+[@platform js]
+let setVideoEnabled = (capture, enabled) =>
+  switch (capture) {
+  | Real(realCapture) => {
+      let tracks = MediaBindings.getVideoTracks(realCapture.stream);
+      Js.Array.forEach(~f=track => MediaBindings.setEnabled(track, enabled), tracks);
     }
+  | Override(implementation, overrideHandle) =>
+    MediaCaptureOverride.setVideoEnabled(implementation, overrideHandle, enabled)
+  };
 
-    if (handle.audioContext && handle.audioContext.close) {
-      handle.audioContext.close().catch(() => undefined);
+[@platform native]
+let setVideoEnabled = (_capture, _enabled) => ();
+
+[@platform js]
+let setAudioEnabled = (capture, enabled) =>
+  switch (capture) {
+  | Real(realCapture) => {
+      setAudioCaptureEnabled(capture, enabled);
+      let tracks = MediaBindings.getAudioTracks(realCapture.stream);
+      Js.Array.forEach(~f=track => MediaBindings.setEnabled(track, enabled), tracks);
     }
-
-    const tracks = handle.stream.getTracks();
-    tracks.forEach(function(track) {
-      track.enabled = false;
-      track.stop();
-    });
-  }
-  |}
-];
+  | Override(implementation, overrideHandle) =>
+    MediaCaptureOverride.setAudioEnabled(implementation, overrideHandle, enabled)
+  };
 
 [@platform native]
-let stopCaptureJs = _handle => ();
-
-let stopCapture = capture => stopCaptureJs(capture);
-
-[@platform js]
-let getVideoTracks: handle => array(mediaTrack) = [%raw
-  {|
-  function(handle) {
-    return handle.stream.getVideoTracks();
-  }
-  |}
-];
-
-[@platform native]
-let getVideoTracks = _handle => [||];
-
-[@platform js]
-let getAudioTracks: handle => array(mediaTrack) = [%raw
-  {|
-  function(handle) {
-    return handle.stream.getAudioTracks();
-  }
-  |}
-];
-
-[@platform native]
-let getAudioTracks = _handle => [||];
-[@mel.set] external setEnabled: (mediaTrack, bool) => unit = "enabled";
-
-[@platform js]
-let setAudioCaptureEnabled: (handle, bool) => unit = [%raw
-  {|
-  function(handle, enabled) {
-    handle.audioEnabled = enabled;
-  }
-  |}
-];
-
-[@platform native]
-let setAudioCaptureEnabled = (_handle, _enabled) => ();
-
-let setVideoEnabled = (capture, enabled) => {
-  let tracks = getVideoTracks(capture);
-  Js.Array.forEach(~f=track => setEnabled(track, enabled), tracks);
-};
-
-let setAudioEnabled = (capture, enabled) => {
-  setAudioCaptureEnabled(capture, enabled);
-  let tracks = getAudioTracks(capture);
-  Js.Array.forEach(~f=track => setEnabled(track, enabled), tracks);
-};
+let setAudioEnabled = (_capture, _enabled) => ();

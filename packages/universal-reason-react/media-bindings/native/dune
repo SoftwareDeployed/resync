@@ -1,0 +1,16 @@
+(library
+ (name universal_reason_react_media_bindings_native)
+ (public_name resync.universal_reason_react_media_bindings_native)
+ (modules MediaBindings)
+ (wrapped false)
+ (libraries
+  server-reason-react.js)
+ (modes native)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.ppx
+   server-reason-react.melange_ppx)))
+
+(copy_files
+ (files ../js/*.re))
