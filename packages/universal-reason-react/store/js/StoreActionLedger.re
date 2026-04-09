@@ -67,15 +67,17 @@ let deleteByIds = (~storeName: string, ~ids: array(string), ()) =>
   StoreIndexedDB.deleteActions(~name=storeName, ~ids, ());
 
 [@platform js]
-let sortByEnqueuedAt: array(t) => array(t) =
-  [%raw
-    {|
-  function(records) {
-    return records.slice().sort(function(left, right) {
-      return left.enqueuedAt - right.enqueuedAt;
-    });
-  }
-  |}];
+let sortByEnqueuedAt: array(t) => array(t) = records => {
+  // Create a copy using slice, then sort
+  let copy = Js.Array.slice(~start=0, ~end_=Array.length(records), records);
+  Js.Array.sortInPlaceWith(
+    ~f=(a: t, b: t) =>
+      if (a.enqueuedAt < b.enqueuedAt) { (-1) }
+      else if (a.enqueuedAt > b.enqueuedAt) { 1 }
+      else { 0 },
+    copy
+  );
+};
 
 [@platform native]
 let sortByEnqueuedAt = records => records;

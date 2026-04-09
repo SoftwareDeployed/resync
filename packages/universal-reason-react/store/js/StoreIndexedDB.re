@@ -1,5 +1,3 @@
-type database;
-
 type state_record = {
   scopeKey: string,
   value: StoreJson.json,
@@ -17,140 +15,163 @@ type action_record = {
 };
 
 [@platform js]
-let openDbJs: string => Js.Promise.t(database) =
-  [%raw
-    {|
-  function(name) {
-    return new Promise(function(resolve, reject) {
-      var request = indexedDB.open(name, 1);
-      request.onupgradeneeded = function(event) {
-        var db = event.target.result;
-        if (!db.objectStoreNames.contains("confirmed_state")) {
-          db.createObjectStore("confirmed_state", { keyPath: "scopeKey" });
-        }
-        if (!db.objectStoreNames.contains("actions")) {
-          var store = db.createObjectStore("actions", { keyPath: "id" });
-          store.createIndex("scopeKey", "scopeKey", { unique: false });
-        }
+type database = IndexedDB.database;
+
+[@platform native]
+type database = unit;
+
+/* Open database with schema upgrade handler */
+[@platform js]
+let openDbJs = (name: string) => {
+  Js.Promise.make((~resolve, ~reject) => {
+    let req = IndexedDB.openRaw(name, 1);
+    IndexedDB.setOnsuccess(req, () => resolve(. IndexedDB.resultAsDatabase(req)));
+    IndexedDB.setOnerror(req, () =>
+      reject(. Failure(
+        "IndexedDB open error: "
+        ++ IndexedDB.errorMessage(IndexedDB.resultError(req)),
+      ))
+    );
+    IndexedDB.setOnupgradeneeded(req, () => {
+      let db = IndexedDB.resultAsDatabase(req);
+      let storeNames = IndexedDB.objectStoreNames(db);
+      if (!IndexedDB.includes(storeNames, "confirmed_state")) {
+        let _ = IndexedDB.createObjectStore(db, "confirmed_state", [%obj {keyPath: "scopeKey"}]);
+        ()
       };
-      request.onsuccess = function(event) { resolve(event.target.result); };
-      request.onerror = function(event) { reject(event.target.error); };
+      if (!IndexedDB.includes(storeNames, "actions")) {
+        let store = IndexedDB.createObjectStore(db, "actions", [%obj {keyPath: "id"}]);
+        let _ = IndexedDB.createIndex(store, "scopeKey", "scopeKey", [%obj {unique: false}]);
+        ()
+      };
     });
-  }
-  |}];
+  });
+};
 
 [@platform native]
 let openDbJs = (_name: string) => Js.Promise.resolve(Obj.magic(()));
 
+/* Get state record by scope key */
 [@platform js]
-let getStateJs: (database, string) => Js.Promise.t(Js.Nullable.t(state_record)) =
-  [%raw
-    {|
-  function(db, scopeKey) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction("confirmed_state", "readonly");
-      var store = tx.objectStore("confirmed_state");
-      var request = store.get(scopeKey);
-      request.onsuccess = function(event) { resolve(event.target.result || null); };
-      request.onerror = function(event) { reject(event.target.error); };
-    });
-  }
-  |}];
+let getStateJs = (db: database, scopeKey: string) => {
+  let tx = IndexedDB.transaction(db, [|"confirmed_state"|], "readonly");
+  let store = IndexedDB.objectStore(tx, "confirmed_state");
+  Js.Promise.make((~resolve, ~reject) => {
+    let req = IndexedDB.getRaw(store, scopeKey);
+    IndexedDB.setOnsuccess(req, () => resolve(. IndexedDB.resultAsNullable(req)));
+    IndexedDB.setOnerror(req, () => reject(. Failure("IndexedDB get error")));
+  });
+};
 
 [@platform native]
 let getStateJs = (_db, _scopeKey) => Js.Promise.resolve(Js.Nullable.null);
 
+/* Save state record */
 [@platform js]
-let setStateJs: (database, state_record) => Js.Promise.t(unit) =
-  [%raw
-    {|
-  function(db, record) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction("confirmed_state", "readwrite");
-      tx.objectStore("confirmed_state").put(record);
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function(event) { reject(event.target.error); };
-    });
-  }
-  |}];
+let setStateJs = (db: database, record: state_record) => {
+  Js.Promise.then_(
+    _done => Js.Promise.resolve(),
+    Js.Promise.make((~resolve, ~reject) => {
+      let tx = IndexedDB.transaction(db, [|"confirmed_state"|], "readwrite");
+      let store = IndexedDB.objectStore(tx, "confirmed_state");
+      let _ = IndexedDB.putRaw(store, record);
+      IndexedDB.setTxOncomplete(tx, () => resolve(. true));
+      IndexedDB.setTxOnerror(tx, () =>
+        reject(. Failure("IndexedDB transaction error"))
+      );
+    }),
+  );
+};
 
 [@platform native]
 let setStateJs = (_db, _record) => Js.Promise.resolve();
 
+/* Get action record by id */
 [@platform js]
-let getActionJs: (database, string) => Js.Promise.t(Js.Nullable.t(action_record)) =
-  [%raw
-    {|
-  function(db, id) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction("actions", "readonly");
-      var request = tx.objectStore("actions").get(id);
-      request.onsuccess = function(event) { resolve(event.target.result || null); };
-      request.onerror = function(event) { reject(event.target.error); };
-    });
-  }
-  |}];
+let getActionJs = (db: database, id: string) => {
+  let tx = IndexedDB.transaction(db, [|"actions"|], "readonly");
+  let store = IndexedDB.objectStore(tx, "actions");
+  Js.Promise.make((~resolve, ~reject) => {
+    let req = IndexedDB.getRaw(store, id);
+    IndexedDB.setOnsuccess(req, () => resolve(. IndexedDB.resultAsNullable(req)));
+    IndexedDB.setOnerror(req, () => reject(. Failure("IndexedDB get error")));
+  });
+};
 
 [@platform native]
 let getActionJs = (_db, _id) => Js.Promise.resolve(Js.Nullable.null);
 
+/* Save action record */
 [@platform js]
-let putActionJs: (database, action_record) => Js.Promise.t(unit) =
-  [%raw
-    {|
-  function(db, record) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction("actions", "readwrite");
-      tx.objectStore("actions").put(record);
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function(event) { reject(event.target.error); };
-    });
-  }
-  |}];
+let putActionJs = (db: database, record: action_record) => {
+  Js.Promise.then_(
+    _done => Js.Promise.resolve(),
+    Js.Promise.make((~resolve, ~reject) => {
+      let tx = IndexedDB.transaction(db, [|"actions"|], "readwrite");
+      let store = IndexedDB.objectStore(tx, "actions");
+      let _ = IndexedDB.putRaw(store, record);
+      IndexedDB.setTxOncomplete(tx, () => resolve(. true));
+      IndexedDB.setTxOnerror(tx, () =>
+        reject(. Failure("IndexedDB transaction error"))
+      );
+    }),
+  );
+};
 
 [@platform native]
 let putActionJs = (_db, _record) => Js.Promise.resolve();
 
+/* Get all actions for a scope */
 [@platform js]
-let getActionsByScopeJs: (database, string) => Js.Promise.t(array(action_record)) =
-  [%raw
-    {|
-  function(db, scopeKey) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction("actions", "readonly");
-      var index = tx.objectStore("actions").index("scopeKey");
-      var request = index.getAll(scopeKey);
-      request.onsuccess = function(event) { resolve(event.target.result || []); };
-      request.onerror = function(event) { reject(event.target.error); };
+let getActionsByScopeJs = (db: database, scopeKey: string) => {
+  let tx = IndexedDB.transaction(db, [|"actions"|], "readonly");
+  let store = IndexedDB.objectStore(tx, "actions");
+  let idx = IndexedDB.index(store, "scopeKey");
+  Js.Promise.make((~resolve, ~reject) => {
+    let req = IndexedDB.getAllRaw(idx, scopeKey);
+    IndexedDB.setOnsuccess(req, () => {
+      switch (Js.Nullable.toOption(IndexedDB.resultAsNullable(req))) {
+      | Some(arr) => resolve(. arr)
+      | None => resolve(. [||])
+      };
     });
-  }
-  |}];
+    IndexedDB.setOnerror(req, () => reject(. Failure("IndexedDB getAll error")));
+  });
+};
 
 [@platform native]
 let getActionsByScopeJs = (_db, _scopeKey) => Js.Promise.resolve([||]);
 
+/* Delete multiple actions by id */
 [@platform js]
-let deleteActionsJs: (database, array(string)) => Js.Promise.t(unit) =
-  [%raw
-    {|
-  function(db, ids) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction("actions", "readwrite");
-      var store = tx.objectStore("actions");
-      for (var i = 0; i < ids.length; i++) {
-        store.delete(ids[i]);
-      }
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function(event) { reject(event.target.error); };
-    });
-  }
-  |}];
+let deleteActionsJs = (db: database, ids: array(string)) => {
+  Js.Promise.then_(
+    _done => Js.Promise.resolve(),
+    Js.Promise.make((~resolve, ~reject) => {
+      let tx = IndexedDB.transaction(db, [|"actions"|], "readwrite");
+      let store = IndexedDB.objectStore(tx, "actions");
+      Js.Array.forEach(
+        ~f=id => {
+          let _ = IndexedDB.deleteRaw(store, id);
+          ()
+        },
+        ids,
+      );
+      IndexedDB.setTxOncomplete(tx, () => resolve(. true));
+      IndexedDB.setTxOnerror(tx, () =>
+        reject(. Failure("IndexedDB transaction error"))
+      );
+    }),
+  );
+};
 
 [@platform native]
 let deleteActionsJs = (_db, _ids) => Js.Promise.resolve();
 
+/* Database cache */
 let dbsRef: ref(Js.Dict.t(database)) = ref(Js.Dict.empty());
 
+/* Ensure database is open */
 let ensureOpen = (~name: string, ()) =>
   switch (dbsRef.contents->Js.Dict.get(name)) {
   | Some(db) => Js.Promise.resolve(db)
@@ -164,6 +185,7 @@ let ensureOpen = (~name: string, ()) =>
     )
   };
 
+/* Public API */
 let getState = (~name: string, ~scopeKey: string, ()) =>
   Js.Promise.then_(
     db =>
