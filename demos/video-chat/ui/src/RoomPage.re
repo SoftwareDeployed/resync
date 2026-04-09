@@ -1,37 +1,33 @@
 open Tilia.React;
 
 [@platform js]
-let drawVideoFrame: (Dom.element, string) => unit = [%raw
-  {|
-  function(canvas, dataUrl) {
-    if (!canvas || canvas.tagName !== 'CANVAS') return;
-    var ctx = canvas.getContext('2d');
-    var img = new Image();
-    img.onload = function() {
-      // Resize canvas to match image if needed
-      if (canvas.width !== img.width || canvas.height !== img.height) {
-        canvas.width = img.width;
-        canvas.height = img.height;
-      }
-      ctx.drawImage(img, 0, 0);
+let drawVideoFrame = (canvas: Dom.element, dataUrl: string) => {
+  let ctx = Obj.magic(Webapi.Canvas.CanvasElement.getContext2d(canvas));
+  let htmlImage = Webapi.Dom.HtmlImageElement.make();
+  Webapi.Dom.HtmlImageElement.addLoadEventListener(_event => {
+    let nextWidth = Webapi.Dom.HtmlImageElement.width(htmlImage);
+    let nextHeight = Webapi.Dom.HtmlImageElement.height(htmlImage);
+    if (Webapi.Canvas.CanvasElement.width(canvas) != nextWidth) {
+      Webapi.Canvas.CanvasElement.setWidth(canvas, nextWidth);
     };
-    img.src = dataUrl;
-  }
-  |}
-];
+    if (Webapi.Canvas.CanvasElement.height(canvas) != nextHeight) {
+      Webapi.Canvas.CanvasElement.setHeight(canvas, nextHeight);
+    };
+    MediaBindings.drawImage(ctx, Obj.magic(htmlImage), 0, 0);
+  }, htmlImage);
+  Webapi.Dom.HtmlImageElement.setSrc(htmlImage, dataUrl);
+};
 
 [@platform native]
 let drawVideoFrame = (_canvas, _data) => ();
 
 [@platform js]
-let playAudioChunk: string => unit = [%raw
-  {|
-  function(chunk) {
-    var audio = new Audio(chunk);
-    audio.play().catch(function() {});
-  }
-  |}
-];
+let playAudioChunk = (chunk: string) => {
+  let audio = MediaBindings.makeAudio(chunk);
+  MediaBindings.playAudio(audio)
+  |> Js.Promise.catch(_ => Js.Promise.resolve())
+  |> ignore;
+};
 
 [@platform native]
 let playAudioChunk = (_chunk: string) => ();
@@ -54,6 +50,15 @@ module View = {
       let remoteCanvasRef = React.useRef(None);
       let captureRef = React.useRef(None);
       let remotePeerRef = React.useRef(None);
+
+      let releaseCapture = () => {
+        switch (captureRef.current) {
+        | Some(capture) =>
+          MediaCapture.stopCapture(capture);
+          captureRef.current = None;
+        | None => ()
+        };
+      };
 
       /* Media event listener - lifecycle tied via Events.listen/unlisten */
       React.useEffect0(() => {
@@ -144,6 +149,7 @@ module View = {
       React.useEffect1(
         () => {
           if (store.state.is_joined) {
+            releaseCapture();
             let _ =
               Js.Promise.then_(
                 capture => {
@@ -175,11 +181,7 @@ module View = {
                 MediaCapture.create(),
               );
             Some(
-              () =>
-                switch (captureRef.current) {
-                | Some(capture) => MediaCapture.stopCapture(capture)
-                | None => ()
-                },
+              () => releaseCapture(),
             );
           } else {
             None;
@@ -189,10 +191,7 @@ module View = {
       );
 
       let leaveRoom = () => {
-        switch (captureRef.current) {
-        | Some(capture) => MediaCapture.stopCapture(capture)
-        | None => ()
-        };
+        releaseCapture();
         VideoChatStore.leaveRoom(store);
         router.push("/");
       };
@@ -221,19 +220,20 @@ module View = {
         | None => false
         };
 
-      <div className="min-h-screen bg-gray-900 p-4">
+      <div id="room-page" className="min-h-screen bg-gray-900 p-4">
         <div className="mx-auto max-w-6xl">
           <div className="mb-4 flex items-center justify-between">
             <div className="text-white">
-              <h1 className="text-xl font-bold">
+              <h1 id="room-heading" className="text-xl font-bold">
                 {React.string("Room: " ++ roomIdValue)}
               </h1>
-              <p className="text-sm text-gray-400">
+              <p id="room-peer-count" className="text-sm text-gray-400">
                 {React.string("Peers: " ++ string_of_int(store.peers_count))}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
+                id="toggle-video-button"
                 onClick={_ => toggleVideo()}
                 className={
                   "flex items-center gap-2 rounded-lg px-4 py-2 text-white "
@@ -249,6 +249,7 @@ module View = {
                  )}
               </button>
               <button
+                id="toggle-audio-button"
                 onClick={_ => toggleAudio()}
                 className={
                   "flex items-center gap-2 rounded-lg px-4 py-2 text-white "
@@ -264,6 +265,7 @@ module View = {
                  )}
               </button>
               <button
+                id="leave-room-button"
                 onClick={_ => leaveRoom()}
                 className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700">
                 <Lucide.IconPhoneOff size=16 />
@@ -320,10 +322,11 @@ module View = {
                 width="640"
                 height="480"
               />
-              {!store.state.remote_video_enabled && hasRemotePeer
-                 ? <div
-                     className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800">
-                     <Lucide.IconVideoOff size=48 />
+                 {!store.state.remote_video_enabled && hasRemotePeer
+                  ? <div
+                      id="remote-video-paused-overlay"
+                      className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800">
+                      <Lucide.IconVideoOff size=48 />
                      <p className="mt-2 text-gray-400">
                        {React.string("Video paused")}
                      </p>

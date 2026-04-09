@@ -14,7 +14,7 @@ let make = () => {
     };
   };
 
-  <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+  <div id="home-page" className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
     <div className="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl p-8">
       <h1 className="text-3xl font-bold text-white mb-2 text-center">
         {React.string("Video Chat")}
@@ -25,6 +25,7 @@ let make = () => {
       
       <div className="space-y-4">
         <button
+          id="create-room-button"
           onClick={_ => createRoom()}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
           <Lucide.IconVideo size=20 />
@@ -44,6 +45,7 @@ let make = () => {
         
         <div className="flex gap-2">
           <input
+            id="join-room-input"
             type_="text"
             value=roomId
             onChange={e => setRoomId(React.Event.Form.target(e)##value)}
@@ -51,6 +53,7 @@ let make = () => {
             className="flex-1 bg-gray-700 text-white placeholder-gray-400 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
+            id="join-room-button"
             onClick={_ => joinRoom()}
             disabled={roomId == ""}
             className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
