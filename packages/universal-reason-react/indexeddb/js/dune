@@ -1,0 +1,16 @@
+(library
+ (name universal_reason_react_indexeddb_js)
+ (public_name resync.universal_reason_react_indexeddb_js)
+ (wrapped false)
+ (libraries
+  melange.js
+  melange-json)
+ (modes melange)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -melange
+   server-reason-react.browser_ppx
+   -js
+   melange.ppx
+   melange-json.ppx)))
