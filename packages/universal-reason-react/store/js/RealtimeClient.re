@@ -1,35 +1,37 @@
 [@platform js]
-let mutationFrameString: (string, string) => string =
-  [%raw
-    {|
-  function(actionId, actionString) {
-    return JSON.stringify({type: "mutation", actionId: actionId, action: JSON.parse(actionString)});
-  }
-  |}];
+let mutationFrameString = (actionId: string, actionString: string) => {
+  let actionJson = Js.Json.parseExn(actionString);
+  let jsonObj =
+    Js.Dict.fromArray([|
+      ("type", Js.Json.string("mutation")),
+      ("actionId", Js.Json.string(actionId)),
+      ("action", actionJson),
+    |]);
+  Js.Json.stringify(Js.Json.object_(jsonObj));
+};
 
 [@platform native]
 let mutationFrameString = (_actionId, _actionString) => "";
 
 [@platform js]
-let selectFrameString: (string, float) => string =
-  [%raw
-    {|
-  function(subscription, updatedAt) {
-    return JSON.stringify({type: "select", subscription: subscription, updatedAt: updatedAt});
-  }
-  |}];
+let selectFrameString = (subscription: string, updatedAt: float) => {
+  let jsonObj =
+    Js.Dict.fromArray([|
+      ("type", Js.Json.string("select")),
+      ("subscription", Js.Json.string(subscription)),
+      ("updatedAt", Js.Json.number(updatedAt)),
+    |]);
+  Js.Json.stringify(Js.Json.object_(jsonObj));
+};
 
 [@platform native]
 let selectFrameString = (_subscription, _updatedAt) => "";
 
 [@platform js]
-let pingFrameString: unit => string =
-  [%raw
-    {|
-  function() {
-    return JSON.stringify({type: "ping"});
-  }
-  |}];
+let pingFrameString = () => {
+  let jsonObj = Js.Dict.fromArray([|("type", Js.Json.string("ping"))|]);
+  Js.Json.stringify(Js.Json.object_(jsonObj));
+};
 
 [@platform native]
 let pingFrameString = () => "";

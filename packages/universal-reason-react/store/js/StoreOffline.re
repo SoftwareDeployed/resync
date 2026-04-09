@@ -26,42 +26,24 @@ module Local = {
     type store_event = StoreEvents.store_event(action);
     type listener = StoreEvents.listener(action);
 
-    type broadcast_channel;
+    type broadcast_channel = BroadcastChannel.t;
 
     [@platform js]
-    let openBroadcastChannel: string => broadcast_channel = [%raw
-      {|
-        function(name) {
-          return new BroadcastChannel(name);
-        }
-      |}
-    ];
+    let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
 
     [@platform native]
     let openBroadcastChannel = (_name: string) => Obj.magic();
 
     [@platform js]
-    let postBroadcastMessage: (broadcast_channel, string) => unit = [%raw
-      {|
-        function(channel, message) {
-          channel.postMessage(message);
-        }
-      |}
-    ];
+    let postBroadcastMessage = (channel: broadcast_channel, message: string) =>
+      BroadcastChannel.postMessage(channel, message);
 
     [@platform native]
     let postBroadcastMessage = (_channel, _message) => ();
 
     [@platform js]
-    let setBroadcastHandler: (broadcast_channel, string => unit) => unit = [%raw
-      {|
-        function(channel, handler) {
-          channel.onmessage = function(event) {
-            handler(event.data);
-          };
-        }
-      |}
-    ];
+    let setBroadcastHandler = (channel: broadcast_channel, handler: string => unit) =>
+      BroadcastChannel.setOnmessage(channel, event => handler(event##data));
 
     [@platform native]
     let setBroadcastHandler = (_channel, _handler) => ();
@@ -277,42 +259,24 @@ module Local = {
 };
 
 module Synced = {
-  type broadcast_channel;
+  type broadcast_channel = BroadcastChannel.t;
 
   [@platform js]
-  let openBroadcastChannel: string => broadcast_channel = [%raw
-    {|
-      function(name) {
-        return new BroadcastChannel(name);
-      }
-    |}
-  ];
+  let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
 
   [@platform native]
   let openBroadcastChannel = (_name: string) => Obj.magic();
 
   [@platform js]
-  let postBroadcastMessage: (broadcast_channel, string) => unit = [%raw
-    {|
-      function(channel, message) {
-        channel.postMessage(message);
-      }
-    |}
-  ];
+  let postBroadcastMessage = (channel: broadcast_channel, message: string) =>
+    BroadcastChannel.postMessage(channel, message);
 
   [@platform native]
   let postBroadcastMessage = (_channel, _message) => ();
 
   [@platform js]
-  let setBroadcastHandler: (broadcast_channel, string => unit) => unit = [%raw
-    {|
-      function(channel, handler) {
-        channel.onmessage = function(event) {
-          handler(event.data);
-        };
-      }
-    |}
-  ];
+  let setBroadcastHandler = (channel: broadcast_channel, handler: string => unit) =>
+    BroadcastChannel.setOnmessage(channel, event => handler(event##data));
 
   [@platform native]
   let setBroadcastHandler = (_channel, _handler) => ();
