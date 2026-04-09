@@ -11,11 +11,13 @@ type join_room_payload = {
 
 type toggle_video_payload = {
   room_id: string,
+  peer_id: string,
   enabled: bool,
 };
 
 type toggle_audio_payload = {
   room_id: string,
+  peer_id: string,
   enabled: bool,
 };
 
@@ -117,6 +119,8 @@ let action_to_json = action =>
       "{\"kind\":\"toggle_video\",\"payload\":{"
       ++ "\"room_id\":"
       ++ string_to_json(payload.room_id)->Melange_json.to_string
+      ++ ",\"peer_id\":"
+      ++ string_to_json(payload.peer_id)->Melange_json.to_string
       ++ ",\"enabled\":"
       ++ bool_to_json(payload.enabled)->Melange_json.to_string
       ++ "}}",
@@ -126,6 +130,8 @@ let action_to_json = action =>
       "{\"kind\":\"toggle_audio\",\"payload\":{"
       ++ "\"room_id\":"
       ++ string_to_json(payload.room_id)->Melange_json.to_string
+      ++ ",\"peer_id\":"
+      ++ string_to_json(payload.peer_id)->Melange_json.to_string
       ++ ",\"enabled\":"
       ++ bool_to_json(payload.enabled)->Melange_json.to_string
       ++ "}}",
@@ -209,6 +215,12 @@ let action_of_json = json => {
             ~fieldName="room_id",
             ~decode=string_of_json,
           ),
+        peer_id:
+          StoreJson.requiredField(
+            ~json=payload,
+            ~fieldName="peer_id",
+            ~decode=string_of_json,
+          ),
         enabled:
           StoreJson.requiredField(
             ~json=payload,
@@ -247,6 +259,12 @@ let action_of_json = json => {
           StoreJson.requiredField(
             ~json=payload,
             ~fieldName="room_id",
+            ~decode=string_of_json,
+          ),
+        peer_id:
+          StoreJson.requiredField(
+            ~json=payload,
+            ~fieldName="peer_id",
             ~decode=string_of_json,
           ),
         enabled:
@@ -668,6 +686,7 @@ let toggleVideo = (store: t, enabled: bool) =>
     dispatch(
       ToggleVideo({
         room_id: room.id,
+        peer_id: store.state.client_id,
         enabled,
       }),
     )
@@ -680,6 +699,7 @@ let toggleAudio = (store: t, enabled: bool) =>
     dispatch(
       ToggleAudio({
         room_id: room.id,
+        peer_id: store.state.client_id,
         enabled,
       }),
     )

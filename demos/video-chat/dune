@@ -1,1 +1,1 @@
-(dirs server shared ui)
+(dirs server shared tests ui)
