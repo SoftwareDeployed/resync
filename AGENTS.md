@@ -52,6 +52,13 @@ docker compose up -d    # starts postgres with auto-initialized schema + trigger
 
 Use Playwright MCP for end-to-end browser testing. Do NOT create Node.js test scripts.
 
+Browser test scripts compile with Melange and run with Node.js:
+
+```bash
+# Video chat demo browser tests
+pnpm run video-chat:test:browser
+```
+
 ## Project Structure
 
 ```
