@@ -1,42 +1,67 @@
 [@platform js]
-module JSImport = {
-  [%%raw
-    {|
-import React from "react";
-import { Toaster, toast } from "sonner";
+type navigator;
 
-export const __renderToaster = () =>
-  React.createElement(Toaster, { richColors: true });
+[@platform js]
+type clipboard;
 
-export const __copyCurrentUrl = async () => {
-  const url = window.location.href;
+[@platform js]
+type location;
 
-  try {
-    await navigator.clipboard.writeText(url);
-    toast.success(`${url} was copied to the clipboard`);
-  } catch (_error) {
-    toast.error("Failed to copy URL to the clipboard");
-  }
-};
+[@platform js]
+[@mel.module "sonner"]
+external toaster: React.component(Js.t({. richColors: bool})) = "Toaster";
 
-export const __showError = (message) => {
-  toast.error(message);
-};
-|}];
+[@platform js]
+[@mel.module "sonner"]
+[@mel.scope "toast"]
+external toastSuccess: string => unit = "success";
 
-  external renderToaster: unit => React.element = "__renderToaster";
-  external copyCurrentUrl: unit => Js.Promise.t(unit) = "__copyCurrentUrl";
-  external showError: string => unit = "__showError";
+[@platform js]
+[@mel.module "sonner"]
+[@mel.scope "toast"]
+external toastError: string => unit = "error";
+
+[@platform js]
+external navigator: navigator = "navigator";
+
+[@platform js]
+external location: location = "location";
+
+[@platform js]
+[@mel.get]
+external clipboard: navigator => clipboard = "clipboard";
+
+[@platform js]
+[@mel.send]
+external writeText: (clipboard, string) => Js.Promise.t(unit) = "writeText";
+
+[@platform js]
+[@mel.get]
+external href: location => string = "href";
+
+[@platform js]
+let renderToaster = () => React.createElement(toaster, [%obj {richColors: true}]);
+
+[@platform js]
+let copyCurrentUrl = () => {
+  let url = href(location);
+  Js.Promise.catch(
+    _ => {
+      toastError("Failed to copy URL to the clipboard");
+      Js.Promise.resolve();
+    },
+    Js.Promise.then_(
+      () => {
+        toastSuccess(url ++ " was copied to the clipboard");
+        Js.Promise.resolve();
+      },
+      writeText(clipboard(navigator), url),
+    ),
+  );
 };
 
 [@platform js]
-let renderToaster = JSImport.renderToaster;
-
-[@platform js]
-let copyCurrentUrl = JSImport.copyCurrentUrl;
-
-[@platform js]
-let showError = JSImport.showError;
+let showError = message => toastError(message);
 
 [@platform native]
 let renderToaster = () => React.null;
