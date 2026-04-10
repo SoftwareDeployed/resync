@@ -1,4 +1,5 @@
 open Melange_json.Primitives;
+open Store;
 
 module LocalFixture = {
   type state = {
@@ -27,13 +28,13 @@ module LocalFixture = {
   };
 
   let state_of_json = json => {
-    count: StoreJson.requiredField(~json, ~fieldName="count", ~decode=int_of_json),
+    count: Json.requiredField(~json, ~fieldName="count", ~decode=int_of_json),
     updated_at:
-      StoreJson.requiredField(~json, ~fieldName="updated_at", ~decode=float_of_json),
+      Json.requiredField(~json, ~fieldName="updated_at", ~decode=float_of_json),
   };
 
   let state_to_json = state =>
-    StoreJson.parse(
+    Json.parse(
       "{\"count\":"
       ++ int_to_json(state.count)->Melange_json.to_string
       ++ ",\"updated_at\":"
@@ -43,7 +44,7 @@ module LocalFixture = {
 
   let action_of_json = json => {
     let kind =
-      StoreJson.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
+      Json.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
     switch (kind) {
     | "increment" => Increment
     | _ => Decrement
@@ -52,8 +53,8 @@ module LocalFixture = {
 
   let action_to_json = action => {
     switch (action) {
-    | Increment => StoreJson.parse("{\"kind\":\"increment\"}")
-    | Decrement => StoreJson.parse("{\"kind\":\"decrement\"}")
+    | Increment => Json.parse("{\"kind\":\"increment\"}")
+    | Decrement => Json.parse("{\"kind\":\"decrement\"}")
     };
   };
 
@@ -94,7 +95,7 @@ module LocalFixture = {
 
   include (
     StoreDef:
-      StoreBuilder.Runtime.Exports
+      Runtime.Exports
         with type state := state
          and type action := action
          and type t := store
@@ -110,12 +111,12 @@ module CrudFixture = {
   };
 
   let row_of_json = json => {
-    id: StoreJson.requiredField(~json, ~fieldName="id", ~decode=string_of_json),
-    name: StoreJson.requiredField(~json, ~fieldName="name", ~decode=string_of_json),
+    id: Json.requiredField(~json, ~fieldName="id", ~decode=string_of_json),
+    name: Json.requiredField(~json, ~fieldName="name", ~decode=string_of_json),
   };
 
   let row_to_json = row =>
-    StoreJson.parse(
+    Json.parse(
       "{\"id\":"
       ++ string_to_json(row.id)->Melange_json.to_string
       ++ ",\"name\":"
@@ -146,11 +147,11 @@ module CrudFixture = {
   let reduce = (~state: state, ~action: action) => {
     switch (action) {
     | AddRow(row) => {
-        items: StoreCrud.upsert(~getId=(r: row) => r.id, state.items, row),
+        items: Crud.upsert(~getId=(r: row) => r.id, state.items, row),
         updated_at: Js.Date.now(),
       }
     | RemoveRow(id) => {
-        items: StoreCrud.remove(~getId=(r: row) => r.id, state.items, id),
+        items: Crud.remove(~getId=(r: row) => r.id, state.items, id),
         updated_at: Js.Date.now(),
       }
     };
@@ -163,17 +164,17 @@ module CrudFixture = {
 
   let state_of_json = json => {
     items:
-      StoreJson.requiredField(
+      Json.requiredField(
         ~json,
         ~fieldName="items",
         ~decode=json => json |> Melange_json.Of_json.array(row_of_json),
       ),
     updated_at:
-      StoreJson.requiredField(~json, ~fieldName="updated_at", ~decode=float_of_json),
+      Json.requiredField(~json, ~fieldName="updated_at", ~decode=float_of_json),
   };
 
   let state_to_json = state =>
-    StoreJson.parse(
+    Json.parse(
       "{\"items\":"
       ++ Melange_json.To_json.array(row_to_json)(state.items)->Melange_json.to_string
       ++ ",\"updated_at\":"
@@ -183,23 +184,23 @@ module CrudFixture = {
 
   let action_of_json = json => {
     let kind =
-      StoreJson.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
+      Json.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
     switch (kind) {
     | "add_row" =>
       AddRow({
-        id: StoreJson.requiredField(~json, ~fieldName="id", ~decode=string_of_json),
+        id: Json.requiredField(~json, ~fieldName="id", ~decode=string_of_json),
         name:
-          StoreJson.requiredField(~json, ~fieldName="name", ~decode=string_of_json),
+          Json.requiredField(~json, ~fieldName="name", ~decode=string_of_json),
       })
     | _ =>
-      RemoveRow(StoreJson.requiredField(~json, ~fieldName="id", ~decode=string_of_json))
+      RemoveRow(Json.requiredField(~json, ~fieldName="id", ~decode=string_of_json))
     };
   };
 
   let action_to_json = action => {
     switch (action) {
     | AddRow(row) =>
-      StoreJson.parse(
+      Json.parse(
         "{\"kind\":\"add_row\",\"id\":"
         ++ string_to_json(row.id)->Melange_json.to_string
         ++ ",\"name\":"
@@ -207,7 +208,7 @@ module CrudFixture = {
         ++ "}",
       )
     | RemoveRow(id) =>
-      StoreJson.parse(
+      Json.parse(
         "{\"kind\":\"remove_row\",\"id\":"
         ++ string_to_json(id)->Melange_json.to_string
         ++ "}",
@@ -241,15 +242,15 @@ module CrudFixture = {
     stateElementId: None,
   };
 
-  let transport: StoreBuilder.Sync.transportConfig(state, subscription) = {
+  let transport: Sync.transportConfig(state, subscription) = {
     subscriptionOfState: _state => Some("fixture-sub"),
     encodeSubscription: sub => sub,
     eventUrl: "/events",
     baseUrl: "http://localhost:8080",
   };
 
-  let crudStrategy: StoreBuilder.Sync.crudStrategy(state, row) =
-    StoreBuilder.Sync.crud(
+  let crudStrategy: Sync.crudStrategy(state, row) =
+    Sync.crud(
       ~table="fixture_rows",
       ~decodeRow=row_of_json,
       ~getId=(r: row) => r.id,
@@ -273,7 +274,7 @@ module CrudFixture = {
 
   include (
     StoreDef:
-      StoreBuilder.Runtime.Exports
+      Runtime.Exports
         with type state := state
          and type action := action
          and type t := store
@@ -321,17 +322,17 @@ module CustomSyncedFixture = {
 
   let state_of_json = json => {
     messages:
-      StoreJson.requiredField(
+      Json.requiredField(
         ~json,
         ~fieldName="messages",
         ~decode=json => json |> Melange_json.Of_json.array(string_of_json),
       ),
     updated_at:
-      StoreJson.requiredField(~json, ~fieldName="updated_at", ~decode=float_of_json),
+      Json.requiredField(~json, ~fieldName="updated_at", ~decode=float_of_json),
   };
 
   let state_to_json = state =>
-    StoreJson.parse(
+    Json.parse(
       "{\"messages\":"
       ++ Melange_json.To_json.array(string_to_json)(state.messages)->Melange_json.to_string
       ++ ",\"updated_at\":"
@@ -341,11 +342,11 @@ module CustomSyncedFixture = {
 
   let action_of_json = json => {
     let kind =
-      StoreJson.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
+      Json.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
     switch (kind) {
     | "send_message" =>
       SendMessage(
-        StoreJson.requiredField(~json, ~fieldName="message", ~decode=string_of_json),
+        Json.requiredField(~json, ~fieldName="message", ~decode=string_of_json),
       )
     | _ => SendMessage("")
     };
@@ -354,7 +355,7 @@ module CustomSyncedFixture = {
   let action_to_json = action => {
     switch (action) {
     | SendMessage(msg) =>
-      StoreJson.parse(
+      Json.parse(
         "{\"kind\":\"send_message\",\"message\":"
         ++ string_to_json(msg)->Melange_json.to_string
         ++ "}",
@@ -388,23 +389,23 @@ module CustomSyncedFixture = {
     stateElementId: None,
   };
 
-  let transport: StoreBuilder.Sync.transportConfig(state, subscription) = {
+  let transport: Sync.transportConfig(state, subscription) = {
     subscriptionOfState: _state => Some("fixture-custom-sub"),
     encodeSubscription: sub => sub,
     eventUrl: "/events",
     baseUrl: "http://localhost:8080",
   };
 
-  let customStrategy: StoreBuilder.Sync.customStrategy(state, patch) =
-    StoreBuilder.Sync.custom(
+  let customStrategy: Sync.customStrategy(state, patch) =
+    Sync.custom(
       ~decodePatch=json => {
         let kind =
-          StoreJson.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
+          Json.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
         switch (kind) {
         | "add_message" =>
           Some(
             AddMessage(
-              StoreJson.requiredField(
+              Json.requiredField(
                 ~json,
                 ~fieldName="message",
                 ~decode=string_of_json,
@@ -441,7 +442,7 @@ module CustomSyncedFixture = {
 
   include (
     StoreDef:
-      StoreBuilder.Runtime.Exports
+      Runtime.Exports
         with type state := state
          and type action := action
          and type t := store

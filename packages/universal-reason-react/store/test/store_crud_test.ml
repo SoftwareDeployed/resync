@@ -1,4 +1,5 @@
 open Test_framework
+open Store
 
 type item = {
   id : string;
@@ -9,17 +10,17 @@ let get_id i = i.id
 
 let decode_item json =
   let id =
-    match StoreJson.field json "id" with
+    match Json.field json "id" with
     | Some j -> (
-      match StoreJson.tryDecode Melange_json.Primitives.string_of_json j with
+      match Json.tryDecode Melange_json.Primitives.string_of_json j with
       | Some s -> s
       | None -> "")
     | None -> ""
   in
   let name =
-    match StoreJson.field json "name" with
+    match Json.field json "name" with
     | Some j -> (
-      match StoreJson.tryDecode Melange_json.Primitives.string_of_json j with
+      match Json.tryDecode Melange_json.Primitives.string_of_json j with
       | Some s -> s
       | None -> "")
     | None -> ""
@@ -36,7 +37,7 @@ let init () =
     test "updates an existing item in an array" (fun () ->
       let items = [| { id = "1"; name = "old" }; { id = "2"; name = "b" } |] in
       let new_item = { id = "1"; name = "new" } in
-      let result = StoreCrud.upsert ~getId:get_id items new_item in
+      let result = Crud.upsert ~getId:get_id items new_item in
       if Array.length result = 2 then
         match result.(0), result.(1) with
         | { id = "1"; name = "new" }, { id = "2"; name = "b" } -> Passed
@@ -47,7 +48,7 @@ let init () =
     test "appends a new item when it doesn't exist" (fun () ->
       let items = [| { id = "1"; name = "a" } |] in
       let new_item = { id = "2"; name = "b" } in
-      let result = StoreCrud.upsert ~getId:get_id items new_item in
+      let result = Crud.upsert ~getId:get_id items new_item in
       if Array.length result = 2 then
         match result.(0), result.(1) with
         | { id = "1"; name = "a" }, { id = "2"; name = "b" } -> Passed
@@ -59,7 +60,7 @@ let init () =
   describe "StoreCrud remove" (fun () ->
     test "deletes an item by id" (fun () ->
       let items = [| { id = "1"; name = "a" }; { id = "2"; name = "b" } |] in
-      let result = StoreCrud.remove ~getId:get_id items "1" in
+      let result = Crud.remove ~getId:get_id items "1" in
       if Array.length result = 1 then
         match result.(0) with
         | { id = "2"; name = "b" } -> Passed
@@ -71,9 +72,9 @@ let init () =
   describe "StoreCrud updateOfPatch" (fun () ->
     test "Upsert applies upsert to config" (fun () ->
       let config = { items = [| { id = "1"; name = "a" } |] } in
-      let patch = StoreCrud.Upsert { id = "2"; name = "b" } in
+      let patch = Crud.Upsert { id = "2"; name = "b" } in
       let updater =
-        StoreCrud.updateOfPatch
+        Crud.updateOfPatch
           ~getId:get_id
           ~getItems:get_items
           ~setItems:set_items
@@ -89,9 +90,9 @@ let init () =
 
     test "Delete applies remove to config" (fun () ->
       let config = { items = [| { id = "1"; name = "a" }; { id = "2"; name = "b" } |] } in
-      let patch = StoreCrud.Delete "1" in
+      let patch = Crud.Delete "1" in
       let updater =
-        StoreCrud.updateOfPatch
+        Crud.updateOfPatch
           ~getId:get_id
           ~getItems:get_items
           ~setItems:set_items
@@ -109,43 +110,43 @@ let init () =
   describe "StoreCrud decodePatch" (fun () ->
     test "decodes a valid JSON patch into Upsert (INSERT)" (fun () ->
       let json =
-        StoreJson.parse
+        Json.parse
           {|{"type":"patch","table":"items","action":"INSERT","data":{"id":"1","name":"a"}}|}
       in
-      let decoder = StoreCrud.decodePatch ~table:"items" ~decodeRow:decode_item () in
+      let decoder = Crud.decodePatch ~table:"items" ~decodeRow:decode_item () in
       match decoder json with
-      | Some (StoreCrud.Upsert { id = "1"; name = "a" }) -> Passed
+      | Some (Crud.Upsert { id = "1"; name = "a" }) -> Passed
       | Some _ -> Failed "Decoded to wrong patch type"
       | None -> Failed "Failed to decode valid INSERT patch");
 
     test "decodes a valid JSON patch into Upsert (UPDATE)" (fun () ->
       let json =
-        StoreJson.parse
+        Json.parse
           {|{"type":"patch","table":"items","action":"UPDATE","data":{"id":"1","name":"updated"}}|}
       in
-      let decoder = StoreCrud.decodePatch ~table:"items" ~decodeRow:decode_item () in
+      let decoder = Crud.decodePatch ~table:"items" ~decodeRow:decode_item () in
       match decoder json with
-      | Some (StoreCrud.Upsert { id = "1"; name = "updated" }) -> Passed
+      | Some (Crud.Upsert { id = "1"; name = "updated" }) -> Passed
       | Some _ -> Failed "Decoded to wrong patch type"
       | None -> Failed "Failed to decode valid UPDATE patch");
 
     test "decodes a valid JSON delete patch into Delete" (fun () ->
       let json =
-        StoreJson.parse
+        Json.parse
           {|{"type":"patch","table":"items","action":"DELETE","id":"1"}|}
       in
-      let decoder = StoreCrud.decodePatch ~table:"items" ~decodeRow:decode_item () in
+      let decoder = Crud.decodePatch ~table:"items" ~decodeRow:decode_item () in
       match decoder json with
-      | Some (StoreCrud.Delete "1") -> Passed
+      | Some (Crud.Delete "1") -> Passed
       | Some _ -> Failed "Decoded to wrong patch type"
       | None -> Failed "Failed to decode valid DELETE patch");
 
     test "returns None for mismatched table" (fun () ->
       let json =
-        StoreJson.parse
+        Json.parse
           {|{"type":"patch","table":"other","action":"INSERT","data":{"id":"1","name":"a"}}|}
       in
-      let decoder = StoreCrud.decodePatch ~table:"items" ~decodeRow:decode_item () in
+      let decoder = Crud.decodePatch ~table:"items" ~decodeRow:decode_item () in
       match decoder json with
       | None -> Passed
       | Some _ -> Failed "Should return None for mismatched table")

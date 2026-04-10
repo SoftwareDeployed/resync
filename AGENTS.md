@@ -28,6 +28,19 @@ dune build demos/todo/ui/src/.build_stamp          # todo client (from repo root
 dune build demos/todo/server/src/server.exe        # todo server (from repo root)
 ```
 
+### Running dune commands
+
+**For AI agents:** Due to orchestration tool issues with running `dune` directly (stdout/stderr capture, timeout handling), agents should prefer using the Python wrapper:
+
+```bash
+python scripts/run_dune.py build @all-apps
+python scripts/run_dune.py build packages/universal-reason-react/store/js
+python scripts/run_dune.py exec ./packages/universal-reason-react/store/test/store_runtime_test.exe
+python scripts/run_dune.py clean
+```
+
+The wrapper runs `dune` from the repo root, captures output cleanly, and has a configurable timeout (default 300s, override with `DUNE_TIMEOUT` env var). End users should run `dune` directly.
+
 ### Build verification
 
 After making changes, always rebuild to verify:
@@ -58,6 +71,16 @@ Browser test scripts compile with Melange and run with Node.js:
 # Video chat demo browser tests
 pnpm run video-chat:test:browser
 ```
+
+### LSP diagnostics on Reason/OCaml files
+
+The `lsp_diagnostics` tool has limited support for Reason (`.re`) and OCaml (`.ml`) files in this project, especially in test directories. It commonly returns:
+
+- `No supported source files found in directory` when scanning directories containing `.re` or `.ml` files
+- `No diagnostics found` for individual files even when build errors exist
+
+**Workaround:** rely on `dune build` (via the Python wrapper) as the source of truth for compile errors and type issues, rather than LSP diagnostics.
+
 
 ## Project Structure
 

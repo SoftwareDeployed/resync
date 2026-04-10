@@ -4,6 +4,7 @@ module Patch = StorePatch;
 module Signal = StoreSignal;
 module Events = StoreEvents;
 module Source = StoreSource;
+module IndexedDB = StoreIndexedDB;
 module Selectors = StoreBuilder.Selectors;
 module Bootstrap = StoreBuilder.Bootstrap;
 module Runtime = StoreBuilder.Runtime;

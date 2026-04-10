@@ -1,6 +1,7 @@
 open Test_framework
+open Store
 
-let dummy_json : StoreJson.json = Obj.magic "action"
+let dummy_json : Json.json = Obj.magic "action"
 
 let make_record ~id ~status ~enqueued_at : StoreActionLedger.t = {
   id;
