@@ -39,7 +39,7 @@ python scripts/run_dune.py exec ./packages/universal-reason-react/store/test/sto
 python scripts/run_dune.py clean
 ```
 
-The wrapper runs `dune` from the repo root, captures output cleanly, and has a configurable timeout (default 300s, override with `DUNE_TIMEOUT` env var). End users should run `dune` directly.
+The wrapper runs `dune` from the repo root, captures output cleanly, and has a configurable timeout (default 120s, override with `DUNE_TIMEOUT` env var). End users should run `dune` directly.
 
 ### Build verification
 

@@ -18,7 +18,7 @@ import sys
 
 
 def main() -> int:
-    timeout = int(os.environ.get("DUNE_TIMEOUT", "300"))
+    timeout = int(os.environ.get("DUNE_TIMEOUT", "20"))
     args = sys.argv[1:]
 
     if not args:

@@ -38,6 +38,9 @@ external textContent: (page, string) => Js.Promise.t(Js.Nullable.t(string)) = "t
 external waitForSelector: (page, string) => Js.Promise.t(Js.Nullable.t('a)) = "waitForSelector";
 
 [@mel.send]
+external reload: page => Js.Promise.t(Js.Nullable.t('a)) = "reload";
+
+[@mel.send]
 external close: browser => Js.Promise.t(unit) = "close";
 
 [@mel.scope "process"]

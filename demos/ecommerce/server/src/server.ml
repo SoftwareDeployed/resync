@@ -15,6 +15,11 @@ let server_interface =
   | Some interface -> interface
   | None -> "127.0.0.1"
 
+let server_port =
+  match Sys.getenv_opt "SERVER_PORT" with
+  | Some port -> int_of_string port
+  | None -> 8899
+
 (* Fetch config for a premise from database *)
 let get_config request premise_id =
   let* premise = Dream.sql request (Database.Premise.get_premise premise_id) in
@@ -53,7 +58,7 @@ let () =
   | () -> ()
   | exception Failure msg ->
       Printf.eprintf "Failed to connect notification listener: %s\n" msg);
-  Dream.run ~interface:server_interface ~port:8899 @@ Dream.logger
+  Dream.run ~interface:server_interface ~port:server_port @@ Dream.logger
   @@ Dream.sql_pool ~size:50 db_uri
   @@ Dream.router
        [

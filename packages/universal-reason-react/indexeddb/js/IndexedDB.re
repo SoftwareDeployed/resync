@@ -175,7 +175,7 @@ external objectStoreNames: database => Js.Array.t(string) = "objectStoreNames";
 
 [@platform js]
 [@mel.send]
-external includes: (Js.Array.t(string), string) => bool = "includes";
+external includes: (Js.Array.t(string), string) => bool = "contains";
 
 /* Transaction event handlers */
 [@platform js]

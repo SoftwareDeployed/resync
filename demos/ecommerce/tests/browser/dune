@@ -1,6 +1,6 @@
 (melange.emit
  (package resync)
- (alias store-browser-tests)
+ (alias ecommerce-browser-tests)
  (module_systems (esm "mjs"))
  (target dist)
  (promote
@@ -20,7 +20,8 @@
 (rule
  (targets .build_stamp)
  (deps
-  generated/StoreBrowserTest.mjs)
+  generated/EcommerceBrowserTest.mjs
+  generated/EcommerceTestServer.mjs)
  (action
   (with-stdout-to
    .build_stamp

@@ -24,7 +24,7 @@ type database = unit;
 [@platform js]
 let openDbJs = (name: string) => {
   Js.Promise.make((~resolve, ~reject) => {
-    let req = IndexedDB.openRaw(name, 1);
+    let req = IndexedDB.openRaw(name, 2);
     IndexedDB.setOnsuccess(req, () => resolve(. IndexedDB.resultAsDatabase(req)));
     IndexedDB.setOnerror(req, () =>
       reject(. Failure(
