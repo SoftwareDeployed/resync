@@ -160,6 +160,7 @@ module Synced = {
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onConnectionHandle = hooks.onConnectionHandle;
+      let cache = Input.config.cache;
     };
 
     include StoreOffline.Synced.Make(Schema);
@@ -275,6 +276,7 @@ module Crud = {
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onConnectionHandle = hooks.onConnectionHandle;
+      let cache = Input.config.cache;
     };
 
     include StoreOffline.Synced.Make(Schema);

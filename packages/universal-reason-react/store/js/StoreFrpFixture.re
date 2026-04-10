@@ -261,7 +261,6 @@ module CrudFixture = {
     schema
     |> StoreFrp.Crud.make(~transport, ~strategy=crudStrategy)
     |> StoreFrp.Crud.withCache(`IndexedDB);
-
   module StoreDef =
     StoreFrp.Crud.Build({
       type nonrec state = state;
@@ -428,7 +427,7 @@ module CustomSyncedFixture = {
   let config =
     schema
     |> StoreFrp.Synced.make(~transport, ~strategy=customStrategy)
-    |> StoreFrp.Synced.withCache(`None);
+    |> StoreFrp.Synced.withCache(`IndexedDB);
 
   module StoreDef =
     StoreFrp.Synced.Build({

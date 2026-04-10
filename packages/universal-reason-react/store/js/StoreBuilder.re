@@ -330,6 +330,7 @@ module Runtime = {
     let onOpen: option((~dispatch: action => unit) => unit);
     /* Optional hook called when a connection handle is created. */
     let onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit);
+    let cache: [ | `IndexedDB | `None ];
   };
 
   module MakeSynced = StoreOffline.Synced.Make;
@@ -527,6 +528,7 @@ module Synced = {
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onConnectionHandle = hooks.onConnectionHandle;
+      let cache = `IndexedDB;
     };
 
     include StoreOffline.Synced.Make(Schema);
@@ -602,6 +604,7 @@ module Synced = {
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onConnectionHandle = hooks.onConnectionHandle;
+      let cache = `IndexedDB;
     };
 
     include StoreOffline.Synced.Make(Schema);

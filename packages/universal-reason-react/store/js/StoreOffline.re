@@ -481,15 +481,97 @@ module Synced = {
        code (e.g., video-chat media transport) to access the handle for sending
        raw frames without storing singleton state in RealtimeClient. */
     let onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit);
+    let cache: [ | `IndexedDB | `None ];
   };
 
   module Make = (Schema: Schema) => {
+    /* Synced store runtime follows an explicit eventual-consistency model:
+       1. Hydrate from SSR
+       2. Adopt cached confirmed state if newer than SSR
+       3. Replay resumable optimistic actions from cache
+       4. Establish websocket subscription from latest confirmed timestamp
+       5. Apply incoming patches/snapshots to confirmed state, persist to cache
+       6. Re-optimistically replay pending actions over new confirmed state
+       Optimistic state may temporarily diverge from server-confirmed state,
+       but will converge deterministically as acks and patches arrive. */
+
     type state = Schema.state;
     type action = Schema.action;
     type t = Schema.store;
     type listener_id = StoreEvents.listener_id;
     type store_event = StoreEvents.store_event(action);
     type listener = StoreEvents.listener(action);
+
+    /* Cache adapter instantiation based on Schema.cache selection */
+    module IDBCache = StoreCache.IndexedDB(Schema);
+    module NoOpCache = StoreCache.NoCache(Schema);
+
+    /* Bridge helpers: convert between typed cache adapter records and
+       StoreActionLedger.t (= StoreIndexedDB.action_record) so that
+       StoreRuntimeHelpers continues to work uniformly. */
+    let ledgerRecordOfCache = (record: StoreCache.action_record(action)): StoreActionLedger.t => {
+      id: record.id,
+      scopeKey: record.scopeKey,
+      action: Schema.action_to_json(record.action),
+      status: record.status,
+      enqueuedAt: record.enqueuedAt,
+      retryCount: record.retryCount,
+      error: record.error,
+    };
+
+    let cacheRecordOfLedger = (record: StoreActionLedger.t): StoreCache.action_record(action) => {
+      id: record.id,
+      scopeKey: record.scopeKey,
+      action: Schema.action_of_json(record.action),
+      status: record.status,
+      enqueuedAt: record.enqueuedAt,
+      retryCount: record.retryCount,
+      error: record.error,
+    };
+
+    /* Dispatch cache adapter calls based on Schema.cache selection */
+    let cacheGetState = (~scopeKey, ()) =>
+      switch (Schema.cache) {
+      | `IndexedDB =>
+        IDBCache.getState(~storeName=Schema.storeName, ~scopeKey, ())
+      | `None => NoOpCache.getState(~storeName=Schema.storeName, ~scopeKey, ())
+      };
+
+    let cacheSetState = (record: StoreCache.state_record(state)) =>
+      switch (Schema.cache) {
+      | `IndexedDB =>
+        IDBCache.setState(~storeName=Schema.storeName, record)
+      | `None => NoOpCache.setState(~storeName=Schema.storeName, record)
+      };
+
+    let cacheGetAction = (~id, ()) =>
+      switch (Schema.cache) {
+      | `IndexedDB =>
+        IDBCache.getAction(~storeName=Schema.storeName, ~id, ())
+      | `None => NoOpCache.getAction(~storeName=Schema.storeName, ~id, ())
+      };
+
+    let cachePutAction = (record: StoreCache.action_record(action)) =>
+      switch (Schema.cache) {
+      | `IndexedDB =>
+        IDBCache.putAction(~storeName=Schema.storeName, record)
+      | `None => NoOpCache.putAction(~storeName=Schema.storeName, record)
+      };
+
+    let cacheGetActionsByScope = (~scopeKey, ()) =>
+      switch (Schema.cache) {
+      | `IndexedDB =>
+        IDBCache.getActionsByScope(~storeName=Schema.storeName, ~scopeKey, ())
+      | `None =>
+        NoOpCache.getActionsByScope(~storeName=Schema.storeName, ~scopeKey, ())
+      };
+
+    let cacheDeleteActions = (~ids, ()) =>
+      switch (Schema.cache) {
+      | `IndexedDB =>
+        IDBCache.deleteActions(~storeName=Schema.storeName, ~ids, ())
+      | `None => NoOpCache.deleteActions(~storeName=Schema.storeName, ~ids, ())
+      };
 
     /* Hydration and source state stay outside the controller */
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
@@ -579,14 +661,11 @@ module Synced = {
       switch%platform (Runtime.platform) {
       | Client =>
         let _ =
-          StoreIndexedDB.setState(
-            ~name=Schema.storeName,
-            {
-              scopeKey: Schema.scopeKeyOfState(state),
-              value: Schema.state_to_json(state),
-              timestamp: Schema.timestampOfState(state),
-            },
-          );
+          cacheSetState({
+            scopeKey: Schema.scopeKeyOfState(state),
+            state,
+            timestamp: Schema.timestampOfState(state),
+          });
         if (broadcast) {
           if (suppressPublishRef.contents) {
             suppressPublishRef := false;
@@ -607,7 +686,10 @@ module Synced = {
           let confirmedTimestamp = Schema.timestampOfState(confirmedState);
           let _ =
             Js.Promise.then_(
-              records => {
+              cacheRecords => {
+                let records =
+                  cacheRecords
+                  ->Js.Array.map(~f=ledgerRecordOfCache);
                 let idsToDelete =
                   StoreRuntimeHelpers.getPendingActionIds(
                     ~confirmedTimestamp,
@@ -629,17 +711,12 @@ module Synced = {
                 );
                 if (Array.length(idsToDelete) > 0) {
                   let _ =
-                    StoreActionLedger.deleteByIds(
-                      ~storeName=Schema.storeName,
-                      ~ids=idsToDelete,
-                      (),
-                    );
+                    cacheDeleteActions(~ids=idsToDelete, ());
                   ();
                 };
                 Js.Promise.resolve();
               },
-              StoreActionLedger.getByScope(
-                ~storeName=Schema.storeName,
+              cacheGetActionsByScope(
                 ~scopeKey=Schema.scopeKeyOfState(confirmedState),
                 (),
               ),
@@ -681,7 +758,8 @@ module Synced = {
             status: StoreActionLedger.statusToString(Pending),
           };
         };
-      let _ = StoreActionLedger.put(~storeName=Schema.storeName, nextRecord);
+      let _ =
+        cachePutAction(cacheRecordOfLedger(nextRecord));
       if (sent) {
         Controller.scheduleAckTimeout(
           nextRecord.id,
@@ -695,9 +773,9 @@ module Synced = {
       | Client =>
         let _ =
           Js.Promise.then_(
-            current =>
-              switch (current) {
-              | Some(record: StoreActionLedger.t) =>
+            cacheRecord =>
+              switch (cacheRecord) {
+              | Some(record: StoreCache.action_record(action)) =>
                 switch (StoreActionLedger.statusOfString(record.status)) {
                 | Acked
                 | Failed => Js.Promise.resolve()
@@ -705,6 +783,7 @@ module Synced = {
                 | Syncing =>
                   if (record.retryCount >= StoreActionLedger.maxRetries) {
                     let message = "Timed out waiting for acknowledgement";
+                    let ledgerRecord = ledgerRecordOfCache(record);
                     Js.Promise.then_(
                       _ => {
                         refreshOptimisticState();
@@ -714,37 +793,37 @@ module Synced = {
                         emitEvent(
                           StoreEvents.ActionFailed({
                             actionId,
-                            action: Some(Schema.action_of_json(record.action)),
+                            action: Some(ledgerRecord.action |> Schema.action_of_json),
                             message,
                           }),
                         );
                         Schema.onActionError(message);
                         Js.Promise.resolve();
                       },
-                      StoreActionLedger.updateStatus(
-                        ~storeName=Schema.storeName,
-                        ~id=actionId,
-                        ~status=Failed,
-                        ~error=message,
-                        (),
-                      ),
+                      cachePutAction({
+                        ...record,
+                        status: StoreActionLedger.statusToString(Failed),
+                        error: Some(message),
+                      }),
                     );
                   } else {
                     let nextRecord = {
                       ...record,
                       retryCount: record.retryCount + 1,
                     };
-                    sendQueuedRecord(nextRecord);
-                    Js.Promise.resolve();
+                    let nextLedger = ledgerRecordOfCache(nextRecord);
+                    Js.Promise.then_(
+                      _ => {
+                        sendQueuedRecord(nextLedger);
+                        Js.Promise.resolve();
+                      },
+                      cachePutAction(nextRecord),
+                    );
                   }
                 }
               | None => Js.Promise.resolve()
               },
-            StoreActionLedger.get(
-              ~storeName=Schema.storeName,
-              ~id=actionId,
-              (),
-            ),
+            cacheGetAction(~id=actionId, ()),
           );
         ();
       | Server => ()
@@ -758,25 +837,26 @@ module Synced = {
         let currentState = actions.get();
         let nextState = Schema.reduce(~state=currentState, ~action);
         let actionId = UUID.make();
-        let record =
+        let ledgerRecord =
           StoreActionLedger.make(
             ~id=actionId,
             ~scopeKey=Schema.scopeKeyOfState(nextState),
             ~action=Schema.action_to_json(action),
             (),
           );
+        let cacheRecord = cacheRecordOfLedger(ledgerRecord);
         actions.set(nextState);
         let _ =
           Js.Promise.then_(
             _ => {
-              broadcastOptimisticAction(record);
-              sendQueuedRecord(record);
+              broadcastOptimisticAction(ledgerRecord);
+              sendQueuedRecord(ledgerRecord);
               Js.Promise.resolve();
             },
-            StoreActionLedger.put(~storeName=Schema.storeName, record),
+            cachePutAction(cacheRecord),
           )
           |> Js.Promise.catch(_ => {
-               sendQueuedRecord(record);
+               sendQueuedRecord(ledgerRecord);
                Js.Promise.resolve();
              });
         ();
@@ -804,7 +884,10 @@ module Synced = {
       | Client =>
         let _ =
           Js.Promise.then_(
-            records => {
+            cacheRecords => {
+              let records =
+                cacheRecords
+                ->Js.Array.map(~f=ledgerRecordOfCache);
               StoreActionLedger.sortByEnqueuedAt(records)
               ->Js.Array.forEach(~f=(record: StoreActionLedger.t) =>
                   switch (StoreActionLedger.statusOfString(record.status)) {
@@ -816,8 +899,7 @@ module Synced = {
                 );
               Js.Promise.resolve();
             },
-            StoreActionLedger.getByScope(
-              ~storeName=Schema.storeName,
+            cacheGetActionsByScope(
               ~scopeKey=Schema.scopeKeyOfState(confirmedStateRef.contents),
               (),
             ),
@@ -832,7 +914,18 @@ module Synced = {
       | "ok" =>
         let _ =
           Js.Promise.then_(
-            record => {
+            cacheRecord => {
+              let ledgerRecord =
+                Option.map(ledgerRecordOfCache, cacheRecord);
+              let persistPromise =
+                switch (cacheRecord) {
+                | Some(record) =>
+                  cachePutAction({
+                    ...record,
+                    status: StoreActionLedger.statusToString(Acked),
+                  })
+                | None => Js.Promise.resolve()
+                };
               Js.Promise.then_(
                 _ => {
                   /* Ack ordering contract: the action ledger status is updated
@@ -840,10 +933,10 @@ module Synced = {
                   emitEvent(
                     StoreEvents.ActionAcked({
                       actionId,
-                      action: actionOptionOfRecord(record),
+                      action: actionOptionOfRecord(ledgerRecord),
                     }),
                   );
-                  switch (record) {
+                  switch (ledgerRecord) {
                   | Some(r: StoreActionLedger.t) =>
                     switch (Schema.onActionAck) {
                     | Some(onActionAck) =>
@@ -858,19 +951,10 @@ module Synced = {
                   };
                   Js.Promise.resolve();
                 },
-                StoreActionLedger.updateStatus(
-                  ~storeName=Schema.storeName,
-                  ~id=actionId,
-                  ~status=Acked,
-                  (),
-                ),
+                persistPromise,
               );
             },
-            StoreActionLedger.get(
-              ~storeName=Schema.storeName,
-              ~id=actionId,
-              (),
-            ),
+            cacheGetAction(~id=actionId, ()),
           );
         ();
       | "error" =>
@@ -881,7 +965,19 @@ module Synced = {
           };
         let _ =
           Js.Promise.then_(
-            record => {
+            cacheRecord => {
+              let ledgerRecord =
+                Option.map(ledgerRecordOfCache, cacheRecord);
+              let persistPromise =
+                switch (cacheRecord) {
+                | Some(record) =>
+                  cachePutAction({
+                    ...record,
+                    status: StoreActionLedger.statusToString(Failed),
+                    error: Some(message),
+                  })
+                | None => Js.Promise.resolve()
+                };
               Js.Promise.then_(
                 _ => {
                   refreshOptimisticState();
@@ -890,27 +986,17 @@ module Synced = {
                   emitEvent(
                     StoreEvents.ActionFailed({
                       actionId,
-                      action: actionOptionOfRecord(record),
+                      action: actionOptionOfRecord(ledgerRecord),
                       message,
                     }),
                   );
                   Schema.onActionError(message);
                   Js.Promise.resolve();
                 },
-                StoreActionLedger.updateStatus(
-                  ~storeName=Schema.storeName,
-                  ~id=actionId,
-                  ~status=Failed,
-                  ~error?,
-                  (),
-                ),
+                persistPromise,
               );
             },
-            StoreActionLedger.get(
-              ~storeName=Schema.storeName,
-              ~id=actionId,
-              (),
-            ),
+            cacheGetAction(~id=actionId, ()),
           );
         ();
       | _ => ()
@@ -1087,11 +1173,10 @@ module Synced = {
                 });
                 let _ =
                   Js.Promise.then_(
-                    persistedState => {
+                    (persistedState: option(StoreCache.state_record(state))) => {
                       let persisted =
                         switch (persistedState) {
-                        | Some(record: StoreIndexedDB.state_record) =>
-                          Some(Schema.state_of_json(record.value))
+                        | Some(record) => Some(record.state)
                         | None => None
                         };
                       let baseState =
@@ -1107,8 +1192,7 @@ module Synced = {
                       startSubscription(baseState);
                       Js.Promise.resolve();
                     },
-                    StoreIndexedDB.getState(
-                      ~name=Schema.storeName,
+                    cacheGetState(
                       ~scopeKey=Schema.scopeKeyOfState(initialState),
                       (),
                     ),
