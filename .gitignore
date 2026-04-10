@@ -1,3 +1,8 @@
+**/tests/*/generated
+**/test-browser/*/generated
+**/generated/*.mjs
+**/generated/*.js
+**/generated/*.html
 .sisyphus
 demos/todo-multiplayer-docker
 .playwright-mcp
@@ -7,8 +12,6 @@ dune.lock
 dev-tools.locks
 bin
 _build*
-demos/todo/tests/browser/generated/
-packages/universal-reason-react/*/test-browser/generated/
 lib
 executor/lib
 executor-ui/lib
