@@ -138,7 +138,7 @@ module StoreDef =
           },
         encodeSubscription: RealtimeSubscription.encode,
         eventUrl: Constants.event_url,
-        baseUrl: RealtimeClient.Socket.defaultBaseUrl,
+        baseUrl: Constants.base_url,
       },
       stateElementId: Some("initial-store"),
       hooks: None,

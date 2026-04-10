@@ -1,16 +1,19 @@
 (library
  (name universal_reason_react_store_js)
  (public_name resync.universal_reason_react_store_js)
- (modules
-  BroadcastChannel
-  Hydration
-  RealtimeClient
-  StoreBuilder
+  (modules
+   BroadcastChannel
+   Hydration
+   RealtimeClient
+   Store
+   StoreBuilder
   StoreActionLedger
+  StoreFrp
   StoreComputed
   StoreCrud
-  StoreEvents
-  StoreIndexedDB
+   StoreEvents
+   StoreFrpFixture
+   StoreIndexedDB
   StoreJson
   StoreOffline
   StorePatch

@@ -38,8 +38,6 @@ let pingFrameString = () => "";
 
 [@platform native]
 module Socket = {
-  let defaultBaseUrl = "http://localhost:8899";
-
   type websocket;
 
   type websocket_state = {
@@ -127,8 +125,6 @@ module Socket = {
 
 [@platform js]
 module Socket = {
-  let defaultBaseUrl = "http://localhost:8899";
-
   type websocket;
 
   type websocket_state = {
