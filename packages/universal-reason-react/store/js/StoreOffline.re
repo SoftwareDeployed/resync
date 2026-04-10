@@ -115,16 +115,18 @@ module Local = {
       actions.set(nextState);
     };
 
-    let persistState = (state: state) =>
+    let persistState = (~broadcast: bool=true, state: state) =>
       switch%platform (Runtime.platform) {
       | Client =>
         writeStateRecord(state);
-        if (suppressPublishRef.contents) {
-          suppressPublishRef := false;
-        } else {
-          broadcastState(state);
+        if (broadcast) {
+          if (suppressPublishRef.contents) {
+            suppressPublishRef := false;
+          } else {
+            broadcastState(state);
+          };
         };
-        ();
+        ()
       | Server => ()
       };
 
@@ -562,7 +564,7 @@ module Synced = {
       | Server => ()
       };
 
-    let persistConfirmedState = (state: state) =>
+    let persistConfirmedState = (~broadcast: bool=true, state: state) =>
       switch%platform (Runtime.platform) {
       | Client =>
         let _ =
@@ -574,10 +576,12 @@ module Synced = {
               timestamp: Schema.timestampOfState(state),
             },
           );
-        if (suppressPublishRef.contents) {
-          suppressPublishRef := false;
-        } else {
-          broadcastConfirmedState(state);
+        if (broadcast) {
+          if (suppressPublishRef.contents) {
+            suppressPublishRef := false;
+          } else {
+            broadcastConfirmedState(state);
+          };
         };
         ();
       | Server => ()
@@ -909,7 +913,7 @@ module Synced = {
          snapshot transport frames are intentionally not part of the public
          event surface. */
       confirmedStateRef := snapshotState;
-      persistConfirmedState(snapshotState);
+      persistConfirmedState(~broadcast=true, snapshotState);
       refreshOptimisticState();
     };
 
@@ -925,7 +929,7 @@ module Synced = {
            replay complete before any patch-adjacent events fire. Raw patch
            frames stay internal to the synced runtime. */
         confirmedStateRef := nextConfirmedState;
-        persistConfirmedState(nextConfirmedState);
+        persistConfirmedState(~broadcast=true, nextConfirmedState);
         refreshOptimisticState();
       | None => ()
       };
@@ -1086,7 +1090,7 @@ module Synced = {
                           ~timestampOfState=Schema.timestampOfState,
                         );
                       confirmedStateRef := baseState;
-                      persistConfirmedState(baseState);
+                      persistConfirmedState(~broadcast=false, baseState);
                       actions.set(baseState);
                       refreshOptimisticState();
                       startSubscription(baseState);

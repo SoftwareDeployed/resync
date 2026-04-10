@@ -1,15 +1,16 @@
 (executable
  (name store_runtime_test)
- (modules
-  store_runtime_test
-  test_framework
-  store_events_test
-  store_action_ledger_test
-  store_events_behavior_test
-  store_runtime_behavior_test
-  store_crud_test
-  store_patch_test
-  store_source_test)
+(modules
+   store_runtime_test
+   test_framework
+   store_events_test
+   store_action_ledger_test
+   store_events_behavior_test
+   store_runtime_behavior_test
+   store_crud_test
+   store_patch_test
+   store_source_test
+   store_cache_test)
  (libraries
   melange-json-native
   universal_reason_react_store_native

@@ -6,8 +6,9 @@
    Hydration
    RealtimeClient
    StoreBuilder
-   StoreActionLedger
-   StoreComputed
+    StoreActionLedger
+    StoreCache
+    StoreComputed
    StoreControllerHelpers
    StoreCrud
    StoreEvents

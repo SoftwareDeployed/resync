@@ -7,15 +7,16 @@
    RealtimeClient
    Store
    StoreBuilder
-  StoreActionLedger
-  StoreFrp
-  StoreComputed
-  StoreCrud
-   StoreEvents
-   StoreFrpFixture
-   StoreIndexedDB
-  StoreJson
-   StoreOffline
+    StoreActionLedger
+   StoreFrp
+   StoreCache
+   StoreComputed
+   StoreCrud
+    StoreEvents
+    StoreFrpFixture
+    StoreIndexedDB
+   StoreJson
+    StoreOffline
    StorePatch
    StoreRuntimeHelpers
   StoreSignal

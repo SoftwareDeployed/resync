@@ -6,4 +6,5 @@ let () =
   Store_crud_test.init ();
   Store_patch_test.init ();
   Store_source_test.init ();
+  Store_cache_test.init ();
   Test_framework.run_all () |> exit
