@@ -82,7 +82,7 @@ module LocalFixture = {
     stateElementId: None,
   };
 
-  let config = schema |> StoreFrp.Local.make |> StoreFrp.Local.withCache(`None);
+  let config = schema |> StoreFrp.Local.make |> StoreFrp.Local.withCache(`IndexedDB);
 
   module StoreDef =
     StoreFrp.Local.Build({

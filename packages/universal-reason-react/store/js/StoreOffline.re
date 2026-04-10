@@ -16,6 +16,7 @@ module Local = {
     let action_to_json: action => StoreJson.json;
     let makeStore:
       (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
+    let cache: [ | `IndexedDB | `None ];
   };
 
   module Make = (Schema: Schema) => {
@@ -27,6 +28,10 @@ module Local = {
     type listener = StoreEvents.listener(action);
 
     type broadcast_channel = BroadcastChannel.t;
+
+    /* Cache adapter instantiation based on Schema.cache selection */
+    module IDBCache = StoreCache.IndexedDB(Schema);
+    module NoOpCache = StoreCache.NoCache(Schema);
 
     [@platform js]
     let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
@@ -65,16 +70,20 @@ module Local = {
     let writeStateRecord = (state: state) =>
       switch%platform (Runtime.platform) {
       | Client =>
-        let _ =
-          StoreIndexedDB.setState(
-            ~name=Schema.storeName,
-            {
-              scopeKey: Schema.scopeKeyOfState(state),
-              value: Schema.state_to_json(state),
-              timestamp: Schema.timestampOfState(state),
-            },
-          );
-        ();
+        switch (Schema.cache) {
+        | `IndexedDB =>
+          let _ =
+            IDBCache.setState(
+              ~storeName=Schema.storeName,
+              {
+                scopeKey: Schema.scopeKeyOfState(state),
+                state,
+                timestamp: Schema.timestampOfState(state),
+              },
+            );
+          ()
+        | `None => ()
+        }
       | Server => ()
       };
 
@@ -135,28 +144,30 @@ module Local = {
       | Client =>
         let currentState = actions.get();
         let _ =
-          Js.Promise.then_(
-            persistedState => {
-              switch (persistedState) {
-              | Some(record: StoreIndexedDB.state_record) =>
-                if (record.timestamp > Schema.timestampOfState(actions.get())) {
-                  setExternalState(
-                    ~actions,
-                    Schema.state_of_json(record.value),
-                  );
-                } else {
-                  writeStateRecord(actions.get());
-                }
-              | None => writeStateRecord(actions.get())
-              };
-              Js.Promise.resolve();
-            },
-            StoreIndexedDB.getState(
-              ~name=Schema.storeName,
-              ~scopeKey=Schema.scopeKeyOfState(currentState),
-              (),
-            ),
-          );
+          switch (Schema.cache) {
+          | `IndexedDB =>
+            Js.Promise.then_(
+              (persistedState: option(StoreCache.state_record(state))) => {
+                switch (persistedState) {
+                | Some(record) =>
+                  if (record.timestamp
+                      > Schema.timestampOfState(actions.get())) {
+                    setExternalState(~actions, record.state);
+                  } else {
+                    writeStateRecord(actions.get());
+                  }
+                | None => writeStateRecord(actions.get())
+                };
+                Js.Promise.resolve();
+              },
+              IDBCache.getState(
+                ~storeName=Schema.storeName,
+                ~scopeKey=Schema.scopeKeyOfState(currentState),
+                (),
+              ),
+            )
+          | `None => Js.Promise.resolve()
+          };
         ();
       | Server => ()
       };

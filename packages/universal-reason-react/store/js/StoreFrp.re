@@ -58,6 +58,7 @@ module Local = {
       let action_of_json = Input.config.schema.action_of_json;
       let action_to_json = Input.config.schema.action_to_json;
       let makeStore = Input.config.schema.makeStore;
+      let cache = Input.config.cache;
     };
 
     include StoreOffline.Local.Make(Schema);

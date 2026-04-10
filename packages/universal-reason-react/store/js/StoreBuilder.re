@@ -287,6 +287,7 @@ module Runtime = {
     let action_to_json: action => StoreJson.json;
     let makeStore:
       (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
+    let cache: [ | `IndexedDB | `None ];
   };
 
   module Make = StoreOffline.Local.Make;
@@ -379,6 +380,7 @@ module Local = {
       let action_of_json = Input.config.action_of_json;
       let action_to_json = Input.config.action_to_json;
       let makeStore = Input.config.makeStore;
+      let cache = `IndexedDB;
     };
 
     include StoreOffline.Local.Make(Schema);
