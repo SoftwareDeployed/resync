@@ -184,4 +184,141 @@ let init () =
         ~records 
       in
       if Array.length result >= 0 then Passed else Failed "Should return array");
+  );
+
+  describe "rejectStaleCacheResult" (fun () ->
+    test "returns true when cached timestamp is strictly older" (fun () ->
+      let current = (100, 2000.0) in
+      let cached = (50, 1000.0) in
+      let result = StoreRuntimeHelpers.rejectStaleCacheResult
+        ~currentConfirmedState:current
+        ~cachedState:cached
+        ~timestampOfState:(fun (_, ts) -> ts)
+      in
+      assert_true ~message:"Cached older than confirmed should be stale" result);
+
+    test "returns true when timestamps are equal" (fun () ->
+      let current = (100, 1500.0) in
+      let cached = (200, 1500.0) in
+      let result = StoreRuntimeHelpers.rejectStaleCacheResult
+        ~currentConfirmedState:current
+        ~cachedState:cached
+        ~timestampOfState:(fun (_, ts) -> ts)
+      in
+      assert_true ~message:"Equal timestamps should be stale" result);
+
+    test "returns false when cached timestamp is newer" (fun () ->
+      let current = (100, 1000.0) in
+      let cached = (200, 2000.0) in
+      let result = StoreRuntimeHelpers.rejectStaleCacheResult
+        ~currentConfirmedState:current
+        ~cachedState:cached
+        ~timestampOfState:(fun (_, ts) -> ts)
+      in
+      assert_false ~message:"Newer cached should not be stale" result);
+  );
+
+  describe "replayActions FIFO with mixed statuses" (fun () ->
+    test "applies Pending and Syncing records in FIFO order across interleaved statuses" (fun () ->
+      let records = [|
+        make_record ~id:"r3" ~status:"acked"   ~enqueued_at:3000.0;
+        make_record ~id:"r1" ~status:"pending" ~enqueued_at:1000.0;
+        make_record ~id:"r5" ~status:"failed"  ~enqueued_at:5000.0;
+        make_record ~id:"r2" ~status:"syncing" ~enqueued_at:2000.0;
+        make_record ~id:"r4" ~status:"pending" ~enqueued_at:4000.0;
+      |] in
+      let result = StoreRuntimeHelpers.replayActions
+        ~reduce:(fun acc (record : StoreActionLedger.t) ->
+          acc ^ ":" ^ record.id)
+        ~confirmed:"start"
+        ~records
+      in
+      let expected = "start:r1:r2:r4" in
+      if result = expected then Passed
+      else Failed (Printf.sprintf "Expected '%s' but got '%s'" expected result));
+
+    test "replayActions is deterministic given same input" (fun () ->
+      let records = [|
+        make_record ~id:"a" ~status:"pending" ~enqueued_at:100.0;
+        make_record ~id:"b" ~status:"syncing" ~enqueued_at:200.0;
+        make_record ~id:"c" ~status:"pending" ~enqueued_at:300.0;
+      |] in
+      let run () =
+        StoreRuntimeHelpers.replayActions
+          ~reduce:(fun acc (r : StoreActionLedger.t) -> acc + Char.code r.id.[0])
+          ~confirmed:0
+          ~records
+      in
+      let r1 = run () in
+      let r2 = run () in
+      if r1 = r2 then Passed
+      else Failed (Printf.sprintf "Non-deterministic: %d vs %d" r1 r2));
+  );
+
+  describe "Seeded deterministic randomized replay" (fun () ->
+    (* LCG PRNG: X_{n+1} = (a * X_n + c) mod m, parameters from glibc *)
+    let lcg_state = ref 42 in
+    let next_random () =
+      let next = (!lcg_state * 1103515245 + 12345) land 0x7FFFFFFF in
+      lcg_state := next;
+      next
+    in
+
+    test "stable replay order across seeded shuffled mixed-status records" (fun () ->
+      let statuses = [| "pending"; "syncing"; "acked"; "failed" |] in
+      let records = Array.init 20 (fun i ->
+        let rng = next_random () in
+        let status_idx = rng mod 4 in
+        let enqueued = float_of_int ((rng mod 10000) + 1000) in
+        make_record
+          ~id:(Printf.sprintf "rec-%02d" i)
+          ~status:statuses.(status_idx)
+          ~enqueued_at:enqueued
+      ) in
+
+      let reduce_fn acc (r : StoreActionLedger.t) =
+        let c = r.id.[4] in
+        acc ^ string_of_int (Char.code c - 48)
+      in
+      let r1 = StoreRuntimeHelpers.replayActions
+        ~reduce:reduce_fn ~confirmed:"" ~records
+      in
+      lcg_state := 42;
+      let records2 = Array.init 20 (fun i ->
+        let rng = next_random () in
+        let status_idx = rng mod 4 in
+        let enqueued = float_of_int ((rng mod 10000) + 1000) in
+        make_record
+          ~id:(Printf.sprintf "rec-%02d" i)
+          ~status:statuses.(status_idx)
+          ~enqueued_at:enqueued
+      ) in
+      let r2 = StoreRuntimeHelpers.replayActions
+        ~reduce:reduce_fn ~confirmed:"" ~records:records2
+      in
+      if r1 = r2 then Passed
+      else Failed (Printf.sprintf
+        "Non-deterministic replay: '%s' vs '%s'" r1 r2));
+
+    test "seeded replay only processes resumable records" (fun () ->
+      lcg_state := 999;
+      let statuses = [| "pending"; "syncing"; "acked"; "failed" |] in
+      let records = Array.init 15 (fun i ->
+        let rng = next_random () in
+        let status_idx = rng mod 4 in
+        let enqueued = float_of_int (i * 100 + 100) in
+        make_record
+          ~id:(Printf.sprintf "s-%02d" i)
+          ~status:statuses.(status_idx)
+          ~enqueued_at:enqueued
+      ) in
+      let resumable = StoreRuntimeHelpers.filterResumableRecords records in
+      let replayed = StoreRuntimeHelpers.replayActions
+        ~reduce:(fun acc _ -> acc + 1)
+        ~confirmed:0
+        ~records:(Array.of_list resumable)
+      in
+      if replayed = List.length resumable then Passed
+      else Failed (Printf.sprintf
+        "Expected %d replayed but got %d" (List.length resumable) replayed));
   )

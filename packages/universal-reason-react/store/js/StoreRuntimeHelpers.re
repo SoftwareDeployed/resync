@@ -30,6 +30,9 @@ let selectHydrationBase = (~initialState, ~persistedState, ~timestampOfState) =>
   };
 };
 
+let rejectStaleCacheResult = (~currentConfirmedState, ~cachedState, ~timestampOfState) =>
+  timestampOfState(cachedState) <= timestampOfState(currentConfirmedState);
+
 let filterResumableRecords = (records) => {
   records
   |> Array.to_list

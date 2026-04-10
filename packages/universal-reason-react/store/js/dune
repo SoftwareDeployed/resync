@@ -15,8 +15,9 @@
    StoreFrpFixture
    StoreIndexedDB
   StoreJson
-  StoreOffline
-  StorePatch
+   StoreOffline
+   StorePatch
+   StoreRuntimeHelpers
   StoreSignal
   StoreSource
   Tilia

@@ -583,25 +583,6 @@ module Synced = {
       | Server => ()
       };
 
-    let replayActions = (~confirmed: state, ~records) => {
-      let sorted = StoreActionLedger.sortByEnqueuedAt(records);
-      let length = Array.length(sorted);
-      let rec loop = (index, current) =>
-        if (index >= length) {
-          current;
-        } else {
-          let record: StoreActionLedger.t = sorted[index];
-          loop(
-            index + 1,
-            Schema.reduce(
-              ~state=current,
-              ~action=Schema.action_of_json(record.action),
-            ),
-          );
-        };
-      loop(0, confirmed);
-    };
-
     let rec refreshOptimisticState = () =>
       switch%platform (Runtime.platform) {
       | Client =>
@@ -613,30 +594,22 @@ module Synced = {
             Js.Promise.then_(
               records => {
                 let idsToDelete =
-                  records
-                  ->Js.Array.filter(~f=(record: StoreActionLedger.t) =>
-                      switch (StoreActionLedger.statusOfString(record.status)) {
-                      | Acked =>
-                        UUID.timestamp(record.id) <= confirmedTimestamp
-                      | _ => false
-                      }
-                    )
-                  ->Js.Array.map(~f=(record: StoreActionLedger.t) =>
-                      record.id
-                    );
-                let remaining =
-                  records->Js.Array.filter(~f=(record: StoreActionLedger.t) =>
-                    switch (StoreActionLedger.statusOfString(record.status)) {
-                    | Pending
-                    | Syncing => true
-                    | Acked => UUID.timestamp(record.id) > confirmedTimestamp
-                    | Failed => false
-                    }
+                  StoreRuntimeHelpers.getPendingActionIds(
+                    ~confirmedTimestamp,
+                    ~records,
                   );
+                let remaining = Array.of_list(
+                  StoreRuntimeHelpers.filterResumableRecords(records),
+                );
                 actions.set(
-                  replayActions(
+                  StoreRuntimeHelpers.replayActions(
                     ~confirmed=confirmedState,
                     ~records=remaining,
+                    ~reduce=(state, record) =>
+                      Schema.reduce(
+                        ~state,
+                        ~action=Schema.action_of_json(record.action),
+                      ),
                   ),
                 );
                 if (Array.length(idsToDelete) > 0) {
@@ -1100,17 +1073,18 @@ module Synced = {
                 let _ =
                   Js.Promise.then_(
                     persistedState => {
-                      let baseState =
+                      let persisted =
                         switch (persistedState) {
                         | Some(record: StoreIndexedDB.state_record) =>
-                          if (record.timestamp
-                              > Schema.timestampOfState(initialState)) {
-                            Schema.state_of_json(record.value);
-                          } else {
-                            initialState;
-                          }
-                        | None => initialState
+                          Some(Schema.state_of_json(record.value))
+                        | None => None
                         };
+                      let baseState =
+                        StoreRuntimeHelpers.selectHydrationBase(
+                          ~initialState,
+                          ~persistedState=persisted,
+                          ~timestampOfState=Schema.timestampOfState,
+                        );
                       confirmedStateRef := baseState;
                       persistConfirmedState(baseState);
                       actions.set(baseState);
