@@ -212,6 +212,103 @@ let runMediaToggleScenario = (~browser, ~baseUrl) => {
      );
 };
 
+let runPeerTextChatScenario = (~browser, ~baseUrl) => {
+  Js.log("Running peer text chat scenario...");
+  let roomPageARef = ref(None);
+
+  newTestPage(browser)
+  |> then_(pageA => {
+       roomPageARef := Some(pageA);
+       pageA
+       ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ => pageA->Playwright.waitForSelector("#home-page"))
+       |> then_(_ => pageA->Playwright.click("#create-room-button"))
+       |> then_(_ => pageA->Playwright.waitForSelector("#room-page"))
+       |> then_(_ => waitForSelectorText(~page=pageA, ~selector="#room-peer-count", ~expected="Peers: 1", ~label="Text chat creator joined", ~attemptsLeft=50))
+       |> then_(_ => readRoomId(pageA));
+     })
+  |> then_(roomId =>
+       newTestPage(browser)
+       |> then_(pageB =>
+            requirePage("creator", roomPageARef.contents)
+            |> then_(pageA =>
+                 pageB
+                 ->Playwright.goto(baseUrl ++ "/")
+                 |> then_(_ => pageB->Playwright.waitForSelector("#home-page"))
+                 |> then_(_ => pageB->Playwright.fill("#join-room-input", roomId))
+                 |> then_(_ => pageB->Playwright.click("#join-room-button"))
+                 |> then_(_ => pageB->Playwright.waitForSelector("#room-page"))
+                 |> then_(_ => waitForSelectorText(~page=pageB, ~selector="#room-peer-count", ~expected="Peers: 2", ~label="Text chat joiner connected", ~attemptsLeft=50))
+                 |> then_(_ => waitForSelectorText(~page=pageA, ~selector="#room-peer-count", ~expected="Peers: 2", ~label="Text chat creator sees peer", ~attemptsLeft=50))
+                 |> then_(_ => pageA->Playwright.fill("#chat-input", "Hello peer"))
+                 |> then_(_ => pageA->Playwright.click("#chat-send"))
+                 |> then_(_ => waitForSelectorText(~page=pageB, ~selector="body", ~expected="Hello peer", ~label="Peer receives chat message", ~attemptsLeft=50))
+                 |> then_(_ => waitForSelectorText(~page=pageA, ~selector="body", ~expected="Hello peer", ~label="Sender sees own chat message", ~attemptsLeft=50))
+               )
+           )
+     );
+};
+
+let runChatIsolationScenario = (~browser, ~baseUrl) => {
+  Js.log("Running chat message isolation scenario...");
+  let roomPageARef = ref(None);
+  let roomPageBRef = ref(None);
+
+  newTestPage(browser)
+  |> then_(pageA => {
+       roomPageARef := Some(pageA);
+       pageA
+       ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ => pageA->Playwright.waitForSelector("#home-page"))
+       |> then_(_ => pageA->Playwright.click("#create-room-button"))
+       |> then_(_ => pageA->Playwright.waitForSelector("#room-page"))
+       |> then_(_ => waitForSelectorText(~page=pageA, ~selector="#room-peer-count", ~expected="Peers: 1", ~label="Isolation room 1 creator joined", ~attemptsLeft=50))
+       |> then_(_ => readRoomId(pageA));
+     })
+  |> then_(room1Id =>
+       newTestPage(browser)
+       |> then_(pageB =>
+            requirePage("creator", roomPageARef.contents)
+            |> then_(pageA =>
+                 pageB
+                 ->Playwright.goto(baseUrl ++ "/")
+                 |> then_(_ => pageB->Playwright.waitForSelector("#home-page"))
+                 |> then_(_ => pageB->Playwright.fill("#join-room-input", room1Id))
+                 |> then_(_ => pageB->Playwright.click("#join-room-button"))
+                 |> then_(_ => pageB->Playwright.waitForSelector("#room-page"))
+                 |> then_(_ => waitForSelectorText(~page=pageB, ~selector="#room-peer-count", ~expected="Peers: 2", ~label="Isolation joiner in room 1", ~attemptsLeft=50))
+                 |> then_(_ => waitForSelectorText(~page=pageA, ~selector="#room-peer-count", ~expected="Peers: 2", ~label="Isolation creator sees peer in room 1", ~attemptsLeft=50))
+                 |> then_(_ => {
+                      roomPageBRef := Some(pageB);
+                      resolve(room1Id);
+                    })
+               )
+           )
+     )
+  |> then_(_room1Id =>
+       newTestPage(browser)
+       |> then_(pageC =>
+            pageC
+            ->Playwright.goto(baseUrl ++ "/")
+            |> then_(_ => pageC->Playwright.waitForSelector("#home-page"))
+            |> then_(_ => pageC->Playwright.click("#create-room-button"))
+            |> then_(_ => pageC->Playwright.waitForSelector("#room-page"))
+            |> then_(_ => waitForSelectorText(~page=pageC, ~selector="#room-peer-count", ~expected="Peers: 1", ~label="Isolation room 2 created", ~attemptsLeft=50))
+            |> then_(_ => requirePage("room1A", roomPageARef.contents))
+            |> then_(pageA =>
+                 requirePage("room1B", roomPageBRef.contents)
+                 |> then_(pageB =>
+                      pageA
+                      ->Playwright.fill("#chat-input", "Secret room1")
+                      |> then_(_ => pageA->Playwright.click("#chat-send"))
+                      |> then_(_ => waitForSelectorText(~page=pageB, ~selector="body", ~expected="Secret room1", ~label="Room 1 peer sees message", ~attemptsLeft=50))
+                      |> then_(_ => waitForBodyTextAbsence(~page=pageC, ~unexpected="Secret room1", ~label="Room 2 does not see room 1 message", ~attemptsLeft=30))
+                    )
+               )
+          )
+     );
+};
+
 let cleanup = (~browser, ~server) => {
   let closeBrowser =
     switch (browser) {
@@ -241,10 +338,12 @@ let run = () => {
        browserRef := Some(browser);
        switch (serverRef.contents) {
        | Some(server) =>
-         runRoomCreationScenario(~browser, ~baseUrl=server.baseUrl)
-         |> then_(_ => runJoinLeaveScenario(~browser, ~baseUrl=server.baseUrl))
-         |> then_(_ => runMediaToggleScenario(~browser, ~baseUrl=server.baseUrl))
-        | None => reject(BrowserTestUtils.makeError("server was not initialized"))
+          runRoomCreationScenario(~browser, ~baseUrl=server.baseUrl)
+          |> then_(_ => runJoinLeaveScenario(~browser, ~baseUrl=server.baseUrl))
+          |> then_(_ => runMediaToggleScenario(~browser, ~baseUrl=server.baseUrl))
+          |> then_(_ => runPeerTextChatScenario(~browser, ~baseUrl=server.baseUrl))
+          |> then_(_ => runChatIsolationScenario(~browser, ~baseUrl=server.baseUrl))
+         | None => reject(BrowserTestUtils.makeError("server was not initialized"))
        };
      })
   |> then_(result =>

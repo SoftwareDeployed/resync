@@ -1,0 +1,15 @@
+(library
+ (name reason_streamdown_js)
+ (public_name resync.reason_streamdown_js)
+ (modules Streamdown)
+ (wrapped false)
+ (libraries reason-react melange.js)
+ (modes melange)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -melange
+   server-reason-react.browser_ppx
+   -js
+   melange.ppx
+   reason-react-ppx)))

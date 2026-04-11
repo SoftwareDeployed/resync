@@ -1,0 +1,45 @@
+(executable
+ (flags :standard -w -26-27)
+ (name server)
+ (public_name llm_chat_server)
+  (libraries
+    caqti-driver-postgresql
+    llm_chat_native
+    resync.realtime_schema
+    dream
+    melange-json-native
+    reason_realtime_dream_middleware
+    reason_realtime_pgnotify_adapter
+    resync.reason_realtime_stream
+    resync.reason_streamdown
+    postgresql
+   server-reason-react.url_native
+   server-reason-react.react
+   server-reason-react.reactDom
+   server-reason-react.html
+   server-reason-react.js
+   universal_reason_react_router_native
+   universal_reason_react_store_native
+   universal_reason_react_uuid_native
+   cohttp-lwt-unix
+   lwt.unix
+   str
+   unix
+    server-reason-react.belt
+    yojson)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.ppx
+   server-reason-react.melange_ppx
+   melange-json-native.ppx
+   lwt_ppx))
+ (modes native))
+
+(copy_files
+ (files "../../ui/src/*.re"))
+
+(copy_files
+ (files "../../ui/src/.build_stamp"))
+
+(include_subdirs qualified)

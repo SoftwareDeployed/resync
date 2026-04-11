@@ -32,6 +32,25 @@ let playAudioChunk = (chunk: string) => {
 [@platform native]
 let playAudioChunk = (_chunk: string) => ();
 
+[@platform js]
+let getInputValue = event => React.Event.Form.target(event)##value;
+
+[@platform native]
+let getInputValue = _event => "";
+
+[@platform js]
+let scrollToBottom = elOpt => {
+  switch (elOpt) {
+  | Some(el) =>
+    let el = Obj.magic(el);
+    el##scrollTop #= el##scrollHeight;
+  | None => ()
+  };
+};
+
+[@platform native]
+let scrollToBottom = _elOpt => ();
+
 module View = {
   [@react.component]
   let make =
@@ -220,6 +239,25 @@ module View = {
         | None => false
         };
 
+      let messagesContainerRef = React.useRef(None);
+
+      let (chatText, setChatText) = React.useState(() => "");
+
+      let handleSendMessage = () => {
+        if (chatText != "") {
+          VideoChatStore.sendMessage(store, chatText);
+          setChatText(_ => "");
+        };
+      };
+
+      React.useEffect1(
+        () => {
+          scrollToBottom(messagesContainerRef.current);
+          None;
+        },
+        [|Array.length(store.state.messages)|],
+      );
+
       <div id="room-page" className="min-h-screen bg-gray-900 p-4">
         <div className="mx-auto max-w-6xl">
           <div className="mb-4 flex items-center justify-between">
@@ -273,7 +311,7 @@ module View = {
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div
               className="relative aspect-video overflow-hidden rounded-xl bg-gray-800">
               <video
@@ -332,6 +370,58 @@ module View = {
                      </p>
                    </div>
                  : React.null}
+            </div>
+            <div className="flex h-96 flex-col rounded-xl bg-gray-800 p-4 lg:h-auto">
+              <h2 className="mb-2 text-lg font-semibold text-white">
+                {React.string("Chat")}
+              </h2>
+              <div
+                ref={ReactDOM.Ref.callbackDomRef(elem => {
+                  messagesContainerRef.current = (
+                    switch (Js.Nullable.toOption(elem)) {
+                    | Some(e) => Some(e)
+                    | None => None
+                    }
+                  )
+                })}
+                className="flex-1 overflow-y-auto rounded-lg bg-gray-900 p-2">
+                {store.state.messages
+                 ->Js.Array.map(
+                     ~f=(msg: Model.ChatMessage.t) =>
+                       <div key={msg.id} className="mb-2">
+                         <span className="text-xs font-semibold text-blue-400">
+                           {React.string(
+                              msg.sender_id == store.state.client_id
+                                ? "You" : "Peer " ++ msg.sender_id,
+                            )}
+                         </span>
+                         <p className="text-sm text-gray-200">
+                           {React.string(msg.text)}
+                         </p>
+                       </div>,
+                     _,
+                   )
+                 ->React.array}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <input
+                  id="chat-input"
+                  type_="text"
+                  value=chatText
+                  onChange={event => {
+                    let value = getInputValue(event);
+                    setChatText(_ => value);
+                  }}
+                  className="flex-1 rounded-lg bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Type a message..."
+                />
+                <button
+                  id="chat-send"
+                  onClick={_ => handleSendMessage()}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+                  {React.string("Send")}
+                </button>
+              </div>
             </div>
           </div>
         </div>

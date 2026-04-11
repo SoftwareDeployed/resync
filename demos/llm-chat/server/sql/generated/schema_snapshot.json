@@ -1,0 +1,118 @@
+{
+  "schema_hash": "f8640accc7b8166e0e96adb752732022",
+  "tables": [
+    {
+      "table_name": "threads",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": "uuid",
+          "nullable": true,
+          "primary_key": true,
+          "default": "gen_random_uuid()",
+          "foreign_key": null
+        },
+        {
+          "name": "title",
+          "sql_type": "text",
+          "nullable": false,
+          "primary_key": false,
+          "default": "'New Chat'",
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "sql_type": "timestamptz",
+          "nullable": false,
+          "primary_key": false,
+          "default": "NOW()",
+          "foreign_key": null
+        },
+        {
+          "name": "updated_at",
+          "sql_type": "timestamptz",
+          "nullable": false,
+          "primary_key": false,
+          "default": "NOW()",
+          "foreign_key": null
+        }
+      ],
+      "id_column": "id",
+      "composite_key": []
+    },
+    {
+      "table_name": "processed_actions",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": "uuid",
+          "nullable": true,
+          "primary_key": true,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "sql_type": "timestamptz",
+          "nullable": false,
+          "primary_key": false,
+          "default": "NOW()",
+          "foreign_key": null
+        }
+      ],
+      "id_column": "id",
+      "composite_key": []
+    },
+    {
+      "table_name": "messages",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": "uuid",
+          "nullable": true,
+          "primary_key": true,
+          "default": "gen_random_uuid()",
+          "foreign_key": null
+        },
+        {
+          "name": "thread_id",
+          "sql_type": "uuid",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": {
+            "column": "thread_id",
+            "referenced_table": "threads",
+            "referenced_column": "id"
+          }
+        },
+        {
+          "name": "role",
+          "sql_type": "text",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": null
+        },
+        {
+          "name": "content",
+          "sql_type": "text",
+          "nullable": false,
+          "primary_key": false,
+          "default": "''",
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "sql_type": "timestamptz",
+          "nullable": false,
+          "primary_key": false,
+          "default": "NOW()",
+          "foreign_key": null
+        }
+      ],
+      "id_column": "id",
+      "composite_key": []
+    }
+  ]
+}

@@ -37,6 +37,15 @@ type remote_toggle_media_payload = {
   enabled: bool,
 };
 
+type send_message_payload = {
+  room_id: string,
+  peer_id: string,
+  text: string,
+};
+
+[@deriving json]
+type chat_message = Model.ChatMessage.t;
+
 type action =
   | JoinRoom(join_room_payload)
   | LeaveRoom(peer_left_payload)
@@ -46,6 +55,8 @@ type action =
   | PeerLeft(peer_left_payload)
   | RemoteToggleVideo(remote_toggle_media_payload)
   | RemoteToggleAudio(remote_toggle_media_payload)
+  | SendMessage(send_message_payload)
+  | ReceiveMessage(Model.ChatMessage.t)
   | ResetJoinStatus
   | JoinRoomAcknowledged;
 
@@ -64,6 +75,7 @@ let emptyState: state = {
   remote_peer_id: None,
   remote_video_enabled: true,
   remote_audio_enabled: true,
+  messages: [||],
   updated_at: Js.Date.now(),
 };
 
@@ -138,6 +150,19 @@ let action_to_json = action =>
     )
   | RemoteToggleVideo(_)
   | RemoteToggleAudio(_) =>
+    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+  | SendMessage(payload) =>
+    StoreJson.parse(
+      "{\"kind\":\"send_message\",\"payload\":{"
+      ++ "\"room_id\":"
+      ++ string_to_json(payload.room_id)->Melange_json.to_string
+      ++ ",\"peer_id\":"
+      ++ string_to_json(payload.peer_id)->Melange_json.to_string
+      ++ ",\"text\":"
+      ++ string_to_json(payload.text)->Melange_json.to_string
+      ++ "}}",
+    )
+  | ReceiveMessage(_) =>
     StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
   | ResetJoinStatus =>
     StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
@@ -310,6 +335,27 @@ let action_of_json = json => {
         StoreJson.requiredField(
           ~json=payload,
           ~fieldName="peer_id",
+          ~decode=string_of_json,
+        ),
+    })
+  | "send_message" =>
+    SendMessage({
+      room_id:
+        StoreJson.requiredField(
+          ~json=payload,
+          ~fieldName="room_id",
+          ~decode=string_of_json,
+        ),
+      peer_id:
+        StoreJson.requiredField(
+          ~json=payload,
+          ~fieldName="peer_id",
+          ~decode=string_of_json,
+        ),
+      text:
+        StoreJson.requiredField(
+          ~json=payload,
+          ~fieldName="text",
           ~decode=string_of_json,
         ),
     })
@@ -513,6 +559,44 @@ let reduce = (~state: state, ~action: action) => {
     } else {
       state;
     }
+  | SendMessage(payload) =>
+    if (currentRoomMatches(state, payload.room_id)) {
+      let message: Model.ChatMessage.t = {
+        id: "msg_" ++ state.client_id ++ "_" ++ string_of_float(Js.Date.now()),
+        sender_id: state.client_id,
+        text: payload.text,
+        sent_at: Js.Date.now(),
+      };
+      let alreadyExists =
+        state.messages->Js.Array.some(~f=(m: Model.ChatMessage.t) =>
+          m.id == message.id
+        );
+      if (alreadyExists) {
+        state;
+      } else {
+        {
+          ...state,
+          messages: Js.Array.concat(~other=[|message|], state.messages),
+          updated_at,
+        };
+      };
+    } else {
+      state;
+    }
+  | ReceiveMessage(message) =>
+    let alreadyExists =
+      state.messages->Js.Array.some(~f=(m: Model.ChatMessage.t) =>
+        m.id == message.id
+      );
+    if (alreadyExists) {
+      state;
+    } else {
+      {
+        ...state,
+        messages: Js.Array.concat(~other=[|message|], state.messages),
+        updated_at,
+      };
+    }
   | ResetJoinStatus => {
       ...state,
       is_joined: false,
@@ -614,16 +698,82 @@ module StoreDef =
 
     let strategy: StoreBuilder.Sync.customStrategy(state, patch) =
       StoreBuilder.Sync.custom(
-        ~decodePatch=json =>
-          switch (action_of_json(json)) {
-          | JoinRoom(_)
-          | LeaveRoom(_)
-          | ToggleVideo(_)
-          | ToggleAudio(_)
-          | ResetJoinStatus
-          | JoinRoomAcknowledged => None
-          | patch => Some(patch)
-          },
+        ~decodePatch=json => {
+          let type_field =
+            StoreJson.optionalField(
+              ~json,
+              ~fieldName="type",
+              ~decode=string_of_json,
+            );
+          let table_field =
+            StoreJson.optionalField(
+              ~json,
+              ~fieldName="table",
+              ~decode=string_of_json,
+            );
+          let action_field =
+            StoreJson.optionalField(
+              ~json,
+              ~fieldName="action",
+              ~decode=string_of_json,
+            );
+          switch (type_field, table_field, action_field) {
+          | (Some("patch"), Some("chat_messages"), Some("INSERT")) =>
+            let data =
+              StoreJson.requiredField(
+                ~json,
+                ~fieldName="data",
+                ~decode=value => value,
+              );
+            let message =
+              try(
+                Some(
+                  Model.ChatMessage.{
+                    id:
+                      StoreJson.requiredField(
+                        ~json=data,
+                        ~fieldName="id",
+                        ~decode=string_of_json,
+                      ),
+                    sender_id:
+                      StoreJson.requiredField(
+                        ~json=data,
+                        ~fieldName="sender_id",
+                        ~decode=string_of_json,
+                      ),
+                    text:
+                      StoreJson.requiredField(
+                        ~json=data,
+                        ~fieldName="text",
+                        ~decode=string_of_json,
+                      ),
+                    sent_at:
+                      StoreJson.requiredField(
+                        ~json=data,
+                        ~fieldName="sent_at",
+                        ~decode=float_of_json,
+                      ),
+                  },
+                )
+              ) {
+              | _ => None
+              };
+            switch (message) {
+            | Some(msg) => Some(ReceiveMessage(msg))
+            | None => None
+            };
+          | _ =>
+            switch (action_of_json(json)) {
+            | JoinRoom(_)
+            | LeaveRoom(_)
+            | ToggleVideo(_)
+            | ToggleAudio(_)
+            | ResetJoinStatus
+            | JoinRoomAcknowledged => None
+            | patch => Some(patch)
+            }
+          };
+        },
         ~updateOfPatch=(patch, state) => reduce(~state, ~action=patch),
       );
   });
@@ -701,6 +851,19 @@ let toggleAudio = (store: t, enabled: bool) =>
         room_id: room.id,
         peer_id: store.state.client_id,
         enabled,
+      }),
+    )
+  | None => ()
+  };
+
+let sendMessage = (store: t, text: string) =>
+  switch (store.state.room) {
+  | Some(room) =>
+    dispatch(
+      SendMessage({
+        room_id: room.id,
+        peer_id: store.state.client_id,
+        text,
       }),
     )
   | None => ()

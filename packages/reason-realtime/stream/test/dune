@@ -1,0 +1,19 @@
+(executable
+ (name stream_test)
+ (modules
+  stream_test
+  test_framework
+  SseParser_test
+  StreamPipe_test
+  NdjsonParser_test)
+ (libraries
+  reason_realtime_stream)
+ (modes native)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.melange_ppx)))
+
+(alias
+ (name stream-tests)
+ (deps stream_test.exe))

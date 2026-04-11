@@ -1,0 +1,14 @@
+(library
+ (name reason_realtime_stream)
+ (public_name resync.reason_realtime_stream)
+ (modules SseParser StreamPipe SseWriter NdjsonParser StreamPipeDream)
+ (wrapped false)
+ (libraries dream lwt.unix server-reason-react.js melange-json-native)
+ (modes native)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.melange_ppx)))
+
+(copy_files
+ (files ../src/*.re))

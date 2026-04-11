@@ -6,13 +6,29 @@ type peer_queue = {
   mutable active: bool;
 }
 
+type chat_message = {
+  id: string;
+  sender_id: string;
+  text: string;
+  sent_at: float;
+}
+
+type room_state = {
+  messages: chat_message array;
+}
+
 type t = {
   peer_rooms: (string, string) Hashtbl.t;  (* peer_id -> room_id *)
   send_queues: (string, peer_queue) Hashtbl.t;  (* peer_id -> queue *)
+  rooms: (string, room_state) Hashtbl.t;
 }
 
 let create () =
-  { peer_rooms = Hashtbl.create 16; send_queues = Hashtbl.create 16 }
+  { peer_rooms = Hashtbl.create 16; send_queues = Hashtbl.create 16; rooms = Hashtbl.create 16 }
+
+let ensure_room t ~room_id =
+  if not (Hashtbl.mem t.rooms room_id) then
+    Hashtbl.replace t.rooms room_id { messages = [||] }
 
 let start _t = Lwt.return_unit
 let stop _t = Lwt.return_unit
@@ -33,6 +49,7 @@ let unsubscribe t ~channel =
   Lwt.return_unit
 
 let add_peer t ~room_id ~peer_id =
+  ensure_room t ~room_id;
   Hashtbl.replace t.peer_rooms peer_id room_id;
   (* Create send queue for this peer *)
   let queue = { peer_id; queue = Queue.create (); active = true } in
@@ -85,3 +102,27 @@ let has_pending_frames t ~peer_id =
   match Hashtbl.find_opt t.send_queues peer_id with
   | Some q when q.active -> not (Queue.is_empty q.queue)
   | _ -> false
+
+let get_room_messages t ~room_id =
+  match Hashtbl.find_opt t.rooms room_id with
+  | Some room -> room.messages
+  | None -> [||]
+
+let add_message t ~room_id ~sender_id ~text =
+  match Hashtbl.find_opt t.rooms room_id with
+  | Some room ->
+    (match Hashtbl.find_opt t.peer_rooms sender_id with
+    | Some peer_room_id when peer_room_id = room_id ->
+      let id = Printf.sprintf "msg_%f" (Unix.gettimeofday ()) in
+      let sent_at = Unix.gettimeofday () in
+      let msg = { id; sender_id; text; sent_at } in
+      let messages = Array.append room.messages [|msg|] in
+      let messages =
+        if Array.length messages > 100 then
+          Array.sub messages (Array.length messages - 100) 100
+        else messages
+      in
+      Hashtbl.replace t.rooms room_id { messages };
+      Some msg
+    | _ -> None)
+  | None -> None

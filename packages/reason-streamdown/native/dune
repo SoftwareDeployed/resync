@@ -1,0 +1,10 @@
+(library
+ (name reason_streamdown)
+ (public_name resync.reason_streamdown)
+ (modules Streamdown)
+ (wrapped false)
+ (libraries server-reason-react.react)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   melange.ppx)))

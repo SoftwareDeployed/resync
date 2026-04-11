@@ -1,0 +1,15 @@
+(library
+ (name llm_chat_browser_test)
+ (modules LlmChatBrowserTest LlmChatTestServer)
+ (wrapped false)
+ (libraries melange.js playwright_js)
+ (modes melange)
+ (preprocess (pps server-reason-react.ppx -melange server-reason-react.browser_ppx -js melange.ppx)))
+
+(melange.emit
+ (target dist)
+ (alias llm-chat-browser-tests)
+ (modules ())
+ (module_systems (esm "mjs"))
+ (promote (until-clean) (into ./generated))
+ (libraries llm_chat_browser_test))

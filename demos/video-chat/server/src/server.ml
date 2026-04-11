@@ -37,6 +37,19 @@ let load_snapshot _request channel =
       ]
     | None -> `Null
   in
+  let messages =
+    match VideoChat_adapter.get_room adapter ~peer_id:channel with
+    | Some room_id -> VideoChat_adapter.get_room_messages adapter ~room_id
+    | None -> [||]
+  in
+  let messages_json = Array.map (fun (msg: VideoChat_adapter.chat_message) ->
+    `Assoc [
+      ("id", `String msg.id);
+      ("sender_id", `String msg.sender_id);
+      ("text", `String msg.text);
+      ("sent_at", `Float msg.sent_at);
+    ]
+  ) messages in
   let json =
     `Assoc [
       ("client_id", `String channel);
@@ -47,6 +60,7 @@ let load_snapshot _request channel =
       ("remote_peer_id", `Null);
       ("remote_video_enabled", `Bool true);
       ("remote_audio_enabled", `Bool true);
+      ("messages", `List (Array.to_list messages_json));
       ("updated_at", `Float (Unix.gettimeofday ()));
     ] |> Yojson.Basic.to_string
   in
@@ -170,6 +184,33 @@ let handle_mutation broadcast_fn _request ~action_id action =
         Lwt.return (Middleware.Ack (Ok ()))
       | _ -> Lwt.return (Middleware.Ack (Ok ())))
     | None -> Lwt.return (Middleware.Ack (Ok ())))
+  | Some "send_message" ->
+    (match assoc "payload" action with
+    | Some payload ->
+      (match (get_string "room_id" payload, get_string "peer_id" payload, get_string "text" payload) with
+      | Some room_id, Some peer_id, Some text ->
+        (match VideoChat_adapter.get_room adapter ~peer_id with
+        | Some peer_room_id when peer_room_id = room_id ->
+          (match VideoChat_adapter.add_message adapter ~room_id ~sender_id:peer_id ~text with
+          | Some msg ->
+            let chat_patch = `Assoc [
+              ("type", `String "patch");
+              ("table", `String "chat_messages");
+              ("action", `String "INSERT");
+              ("data", `Assoc [
+                ("id", `String msg.id);
+                ("sender_id", `String msg.sender_id);
+                ("text", `String msg.text);
+                ("sent_at", `Float msg.sent_at)
+              ]);
+            ] |> Yojson.Basic.to_string in
+            let peers = VideoChat_adapter.get_peers adapter ~room_id in
+            let* () = broadcast_to_peers broadcast_fn peers peer_id chat_patch in
+            Lwt.return (Middleware.Ack (Ok ()))
+          | None -> Lwt.return (Middleware.Ack (Error "Failed to add message")))
+        | _ -> Lwt.return (Middleware.Ack (Error "Peer not in room")))
+      | _ -> Lwt.return (Middleware.Ack (Error "Missing room_id, peer_id, or text")))
+    | None -> Lwt.return (Middleware.Ack (Error "Missing payload")))
   | Some "noop" ->
     Lwt.return (Middleware.Ack (Ok ()))
   | _ -> Lwt.return (Middleware.Ack (Error "Unknown action kind"))
