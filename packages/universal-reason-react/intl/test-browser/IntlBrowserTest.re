@@ -1,14 +1,5 @@
 open Js.Promise;
 
-[@mel.scope "process"]
-external exitProcess: int => unit = "exit";
-
-[@mel.send]
-external includes: (string, string) => bool = "includes";
-
-[@mel.new]
-external makeError: string => exn = "Error";
-
 let run = () => {
   let launchOptions = Playwright.makeLaunchOptions(~headless=true, ());
   let url =
@@ -25,21 +16,10 @@ let run = () => {
             page
             ->Playwright.goto(url)
             |> then_(_ => page->Playwright.waitForSelector("#result"))
-            |> then_(_ => page->Playwright.textContent("#result"))
-            |> then_(text => {
-                 let value =
-                   switch (Js.Nullable.toOption(text)) {
-                   | Some(found) => found
-                   | None => ""
-                   };
-
-                 if (value->includes("$1,234.50")) {
-                   Js.log("[PASS] Intl formatting rendered");
-                   resolve();
-                 } else {
-                   reject(makeError("Intl formatting did not match expected browser output"));
-                 };
-               })
+            |> then_(_ => BrowserTestUtils.textOrEmpty(page, "#result"))
+            |> then_(value =>
+                 BrowserTestUtils.assertContains(~label="Intl formatting rendered", ~expected="$1,234.50", value)
+               )
             |> then_(_ => browser->Playwright.close)
           )
      );
@@ -49,12 +29,12 @@ let () =
   run()
   |> then_(_ => {
        Js.log("Intl browser tests passed!");
-       exitProcess(0);
+       BrowserTestUtils.exitProcess(0);
        resolve();
      })
   |> catch(error => {
        Js.log2("Intl browser tests failed:", error);
-       exitProcess(1);
+       BrowserTestUtils.exitProcess(1);
        resolve();
      })
   |> ignore;

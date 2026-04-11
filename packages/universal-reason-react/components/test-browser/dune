@@ -1,18 +1,15 @@
+(library
+ (name components_browser_test)
+ (modules ComponentsBrowserTest)
+ (wrapped false)
+ (libraries melange.js playwright_js)
+ (modes melange)
+ (preprocess (pps server-reason-react.ppx -melange server-reason-react.browser_ppx -js melange.ppx)))
+
 (melange.emit
- (package resync)
- (alias components-browser-tests)
- (module_systems (esm "mjs"))
  (target dist)
- (promote
-  (until-clean)
-  (into ./generated))
- (libraries
-  melange.js
-  playwright_js)
- (preprocess
-  (pps
-   server-reason-react.ppx
-   -melange
-   server-reason-react.browser_ppx
-   -js
-   melange.ppx)))
+ (alias components-browser-tests)
+ (modules ())
+ (module_systems (esm "mjs"))
+ (promote (until-clean) (into ./generated))
+ (libraries components_browser_test))

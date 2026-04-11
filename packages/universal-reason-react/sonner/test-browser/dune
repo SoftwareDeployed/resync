@@ -1,25 +1,18 @@
+(library
+ (name sonner_browser_test)
+ (modules SonnerBrowserApp SonnerBrowserTest)
+ (wrapped false)
+ (libraries reason-react melange.dom melange.js playwright_js universal_reason_react_sonner_js)
+ (modes melange)
+ (preprocess (pps server-reason-react.ppx -melange server-reason-react.browser_ppx -js melange.ppx reason-react-ppx)))
+
 (melange.emit
- (package resync)
- (alias sonner-browser-tests)
- (module_systems (esm "mjs"))
  (target dist)
- (promote
-  (until-clean)
-  (into ./generated))
- (libraries
-  reason-react
-  melange.dom
-  melange.js
-  playwright_js
-  universal_reason_react_sonner_js)
- (preprocess
-  (pps
-   server-reason-react.ppx
-   -melange
-   server-reason-react.browser_ppx
-   -js
-   melange.ppx
-   reason-react-ppx)))
+ (alias sonner-browser-tests)
+ (modules ())
+ (module_systems (esm "mjs"))
+ (promote (until-clean) (into ./generated))
+ (libraries sonner_browser_test))
 
 (rule
  (target SonnerBrowserApp.bundle.js)

@@ -1,8 +1,5 @@
 open Js.Promise;
 
-[@mel.scope "process"]
-external exitProcess: int => unit = "exit";
-
 let run = () => {
   let launchOptions = Playwright.makeLaunchOptions(~headless=true, ());
   let url =
@@ -32,12 +29,12 @@ let () =
   run()
   |> then_(_ => {
        Js.log("Sonner browser tests passed!");
-       exitProcess(0);
+       BrowserTestUtils.exitProcess(0);
        resolve();
      })
   |> catch(error => {
        Js.log2("Sonner browser tests failed:", error);
-       exitProcess(1);
+       BrowserTestUtils.exitProcess(1);
        resolve();
      })
   |> ignore;

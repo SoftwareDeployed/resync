@@ -1,8 +1,5 @@
 open Js.Promise;
 
-[@mel.scope "process"]
-external exitProcess: int => unit = "exit";
-
 [@mel.send]
 external includes: (string, string) => bool = "includes";
 
@@ -12,45 +9,12 @@ external startsWith: (string, string) => bool = "startsWith";
 [@mel.send]
 external slice: (string, int) => string = "slice";
 
-[@mel.new]
-external makeError: string => exn = "Error";
-
-[@mel.module "node:timers/promises"]
-external sleep: int => Js.Promise.t(unit) = "setTimeout";
-
-let textOrEmpty = (page, selector) =>
-  page
-  ->Playwright.textContent(selector)
-  |> then_(text =>
-       resolve(
-         switch (Js.Nullable.toOption(text)) {
-         | Some(value) => value
-         | None => ""
-         },
-       )
-     );
-
-let assertTrue = (~label, condition, ~details) => {
-  if (condition) {
-    Js.log("[PASS] " ++ label);
-    resolve();
-  } else {
-    reject(makeError(label ++ " failed: " ++ details));
-  };
-};
-
-let assertContains = (~label, ~expected, text) =>
-  assertTrue(~label, text->includes(expected), ~details="missing expected text: " ++ expected);
-
-let assertNotContains = (~label, ~unexpected, text) =>
-  assertTrue(~label, !(text->includes(unexpected)), ~details="unexpected text present: " ++ unexpected);
-
 let rec waitForSelectorText = (~page, ~selector, ~expected, ~label, ~attemptsLeft) =>
   if (attemptsLeft <= 0) {
-    textOrEmpty(page, selector)
+    BrowserTestUtils.textOrEmpty(page, selector)
     |> then_(text =>
          reject(
-           makeError(
+           BrowserTestUtils.makeError(
              label
              ++ " timed out waiting for selector "
              ++ selector
@@ -62,13 +26,13 @@ let rec waitForSelectorText = (~page, ~selector, ~expected, ~label, ~attemptsLef
          )
        );
   } else {
-    textOrEmpty(page, selector)
+    BrowserTestUtils.textOrEmpty(page, selector)
     |> then_(text =>
          if (text->includes(expected)) {
            Js.log("[PASS] " ++ label);
            resolve();
          } else {
-           sleep(100)
+           BrowserTestUtils.sleep(100)
            |> then_(_ =>
                 waitForSelectorText(~page, ~selector, ~expected, ~label, ~attemptsLeft=attemptsLeft - 1)
               );
@@ -78,22 +42,22 @@ let rec waitForSelectorText = (~page, ~selector, ~expected, ~label, ~attemptsLef
 
 let rec waitForBodyTextAbsence = (~page, ~unexpected, ~label, ~attemptsLeft) =>
   if (attemptsLeft <= 0) {
-    textOrEmpty(page, "body")
+    BrowserTestUtils.textOrEmpty(page, "body")
     |> then_(text =>
          reject(
-           makeError(
+           BrowserTestUtils.makeError(
              label ++ " timed out waiting for body to remove: " ++ unexpected ++ ". Last body: " ++ text,
            ),
          )
        );
   } else {
-    textOrEmpty(page, "body")
+    BrowserTestUtils.textOrEmpty(page, "body")
     |> then_(text =>
          if (!(text->includes(unexpected))) {
            Js.log("[PASS] " ++ label);
            resolve();
          } else {
-           sleep(100)
+           BrowserTestUtils.sleep(100)
            |> then_(_ => waitForBodyTextAbsence(~page, ~unexpected, ~label, ~attemptsLeft=attemptsLeft - 1));
          }
        );
@@ -117,21 +81,21 @@ let newTestPage = browser =>
 let requirePage = (label, pageOption) =>
   switch (pageOption) {
   | Some(page) => resolve(page)
-  | None => reject(makeError(label ++ " page was not initialized"))
+  | None => reject(BrowserTestUtils.makeError(label ++ " page was not initialized"))
   };
 
 let readRoomId = page =>
-  textOrEmpty(page, "#room-heading")
+  BrowserTestUtils.textOrEmpty(page, "#room-heading")
   |> then_(heading => {
        let prefix = "Room: ";
-       assertTrue(
+       BrowserTestUtils.assertTrue(
          ~label="Room heading prefix",
          heading->startsWith(prefix),
          ~details="expected heading to start with 'Room: ' but got: " ++ heading,
        )
        |> then_(_ => {
             let roomId = heading->slice(String.length(prefix));
-            assertTrue(
+            BrowserTestUtils.assertTrue(
               ~label="Created room id present",
               String.length(roomId) > 0,
               ~details="room id was empty",
@@ -152,10 +116,10 @@ let runRoomCreationScenario = (~browser, ~baseUrl) => {
        |> then_(_ => waitForSelectorText(~page, ~selector="#room-peer-count", ~expected="Peers: 1", ~label="Room creation peer count", ~attemptsLeft=50))
        |> then_(_ => readRoomId(page))
        |> then_(roomId =>
-            getMockSnapshotJson(page)
-            |> then_(snapshotJson =>
-                 assertContains(~label="Mock capture created on room create", ~expected="\"createCount\":1", snapshotJson)
-                 |> then_(_ => assertContains(~label="Mock capture started on room create", ~expected="\"startCount\":1", snapshotJson))
+             getMockSnapshotJson(page)
+             |> then_(snapshotJson =>
+                  BrowserTestUtils.assertContains(~label="Mock capture created on room create", ~expected="\"createCount\":1", snapshotJson)
+                  |> then_(_ => BrowserTestUtils.assertContains(~label="Mock capture started on room create", ~expected="\"startCount\":1", snapshotJson))
                  |> then_(_ => resolve(roomId))
                )
           )
@@ -228,19 +192,19 @@ let runMediaToggleScenario = (~browser, ~baseUrl) => {
                  |> then_(_ => joinPage->Playwright.click("#toggle-video-button"))
                  |> then_(_ => waitForSelectorText(~page=joinPage, ~selector="#toggle-video-button", ~expected="Video Off", ~label="Local video button updates", ~attemptsLeft=50))
                  |> then_(_ => roomPage->Playwright.waitForSelector("#remote-video-paused-overlay"))
-                 |> then_(_ => getMockSnapshotJson(joinPage))
-                 |> then_(snapshotJson =>
-                      assertContains(~label="Mock video toggle propagated to seam", ~expected="\"lastVideoEnabled\":false", snapshotJson)
-                    )
-                 |> then_(_ => joinPage->Playwright.click("#toggle-video-button"))
-                 |> then_(_ => waitForSelectorText(~page=joinPage, ~selector="#toggle-video-button", ~expected="Video On", ~label="Local video button restores", ~attemptsLeft=50))
-                 |> then_(_ => waitForBodyTextAbsence(~page=roomPage, ~unexpected="Video paused", ~label="Remote paused overlay clears", ~attemptsLeft=50))
-                 |> then_(_ => joinPage->Playwright.click("#toggle-audio-button"))
-                 |> then_(_ => waitForSelectorText(~page=joinPage, ~selector="#toggle-audio-button", ~expected="Audio Off", ~label="Local audio button updates", ~attemptsLeft=50))
-                 |> then_(_ => getMockSnapshotJson(joinPage))
-                 |> then_(snapshotJson =>
-                      assertContains(~label="Mock audio toggle propagated to seam", ~expected="\"lastAudioEnabled\":false", snapshotJson)
-                    )
+                  |> then_(_ => getMockSnapshotJson(joinPage))
+                  |> then_(snapshotJson =>
+                       BrowserTestUtils.assertContains(~label="Mock video toggle propagated to seam", ~expected="\"lastVideoEnabled\":false", snapshotJson)
+                     )
+                  |> then_(_ => joinPage->Playwright.click("#toggle-video-button"))
+                  |> then_(_ => waitForSelectorText(~page=joinPage, ~selector="#toggle-video-button", ~expected="Video On", ~label="Local video button restores", ~attemptsLeft=50))
+                  |> then_(_ => waitForBodyTextAbsence(~page=roomPage, ~unexpected="Video paused", ~label="Remote paused overlay clears", ~attemptsLeft=50))
+                  |> then_(_ => joinPage->Playwright.click("#toggle-audio-button"))
+                  |> then_(_ => waitForSelectorText(~page=joinPage, ~selector="#toggle-audio-button", ~expected="Audio Off", ~label="Local audio button updates", ~attemptsLeft=50))
+                  |> then_(_ => getMockSnapshotJson(joinPage))
+                  |> then_(snapshotJson =>
+                       BrowserTestUtils.assertContains(~label="Mock audio toggle propagated to seam", ~expected="\"lastAudioEnabled\":false", snapshotJson)
+                     )
                  |> then_(_ => joinPage->Playwright.click("#toggle-audio-button"))
                  |> then_(_ => waitForSelectorText(~page=joinPage, ~selector="#toggle-audio-button", ~expected="Audio On", ~label="Local audio button restores", ~attemptsLeft=50))
                )
@@ -280,7 +244,7 @@ let run = () => {
          runRoomCreationScenario(~browser, ~baseUrl=server.baseUrl)
          |> then_(_ => runJoinLeaveScenario(~browser, ~baseUrl=server.baseUrl))
          |> then_(_ => runMediaToggleScenario(~browser, ~baseUrl=server.baseUrl))
-       | None => reject(makeError("server was not initialized"))
+        | None => reject(BrowserTestUtils.makeError("server was not initialized"))
        };
      })
   |> then_(result =>
@@ -297,12 +261,12 @@ let () =
    run()
    |> then_(_ => {
        Js.log("Video chat browser tests passed!");
-       exitProcess(0);
+       BrowserTestUtils.exitProcess(0);
        resolve();
      })
    |> catch(error => {
        Js.log2("Video chat browser tests failed:", error);
-       exitProcess(1);
+       BrowserTestUtils.exitProcess(1);
        resolve();
      })
   |> ignore;

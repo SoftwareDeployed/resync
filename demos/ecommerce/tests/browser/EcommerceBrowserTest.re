@@ -47,23 +47,22 @@ let run = () => {
                 )
              |> then_(_ => page->Playwright.waitForSelector("text=Add to cart"))
              |> then_(_ => page->Playwright.click("text=Add to cart"))
-             |> then_(_ => BrowserTestUtils.sleep(300))
-             |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
-             |> then_(text =>
-                  BrowserTestUtils.assertContains(~label="Cart updated after add", ~expected="Your cart is empty", text)
-                  |> catch(_ => BrowserTestUtils.assertNotContains(~label="Cart is no longer empty", ~unexpected="Your cart is empty", text))
-                )
-              |> then_(_ => {
-                   Js.log("Reloading page to verify IndexedDB cache persistence...");
-                   page->Playwright.reload;
-                 })
+|> then_(_ => BrowserTestUtils.waitForIDBContent(page, ~dbName="ecommerce.cart", ~expectedText="inventory_id"))
+               |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+               |> then_(text =>
+                    BrowserTestUtils.assertNotContains(~label="Cart not empty after add", ~unexpected="Your cart is empty", text)
+                  )
+               |> then_(_ => {
+                    Js.log("Reloading page to verify IndexedDB cache persistence...");
+                    page->Playwright.reload;
+                  })
              |> then_(_ => page->Playwright.waitForSelector("text=Cloud Hardware Rental"))
-             |> then_(_ => BrowserTestUtils.sleep(300))
-             |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
-             |> then_(text =>
-                  BrowserTestUtils.assertNotContains(~label="Cache persists: cart not empty after reload", ~unexpected="Your cart is empty", text)
-                  |> then_(_ => BrowserTestUtils.assertNotContains(~label="No loading placeholder after reload", ~unexpected="Loading", text))
-                )
+              |> then_(_ => BrowserTestUtils.waitForIDBContent(page, ~dbName="ecommerce.cart", ~expectedText="inventory_id"))
+              |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+              |> then_(text =>
+                   BrowserTestUtils.assertNotContains(~label="Cache persists: cart not empty after reload", ~unexpected="Your cart is empty", text)
+                   |> then_(_ => BrowserTestUtils.assertNotContains(~label="No loading placeholder after reload", ~unexpected="Loading", text))
+                 )
           );
      })
   |> then_(result =>

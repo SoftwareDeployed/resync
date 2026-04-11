@@ -1,18 +1,15 @@
+(library
+ (name lucide_icons_browser_test)
+ (modules LucideIconsBrowserTest)
+ (wrapped false)
+ (libraries melange.js playwright_js)
+ (modes melange)
+ (preprocess (pps server-reason-react.ppx -melange server-reason-react.browser_ppx -js melange.ppx)))
+
 (melange.emit
- (package resync)
- (alias lucide-icons-browser-tests)
- (module_systems (esm "mjs"))
  (target dist)
- (promote
-  (until-clean)
-  (into ./generated))
- (libraries
-  melange.js
-  playwright_js)
- (preprocess
-  (pps
-   server-reason-react.ppx
-   -melange
-   server-reason-react.browser_ppx
-   -js
-   melange.ppx)))
+ (alias lucide-icons-browser-tests)
+ (modules ())
+ (module_systems (esm "mjs"))
+ (promote (until-clean) (into ./generated))
+ (libraries lucide_icons_browser_test))
