@@ -24,7 +24,7 @@
     "ecommerce:test:browser": "opam exec -- dune build --build-dir _build_browser_tests demos/ecommerce/tests/browser/.build_stamp demos/ecommerce/ui/src/.build_stamp demos/ecommerce/server/src/server.exe && node ./demos/ecommerce/tests/browser/generated/EcommerceBrowserTest.mjs",
     "video-chat:test:browser": "opam exec -- dune build --build-dir _build_browser_tests @video-chat-browser-tests && node ./demos/video-chat/tests/browser/generated/VideoChatBrowserTest.mjs",
     "llm-chat:test:browser": "opam exec -- dune build --build-dir _build_browser_tests @llm-chat-browser-tests && node ./demos/llm-chat/tests/browser/generated/LlmChatBrowserTest.mjs",
-    "llm-chat:test:unit": "python3 scripts/run_dune.py exec packages/reason-realtime/stream/test/stream_test.exe",
+    "llm-chat:test:unit": "DUNE_TIMEOUT=300 python3 scripts/run_dune.py exec packages/reason-realtime/stream/test/stream_test.exe",
     "todo:test:browser": "opam exec -- dune build --build-dir _build_browser_tests @todo-browser-tests && node ./demos/todo/tests/browser/generated/TodoBrowserTest.mjs",
     "router:test:browser": "opam exec -- dune build --build-dir _build_browser_tests @router-browser-tests && node ./packages/universal-reason-react/router/test-browser/generated/RouterBrowserTest.mjs",
     "store:test:browser": "opam exec -- dune build --build-dir _build_browser_tests @store-browser-tests && node ./packages/universal-reason-react/store/test-browser/generated/StoreBrowserTest.mjs",

@@ -22,7 +22,7 @@ let handleInputChange = (_setDraft, _event) => ();
 
 [@platform js]
 let handleSend =
-    (store: LlmChatStore.t, prompt, setDraft, sseBufferRef, setIsStreaming) => {
+    (store: LlmChatStore.t, prompt, setDraft, sseBufferRef, setIsStreaming, unsubscribeRef) => {
   let threadId =
     switch (store.state.current_thread_id) {
     | Some(id) => id
@@ -65,51 +65,59 @@ let handleSend =
       ++ messagesJson
       ++ "]}";
 
-    let _unsubscribe =
-      StreamPipe.subscribe(
-        StreamPipeFetch.post(~url=Constants.base_url ++ "/api/chat", ~body),
-        event => {
-        switch (event) {
-        | Error(msg) =>
-          setIsStreaming(_ => false);
-          LlmChatStore.dispatch(SetError(msg));
-        | Done =>
-          setIsStreaming(_ => false);
-          LlmChatStore.dispatch(FinishResponse);
-        | Chunk(chunk) =>
-          let events = SseParser.parseChunk(chunk, ~buffer=sseBufferRef);
-          events->Js.Array.forEach(~f=event => {
-            switch (StoreJson.tryParse(event.data)) {
-            | Some(json) =>
-              switch (StoreJson.field(json, "type")) {
-              | Some(typeJson) =>
-                switch (Melange_json.Primitives.string_of_json(typeJson)) {
-                | "token" =>
-                  switch (StoreJson.field(json, "content")) {
-                  | Some(contentJson) =>
-                    let content =
-                      Melange_json.Primitives.string_of_json(contentJson);
-                    LlmChatStore.dispatch(AppendToken(content));
-                  | None => ()
+    /* Cancel any previous subscription before starting a new one */
+    switch (unsubscribeRef^) {
+    | Some(unsub) => unsub()
+    | None => ()
+    };
+
+    unsubscribeRef :=
+      Some(
+        StreamPipe.subscribe(
+          StreamPipeFetch.post(~url=Constants.base_url ++ "/api/chat", ~body),
+          event => {
+          switch (event) {
+          | Error(msg) =>
+            setIsStreaming(_ => false);
+            LlmChatStore.dispatch(SetError(msg));
+          | Done =>
+            setIsStreaming(_ => false);
+            LlmChatStore.dispatch(FinishResponse);
+          | Chunk(chunk) =>
+            let events = SseParser.parseChunk(chunk, ~buffer=sseBufferRef);
+            events->Js.Array.forEach(~f=event => {
+              switch (StoreJson.tryParse(event.data)) {
+              | Some(json) =>
+                switch (StoreJson.field(json, "type")) {
+                | Some(typeJson) =>
+                  switch (Melange_json.Primitives.string_of_json(typeJson)) {
+                  | "token" =>
+                    switch (StoreJson.field(json, "content")) {
+                    | Some(contentJson) =>
+                      let content =
+                        Melange_json.Primitives.string_of_json(contentJson);
+                      LlmChatStore.dispatch(AppendToken(content));
+                    | None => ()
+                    }
+                  | "done" =>
+                    setIsStreaming(_ => false);
+                    LlmChatStore.dispatch(FinishResponse);
+                  | _ => ()
                   }
-                | "done" =>
-                  setIsStreaming(_ => false);
-                  LlmChatStore.dispatch(FinishResponse);
-                | _ => ()
+                | None => ()
                 }
               | None => ()
               }
-            | None => ()
-            }
-          });
-        }
-      });
+            });
+          }
+        })
+      );
     ();
   };
 };
 
 [@platform native]
-let handleSend = (_store, _prompt, _setDraft, _sseBufferRef, _setIsStreaming) =>
+let handleSend = (_store, _prompt, _setDraft, _sseBufferRef, _setIsStreaming, _unsubscribeRef) =>
   ();
 
 let onThreadClick = (router: UniversalRouter.routerApi, threadId, _event) => {
@@ -123,18 +131,18 @@ let onNewChatClick = (router: UniversalRouter.routerApi, _event) => {
 
 [@platform js]
 let handleKeyDown =
-    (store, draft, setDraft, sseBufferRef, setIsStreaming, event) => {
+    (store, draft, setDraft, sseBufferRef, setIsStreaming, unsubscribeRef, event) => {
   let key = React.Event.Keyboard.key(event);
   let shift = React.Event.Keyboard.shiftKey(event);
   if (key == "Enter" && !shift) {
     React.Event.Keyboard.preventDefault(event);
-    handleSend(store, draft, setDraft, sseBufferRef, setIsStreaming);
+    handleSend(store, draft, setDraft, sseBufferRef, setIsStreaming, unsubscribeRef);
   };
 };
 
 [@platform native]
 let handleKeyDown =
-    (_store, _draft, _setDraft, _sseBufferRef, _setIsStreaming, _event) =>
+    (_store, _draft, _setDraft, _sseBufferRef, _setIsStreaming, _unsubscribeRef, _event) =>
   ();
 
 [@platform js]
@@ -142,6 +150,12 @@ let useSseBufferRef = () => React.useMemo1(() => ref(""), [||]);
 
 [@platform native]
 let useSseBufferRef = () => ref("");
+
+[@platform js]
+let useUnsubscribeRef = () => React.useMemo1(() => ref(None), [||]);
+
+[@platform native]
+let useUnsubscribeRef = () => ref(None);
 
 [@platform js]
 let scrollToBottom = () => {
@@ -174,11 +188,9 @@ let isNearBottom = () => {
 };
 
 [@platform js]
-let scrollRafId: ref(option(Webapi.rafId)) = ref(None);
-
-[@platform js]
 let useAutoScroll = (messages, isStreaming) => {
-  let isNearBottomRef: ref(bool) = ref(true);
+  let isNearBottomRef = React.useMemo1(() => ref(true), [||]);
+  let scrollRafId = React.useMemo1(() => ref(None), [||]);
   React.useEffect2(
     () => {
       isNearBottomRef := isNearBottom();
@@ -292,6 +304,7 @@ module View = {
       let sseBufferRef = useSseBufferRef();
       let (isStreaming, setIsStreaming) = React.useState(() => false);
       let (draft, setDraft) = React.useState(() => "");
+      let unsubscribeRef = useUnsubscribeRef();
 
       let messages = store.state.messages;
       let threads = store.state.threads;
@@ -300,6 +313,16 @@ module View = {
         | Some(threadId) => threadId
         | None => ""
         };
+
+      /* Cleanup SSE subscription on unmount */
+      React.useEffect0(() => {
+        Some(() =>
+          switch (unsubscribeRef^) {
+          | Some(unsub) => unsub()
+          | None => ()
+          }
+        );
+      });
 
       React.useEffect1(
         () => {
@@ -379,30 +402,32 @@ module View = {
                ~id="prompt-input",
                ~dataTestId="prompt-input",
                ~onChange=event => handleInputChange(setDraft, event),
-               ~onKeyDown=
-                 event =>
-                   handleKeyDown(
-                     store,
-                     draft,
-                     setDraft,
-                     sseBufferRef,
-                     setIsStreaming,
-                     event,
-                   ),
+                ~onKeyDown=
+                  event =>
+                    handleKeyDown(
+                      store,
+                      draft,
+                      setDraft,
+                      sseBufferRef,
+                      setIsStreaming,
+                      unsubscribeRef,
+                      event,
+                    ),
              )}
             {DOMHelpers.sendButton(
                ~id="send-button",
                ~dataTestId="send-button",
                ~disabled=isStreaming,
-               ~onClick=
-                 _ =>
-                   handleSend(
-                     store,
-                     draft,
-                     setDraft,
-                     sseBufferRef,
-                     setIsStreaming,
-                   ),
+                ~onClick=
+                  _ =>
+                    handleSend(
+                      store,
+                      draft,
+                      setDraft,
+                      sseBufferRef,
+                      setIsStreaming,
+                      unsubscribeRef,
+                    ),
                ~children=[|React.string("Send")|],
              )}
           </div>
