@@ -27,6 +27,9 @@ module Local = {
     type store_event = StoreEvents.store_event(action);
     type listener = StoreEvents.listener(action);
 
+    let lifecycle = StoreRuntimeLifecycle.make(~storeName=Schema.storeName, ());
+    StoreRuntimeLifecycle.markConnectionNotApplicable(lifecycle);
+
     type broadcast_channel = BroadcastChannel.t;
 
     /* Cache adapter instantiation based on Schema.cache selection */
@@ -73,14 +76,14 @@ module Local = {
         switch (Schema.cache) {
         | `IndexedDB =>
           let _ =
-            IDBCache.setState(
-              ~storeName=Schema.storeName,
-              {
-                scopeKey: Schema.scopeKeyOfState(state),
-                state,
-                timestamp: Schema.timestampOfState(state),
-              },
-            );
+            StoreRuntimeLifecycle.trackPersistence(lifecycle, IDBCache.setState(
+                ~storeName=Schema.storeName,
+                {
+                  scopeKey: Schema.scopeKeyOfState(state),
+                  state,
+                  timestamp: Schema.timestampOfState(state),
+                },
+              ),);
           ()
         | `None => ()
         }
@@ -143,33 +146,31 @@ module Local = {
       switch%platform (Runtime.platform) {
       | Client =>
         let currentState = actions.get();
-        let _ =
-          switch (Schema.cache) {
-          | `IndexedDB =>
-            Js.Promise.then_(
-              (persistedState: option(StoreCache.state_record(state))) => {
-                switch (persistedState) {
-                | Some(record) =>
-                  if (record.timestamp
-                      > Schema.timestampOfState(actions.get())) {
-                    setExternalState(~actions, record.state);
-                  } else {
-                    writeStateRecord(actions.get());
-                  }
-                | None => writeStateRecord(actions.get())
-                };
-                Js.Promise.resolve();
-              },
-              IDBCache.getState(
-                ~storeName=Schema.storeName,
-                ~scopeKey=Schema.scopeKeyOfState(currentState),
-                (),
-              ),
-            )
-          | `None => Js.Promise.resolve()
-          };
-        ();
-      | Server => ()
+        switch (Schema.cache) {
+        | `IndexedDB =>
+          Js.Promise.then_(
+            (persistedState: option(StoreCache.state_record(state))) => {
+              switch (persistedState) {
+              | Some(record) =>
+                if (record.timestamp
+                    > Schema.timestampOfState(actions.get())) {
+                  setExternalState(~actions, record.state);
+                } else {
+                  writeStateRecord(actions.get());
+                }
+              | None => writeStateRecord(actions.get())
+              };
+              Js.Promise.resolve();
+            },
+            IDBCache.getState(
+              ~storeName=Schema.storeName,
+              ~scopeKey=Schema.scopeKeyOfState(currentState),
+              (),
+            ),
+          )
+        | `None => Js.Promise.resolve()
+        }
+      | Server => Js.Promise.resolve()
       };
 
     let hydrateStore = () => {
@@ -227,7 +228,9 @@ module Local = {
                   | None => ()
                   }
                 });
-                reconcilePersistedState(actions);
+                let _ =
+                  StoreRuntimeLifecycle.trackBoot(lifecycle, reconcilePersistedState(actions),);
+                ();
               },
             initialState,
           );
@@ -268,6 +271,11 @@ module Local = {
 
       let useStore = () => React.useContext(context);
     };
+
+    let flushCache = () => Js.Promise.resolve();
+    let whenReady = () => StoreRuntimeLifecycle.whenReady(lifecycle);
+    let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
+    let status = () => StoreRuntimeLifecycle.status(lifecycle);
   };
 };
 
@@ -502,6 +510,8 @@ module Synced = {
     type store_event = StoreEvents.store_event(action);
     type listener = StoreEvents.listener(action);
 
+    let lifecycle = StoreRuntimeLifecycle.make(~storeName=Schema.storeName, ());
+
     /* Cache adapter instantiation based on Schema.cache selection */
     module IDBCache = StoreCache.IndexedDB(Schema);
     module NoOpCache = StoreCache.NoCache(Schema);
@@ -661,11 +671,11 @@ module Synced = {
       switch%platform (Runtime.platform) {
       | Client =>
         let _ =
-          cacheSetState({
-            scopeKey: Schema.scopeKeyOfState(state),
-            state,
-            timestamp: Schema.timestampOfState(state),
-          });
+          StoreRuntimeLifecycle.trackPersistence(lifecycle, cacheSetState({
+              scopeKey: Schema.scopeKeyOfState(state),
+              state,
+              timestamp: Schema.timestampOfState(state),
+            }),);
         if (broadcast) {
           if (suppressPublishRef.contents) {
             suppressPublishRef := false;
@@ -784,6 +794,7 @@ module Synced = {
                   if (record.retryCount >= StoreActionLedger.maxRetries) {
                     let message = "Timed out waiting for acknowledgement";
                     let ledgerRecord = ledgerRecordOfCache(record);
+                    StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
                     Js.Promise.then_(
                       _ => {
                         refreshOptimisticState();
@@ -837,6 +848,7 @@ module Synced = {
         let currentState = actions.get();
         let nextState = Schema.reduce(~state=currentState, ~action);
         let actionId = UUID.make();
+        StoreRuntimeLifecycle.markActionPending(lifecycle, actionId);
         let ledgerRecord =
           StoreActionLedger.make(
             ~id=actionId,
@@ -912,7 +924,8 @@ module Synced = {
       Controller.clearAckTimeout(actionId);
       switch (status) {
       | "ok" =>
-        let _ =
+        StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
+        let _ = 
           Js.Promise.then_(
             cacheRecord => {
               let ledgerRecord =
@@ -958,6 +971,7 @@ module Synced = {
           );
         ();
       | "error" =>
+        StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
         let message =
           switch (error) {
           | Some(message) => message
@@ -1032,16 +1046,19 @@ module Synced = {
       };
     };
 
-    let startSubscription = state =>
+    let startSubscription = (state): Js.Promise.t(unit) =>
       switch (Schema.subscriptionOfState(state)) {
       | Some(subscription) =>
-        {
-          Controller.disposeConnectionHandle();
+        StoreRuntimeLifecycle.markConnectionWaiting(lifecycle);
+        Controller.disposeConnectionHandle();
+        Js.Promise.make((~resolve, ~reject as _) => {
+          let resolveUnit = v => resolve(. v);
           let handle =
             RealtimeClient.Socket.subscribeSynced(
               ~subscription=Schema.encodeSubscription(subscription),
               ~updatedAt=Schema.timestampOfState(state),
               ~onOpen=() => {
+                StoreRuntimeLifecycle.markConnectionOpen(lifecycle);
                 let lifecycleEvent =
                   if (Controller.getHasOpened()) {
                     StoreEvents.Reconnect;
@@ -1057,6 +1074,7 @@ module Synced = {
                 | None => ()
                 };
                 resumePendingActions();
+                resolveUnit(());
               },
               ~onClose=() => emitEvent(StoreEvents.Close),
               ~onPatch=handlePatch,
@@ -1094,8 +1112,11 @@ module Synced = {
           | Some(callback) => callback(handle)
           | None => ()
           };
-        }
-      | None => Controller.disposeConnectionHandle()
+        })
+      | None =>
+        StoreRuntimeLifecycle.markConnectionNotApplicable(lifecycle);
+        Controller.disposeConnectionHandle();
+        Js.Promise.resolve()
       };
 
     let hydrateStore = () => {
@@ -1171,32 +1192,33 @@ module Synced = {
                   | None => ()
                   }
                 });
+                let bootPromise =
+                  cacheGetState(
+                    ~scopeKey=Schema.scopeKeyOfState(initialState),
+                    (),
+                  )
+                  |> Js.Promise.then_(
+                       (persistedState: option(StoreCache.state_record(state))) => {
+                         let persisted =
+                           switch (persistedState) {
+                           | Some(record) => Some(record.state)
+                           | None => None
+                           };
+                         let baseState =
+                           StoreRuntimeHelpers.selectHydrationBase(
+                             ~initialState,
+                             ~persistedState=persisted,
+                             ~timestampOfState=Schema.timestampOfState,
+                           );
+                         confirmedStateRef := baseState;
+                         persistConfirmedState(~broadcast=false, baseState);
+                         actions.set(baseState);
+                         refreshOptimisticState();
+                         startSubscription(baseState);
+                       },
+                     );
                 let _ =
-                  Js.Promise.then_(
-                    (persistedState: option(StoreCache.state_record(state))) => {
-                      let persisted =
-                        switch (persistedState) {
-                        | Some(record) => Some(record.state)
-                        | None => None
-                        };
-                      let baseState =
-                        StoreRuntimeHelpers.selectHydrationBase(
-                          ~initialState,
-                          ~persistedState=persisted,
-                          ~timestampOfState=Schema.timestampOfState,
-                        );
-                      confirmedStateRef := baseState;
-                      persistConfirmedState(~broadcast=false, baseState);
-                      actions.set(baseState);
-                      refreshOptimisticState();
-                      startSubscription(baseState);
-                      Js.Promise.resolve();
-                    },
-                    cacheGetState(
-                      ~scopeKey=Schema.scopeKeyOfState(initialState),
-                      (),
-                    ),
-                  );
+                  StoreRuntimeLifecycle.trackBoot(lifecycle, bootPromise);
                 ();
               },
             initialState,
@@ -1229,5 +1251,10 @@ module Synced = {
 
       let useStore = () => React.useContext(context);
     };
+
+    let flushCache = () => Js.Promise.resolve();
+    let whenReady = () => StoreRuntimeLifecycle.whenReady(lifecycle);
+    let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
+    let status = () => StoreRuntimeLifecycle.status(lifecycle);
   };
 };

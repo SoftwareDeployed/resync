@@ -18,8 +18,10 @@
    StoreJson
     StoreOffline
    StorePatch
-   StoreRuntimeHelpers
-  StoreSignal
+     StoreRuntimeHelpers
+     StoreRuntimeLifecycle
+     StoreRuntimeTypes
+     StoreSignal
   StoreSource
   Tilia
   WebSocket)

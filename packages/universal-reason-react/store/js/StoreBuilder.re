@@ -249,6 +249,13 @@ type listener('action) = StoreEvents.listener('action);
 type store_event('action) = StoreEvents.store_event('action);
 
 module Runtime = {
+  type connection_status = StoreRuntimeTypes.connection_status =
+    | NotApplicable
+    | WaitingForOpen
+    | Open;
+
+  type status = StoreRuntimeTypes.status;
+
   module type Exports = {
     type state;
     type action;
@@ -263,6 +270,10 @@ module Runtime = {
     let serializeState: state => string;
     let serializeSnapshot: state => string;
     let dispatch: action => unit;
+    let flushCache: unit => Js.Promise.t(unit);
+    let whenReady: unit => Js.Promise.t(unit);
+    let whenIdle: unit => Js.Promise.t(unit);
+    let status: unit => status;
 
     module Events: {
       let listen: listener => listener_id;

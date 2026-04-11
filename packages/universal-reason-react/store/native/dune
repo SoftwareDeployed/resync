@@ -6,22 +6,24 @@
     Hydration
     RealtimeClient
     Store
-    StoreBuilder
-     StoreActionLedger
-     StoreCache
-     StoreComputed
-    StoreControllerHelpers
-    StoreCrud
-    StoreEvents
-    StoreIndexedDB
-    StoreJson
-    StoreOffline
-    StorePatch
-    StoreRuntimeHelpers
-    StoreSignal
-    StoreSource
-    Tilia
-    WebSocket)
+     StoreBuilder
+      StoreActionLedger
+      StoreCache
+      StoreComputed
+     StoreControllerHelpers
+     StoreCrud
+     StoreEvents
+     StoreIndexedDB
+     StoreJson
+     StoreOffline
+     StorePatch
+     StoreRuntimeHelpers
+     StoreRuntimeLifecycle
+     StoreRuntimeTypes
+     StoreSignal
+     StoreSource
+     Tilia
+     WebSocket)
  (wrapped false)
  (libraries
    melange-json-native
