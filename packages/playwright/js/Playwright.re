@@ -1,6 +1,7 @@
 type browserType;
 type browser;
 type page;
+type browserContext;
 
 type launchOptions;
 
@@ -15,6 +16,15 @@ external launch: (browserType, launchOptions) => Js.Promise.t(browser) = "launch
 
 [@mel.send]
 external newPage: browser => Js.Promise.t(page) = "newPage";
+
+[@mel.send]
+external newContext: browser => Js.Promise.t(browserContext) = "newContext";
+
+[@mel.send]
+external newPageInContext: browserContext => Js.Promise.t(page) = "newPage";
+
+[@mel.send]
+external closeContext: browserContext => Js.Promise.t(unit) = "close";
 
 [@mel.send]
 external goto: (page, string) => Js.Promise.t(Js.Nullable.t('a)) = "goto";
