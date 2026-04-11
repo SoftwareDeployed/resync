@@ -272,10 +272,16 @@ module Local = {
       let useStore = () => React.useContext(context);
     };
 
-    let flushCache = () => Js.Promise.resolve();
+    let flushCache = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let whenReady = () => StoreRuntimeLifecycle.whenReady(lifecycle);
     let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let status = () => StoreRuntimeLifecycle.status(lifecycle);
+
+    type status_listener_id = string;
+    let subscribeStatus = callback =>
+      StoreRuntimeLifecycle.subscribeStatus(lifecycle, callback);
+    let unsubscribeStatus = id =>
+      StoreRuntimeLifecycle.unsubscribeStatus(lifecycle, id);
   };
 };
 
@@ -587,6 +593,8 @@ module Synced = {
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
     let suppressPublishRef: ref(bool) = ref(false);
+    let replayInProgressRef: ref(bool) = ref(false);
+    let replayNeededRef: ref(bool) = ref(false);
 
     /* Initialize the SyncController that owns connection state, timers,
        listeners, and queued dispatch behavior. */
@@ -690,49 +698,73 @@ module Synced = {
     let rec refreshOptimisticState = () =>
       switch%platform (Runtime.platform) {
       | Client =>
-        switch (sourceRef.contents) {
-        | Some(actions) =>
-          let confirmedState = confirmedStateRef.contents;
-          let confirmedTimestamp = Schema.timestampOfState(confirmedState);
-          let _ =
-            Js.Promise.then_(
-              cacheRecords => {
-                let records =
-                  cacheRecords
-                  ->Js.Array.map(~f=ledgerRecordOfCache);
-                let idsToDelete =
-                  StoreRuntimeHelpers.getPendingActionIds(
-                    ~confirmedTimestamp,
-                    ~records,
-                  );
-                let remaining = Array.of_list(
-                  StoreRuntimeHelpers.filterResumableRecords(records),
-                );
-                actions.set(
-                  StoreRuntimeHelpers.replayActions(
-                    ~confirmed=confirmedState,
-                    ~records=remaining,
-                    ~reduce=(state, record) =>
-                      Schema.reduce(
-                        ~state,
-                        ~action=Schema.action_of_json(record.action),
-                      ),
-                  ),
-                );
-                if (Array.length(idsToDelete) > 0) {
-                  let _ =
-                    cacheDeleteActions(~ids=idsToDelete, ());
-                  ();
-                };
-                Js.Promise.resolve();
-              },
-              cacheGetActionsByScope(
-                ~scopeKey=Schema.scopeKeyOfState(confirmedState),
-                (),
-              ),
-            );
+        if (replayInProgressRef.contents) {
+          replayNeededRef := true;
           ();
-        | None => ()
+        } else {
+          switch (sourceRef.contents) {
+          | Some(actions) =>
+            replayInProgressRef := true;
+            let confirmedState = confirmedStateRef.contents;
+            let confirmedTimestamp = Schema.timestampOfState(confirmedState);
+            let _ =
+              Js.Promise.then_(
+                cacheRecords => {
+                  let records =
+                    cacheRecords
+                    ->Js.Array.map(~f=ledgerRecordOfCache);
+                  let idsToDelete =
+                    StoreRuntimeHelpers.getPendingActionIds(
+                      ~confirmedTimestamp,
+                      ~records,
+                    );
+                  let remaining = Array.of_list(
+                    StoreRuntimeHelpers.filterResumableRecords(records),
+                  );
+                  actions.set(
+                    StoreRuntimeHelpers.replayActions(
+                      ~confirmed=confirmedState,
+                      ~records=remaining,
+                      ~reduce=(state, record) =>
+                        Schema.reduce(
+                          ~state,
+                          ~action=Schema.action_of_json(record.action),
+                        ),
+                    ),
+                  );
+                  if (Array.length(idsToDelete) > 0) {
+                    let _ =
+                      cacheDeleteActions(~ids=idsToDelete, ());
+                    ();
+                  };
+                  Js.Promise.resolve();
+                },
+                cacheGetActionsByScope(
+                  ~scopeKey=Schema.scopeKeyOfState(confirmedState),
+                  (),
+                ),
+              )
+              |> Js.Promise.catch(_err => {
+                   /* On IDB failure, fall back to confirmed state without optimistic overlay */
+                   Js.log(
+                     "StoreRuntime: refreshOptimisticState failed for "
+                     ++ Schema.storeName
+                     ++ ", falling back to confirmed state",
+                   );
+                   actions.set(confirmedState);
+                   Js.Promise.resolve();
+                 })
+              |> Js.Promise.then_(() => {
+                   replayInProgressRef := false;
+                   if (replayNeededRef.contents) {
+                     replayNeededRef := false;
+                     refreshOptimisticState();
+                   };
+                   Js.Promise.resolve();
+                 });
+            ();
+          | None => ()
+          };
         }
       | Server => ()
       }
@@ -1252,9 +1284,15 @@ module Synced = {
       let useStore = () => React.useContext(context);
     };
 
-    let flushCache = () => Js.Promise.resolve();
+    let flushCache = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let whenReady = () => StoreRuntimeLifecycle.whenReady(lifecycle);
     let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let status = () => StoreRuntimeLifecycle.status(lifecycle);
+
+    type status_listener_id = string;
+    let subscribeStatus = callback =>
+      StoreRuntimeLifecycle.subscribeStatus(lifecycle, callback);
+    let unsubscribeStatus = id =>
+      StoreRuntimeLifecycle.unsubscribeStatus(lifecycle, id);
   };
 };
