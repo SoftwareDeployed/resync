@@ -150,7 +150,20 @@ let reduce = (~state: state, ~action: action) => {
       ...state,
       todos: StoreCrud.remove(~getId=(item: Model.Todo.t) => item.id, state.todos, id),
     })
-  | FailServerMutation
+  | FailServerMutation =>
+    switch (state.list) {
+    | Some(list) =>
+      withTimestamp({
+        ...state,
+        todos:
+          StoreCrud.upsert(
+            ~getId=(item: Model.Todo.t) => item.id,
+            state.todos,
+            {id: "fail-server-test", list_id: list.id, text: "Server failure test todo", completed: false},
+          ),
+      })
+    | None => state
+    }
   | FailClientMutation => state
   };
 };
