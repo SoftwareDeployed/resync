@@ -1,36 +1,5 @@
 open Js.Promise;
 
-let rec waitForSelectorText = (~page, ~selector, ~expected, ~label, ~attemptsLeft) =>
-  if (attemptsLeft <= 0) {
-    BrowserTestUtils.textOrEmpty(page, selector)
-    |> then_(text =>
-         reject(
-           BrowserTestUtils.makeError(
-             label
-             ++ " timed out waiting for selector "
-             ++ selector
-             ++ " to contain: "
-             ++ expected
-             ++ ". Last value: "
-             ++ text,
-           ),
-         )
-       );
-  } else {
-    BrowserTestUtils.textOrEmpty(page, selector)
-    |> then_(text =>
-         if (text->BrowserTestUtils.includes(expected)) {
-           Js.log("[PASS] " ++ label);
-           resolve();
-         } else {
-           BrowserTestUtils.sleep(100)
-           |> then_(_ =>
-                waitForSelectorText(~page, ~selector, ~expected, ~label, ~attemptsLeft=attemptsLeft - 1)
-              );
-         }
-       );
-  };
-
 let cleanup = (~browser, ~server) => {
   let closeBrowser =
     switch (browser) {
@@ -82,18 +51,33 @@ let run = () => {
             |> then_(text =>
                  BrowserTestUtils.assertContains(~label="Optimistic add visible immediately", ~expected="Realtime browser test todo", text)
                )
-             |> then_(_ => BrowserTestUtils.sleep(500))
+             |> then_(_ => BrowserTestUtils.waitForIDBContent(page, ~dbName="todo-multiplayer", ~expectedText="Realtime browser test todo"))
              |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
-             |> then_(text =>
-                  BrowserTestUtils.assertContains(~label="Todo remains after websocket confirmation", ~expected="Realtime browser test todo", text)
-                )
-              |> then_(_ => page->Playwright.reload)
-             |> then_(_ => page->Playwright.waitForSelector(".todo-container"))
-             |> then_(_ => waitForSelectorText(~page, ~selector="body", ~expected="Realtime browser test todo", ~label="Cache replay: todo survives reload", ~attemptsLeft=50))
-             |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
-             |> then_(text =>
-                  BrowserTestUtils.assertNotContains(~label="No loading placeholder after reload", ~unexpected="Loading", text)
-                )
+               |> then_(text =>
+                    BrowserTestUtils.assertContains(~label="Todo remains after websocket confirmation", ~expected="Realtime browser test todo", text)
+                  )
+                |> then_(_ => page->Playwright.click("text=Fail Query"))
+               |> then_(_ => page->Playwright.waitForSelector("text=Server failure test todo"))
+               |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+               |> then_(text =>
+                    BrowserTestUtils.assertContains(~label="Optimistic fail-server todo appears", ~expected="Server failure test todo", text)
+                  )
+               |> then_(_ => BrowserTestUtils.waitForBodyNotContains(page, ~unexpectedText="Server failure test todo"))
+               |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+               |> then_(text =>
+                    BrowserTestUtils.assertNotContains(~label="Optimistic fail-server todo rolled back", ~unexpected="Server failure test todo", text)
+                  )
+               |> then_(_ => page->Playwright.reload)
+              |> then_(_ => page->Playwright.waitForSelector(".todo-container"))
+              |> then_(_ => BrowserTestUtils.waitForIDBContent(page, ~dbName="todo-multiplayer", ~expectedText="Realtime browser test todo"))
+              |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+              |> then_(text =>
+                   BrowserTestUtils.assertContains(~label="Cache replay: todo survives reload", ~expected="Realtime browser test todo", text)
+                 )
+              |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+              |> then_(text =>
+                   BrowserTestUtils.assertNotContains(~label="No loading placeholder after reload", ~unexpected="Loading", text)
+                 )
           );
      })
   |> then_(result =>

@@ -1,21 +1,18 @@
+(library
+ (name todo_mp_browser_test)
+ (modules TodoMultiplayerBrowserTest TodoMultiplayerTestServer)
+ (wrapped false)
+ (libraries melange.js playwright_js)
+ (modes melange)
+ (preprocess (pps server-reason-react.ppx -melange server-reason-react.browser_ppx -js melange.ppx)))
+
 (melange.emit
- (package resync)
- (alias todo-mp-browser-tests)
- (module_systems (esm "mjs"))
  (target dist)
- (promote
-  (until-clean)
-  (into ./generated))
- (libraries
-  melange.js
-  playwright_js)
- (preprocess
-  (pps
-   server-reason-react.ppx
-   -melange
-   server-reason-react.browser_ppx
-   -js
-   melange.ppx)))
+ (alias todo-mp-browser-tests)
+ (modules ())
+ (module_systems (esm "mjs"))
+ (promote (until-clean) (into ./generated))
+ (libraries todo_mp_browser_test))
 
 (rule
  (targets .build_stamp)
