@@ -89,6 +89,19 @@ let add_message = args => {
   };
 };
 
+let record_thread_view = (thread_id: string) => {
+  let query =
+    Caqti_request.Infix.(
+      (T.string ->. T.unit)(
+        {sql|INSERT INTO active_thread_views (thread_id) VALUES ($1::uuid) ON CONFLICT DO NOTHING|sql}
+      )
+    );
+  (module Db: DB) => {
+    let* result = Db.exec(query, thread_id);
+    Caqti_lwt.or_fail(result);
+  };
+};
+
 let delete_thread = (thread_id: string) => {
   let query =
     Caqti_request.Infix.(

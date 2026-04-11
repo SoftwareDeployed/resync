@@ -130,6 +130,8 @@ module Synced = {
       type store = Input.store;
       type subscription = Input.subscription;
       type patch = Input.patch;
+      type stream_event = unit;
+      type streaming_state = unit;
 
       let reduce = Input.config.schema.reduce;
       let emptyState = Input.config.schema.emptyState;
@@ -149,6 +151,7 @@ module Synced = {
       let baseUrl = Input.config.transport.baseUrl;
       let decodePatch = Input.config.strategy.decodePatch;
       let updateOfPatch = Input.config.strategy.updateOfPatch;
+      let streams = None;
       let onActionError =
         switch (hooks.onActionError) {
         | Some(cb) => cb
@@ -246,6 +249,8 @@ module Crud = {
       type store = Input.store;
       type subscription = Input.subscription;
       type patch = Store.Crud.patch(Input.row);
+      type stream_event = unit;
+      type streaming_state = unit;
 
       let reduce = Input.config.schema.reduce;
       let emptyState = Input.config.schema.emptyState;
@@ -265,6 +270,7 @@ module Crud = {
       let baseUrl = Input.config.transport.baseUrl;
       let decodePatch = Store.Patch.compose([crudPatch]);
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
+      let streams = None;
       let onActionError =
         switch (hooks.onActionError) {
         | Some(cb) => cb

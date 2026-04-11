@@ -619,6 +619,41 @@ let onActionError = message => {
 [@platform native]
 let onActionError = _message => ();
 
+type stream_event =
+  | VideoFrame({room_id: string, peer_id: string, frame_data: string})
+  | AudioChunk({room_id: string, peer_id: string, chunk_data: string});
+
+type streaming_state = unit;
+
+let emptyStreamingState = ();
+
+let decodeStreamEvent = (json) => {
+  let frameData = StoreJson.optionalField(~json, ~fieldName="frame_data", ~decode=Melange_json.Primitives.string_of_json);
+  switch (frameData) {
+  | Some(frame_data) =>
+    Some(VideoFrame({
+      room_id: StoreJson.requiredField(~json, ~fieldName="room_id", ~decode=Melange_json.Primitives.string_of_json),
+      peer_id: StoreJson.requiredField(~json, ~fieldName="peer_id", ~decode=Melange_json.Primitives.string_of_json),
+      frame_data,
+    }))
+  | None =>
+    let chunkData = StoreJson.optionalField(~json, ~fieldName="chunk_data", ~decode=Melange_json.Primitives.string_of_json);
+    switch (chunkData) {
+    | Some(chunk_data) =>
+      Some(AudioChunk({
+        room_id: StoreJson.requiredField(~json, ~fieldName="room_id", ~decode=Melange_json.Primitives.string_of_json),
+        peer_id: StoreJson.requiredField(~json, ~fieldName="peer_id", ~decode=Melange_json.Primitives.string_of_json),
+        chunk_data,
+      }))
+    | None => None
+    }
+  };
+};
+
+let reduceStream = (_streaming, _event) => ();
+
+let reconcilePatch = (_patch, streaming) => streaming;
+
 /* ============================================================================
    New Grouped API (Task 7) - Using Synced.Define with custom strategy
    ============================================================================ */
@@ -630,6 +665,8 @@ module StoreDef =
     type nonrec store = store;
     type nonrec subscription = subscription;
     type patch = action;
+    type nonrec stream_event = stream_event;
+    type nonrec streaming_state = unit;
 
     let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
       storeName,
@@ -695,6 +732,14 @@ module StoreDef =
             Some((handle) => MediaTransport.setHandle(Some(handle))),
         }),
     };
+
+    let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state)) =
+      Some({
+        decodeStreamEvent,
+        emptyStreamingState,
+        reduceStream,
+        reconcilePatch,
+      });
 
     let strategy: StoreBuilder.Sync.customStrategy(state, patch) =
       StoreBuilder.Sync.custom(
@@ -781,7 +826,11 @@ module StoreDef =
 include (
   StoreDef:
     StoreBuilder.Runtime.Exports with
-      type state := state and type action := action and type t := store
+      type state := state
+      and type action := action
+      and type t := store
+      and type stream_event := stream_event
+      and type streaming_state := streaming_state
 );
 
 type t = store;

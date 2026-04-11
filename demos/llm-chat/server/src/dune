@@ -11,7 +11,8 @@
     reason_realtime_dream_middleware
     reason_realtime_pgnotify_adapter
     resync.reason_realtime_stream
-    resync.reason_streamdown
+     resync.reason_streamdown
+     resync.universal_reason_react_lucide_icons_native
     postgresql
    server-reason-react.url_native
    server-reason-react.react

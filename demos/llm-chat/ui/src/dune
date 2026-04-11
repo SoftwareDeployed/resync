@@ -13,18 +13,19 @@
     melange-json.ppx
     reason-react-ppx))
  (runtime_deps style.css)
-  (libraries
-      llm_chat_js
-      universal_reason_react_router_js
-      universal_reason_react_store_js
-      reason_realtime_stream_js
-      reason_streamdown_js
-      melange-webapi
-      melange-json
-      melange.belt
-      melange.dom
-      melange.js
-      reason-react))
+   (libraries
+       llm_chat_js
+       universal_reason_react_router_js
+       universal_reason_react_store_js
+       reason_realtime_stream_js
+       reason_streamdown_js
+       universal_reason_react_lucide_icons_js
+       melange-webapi
+       melange-json
+       melange.belt
+       melange.dom
+       melange.js
+       reason-react))
 
 (rule
  (targets .build_stamp Index.re.js Index.re.css)

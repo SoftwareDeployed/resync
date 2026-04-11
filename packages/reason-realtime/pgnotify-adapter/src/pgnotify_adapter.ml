@@ -144,7 +144,7 @@ let notification_to_message payload =
 let dispatch t channel payload =
   match (Hashtbl.find_opt t.handlers channel, notification_to_message payload) with
   | Some handlers, Some message ->
-    Lwt_list.iter_p (fun handler -> handler ?wrap:(Some Fun.id) message) handlers
+    Lwt_list.iter_p (fun handler -> handler ?wrap:None message) handlers
   | _ -> Lwt.return_unit
 
 let rec poll t =

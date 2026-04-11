@@ -260,6 +260,8 @@ module Runtime = {
     type state;
     type action;
     type t;
+    type stream_event;
+    type streaming_state;
     type listener_id = StoreEvents.listener_id;
     type store_event = StoreEvents.store_event(action);
     type listener = StoreEvents.listener(action);
@@ -270,6 +272,7 @@ module Runtime = {
     let serializeState: state => string;
     let serializeSnapshot: state => string;
     let dispatch: action => unit;
+    let streaming: streaming_state;
     let flushCache: unit => Js.Promise.t(unit);
     let whenReady: unit => Js.Promise.t(unit);
     let whenIdle: unit => Js.Promise.t(unit);
@@ -313,6 +316,8 @@ module Runtime = {
     type store;
     type subscription;
     type patch;
+    type stream_event;
+    type streaming_state;
 
     let reduce: (~state: state, ~action: action) => state;
     let emptyState: state;
@@ -333,12 +338,12 @@ module Runtime = {
     let baseUrl: string;
     let decodePatch: StoreJson.json => option(patch);
     let updateOfPatch: (patch, state) => state;
+    let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state));
     /* Legacy compatibility hooks. New code should prefer Runtime.Events.listen and
        the narrow StoreEvents.store_event surface instead of raw per-frame callback
        registration. */
     let onActionError: string => unit;
-    let onActionAck:
-      option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit);
+    let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit);
     let onCustom: option(StoreJson.json => unit);
     let onMedia: option(StoreJson.json => unit);
     let onError: option((~dispatch: action => unit) => string => unit);
@@ -506,8 +511,11 @@ module Synced = {
     type store;
     type subscription;
     type patch;
+    type stream_event;
+    type streaming_state;
     let base: baseConfig(state, action, store, subscription);
     let strategy: Sync.customStrategy(state, patch);
+    let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state));
   };
 
   module Define = (Input: Input) => {
@@ -528,6 +536,8 @@ module Synced = {
       type store = Input.store;
       type subscription = Input.subscription;
       type patch = Input.patch;
+      type stream_event = Input.stream_event;
+      type streaming_state = Input.streaming_state;
 
       let reduce = Input.base.reduce;
       let emptyState = Input.base.emptyState;
@@ -547,6 +557,7 @@ module Synced = {
       let baseUrl = Input.base.transport.baseUrl;
       let decodePatch = Input.strategy.decodePatch;
       let updateOfPatch = Input.strategy.updateOfPatch;
+      let streams = Input.streams;
       let onActionError =
         switch (hooks.onActionError) {
         | Some(callback) => callback
@@ -619,6 +630,8 @@ module Synced = {
       type store = Input.store;
       type subscription = Input.subscription;
       type patch = StoreCrud.patch(Input.row);
+      type stream_event = unit;
+      type streaming_state = unit;
 
       let reduce = Input.base.reduce;
       let emptyState = Input.base.emptyState;
@@ -638,6 +651,7 @@ module Synced = {
       let baseUrl = Input.base.transport.baseUrl;
       let decodePatch = StorePatch.compose([crudPatch]);
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
+      let streams = None;
       let onActionError =
         switch (hooks.onActionError) {
         | Some(callback) => callback

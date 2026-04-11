@@ -10,11 +10,20 @@ type send_prompt_payload = {
   prompt: string,
 };
 
+type stream_event =
+  | StreamStarted(string)
+  | TokenReceived(string, string)
+  | StreamComplete(string);
+
+type streaming_state = {
+  activeStreams: Belt.Map.String.t(string),
+};
+
+let emptyStreamingState = {activeStreams: Belt.Map.String.empty};
+
 type action =
   | SendPrompt(send_prompt_payload)
   | SetInput(string)
-  | AppendToken(string)
-  | FinishResponse
   | SetError(string)
   | SelectThread(string)
   | DeleteThread(string);
@@ -58,14 +67,6 @@ let action_to_json = action =>
       ++ string_to_json(text)->Melange_json.to_string
       ++ "}}"
     )
-  | AppendToken(text) =>
-    StoreJson.parse(
-      "{\"kind\":\"append_token\",\"payload\":{\"text\":"
-      ++ string_to_json(text)->Melange_json.to_string
-      ++ "}}"
-    )
-  | FinishResponse =>
-    StoreJson.parse("{\"kind\":\"finish_response\",\"payload\":{}}")
   | SetError(message) =>
     StoreJson.parse(
       "{\"kind\":\"set_error\",\"payload\":{\"message\":"
@@ -103,11 +104,6 @@ let action_of_json = json => {
     SetInput(
       StoreJson.requiredField(~json=payload, ~fieldName="text", ~decode=string_of_json),
     )
-  | "append_token" =>
-    AppendToken(
-      StoreJson.requiredField(~json=payload, ~fieldName="text", ~decode=string_of_json),
-    )
-  | "finish_response" => FinishResponse
   | "set_error" =>
     SetError(
       StoreJson.requiredField(~json=payload, ~fieldName="message", ~decode=string_of_json),
@@ -147,64 +143,6 @@ let reduce = (~state: state, ~action: action) => {
     })
   | SetInput(text) =>
     {...state, input: text}
-  | AppendToken(token) =>
-    let messages = state.messages;
-    let len = Array.length(messages);
-    if (len == 0) {
-      withTimestamp({
-        ...state,
-        messages: [|
-          {
-            Model.Message.id: "local-" ++ string_of_float(updatedAt),
-            thread_id:
-              switch (state.current_thread_id) {
-              | Some(id) => id
-              | None => ""
-              },
-            role: "assistant",
-            content: token,
-          },
-        |],
-      });
-    } else {
-      let lastIndex = len - 1;
-      let lastMessage = messages[lastIndex];
-      if (lastMessage.role == "assistant") {
-        let prefix = Js.Array.slice(~start=0, ~end_=lastIndex, messages);
-        withTimestamp({
-          ...state,
-          messages:
-            Js.Array.concat(
-              ~other=[|
-                {...lastMessage, content: lastMessage.content ++ token},
-              |],
-              prefix,
-            ),
-        });
-      } else {
-        withTimestamp({
-          ...state,
-          messages:
-            Js.Array.concat(
-              ~other=[|
-                {
-                  Model.Message.id: "local-" ++ string_of_float(updatedAt),
-                  thread_id:
-                    switch (state.current_thread_id) {
-                    | Some(id) => id
-                    | None => ""
-                    },
-                  role: "assistant",
-                  content: token,
-                },
-              |],
-              messages,
-            ),
-        });
-      };
-    }
-  | FinishResponse =>
-    withTimestamp(state)
   | SetError(message) =>
     withTimestamp({
       ...state,
@@ -226,7 +164,10 @@ let reduce = (~state: state, ~action: action) => {
         ),
     })
   | SelectThread(thread_id) =>
-    withTimestamp({...state, current_thread_id: Some(thread_id), input: ""})
+    switch (state.current_thread_id) {
+    | Some(id) when id == thread_id => state
+    | _ => withTimestamp({...state, current_thread_id: Some(thread_id), messages: [||], input: ""})
+    }
   | DeleteThread(thread_id) =>
     let remainingThreads =
       state.threads
@@ -252,8 +193,7 @@ let reduce = (~state: state, ~action: action) => {
 
 let makeStore = (~state, ~derive=?, ()) => {
   let _ = derive;
-  let store: store = {state: state};
-  store;
+  {state: state};
 };
 
 [@platform js]
@@ -262,11 +202,157 @@ let onActionError = message => Js.log("Action error: " ++ message);
 [@platform native]
 let onActionError = _message => ();
 
-type patch = unit;
+let decodeStreamEvent = (json) =>
+  switch (StoreJson.optionalField(~json, ~fieldName="event", ~decode=Melange_json.Primitives.string_of_json)) {
+  | Some("stream_started") =>
+    Some(StreamStarted(
+      StoreJson.requiredField(~json, ~fieldName="message_id", ~decode=Melange_json.Primitives.string_of_json),
+    ))
+  | Some("token_received") =>
+    Some(TokenReceived(
+      StoreJson.requiredField(~json, ~fieldName="message_id", ~decode=Melange_json.Primitives.string_of_json),
+      StoreJson.requiredField(~json, ~fieldName="token", ~decode=Melange_json.Primitives.string_of_json),
+    ))
+  | Some("stream_complete") =>
+    Some(StreamComplete(
+      StoreJson.requiredField(~json, ~fieldName="message_id", ~decode=Melange_json.Primitives.string_of_json),
+    ))
+  | _ => None
+  };
 
-let decodePatch = _json => None;
+let reduceStream = (streaming, event) =>
+  switch (event) {
+  | StreamStarted(id) =>
+    {activeStreams: streaming.activeStreams->Belt.Map.String.set(id, "")}
+  | TokenReceived(id, token) =>
+    let current = streaming.activeStreams->Belt.Map.String.get(id)->Belt.Option.getWithDefault("");
+    {activeStreams: streaming.activeStreams->Belt.Map.String.set(id, current ++ token)}
+  | StreamComplete(id) =>
+    {activeStreams: streaming.activeStreams->Belt.Map.String.remove(id)}
+  };
 
-let updateOfPatch = (_patch, state) => state;
+type patch =
+  | ThreadDeleted(string)
+  | ThreadUpserted(Model.Thread.t)
+  | MessageUpserted(Model.Message.t)
+  | MessageDeleted(string);
+
+let decodePatch = (json: StoreJson.json) => {
+  let table =
+    switch (StoreJson.field(json, "table")) {
+    | Some(t) => Melange_json.Primitives.string_of_json(t)
+    | None => ""
+    };
+  let action =
+    switch (StoreJson.field(json, "action")) {
+    | Some(a) => Melange_json.Primitives.string_of_json(a)
+    | None => ""
+    };
+  switch (table, action) {
+  | ("threads", "DELETE") =>
+    switch (StoreJson.field(json, "id")) {
+    | Some(idJson) =>
+      Some(ThreadDeleted(Melange_json.Primitives.string_of_json(idJson)))
+    | None => None
+    }
+  | ("threads", "INSERT")
+  | ("threads", "UPDATE") =>
+    switch (StoreJson.field(json, "data")) {
+    | Some(dataJson) =>
+      Some(ThreadUpserted(Model.Thread.of_json(dataJson)))
+    | None => None
+    }
+  | ("messages", "INSERT")
+  | ("messages", "UPDATE") =>
+    switch (StoreJson.field(json, "data")) {
+    | Some(dataJson) =>
+      Some(MessageUpserted(Model.Message.of_json(dataJson)))
+    | None => None
+    }
+  | ("messages", "DELETE") =>
+    switch (StoreJson.field(json, "id")) {
+    | Some(idJson) =>
+      Some(MessageDeleted(Melange_json.Primitives.string_of_json(idJson)))
+    | None => None
+    }
+  | _ => None
+  };
+};
+
+let updateOfPatch = (patch: patch, state: state): state =>
+  switch (patch) {
+  | ThreadDeleted(threadId) =>
+    let remainingThreads =
+      state.threads
+      ->Js.Array.filter(~f=(t: Model.Thread.t) => t.id != threadId);
+    let nextThreadId =
+      switch (Array.length(remainingThreads) > 0) {
+      | true => Some(remainingThreads[0].id)
+      | false => None
+      };
+    {
+      ...state,
+      threads: remainingThreads,
+      current_thread_id: nextThreadId,
+      messages:
+        switch (state.current_thread_id) {
+        | Some(current) when current == threadId => [||]
+        | _ => state.messages
+        },
+      input: "",
+    };
+  | ThreadUpserted(thread) =>
+    let alreadyExists =
+      state.threads->Js.Array.some(~f=(t: Model.Thread.t) => t.id == thread.id);
+    if (alreadyExists) {
+      let updatedThreads =
+        state.threads->Js.Array.map(~f=(t: Model.Thread.t) =>
+          t.id == thread.id ? thread : t
+        );
+      {...state, threads: updatedThreads};
+    } else {
+      let newThreads =
+        Js.Array.concat(~other=[|thread|], state.threads);
+      let sortedThreads =
+        newThreads
+        |> Array.to_list
+        |> List.sort((a: Model.Thread.t, b: Model.Thread.t) =>
+             compare(b.updated_at, a.updated_at)
+           )
+        |> Array.of_list;
+      {...state, threads: sortedThreads};
+    };
+  | MessageUpserted(msg) =>
+    switch (state.current_thread_id) {
+    | Some(current_thread_id) when current_thread_id == msg.thread_id =>
+      let filteredMessages =
+        state.messages
+        ->Js.Array.filter(~f=(m: Model.Message.t) => m.id != msg.id);
+      {
+        ...state,
+        messages:
+          Js.Array.concat(
+            ~other=[|msg|],
+            filteredMessages,
+          ),
+      };
+    | _ => state
+    }
+  | MessageDeleted(id) =>
+    {
+      ...state,
+      messages:
+        state.messages
+        ->Js.Array.filter(~f=(m: Model.Message.t) => m.id != id),
+    }
+  };
+
+let reconcilePatch = (patch, streaming) =>
+  switch (patch) {
+  | MessageUpserted(msg) =>
+    {activeStreams: streaming.activeStreams->Belt.Map.String.remove(msg.id)}
+  | _ => streaming
+  };
 
 module StoreDef =
   StoreBuilder.Synced.Define({
@@ -275,6 +361,8 @@ module StoreDef =
     type nonrec store = store;
     type nonrec subscription = subscription;
     type nonrec patch = patch;
+    type nonrec stream_event = stream_event;
+    type nonrec streaming_state = streaming_state;
 
     let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
       storeName: "llm-chat",
@@ -311,6 +399,13 @@ module StoreDef =
         }),
     };
 
+    let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state)) = Some({
+      decodeStreamEvent,
+      emptyStreamingState,
+      reduceStream,
+      reconcilePatch,
+    });
+
     let strategy: StoreBuilder.Sync.customStrategy(state, patch) =
       StoreBuilder.Sync.custom(
         ~decodePatch,
@@ -324,6 +419,8 @@ include (
       with type state := state
       and type action := action
       and type t := store
+      and type stream_event := stream_event
+      and type streaming_state := streaming_state
 );
 
 type t = store;

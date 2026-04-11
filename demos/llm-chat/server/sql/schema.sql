@@ -25,6 +25,11 @@ CREATE TABLE messages (
   created_at timestamptz NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS active_thread_views (
+  thread_id uuid REFERENCES threads(id) ON DELETE CASCADE,
+  PRIMARY KEY (thread_id)
+);
+
 /*
 @query get_thread
 SELECT id, title, EXTRACT(EPOCH FROM created_at) * 1000 AS created_at, EXTRACT(EPOCH FROM updated_at) * 1000 AS updated_at FROM threads WHERE id = $1;

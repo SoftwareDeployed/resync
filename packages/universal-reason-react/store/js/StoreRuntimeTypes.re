@@ -15,3 +15,10 @@ type status = {
   pendingPersistence: int,
   pendingActions: int,
 };
+
+type streamsConfig('patch, 'stream_event, 'streaming_state) = {
+  decodeStreamEvent: StoreJson.json => option('stream_event),
+  emptyStreamingState: 'streaming_state,
+  reduceStream: ('streaming_state, 'stream_event) => 'streaming_state,
+  reconcilePatch: ('patch, 'streaming_state) => 'streaming_state,
+};

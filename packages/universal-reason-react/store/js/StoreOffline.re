@@ -23,9 +23,13 @@ module Local = {
     type state = Schema.state;
     type action = Schema.action;
     type t = Schema.store;
+    type stream_event = unit;
+    type streaming_state = unit;
     type listener_id = StoreEvents.listener_id;
     type store_event = StoreEvents.store_event(action);
     type listener = StoreEvents.listener(action);
+
+    let streaming = ();
 
     let lifecycle = StoreRuntimeLifecycle.make(~storeName=Schema.storeName, ());
     StoreRuntimeLifecycle.markConnectionNotApplicable(lifecycle);
@@ -462,6 +466,8 @@ module Synced = {
     type store;
     type subscription;
     type patch;
+    type stream_event;
+    type streaming_state;
 
     let reduce: (~state: state, ~action: action) => state;
     let emptyState: state;
@@ -482,6 +488,7 @@ module Synced = {
     let baseUrl: string;
     let decodePatch: StoreJson.json => option(patch);
     let updateOfPatch: (patch, state) => state;
+    let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state));
     /* Legacy compatibility hooks. New code should prefer Runtime.Events.listen and
        the narrow StoreEvents.store_event surface instead of raw per-frame callback
        registration. */
@@ -512,6 +519,8 @@ module Synced = {
     type state = Schema.state;
     type action = Schema.action;
     type t = Schema.store;
+    type stream_event = Schema.stream_event;
+    type streaming_state = Schema.streaming_state;
     type listener_id = StoreEvents.listener_id;
     type store_event = StoreEvents.store_event(action);
     type listener = StoreEvents.listener(action);
@@ -592,6 +601,12 @@ module Synced = {
     /* Hydration and source state stay outside the controller */
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
+    let streamingRef: ref(Schema.streaming_state) = ref(
+      switch (Schema.streams) {
+      | Some({emptyStreamingState, _}) => emptyStreamingState
+      | None => Obj.magic()
+      },
+    );
     let suppressPublishRef: ref(bool) = ref(false);
     let replayInProgressRef: ref(bool) = ref(false);
     let replayNeededRef: ref(bool) = ref(false);
@@ -603,6 +618,8 @@ module Synced = {
     let empty = Schema.makeStore(~state=Schema.emptyState, ());
 
     let createStore = (state: state) => Schema.makeStore(~state, ());
+
+    let streaming = streamingRef.contents;
 
     let serializeState = (state: state) =>
       StoreJson.stringify(Schema.state_to_json, state);
@@ -1074,6 +1091,12 @@ module Synced = {
         confirmedStateRef := nextConfirmedState;
         persistConfirmedState(~broadcast=true, nextConfirmedState);
         refreshOptimisticState();
+        /* Reconcile streaming state after confirmed patch */
+        switch (Schema.streams) {
+        | Some({reconcilePatch, _}) =>
+          streamingRef := reconcilePatch(patch, streamingRef.contents);
+        | None => ()
+        };
       | None => ()
       };
     };
@@ -1111,17 +1134,37 @@ module Synced = {
               ~onClose=() => emitEvent(StoreEvents.Close),
               ~onPatch=handlePatch,
               ~onCustom=json => {
-                emitEvent(StoreEvents.CustomEvent(json));
-                switch (Schema.onCustom) {
-                | Some(onCustom) => onCustom(json)
-                | None => ()
+                switch (Schema.streams) {
+                | Some({decodeStreamEvent, reduceStream, _}) =>
+                  switch (decodeStreamEvent(json)) {
+                  | Some(event) =>
+                    streamingRef := reduceStream(streamingRef.contents, event);
+                    emitEvent(StoreEvents.CustomEvent(json));
+                  | None => ()
+                  };
+                | None =>
+                  emitEvent(StoreEvents.CustomEvent(json));
+                  switch (Schema.onCustom) {
+                  | Some(onCustom) => onCustom(json)
+                  | None => ()
+                  };
                 };
               },
               ~onMedia=json => {
-                emitEvent(StoreEvents.MediaEvent(json));
-                switch (Schema.onMedia) {
-                | Some(onMedia) => onMedia(json)
-                | None => ()
+                switch (Schema.streams) {
+                | Some({decodeStreamEvent, reduceStream, _}) =>
+                  switch (decodeStreamEvent(json)) {
+                  | Some(event) =>
+                    streamingRef := reduceStream(streamingRef.contents, event);
+                    emitEvent(StoreEvents.MediaEvent(json));
+                  | None => ()
+                  };
+                | None =>
+                  emitEvent(StoreEvents.MediaEvent(json));
+                  switch (Schema.onMedia) {
+                  | Some(onMedia) => onMedia(json)
+                  | None => ()
+                  };
                 };
               },
               ~onError=message => {
@@ -1151,6 +1194,34 @@ module Synced = {
         Js.Promise.resolve()
       };
 
+    let handleScopeChange = (~actions: StoreSource.actions(state), nextState: state): Js.Promise.t(unit) => {
+      Controller.disposeConnectionHandle();
+      cacheGetState(
+        ~scopeKey=Schema.scopeKeyOfState(nextState),
+        (),
+      )
+      |> Js.Promise.then_(
+           (persistedState: option(StoreCache.state_record(state))) => {
+             let persisted =
+               switch (persistedState) {
+               | Some(record) => Some(record.state)
+               | None => None
+               };
+             let baseState =
+               StoreRuntimeHelpers.selectHydrationBase(
+                 ~initialState=nextState,
+                 ~persistedState=persisted,
+                 ~timestampOfState=Schema.timestampOfState,
+               );
+             confirmedStateRef := baseState;
+             persistConfirmedState(~broadcast=false, baseState);
+             actions.set(baseState);
+             refreshOptimisticState();
+             startSubscription(baseState);
+           },
+         );
+    };
+
     let hydrateStore = () => {
       let initialState =
         switch%platform (Runtime.platform) {
@@ -1175,7 +1246,18 @@ module Synced = {
       | Client =>
         let source =
           StoreSource.make(
-            ~afterSet=_next => (),
+            ~afterSet=nextState => {
+              let newScopeKey = Schema.scopeKeyOfState(nextState);
+              let oldScopeKey = Schema.scopeKeyOfState(confirmedStateRef.contents);
+              if (newScopeKey != oldScopeKey) {
+                switch (sourceRef.contents) {
+                | Some(actions) =>
+                  let _ = handleScopeChange(~actions, nextState);
+                  ();
+                | None => ()
+                };
+              };
+            },
             ~mount=
               actions => {
                 sourceRef := Some(actions);
@@ -1224,31 +1306,7 @@ module Synced = {
                   | None => ()
                   }
                 });
-                let bootPromise =
-                  cacheGetState(
-                    ~scopeKey=Schema.scopeKeyOfState(initialState),
-                    (),
-                  )
-                  |> Js.Promise.then_(
-                       (persistedState: option(StoreCache.state_record(state))) => {
-                         let persisted =
-                           switch (persistedState) {
-                           | Some(record) => Some(record.state)
-                           | None => None
-                           };
-                         let baseState =
-                           StoreRuntimeHelpers.selectHydrationBase(
-                             ~initialState,
-                             ~persistedState=persisted,
-                             ~timestampOfState=Schema.timestampOfState,
-                           );
-                         confirmedStateRef := baseState;
-                         persistConfirmedState(~broadcast=false, baseState);
-                         actions.set(baseState);
-                         refreshOptimisticState();
-                         startSubscription(baseState);
-                       },
-                     );
+                let bootPromise = handleScopeChange(~actions, initialState);
                 let _ =
                   StoreRuntimeLifecycle.trackBoot(lifecycle, bootPromise);
                 ();

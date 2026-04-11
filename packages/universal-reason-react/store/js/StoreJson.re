@@ -87,7 +87,7 @@ let field = (json, key) => {
 let requiredField = (~json, ~fieldName, ~decode) =>
   switch (field(json, fieldName)) {
   | Some(value) => decode(value)
-  | None => failwith("missing field: " ++ fieldName)
+  | None => Js.Exn.raiseError("missing field: " ++ fieldName)
   };
 
 let optionalField = (~json, ~fieldName, ~decode) =>
