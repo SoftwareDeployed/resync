@@ -15,17 +15,6 @@ external slice: (string, int) => string = "slice";
 [@mel.new]
 external makeError: string => exn = "Error";
 
-type initScript;
-
-[@mel.send]
-external addInitScript: (Playwright.page, initScript) => Js.Promise.t(unit) = "addInitScript";
-
-[@mel.obj]
-external makeInitScript: (~content: string, unit) => initScript = "";
-
-[@mel.send]
-external evaluateString: (Playwright.page, string) => Js.Promise.t(string) = "evaluate";
-
 [@mel.module "node:timers/promises"]
 external sleep: int => Js.Promise.t(unit) = "setTimeout";
 
@@ -112,7 +101,7 @@ let rec waitForBodyTextAbsence = (~page, ~unexpected, ~label, ~attemptsLeft) =>
 
 let getMockSnapshotJson = page =>
   page
-  ->evaluateString(
+  ->Playwright.evaluateString(
       "JSON.stringify(globalThis.__RESYNC_VIDEO_CHAT_MEDIA_CAPTURE_MOCK.snapshot())",
     );
 
@@ -120,8 +109,8 @@ let newTestPage = browser =>
   browser
   ->Playwright.newPage
   |> then_(page =>
-       page
-       ->addInitScript(makeInitScript(~content=MediaCaptureMock.installScriptSource, ()))
+        page
+        ->Playwright.addInitScript(MediaCaptureMock.installScriptSource)
        |> then_(_ => resolve(page))
      );
 

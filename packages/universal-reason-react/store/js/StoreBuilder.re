@@ -111,6 +111,96 @@ module Selectors = {
     );
 };
 
+module StoreReadyMarker = {
+  let core =
+      (
+        ~storeName: string,
+        ~whenReady: unit => Js.Promise.t(unit),
+        ~whenIdle: unit => Js.Promise.t(unit),
+        (),
+      ) => {
+    let (isReady, setIsReady) = React.useState(() => false);
+    let (isIdle, setIsIdle) = React.useState(() => false);
+
+    React.useEffect1(
+      () => {
+        let _ =
+          Js.Promise.then_(
+            (_: unit) => {
+              setIsReady(_ => true);
+              Js.Promise.resolve();
+            },
+            whenReady(),
+          );
+        let _ =
+          Js.Promise.then_(
+            (_: unit) => {
+              setIsIdle(_ => true);
+              Js.Promise.resolve();
+            },
+            whenIdle(),
+          );
+        None;
+      },
+      [||],
+    );
+
+    (storeName, isReady, isIdle);
+  };
+
+  [@platform js]
+  type jsValue;
+  [@platform js]
+  external jsString: string => jsValue = "%identity";
+  [@platform js]
+  external jsBool: bool => jsValue = "%identity";
+  [@platform js]
+  external domPropsOfDict: Js.Dict.t(jsValue) => ReactDOM.domProps = "%identity";
+
+  [@platform js]
+  let make = (~storeName, ~whenReady, ~whenIdle, ()) => {
+    let (storeName, isReady, isIdle) =
+      core(~storeName, ~whenReady, ~whenIdle, ());
+
+    let dict = Js.Dict.empty();
+    Js.Dict.set(dict, "hidden", jsBool(true));
+    Js.Dict.set(dict, "data-resync-store", jsString(storeName));
+    Js.Dict.set(dict, "data-ready", jsString(isReady ? "true" : "false"));
+    Js.Dict.set(dict, "data-idle", jsString(isIdle ? "true" : "false"));
+
+    ReactDOM.createDOMElementVariadic("div", ~props=domPropsOfDict(dict), [||]);
+  };
+
+  [@platform native]
+  let make = (~storeName, ~whenReady, ~whenIdle, ()) => {
+    let (storeName, isReady, isIdle) =
+      core(~storeName, ~whenReady, ~whenIdle, ());
+
+    React.createElement(
+      "div",
+      [
+        React.JSX.bool("hidden", "hidden", true),
+        React.JSX.string(
+          "data-resync-store",
+          "data-resync-store",
+          storeName,
+        ),
+        React.JSX.string(
+          "data-ready",
+          "data-ready",
+          isReady ? "true" : "false",
+        ),
+        React.JSX.string(
+          "data-idle",
+          "data-idle",
+          isIdle ? "true" : "false",
+        ),
+      ],
+      [],
+    );
+  };
+};
+
 /* ============================================================================
    Bootstrap Helpers
    
@@ -396,6 +486,37 @@ module Local = {
     };
 
     include StoreOffline.Local.Make(Schema);
+
+    let originalContext = Context.context;
+    let originalProviderMake = Context.Provider.make;
+    let originalProviderMakeProps = Context.Provider.makeProps;
+    let originalUseStore = Context.useStore;
+
+    module Context = {
+      let context = originalContext;
+      let useStore = originalUseStore;
+
+      module Provider = {
+        let makeProps = originalProviderMakeProps;
+
+        let make = props => {
+          let store = props##value;
+          let children = props##children;
+
+          <React.Fragment>
+            {StoreReadyMarker.make(
+               ~storeName=Schema.storeName,
+               ~whenReady,
+               ~whenIdle,
+               (),
+             )}
+             {originalProviderMake(
+               originalProviderMakeProps(~value=store, ~children, ())
+             )}
+          </React.Fragment>;
+        };
+      };
+    };
   };
 };
 
@@ -543,6 +664,37 @@ module Synced = {
     };
 
     include StoreOffline.Synced.Make(Schema);
+
+    let originalContext = Context.context;
+    let originalProviderMake = Context.Provider.make;
+    let originalProviderMakeProps = Context.Provider.makeProps;
+    let originalUseStore = Context.useStore;
+
+    module Context = {
+      let context = originalContext;
+      let useStore = originalUseStore;
+
+      module Provider = {
+        let makeProps = originalProviderMakeProps;
+
+        let make = props => {
+          let store = props##value;
+          let children = props##children;
+
+          <React.Fragment>
+            {StoreReadyMarker.make(
+               ~storeName=Schema.storeName,
+               ~whenReady,
+               ~whenIdle,
+               (),
+             )}
+             {originalProviderMake(
+               originalProviderMakeProps(~value=store, ~children, ())
+             )}
+          </React.Fragment>;
+        };
+      };
+    };
   };
 
   module type CrudInput = {
@@ -619,6 +771,37 @@ module Synced = {
     };
 
     include StoreOffline.Synced.Make(Schema);
+
+    let originalContext = Context.context;
+    let originalProviderMake = Context.Provider.make;
+    let originalProviderMakeProps = Context.Provider.makeProps;
+    let originalUseStore = Context.useStore;
+
+    module Context = {
+      let context = originalContext;
+      let useStore = originalUseStore;
+
+      module Provider = {
+        let makeProps = originalProviderMakeProps;
+
+        let make = props => {
+          let store = props##value;
+          let children = props##children;
+
+          <React.Fragment>
+            {StoreReadyMarker.make(
+               ~storeName=Schema.storeName,
+               ~whenReady,
+               ~whenIdle,
+               (),
+             )}
+             {originalProviderMake(
+               originalProviderMakeProps(~value=store, ~children, ())
+             )}
+          </React.Fragment>;
+        };
+      };
+    };
   };
 
   /* ==========================================================================

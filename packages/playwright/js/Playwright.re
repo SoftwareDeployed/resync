@@ -43,5 +43,11 @@ external reload: page => Js.Promise.t(Js.Nullable.t('a)) = "reload";
 [@mel.send]
 external close: browser => Js.Promise.t(unit) = "close";
 
+[@mel.send]
+external evaluateString: (page, string) => Js.Promise.t(string) = "evaluate";
+
+[@mel.send]
+external addInitScript: (page, string) => Js.Promise.t(unit) = "addInitScript";
+
 [@mel.scope "process"]
 external cwd: unit => string = "cwd";
