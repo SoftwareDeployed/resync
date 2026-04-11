@@ -129,6 +129,13 @@ let onNewChatClick = (router: UniversalRouter.routerApi, _event) => {
   router.push("/");
 };
 
+let onDeleteThread = (router: UniversalRouter.routerApi, threadId, event) => {
+  React.Event.Mouse.stopPropagation(event);
+  React.Event.Mouse.preventDefault(event);
+  LlmChatStore.dispatch(DeleteThread(threadId));
+  router.push("/");
+};
+
 [@platform js]
 let handleKeyDown =
     (store, draft, setDraft, sseBufferRef, setIsStreaming, unsubscribeRef, event) => {
@@ -259,6 +266,18 @@ module DOMHelpers = {
     Js.Dict.set(dict, "onClick", jsFn(onClick));
     ReactDOM.createElement("button", ~props=unsafeDomProps(dict), children);
   };
+
+  let deleteButton = (~dataTestId, ~onClick) => {
+    let dict = Js.Dict.empty();
+    Js.Dict.set(dict, "data-testid", jsString(dataTestId));
+    Js.Dict.set(dict, "className", jsString("thread-delete-button"));
+    Js.Dict.set(dict, "onClick", jsFn(onClick));
+    ReactDOM.createElement(
+      "button",
+      ~props=unsafeDomProps(dict),
+      [|React.string("✕")|],
+    );
+  };
 };
 
 [@platform native]
@@ -291,6 +310,20 @@ module DOMHelpers = {
       ReactDOM.domProps(~id, ~disabled, ~onClick, ())
       @ [React.JSX.string("data-testid", "data-testid", dataTestId)];
     ReactDOM.createDOMElementVariadic("button", ~props, children);
+  };
+
+  let deleteButton = (~dataTestId, ~onClick) => {
+    let props =
+      ReactDOM.domProps(~onClick, ())
+      @ [
+        React.JSX.string("data-testid", "data-testid", dataTestId),
+        React.JSX.string("className", "className", "thread-delete-button"),
+      ];
+    ReactDOM.createDOMElementVariadic(
+      "button",
+      ~props,
+      [|React.string("✕")|],
+    );
   };
 };
 
@@ -359,7 +392,14 @@ module View = {
                  }
                  id={"thread-item-" ++ thread.id}
                  onClick={event => onThreadClick(router, thread.id, event)}>
-                 {React.string(thread.title)}
+                 <span className="thread-item-title">
+                   {React.string(thread.title)}
+                 </span>
+                 {DOMHelpers.deleteButton(
+                    ~dataTestId="delete-thread-" ++ thread.id,
+                     ~onClick=
+                       event => onDeleteThread(router, thread.id, event),
+                  )}
                </div>;
              })
            ->React.array}

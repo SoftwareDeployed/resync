@@ -94,6 +94,22 @@ let handle_mutation _broadcast_fn request ~action_id action =
   | Ok "select_thread"
   | Ok "set_input" ->
       Lwt.return (Middleware.Ack (Ok ()))
+  | Ok "delete_thread" ->
+      (match assoc "payload" action with
+       | Some payload ->
+           (match required_string "thread_id" payload with
+            | Ok thread_id ->
+                let* result =
+                  Dream.sql request (Database.Chat.delete_thread thread_id)
+                in
+                (match result with
+                 | () -> Lwt.return (Middleware.Ack (Ok ()))
+                 | exception Caqti_error.Exn error ->
+                     Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
+                 | exception exn ->
+                     Lwt.return (Middleware.Ack (Error (Printexc.to_string exn))))
+            | Error error -> Lwt.return (Middleware.Ack (Error error)))
+       | None -> Lwt.return (Middleware.Ack (Error "Missing delete_thread payload")))
   | Ok _ -> Lwt.return (Middleware.Ack (Error "Unknown action kind"))
 
 let realtime_middleware =

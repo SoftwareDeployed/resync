@@ -88,3 +88,16 @@ let add_message = args => {
     Caqti_lwt.or_fail(result);
   };
 };
+
+let delete_thread = (thread_id: string) => {
+  let query =
+    Caqti_request.Infix.(
+      (T.string ->. T.unit)(
+        {sql|DELETE FROM threads WHERE id = $1::uuid|sql}
+      )
+    );
+  (module Db: DB) => {
+    let* result = Db.exec(query, thread_id);
+    Caqti_lwt.or_fail(result);
+  };
+};

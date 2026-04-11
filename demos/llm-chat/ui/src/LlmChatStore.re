@@ -16,7 +16,8 @@ type action =
   | AppendToken(string)
   | FinishResponse
   | SetError(string)
-  | SelectThread(string);
+  | SelectThread(string)
+  | DeleteThread(string);
 
 type store = {
   state: state,
@@ -77,6 +78,12 @@ let action_to_json = action =>
       ++ string_to_json(thread_id)->Melange_json.to_string
       ++ "}}"
     )
+  | DeleteThread(thread_id) =>
+    StoreJson.parse(
+      "{\"kind\":\"delete_thread\",\"payload\":{\"thread_id\":"
+      ++ string_to_json(thread_id)->Melange_json.to_string
+      ++ "}}"
+    )
   };
 
 let action_of_json = json => {
@@ -107,6 +114,10 @@ let action_of_json = json => {
     )
   | "select_thread" =>
     SelectThread(
+      StoreJson.requiredField(~json=payload, ~fieldName="thread_id", ~decode=string_of_json),
+    )
+  | "delete_thread" =>
+    DeleteThread(
       StoreJson.requiredField(~json=payload, ~fieldName="thread_id", ~decode=string_of_json),
     )
   | _ => SetInput("")
@@ -216,6 +227,26 @@ let reduce = (~state: state, ~action: action) => {
     })
   | SelectThread(thread_id) =>
     withTimestamp({...state, current_thread_id: Some(thread_id), input: ""})
+  | DeleteThread(thread_id) =>
+    let remainingThreads =
+      state.threads
+      ->Js.Array.filter(~f=(t: Model.Thread.t) => t.id != thread_id);
+    let nextThreadId =
+      switch (Array.length(remainingThreads) > 0) {
+      | true => Some(remainingThreads[0].id)
+      | false => None
+      };
+    withTimestamp({
+      ...state,
+      threads: remainingThreads,
+      current_thread_id: nextThreadId,
+      messages:
+        switch (state.current_thread_id) {
+        | Some(current) when current == thread_id => [||]
+        | _ => state.messages
+        },
+      input: "",
+    })
   };
 };
 

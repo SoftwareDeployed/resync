@@ -1,13 +1,56 @@
-(executable
- (name stream_test)
+(library
+ (name stream_test_support)
  (modules
-  stream_test
   test_framework
-  SseParser_test
-  StreamPipe_test
-  NdjsonParser_test)
+  SseParser_suite
+  StreamPipe_suite
+  NdjsonParser_suite)
+ (wrapped false)
  (libraries
   reason_realtime_stream)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.melange_ppx)))
+
+(executable
+ (name stream_test)
+ (modules stream_test)
+ (libraries
+  stream_test_support)
+ (modes native)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.melange_ppx)))
+
+(executable
+ (name SseParser_test)
+ (modules SseParser_test)
+ (libraries
+  stream_test_support)
+ (modes native)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.melange_ppx)))
+
+(executable
+ (name NdjsonParser_test)
+ (modules NdjsonParser_test)
+ (libraries
+  stream_test_support)
+ (modes native)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.melange_ppx)))
+
+(executable
+ (name StreamPipe_test)
+ (modules StreamPipe_test)
+ (libraries
+  stream_test_support)
  (modes native)
  (preprocess
   (pps
