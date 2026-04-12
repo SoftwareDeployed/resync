@@ -1,10 +1,11 @@
 let () =
-  Store_events_test.init ();
-  Store_action_ledger_test.init ();
-  Store_events_behavior_test.init ();
-  Store_runtime_behavior_test.init ();
-  Store_crud_test.init ();
-  Store_patch_test.init ();
-  Store_source_test.init ();
-  Store_cache_test.init ();
-  Test_framework.run_all () |> exit
+  Alcotest.run "store"
+    [ Store_events_test.suite
+    ; Store_action_ledger_test.suite
+    ; Store_events_behavior_test.suite
+    ; Store_runtime_behavior_test.suite
+    ; Store_crud_test.suite
+    ; Store_patch_test.suite
+    ; Store_source_test.suite
+    ; Store_cache_test.suite
+    ]

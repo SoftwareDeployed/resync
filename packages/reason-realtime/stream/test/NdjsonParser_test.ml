@@ -1,3 +1,1 @@
-let () =
-  NdjsonParser_suite.init ();
-  Test_framework.run_all () |> exit
+let () = Alcotest.run "NdjsonParser" [ NdjsonParser_suite.suite ]

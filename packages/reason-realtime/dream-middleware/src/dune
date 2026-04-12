@@ -3,4 +3,5 @@
  (public_name resync.reason_realtime_dream_middleware)
  (modules Adapter Middleware)
  (wrapped false)
-  (libraries dream lwt.unix))
+  (libraries dream lwt.unix)
+  (instrumentation (backend bisect_ppx)))

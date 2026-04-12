@@ -2,9 +2,9 @@
  (name dream_middleware_test)
  (modules
   dream_middleware_test
-  test_framework
   middleware_behavior_test)
  (libraries
+  alcotest
   dream
   dream-pure
   lwt.unix

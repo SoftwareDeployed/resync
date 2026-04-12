@@ -14,23 +14,22 @@ let make_handler () =
 let run_request target =
   Dream.test (make_handler ()) (Dream.request ~target "")
 
-let init () =
-  Test_framework.describe "todo multiplayer http routes" (fun () ->
-      Test_framework.test "GET / redirects to a created list" (fun () ->
+let suite =
+  ( "server_http",
+    [
+      Alcotest.test_case "GET / redirects to a created list" `Quick (fun () ->
           let response = run_request "/" in
           match Dream.header response "Location" with
           | Some location when Dream.status response = `See_Other && String.length location > 1 ->
-              Test_framework.pass ()
-          | Some location -> Test_framework.fail ("Unexpected redirect target: " ^ location)
-          | None -> Test_framework.fail "Expected redirect location"
-      );
-      Test_framework.test "GET invalid uuid route returns not found" (fun () ->
+              ()
+          | Some location -> Alcotest.fail ("Unexpected redirect target: " ^ location)
+          | None -> Alcotest.fail "Expected redirect location");
+      Alcotest.test_case "GET invalid uuid route returns not found" `Quick (fun () ->
           let response = run_request "/not-a-uuid" in
-          if Dream.status response = `Not_Found then Test_framework.pass ()
-          else Test_framework.fail "Expected 404 for invalid uuid route"
-      );
-      Test_framework.test "GET /favicon.ico returns no content" (fun () ->
+          if Dream.status response = `Not_Found then ()
+          else Alcotest.fail "Expected 404 for invalid uuid route");
+      Alcotest.test_case "GET /favicon.ico returns no content" `Quick (fun () ->
           let response = run_request "/favicon.ico" in
-          if Dream.status response = `No_Content then Test_framework.pass ()
-          else Test_framework.fail "Expected 204 for favicon route"
-      ))
+          if Dream.status response = `No_Content then ()
+          else Alcotest.fail "Expected 204 for favicon route");
+    ] )

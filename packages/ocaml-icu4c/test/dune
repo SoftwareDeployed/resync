@@ -1,0 +1,9 @@
+(executable
+ (name icu4c_fuzz_test)
+ (modules icu4c_fuzz_test)
+ (libraries alcobar ocaml_icu4c)
+ (modes native))
+
+(alias
+ (name icu4c-fuzz-tests)
+ (deps icu4c_fuzz_test.exe))

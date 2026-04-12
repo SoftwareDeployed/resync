@@ -67,11 +67,14 @@
   ppxlib
   ctypes-foreign
   reason-react-ppx
-  reason-react
-  reason-react-day-picker
-  server-reason-react
-  uuidm)
- (allow_empty)
+   reason-react
+   reason-react-day-picker
+   server-reason-react
+   uuidm
+   (alcotest :with-test)
+   (alcobar :with-test)
+   (crowbar :with-test))
+  (allow_empty)
  (tags
   ("web" "commerce" "lease" "subscription" "cart")))
 

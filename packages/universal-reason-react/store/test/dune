@@ -1,22 +1,46 @@
+(library
+ (name store_test_support)
+ (modules
+    store_events_test
+    store_action_ledger_test
+    store_events_behavior_test
+    store_runtime_behavior_test
+    store_crud_test
+    store_patch_test
+    store_source_test
+    store_cache_test)
+ (wrapped false)
+ (libraries
+   alcotest
+   alcobar
+   melange-json-native
+   universal_reason_react_store_native
+   universal_reason_react_uuid_native)
+ (preprocess
+   (pps
+    server-reason-react.browser_ppx
+    server-reason-react.ppx
+    server-reason-react.melange_ppx
+    melange-json-native.ppx)))
+
 (executable
  (name store_runtime_test)
-(modules
-   store_runtime_test
-   test_framework
-   store_events_test
-   store_action_ledger_test
-   store_events_behavior_test
-   store_runtime_behavior_test
-   store_crud_test
-   store_patch_test
-   store_source_test
-   store_cache_test)
- (libraries
-  melange-json-native
-  universal_reason_react_store_native
-  universal_reason_react_uuid_native)
-  (modes native)
-  (preprocess
+ (modules store_runtime_test)
+ (libraries store_test_support)
+ (modes native)
+ (preprocess
+   (pps
+    server-reason-react.browser_ppx
+    server-reason-react.ppx
+    server-reason-react.melange_ppx
+    melange-json-native.ppx)))
+
+(executable
+ (name store_runtime_fuzz_test)
+ (modules store_runtime_fuzz_test)
+ (libraries store_test_support)
+ (modes native)
+ (preprocess
    (pps
     server-reason-react.browser_ppx
     server-reason-react.ppx
@@ -25,4 +49,4 @@
 
 (alias
  (name store-runtime-tests)
- (deps store_runtime_test.exe))
+ (deps store_runtime_test.exe store_runtime_fuzz_test.exe))

@@ -2,9 +2,8 @@
  (name pgnotify_adapter_test)
  (modules
    pgnotify_adapter_test
-   test_framework
    pgnotify_adapter_behavior_test)
- (libraries lwt.unix postgresql reason_realtime_pgnotify_adapter yojson)
+ (libraries alcotest lwt.unix postgresql reason_realtime_pgnotify_adapter yojson)
   (modes native))
 
 (alias

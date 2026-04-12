@@ -23,9 +23,10 @@ let wait_for_message received_ref =
   in
   loop 20
 
-let init () =
-  Test_framework.describe "pgnotify adapter" (fun () ->
-      Test_framework.test "subscribed handler receives patch notification" (fun () ->
+let suite =
+  ( "pgnotify adapter",
+    [
+      Alcotest.test_case "subscribed handler receives patch notification" `Quick (fun () ->
           let adapter = Pgnotify_adapter.create ~db_uri:(db_uri ()) () in
           let channel = "resync_test_patch" in
           let received = ref None in
@@ -59,12 +60,10 @@ let init () =
                Lwt.return result)
           in
           match result with
-          | Some message when String.contains message 'p' -> Test_framework.pass ()
-          | Some message -> Test_framework.fail ("Unexpected notification payload: " ^ message)
-          | None -> Test_framework.fail "Expected notification to be delivered"
-      );
-
-      Test_framework.test "unsubscribe stops later delivery" (fun () ->
+          | Some message when String.contains message 'p' -> ()
+          | Some message -> Alcotest.fail ("Unexpected notification payload: " ^ message)
+          | None -> Alcotest.fail "Expected notification to be delivered");
+      Alcotest.test_case "unsubscribe stops later delivery" `Quick (fun () ->
           let adapter = Pgnotify_adapter.create ~db_uri:(db_uri ()) () in
           let channel = "resync_test_unsub" in
           let received = ref None in
@@ -98,6 +97,6 @@ let init () =
                Lwt.return !received)
           in
           match result with
-          | None -> Test_framework.pass ()
-          | Some message -> Test_framework.fail ("Unexpected delivery after unsubscribe: " ^ message)
-      ))
+          | None -> ()
+          | Some message -> Alcotest.fail ("Unexpected delivery after unsubscribe: " ^ message));
+    ] )

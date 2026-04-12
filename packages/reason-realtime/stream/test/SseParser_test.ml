@@ -1,3 +1,1 @@
-let () =
-  SseParser_suite.init ();
-  Test_framework.run_all () |> exit
+let () = Alcotest.run "SseParser" [ SseParser_suite.suite ]

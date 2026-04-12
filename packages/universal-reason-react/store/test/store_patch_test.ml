@@ -1,4 +1,3 @@
-open Test_framework
 open Store
 
 type item = {
@@ -42,81 +41,84 @@ let other_decoder json =
     | None -> None)
   | None -> None
 
-let init () =
-  describe "StorePatch compose" (fun () ->
-    test "with one decoder returns Some on match" (fun () ->
-      let json =
-        Json.parse
-          {|{"type":"patch","table":"items","action":"INSERT","data":{"id":"1","name":"a"}}|}
-      in
-      let decoder = Patch.compose [ items_decoder ] in
-      match decoder json with
-      | Some (ItemsPatch (Crud.Upsert { id = "1"; name = "a" })) -> Passed
-      | Some _ -> Failed "Wrong patch decoded"
-      | None -> Failed "Should have decoded with one decoder");
+let patch_testable : my_patch Alcotest.testable =
+  Alcotest.testable
+    (fun ppf _ -> Format.fprintf ppf "<patch>")
+    Stdlib.( = )
 
-    test "with multiple decoders tries them in order" (fun () ->
-      let json =
-        Json.parse {|{"other":"matched"}|}
-      in
-      let decoder = Patch.compose [ items_decoder; other_decoder ] in
-      match decoder json with
-      | Some (OtherPatch "matched") -> Passed
-      | Some _ -> Failed "Wrong patch decoded"
-      | None -> Failed "Should have decoded with second decoder");
-
-    test "returns None when no decoder matches" (fun () ->
-      let json = Json.parse {|{"unknown":"value"}|} in
-      let decoder = Patch.compose [ items_decoder; other_decoder ] in
-      match decoder json with
-      | None -> Passed
-      | Some _ -> Failed "Should return None when no decoder matches")
-  );
-
-  describe "Patch.Pg decode" (fun () ->
-    test "returns None for wrong table name" (fun () ->
-      let json =
-        Json.parse
-          {|{"type":"patch","table":"wrong","action":"INSERT","data":{"id":"1","name":"a"}}|}
-      in
-      match Patch.Pg.decode ~table:"items" ~decodeRow:decode_item json with
-      | None -> Passed
-      | Some _ -> Failed "Should return None for wrong table name");
-
-    test "returns None for invalid JSON structure" (fun () ->
-      let json = Json.parse {|{"type":"not-patch","table":"items"}|} in
-      match Patch.Pg.decode ~table:"items" ~decodeRow:decode_item json with
-      | None -> Passed
-      | Some _ -> Failed "Should return None for invalid JSON structure");
-
-    test "decodeAs maps Insert/Update/Delete to provided constructors" (fun () ->
-      let insert_json =
-        Json.parse
-          {|{"type":"patch","table":"items","action":"INSERT","data":{"id":"1","name":"a"}}|}
-      in
-      let update_json =
-        Json.parse
-          {|{"type":"patch","table":"items","action":"UPDATE","data":{"id":"1","name":"b"}}|}
-      in
-      let delete_json =
-        Json.parse
-          {|{"type":"patch","table":"items","action":"DELETE","id":"1"}|}
-      in
-      let decoder =
-        Patch.Pg.decodeAs
-          ~table:"items"
-          ~decodeRow:decode_item
-          ~insert:(fun row -> `Insert row)
-          ~update:(fun row -> `Update row)
-          ~delete:(fun id -> `Delete id)
-          ()
-      in
-      let insert_result = decoder insert_json in
-      let update_result = decoder update_json in
-      let delete_result = decoder delete_json in
-      match insert_result, update_result, delete_result with
-      | Some (`Insert { id = "1"; name = "a" }),
-        Some (`Update { id = "1"; name = "b" }),
-        Some (`Delete "1") -> Passed
-      | _ -> Failed "decodeAs did not map constructors correctly")
-  )
+let suite =
+  ( "StorePatch",
+    [
+      Alcotest.test_case "compose with one decoder returns Some on match" `Quick
+        (fun () ->
+          let json =
+            Json.parse
+              {|{"type":"patch","table":"items","action":"INSERT","data":{"id":"1","name":"a"}}|}
+          in
+          let decoder = Patch.compose [ items_decoder ] in
+          match decoder json with
+          | Some (ItemsPatch (Crud.Upsert { id = "1"; name = "a" })) -> ()
+          | Some _ -> Alcotest.fail "Wrong patch decoded"
+          | None -> Alcotest.fail "Should have decoded with one decoder");
+      Alcotest.test_case "compose with multiple decoders tries them in order" `Quick
+        (fun () ->
+          let json = Json.parse {|{"other":"matched"}|} in
+          let decoder = Patch.compose [ items_decoder; other_decoder ] in
+          match decoder json with
+          | Some (OtherPatch "matched") -> ()
+          | Some _ -> Alcotest.fail "Wrong patch decoded"
+          | None -> Alcotest.fail "Should have decoded with second decoder");
+      Alcotest.test_case "compose returns None when no decoder matches" `Quick
+        (fun () ->
+          let json = Json.parse {|{"unknown":"value"}|} in
+          let decoder = Patch.compose [ items_decoder; other_decoder ] in
+          match decoder json with
+          | None -> ()
+          | Some _ -> Alcotest.fail "Should return None when no decoder matches");
+      Alcotest.test_case "Pg.decode returns None for wrong table name" `Quick
+        (fun () ->
+          let json =
+            Json.parse
+              {|{"type":"patch","table":"wrong","action":"INSERT","data":{"id":"1","name":"a"}}|}
+          in
+          match Patch.Pg.decode ~table:"items" ~decodeRow:decode_item json with
+          | None -> ()
+          | Some _ -> Alcotest.fail "Should return None for wrong table name");
+      Alcotest.test_case "Pg.decode returns None for invalid JSON structure" `Quick
+        (fun () ->
+          let json = Json.parse {|{"type":"not-patch","table":"items"}|} in
+          match Patch.Pg.decode ~table:"items" ~decodeRow:decode_item json with
+          | None -> ()
+          | Some _ -> Alcotest.fail "Should return None for invalid JSON structure");
+      Alcotest.test_case "decodeAs maps Insert/Update/Delete to constructors" `Quick
+        (fun () ->
+          let insert_json =
+            Json.parse
+              {|{"type":"patch","table":"items","action":"INSERT","data":{"id":"1","name":"a"}}|}
+          in
+          let update_json =
+            Json.parse
+              {|{"type":"patch","table":"items","action":"UPDATE","data":{"id":"1","name":"b"}}|}
+          in
+          let delete_json =
+            Json.parse
+              {|{"type":"patch","table":"items","action":"DELETE","id":"1"}|}
+          in
+          let decoder =
+            Patch.Pg.decodeAs
+              ~table:"items"
+              ~decodeRow:decode_item
+              ~insert:(fun row -> `Insert row)
+              ~update:(fun row -> `Update row)
+              ~delete:(fun id -> `Delete id)
+              ()
+          in
+          let insert_result = decoder insert_json in
+          let update_result = decoder update_json in
+          let delete_result = decoder delete_json in
+          match insert_result, update_result, delete_result with
+          | Some (`Insert { id = "1"; name = "a" }),
+            Some (`Update { id = "1"; name = "b" }),
+            Some (`Delete "1") -> ()
+          | _ -> Alcotest.fail "decodeAs did not map constructors correctly");
+    ] )

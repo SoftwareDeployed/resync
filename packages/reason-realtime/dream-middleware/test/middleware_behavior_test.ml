@@ -35,9 +35,10 @@ let make_runtime
   Middleware.create ~adapter:packed ~resolve_subscription ~load_snapshot
     ?handle_mutation ?handle_media ()
 
-let init () =
-  Test_framework.describe "middleware websocket behavior" (fun () ->
-      Test_framework.test "ping replies with pong" (fun () ->
+let suite =
+  ( "middleware websocket behavior",
+    [
+      Alcotest.test_case "ping replies with pong" `Quick (fun () ->
           let adapter = Fake_adapter.create () in
           let runtime = make_runtime adapter in
           let sent = ref [] in
@@ -51,11 +52,9 @@ let init () =
                  ~subscribe:(fun channel -> Lwt.return_some channel))
           in
           match next_channel with
-          | None when !sent = [ Middleware.pong_message ] -> Test_framework.pass ()
-          | _ -> Test_framework.fail "Expected ping to preserve empty channel and expose pong message"
-      );
-
-      Test_framework.test "select subscribes and sends snapshot" (fun () ->
+          | None when !sent = [ Middleware.pong_message ] -> ()
+          | _ -> Alcotest.fail "Expected ping to preserve empty channel and expose pong message");
+      Alcotest.test_case "select subscribes and sends snapshot" `Quick (fun () ->
           let adapter = Fake_adapter.create () in
           let runtime = make_runtime adapter in
           let sent = ref [] in
@@ -76,12 +75,10 @@ let init () =
           | Some "room-1" ->
               if Hashtbl.mem adapter.subscriptions "room-1"
                  && List.exists (String.starts_with ~prefix:"{\"type\":\"snapshot\"") !sent
-              then Test_framework.pass ()
-              else Test_framework.fail "Expected room subscription and snapshot wrapper"
-          | _ -> Test_framework.fail "Expected select to subscribe room-1"
-      );
-
-      Test_framework.test "mutation success sends ack ok" (fun () ->
+              then ()
+              else Alcotest.fail "Expected room subscription and snapshot wrapper"
+          | _ -> Alcotest.fail "Expected select to subscribe room-1");
+      Alcotest.test_case "mutation success sends ack ok" `Quick (fun () ->
           let adapter = Fake_adapter.create () in
           let handle_mutation _broadcast _request ~action_id:_ _action =
             Lwt.return (Middleware.Ack (Ok ()))
@@ -99,12 +96,9 @@ let init () =
                  ~subscribe:(fun channel -> Lwt.return_some channel))
           in
           let payload = Middleware.ack_message ~action_id:"a-1" ~status:"ok" () in
-          if !sent = [ payload ] then
-              Test_framework.pass ()
-          else Test_framework.fail "Expected ok ack payload"
-      );
-
-      Test_framework.test "invalid mutation sends error ack" (fun () ->
+          if !sent = [ payload ] then ()
+          else Alcotest.fail "Expected ok ack payload");
+      Alcotest.test_case "invalid mutation sends error ack" `Quick (fun () ->
           let adapter = Fake_adapter.create () in
           let runtime = make_runtime adapter in
           let sent = ref [] in
@@ -125,11 +119,9 @@ let init () =
             Middleware.ack_message ~action_id:"" ~status:"error"
               ~error:"Invalid mutation frame" ()
           in
-          if !sent = [ payload ] && !closed then Test_framework.pass ()
-          else Test_framework.fail "Expected invalid mutation error ack"
-      );
-
-      Test_framework.test "media handler error sends error frame" (fun () ->
+          if !sent = [ payload ] && !closed then ()
+          else Alcotest.fail "Expected invalid mutation error ack");
+      Alcotest.test_case "media handler error sends error frame" `Quick (fun () ->
           let adapter = Fake_adapter.create () in
           let handle_media _broadcast _request _channel _payload =
             Lwt.return (Error "bad media")
@@ -153,11 +145,9 @@ let init () =
             Yojson.Basic.to_string
               (`Assoc [ ("type", `String "error"); ("message", `String "bad media") ])
           in
-          if !sent = [ payload ] && !closed then Test_framework.pass ()
-          else Test_framework.fail "Expected media error payload"
-      );
-
-      Test_framework.test "detach unsubscribes active channel" (fun () ->
+          if !sent = [ payload ] && !closed then ()
+          else Alcotest.fail "Expected media error payload");
+      Alcotest.test_case "detach unsubscribes active channel" `Quick (fun () ->
           let adapter = Fake_adapter.create () in
           let runtime = make_runtime adapter in
           let captured = ref None in
@@ -175,8 +165,8 @@ let init () =
                 failwith "Failed to construct websocket for detach test"
           in
           Hashtbl.replace runtime.Middleware.channels "room-1"
-            { websocket; current_subscription = Some "room-1"; pending_sends = []; send_in_progress = false };
-          let _ = Lwt_main.run (Middleware.detach_websocket runtime (Some "room-1")) in
-          if List.mem "room-1" !(adapter.unsubscribed) then Test_framework.pass ()
-          else Test_framework.fail "Expected detach to unsubscribe channel"
-      ))
+            [{ websocket; current_subscription = Some "room-1"; pending_sends = []; send_in_progress = false }];
+          let _ = Lwt_main.run (Middleware.detach_websocket runtime websocket) in
+          if List.mem "room-1" !(adapter.unsubscribed) then ()
+          else Alcotest.fail "Expected detach to unsubscribe channel");
+    ] )

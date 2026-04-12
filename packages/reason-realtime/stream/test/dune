@@ -1,12 +1,12 @@
 (library
  (name stream_test_support)
  (modules
-  test_framework
   SseParser_suite
   StreamPipe_suite
   NdjsonParser_suite)
  (wrapped false)
  (libraries
+  alcotest
   reason_realtime_stream)
  (preprocess
   (pps

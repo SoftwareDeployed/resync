@@ -1,3 +1,1 @@
-let () =
-  Pgnotify_adapter_behavior_test.init ();
-  Test_framework.run_all () |> exit
+let () = Alcotest.run "pgnotify-adapter" [ Pgnotify_adapter_behavior_test.suite ]

@@ -30,6 +30,9 @@ depends: [
   "reason-react-day-picker"
   "server-reason-react"
   "uuidm"
+  "alcotest" {with-test}
+  "alcobar" {with-test}
+  "crowbar" {with-test}
   "odoc" {with-doc}
 ]
 build: [

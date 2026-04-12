@@ -1,5 +1,3 @@
 let () =
-  SseParser_suite.init ();
-  StreamPipe_suite.init ();
-  NdjsonParser_suite.init ();
-  Test_framework.run_all () |> exit
+  Alcotest.run "stream"
+    [ SseParser_suite.suite; NdjsonParser_suite.suite; StreamPipe_suite.suite ]

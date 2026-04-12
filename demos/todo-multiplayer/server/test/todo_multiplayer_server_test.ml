@@ -1,3 +1,1 @@
-let () =
-  Server_http_test.init ();
-  Test_framework.run_all () |> exit
+let () = Alcotest.run "todo-multiplayer-server" [ Server_http_test.suite ]
