@@ -58,6 +58,7 @@ module Local = {
       let action_of_json = Input.config.schema.action_of_json;
       let action_to_json = Input.config.schema.action_to_json;
       let makeStore = Input.config.schema.makeStore;
+      let validate = None;
       let cache = Input.config.cache;
     };
 
@@ -163,6 +164,7 @@ module Synced = {
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onConnectionHandle = hooks.onConnectionHandle;
+      let validate = None;
       let cache = Input.config.cache;
     };
 
@@ -282,6 +284,7 @@ module Crud = {
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onConnectionHandle = hooks.onConnectionHandle;
+      let validate = None;
       let cache = Input.config.cache;
     };
 

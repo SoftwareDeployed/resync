@@ -30,6 +30,7 @@ type t = {
   resolve_subscription : Dream.request -> string -> string option Lwt.t;
   load_snapshot : Dream.request -> string -> string Lwt.t;
   handle_mutation : (broadcast_fn -> Dream.request -> action_id:string -> Yojson.Basic.t -> mutation_result Lwt.t) option;
+  validate_mutation : (Dream.request -> Yojson.Basic.t -> (unit, string) result Lwt.t) option;
   handle_media : (broadcast_fn -> Dream.request -> string -> string -> (unit, string) result Lwt.t) option;
   handle_disconnect : (broadcast_fn -> string -> unit Lwt.t) option;
   channels : (string, channel list) Hashtbl.t;
@@ -45,12 +46,13 @@ let log_stats t =
     message_count := 0
   end
 
-let create ~adapter ~resolve_subscription ~load_snapshot ?handle_mutation ?handle_media ?handle_disconnect () =
+let create ~adapter ~resolve_subscription ~load_snapshot ?handle_mutation ?validate_mutation ?handle_media ?handle_disconnect () =
   {
     adapter;
     resolve_subscription;
     load_snapshot;
     handle_mutation;
+    validate_mutation;
     handle_media;
     handle_disconnect;
     channels = Hashtbl.create 32;
@@ -251,20 +253,57 @@ let handle_json_message_with_io t request current_channel json ~send ~close
        | None -> Lwt.return current_channel)
     | None -> Lwt.return current_channel)
   | Some "mutation" -> (
-      match
-        (assoc_string "actionId" json, assoc_json "action" json, t.handle_mutation)
-      with
-      | Some action_id, Some action, Some handler ->
-          let* result = handler (make_broadcast_fn t) request ~action_id action in
-          (match result with
-          | Ack (Ok ()) ->
-              let* () = send (ack_message ~action_id ~status:"ok" ()) in
-              Lwt.return current_channel
-          | Ack (Error error) ->
-              let* () = send (ack_message ~action_id ~status:"error" ~error ()) in
-              let* () = close () in
-              Lwt.return current_channel
-          | NoAck -> Lwt.return current_channel)
+      match (assoc_string "actionId" json, assoc_json "action" json) with
+      | Some action_id, Some action -> (
+          match t.validate_mutation with
+          | Some validate ->
+              let* validation = validate request action in
+              (match validation with
+              | Error error ->
+                  let* () = send (ack_message ~action_id ~status:"error" ~error ()) in
+                  Lwt.return current_channel
+              | Ok () ->
+                  (match t.handle_mutation with
+                  | Some handler ->
+                      let* result = handler (make_broadcast_fn t) request ~action_id action in
+                      (match result with
+                      | Ack (Ok ()) ->
+                          let* () = send (ack_message ~action_id ~status:"ok" ()) in
+                          Lwt.return current_channel
+                      | Ack (Error error) ->
+                          let* () = send (ack_message ~action_id ~status:"error" ~error ()) in
+                          let* () = close () in
+                          Lwt.return current_channel
+                      | NoAck -> Lwt.return current_channel)
+                  | None ->
+                      let* () =
+                        send
+                          (ack_message ~action_id:"" ~status:"error"
+                             ~error:"Invalid mutation frame" ())
+                      in
+                      let* () = close () in
+                      Lwt.return current_channel))
+          | None ->
+              (match t.handle_mutation with
+              | Some handler ->
+                  let* result = handler (make_broadcast_fn t) request ~action_id action in
+                  (match result with
+                  | Ack (Ok ()) ->
+                      let* () = send (ack_message ~action_id ~status:"ok" ()) in
+                      Lwt.return current_channel
+                  | Ack (Error error) ->
+                      let* () = send (ack_message ~action_id ~status:"error" ~error ()) in
+                      let* () = close () in
+                      Lwt.return current_channel
+                  | NoAck -> Lwt.return current_channel)
+              | None ->
+                  let* () =
+                    send
+                      (ack_message ~action_id:"" ~status:"error"
+                         ~error:"Invalid mutation frame" ())
+                  in
+                  let* () = close () in
+                  Lwt.return current_channel))
       | _ ->
           let* () =
             send

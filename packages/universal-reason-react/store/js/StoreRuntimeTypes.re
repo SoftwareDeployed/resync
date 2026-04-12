@@ -16,6 +16,10 @@ type status = {
   pendingActions: int,
 };
 
+type guardResult =
+  | Allow
+  | Deny(string);
+
 type streamsConfig('patch, 'stream_event, 'streaming_state) = {
   decodeStreamEvent: StoreJson.json => option('stream_event),
   emptyStreamingState: 'streaming_state,

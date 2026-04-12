@@ -13,6 +13,7 @@
      StoreControllerHelpers
      StoreCrud
      StoreEvents
+     StoreGuardTree
      StoreIndexedDB
      StoreJson
      StoreOffline

@@ -6,17 +6,18 @@
    Hydration
    RealtimeClient
    Store
-   StoreBuilder
-    StoreActionLedger
-   StoreFrp
-   StoreCache
-   StoreComputed
-   StoreCrud
-    StoreEvents
-    StoreFrpFixture
-    StoreIndexedDB
-   StoreJson
-    StoreOffline
+    StoreBuilder
+     StoreActionLedger
+    StoreFrp
+    StoreCache
+    StoreComputed
+    StoreCrud
+     StoreEvents
+     StoreFrpFixture
+    StoreGuardTree
+     StoreIndexedDB
+    StoreJson
+     StoreOffline
    StorePatch
      StoreRuntimeHelpers
      StoreRuntimeLifecycle

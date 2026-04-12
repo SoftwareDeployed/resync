@@ -16,6 +16,7 @@ module Local = {
     let action_to_json: action => StoreJson.json;
     let makeStore:
       (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
+    let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
     let cache: [ | `IndexedDB | `None ];
   };
 
@@ -250,7 +251,17 @@ module Local = {
     let dispatch = (action: action) =>
       switch (sourceRef.contents) {
       | Some(actions) =>
-        actions.update(state => Schema.reduce(~state, ~action))
+        let currentState = actions.get();
+        switch (Schema.validate) {
+        | Some(validate) =>
+          switch (validate(~state=currentState, ~action)) {
+          | Deny(_) => ()
+          | Allow =>
+            actions.update(state => Schema.reduce(~state, ~action))
+          }
+        | None =>
+          actions.update(state => Schema.reduce(~state, ~action))
+        };
       | None => ()
       };
 
@@ -502,6 +513,7 @@ module Synced = {
        code (e.g., video-chat media transport) to access the handle for sending
        raw frames without storing singleton state in RealtimeClient. */
     let onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit);
+    let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
     let cache: [ | `IndexedDB | `None ];
   };
 
@@ -895,6 +907,16 @@ module Synced = {
       switch (sourceRef.contents) {
       | Some(actions) =>
         let currentState = actions.get();
+        let isValid =
+          switch (Schema.validate) {
+          | Some(validate) =>
+            switch (validate(~state=currentState, ~action)) {
+            | Deny(_) => false
+            | Allow => true
+            }
+          | None => true
+          };
+        if (!isValid) { () } else {
         let nextState = Schema.reduce(~state=currentState, ~action);
         let actionId = UUID.make();
         StoreRuntimeLifecycle.markActionPending(lifecycle, actionId);
@@ -920,7 +942,7 @@ module Synced = {
                sendQueuedRecord(ledgerRecord);
                Js.Promise.resolve();
              });
-        ();
+        ();};
       | None => ()
       }
 
