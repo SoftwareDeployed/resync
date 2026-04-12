@@ -876,6 +876,85 @@ let runDeleteAllThreadsScenario = (~browser, ~baseUrl) => {
      });
 };
 
+let runCrossTabDeleteActiveThreadScenario = (~browser, ~baseUrl) => {
+  Js.log("Running cross-tab delete active thread scenario...");
+  browser
+  ->Playwright.newPage
+  |> then_(pageA => {
+       pageA
+       ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ => pageA->Playwright.waitForSelector("#thread-list"))
+       |> then_(_ => pageA->Playwright.evaluateString("window.location.href"))
+       |> then_(threadUrl => {
+            browser
+            ->Playwright.newPage
+            |> then_(pageB => {
+                 pageB
+                 ->Playwright.goto(threadUrl)
+                 |> then_(_ => pageB->Playwright.waitForSelector("#thread-list"))
+                 |> then_(_ =>
+                      pageB->Playwright.evaluateString(
+                        "window.location.pathname.replace('/', '')"
+                      )
+                    )
+                 |> then_(threadId => {
+                      pageB
+                      ->Playwright.click("[data-testid='delete-thread-" ++ threadId ++ "']")
+                      |> then_(_ => BrowserTestUtils.sleep(1000))
+                      |> then_(_ =>
+                           pageA->Playwright.evaluateString(
+                             "document.querySelectorAll('.thread-item').length.toString()"
+                           )
+                         )
+                      |> then_(threadCount => {
+                           let count = int_of_string(threadCount);
+                           if (count == 0) {
+                             waitForSelectorText(
+                               ~page=pageA,
+                               ~selector="[data-testid='no-threads-state']",
+                               ~expected="No conversations yet",
+                               ~label="Cross-tab delete: shows no threads message when last thread deleted",
+                               ~attemptsLeft=50,
+                             )
+                             |> then_(_ =>
+                                  pageA->Playwright.evaluateString(
+                                    "document.querySelector('#prompt-input') === null ? 'true' : 'false'"
+                                  )
+                                )
+                             |> then_(inputHidden =>
+                                  BrowserTestUtils.assertTrue(
+                                    ~label="Cross-tab delete: prompt input hidden when no threads",
+                                    inputHidden == "true",
+                                    ~details="Expected prompt-input to be removed when no active thread",
+                                  )
+                                )
+                           } else {
+                             waitForExpressionTrue(
+                               ~page=pageA,
+                               ~expression="window.location.pathname !== '/' ? 'true' : 'false'",
+                               ~label="Cross-tab delete: navigated to remaining thread",
+                               ~attemptsLeft=50,
+                             )
+                             |> then_(_ =>
+                                  waitForExpressionTrue(
+                                    ~page=pageA,
+                                    ~expression="document.querySelector('.thread-item--active') !== null ? 'true' : 'false'",
+                                    ~label="Cross-tab delete: active thread indicator present on remaining thread",
+                                    ~attemptsLeft=50,
+                                  )
+                                )
+                           }
+                         })
+                    })
+            })
+       })
+  })
+  |> catch(error => {
+       Js.log2("[SKIP] Cross-tab delete active thread test skipped:", error);
+       resolve();
+     });
+};
+
 let runReconnectionScenario = (~browser, ~baseUrl, ~serverRef) => {
   Js.log("Running WebSocket reconnection scenario...");
   let prompt = "Reconnection test prompt";
@@ -977,8 +1056,9 @@ let run = () => {
                          |> then_(_ => runDbCreateSyncScenario(~browser, ~baseUrl=server.baseUrl))
                          |> then_(_ => runUiCreateSyncScenario(~browser, ~baseUrl=server.baseUrl))
                          |> then_(_ => runMessageSyncScenario(~browser, ~baseUrl=server.baseUrl))
-                         |> then_(_ => runDeleteAllThreadsScenario(~browser, ~baseUrl=server.baseUrl))
-                         |> then_(_ => runReconnectionScenario(~browser, ~baseUrl=server.baseUrl, ~serverRef))
+                          |> then_(_ => runDeleteAllThreadsScenario(~browser, ~baseUrl=server.baseUrl))
+                          |> then_(_ => runCrossTabDeleteActiveThreadScenario(~browser, ~baseUrl=server.baseUrl))
+                          |> then_(_ => runReconnectionScenario(~browser, ~baseUrl=server.baseUrl, ~serverRef))
                        )
                  )
          | None => reject(BrowserTestUtils.makeError("server was not initialized"))

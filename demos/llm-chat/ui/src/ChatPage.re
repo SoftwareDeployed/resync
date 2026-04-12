@@ -56,11 +56,10 @@ let onNewChatClick = (router: UniversalRouter.routerApi, _event) => {
   router.push("/" ++ uuid);
 };
 
-let onDeleteThread = (router: UniversalRouter.routerApi, threadId, event) => {
+let onDeleteThread = (_router: UniversalRouter.routerApi, threadId, event) => {
   React.Event.Mouse.stopPropagation(event);
   React.Event.Mouse.preventDefault(event);
   LlmChatStore.dispatch(DeleteThread(threadId));
-  router.push("/");
 };
 
 [@platform js]
@@ -258,6 +257,7 @@ module View = {
       useTilia();
       let store = LlmChatStore.Context.useStore();
       let router = UniversalRouter.useRouter();
+      let pathname = UniversalRouter.usePathname();
       let (isStreaming, setIsStreaming) = React.useState(() => false);
       let (draft, setDraft) = React.useState(() => "");
       let (streamingText, setStreamingText) = React.useState(() => "");
@@ -324,6 +324,14 @@ module View = {
           setDraft(_ => "");
           setStreamingText(_ => "");
           setIsStreaming(_ => false);
+          let expectedPath =
+            switch (store.state.current_thread_id) {
+            | Some(id) => "/" ++ id
+            | None => "/"
+            };
+          if (pathname != expectedPath) {
+            router.push(expectedPath);
+          };
           let rafId = Webapi.requestCancellableAnimationFrame(_ => {
             scrollToBottom();
           });
