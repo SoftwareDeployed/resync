@@ -2,15 +2,16 @@
  (name universal_reason_react_components_native)
  (public_name resync.universal_reason_react_components_native)
  (modules
-  ClientOnly
-  NotFound
-  Document
-  DocumentHead
-  DocumentHtml
-  DocumentMain
-  DocumentNextScript
-  ServerOrClientRender
-  UseMounted)
+   ClientOnly
+   NotFound
+   Document
+   DocumentHead
+   DocumentHtml
+   DocumentMain
+   DocumentNextScript
+   ServerOrClientRender
+   Spread
+   UseMounted)
  (wrapped false)
  (libraries
   server-reason-react.react

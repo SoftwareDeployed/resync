@@ -2,15 +2,16 @@
  (name universal_reason_react_components_js)
  (public_name resync.universal_reason_react_components_js)
  (modules
-  ClientOnly
-  NotFound
-  Document
-  DocumentHead
-  DocumentHtml
-  DocumentMain
-  DocumentNextScript
-  ServerOrClientRender
-  UseMounted)
+   ClientOnly
+   NotFound
+   Document
+   DocumentHead
+   DocumentHtml
+   DocumentMain
+   DocumentNextScript
+   ServerOrClientRender
+   Spread
+   UseMounted)
  (wrapped false)
  (libraries reason-react melange.js)
  (modes melange)

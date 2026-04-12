@@ -301,7 +301,7 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
                       |> then_(_ =>
                            waitForExpressionTrue(
                              ~page=pageB,
-                             ~expression="(() => { const el = document.querySelector('[data-testid=\"streaming-message\"]'); return !!el && ((el.textContent || '').length > 0); })().toString()",
+                             ~expression="(() => { const el = document.querySelector('#streaming-message'); return !!el && ((el.textContent || '').length > 0); })().toString()",
                              ~label="Cross-tab sync: viewer sees non-empty transient streaming message",
                              ~attemptsLeft=150,
                            )
@@ -309,7 +309,7 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
                       |> then_(_ =>
                            waitForExpressionTrue(
                              ~page=pageB,
-                             ~expression="(() => document.querySelector('[data-testid=\"streaming-message\"]') == null && document.querySelectorAll('.message--assistant').length === 1)().toString()",
+                             ~expression="(() => document.querySelector('#streaming-message') == null && document.querySelectorAll('.message--assistant').length === 1)().toString()",
                              ~label="Cross-tab sync: viewer receives end-of-stream and reconciles to one confirmed assistant message",
                              ~attemptsLeft=250,
                            )
@@ -351,7 +351,7 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
        switch (pageARef.contents) {
        | Some(pageA) =>
            pageA->Playwright.evaluateString(
-             "document.querySelector('[data-testid^=\\'message-\\'][role=\\'assistant\\']') !== null ? 'true' : 'false'"
+             "document.querySelector('.message[role=\\'assistant\\']') !== null ? 'true' : 'false'"
            )
            |> then_(hasConfirmedAssistant =>
                 if (hasConfirmedAssistant == "false") {
@@ -391,7 +391,7 @@ let runStreamingScrollScenario = (~browser, ~baseUrl) => {
        |> then_(_ =>
             waitForExpressionTrue(
               ~page,
-              ~expression="(() => { const el = document.querySelector('[data-testid=\"streaming-message\"]'); return !!el && ((el.textContent || '').length > 0); })().toString()",
+              ~expression="(() => { const el = document.querySelector('#streaming-message'); return !!el && ((el.textContent || '').length > 0); })().toString()",
               ~label="Streaming scroll: transient streaming message appears",
               ~attemptsLeft=150,
             )
@@ -407,7 +407,7 @@ let runStreamingScrollScenario = (~browser, ~baseUrl) => {
        |> then_(_ =>
             waitForExpressionTrue(
               ~page,
-              ~expression="(() => document.querySelector('[data-testid=\"streaming-message\"]') == null && document.querySelectorAll('.message--assistant').length >= 1)().toString()",
+              ~expression="(() => document.querySelector('#streaming-message') == null && document.querySelectorAll('.message--assistant').length >= 1)().toString()",
               ~label="Streaming scroll: stream completes and final assistant message is present",
               ~attemptsLeft=250,
             )
@@ -473,7 +473,7 @@ let runThreadDeletionScenario = (~browser, ~baseUrl) => {
               ~attemptsLeft=50,
             )
           )
-       |> then_(_ => page->Playwright.waitForSelector("[data-testid^='delete-thread-']"))
+       |> then_(_ => page->Playwright.waitForSelector(".thread-delete-button"))
        |> then_(_ =>
             page->Playwright.evaluateString(
               "document.querySelector('.thread-item')?.querySelector('.thread-item-title')?.textContent || ''"
@@ -484,7 +484,7 @@ let runThreadDeletionScenario = (~browser, ~baseUrl) => {
               "document.querySelectorAll('.thread-item').length.toString()"
             )
             |> then_(countBefore =>
-                 page->Playwright.click("[data-testid^='delete-thread-']")
+                 page->Playwright.click(".thread-delete-button")
                  |> then_(_ => BrowserTestUtils.sleep(800))
                  |> then_(_ =>
                       page->Playwright.evaluateString(
@@ -701,7 +701,7 @@ let runUiCreateSyncScenario = (~browser, ~baseUrl) => {
                       |> then_(_ =>
                            waitForExpressionTrue(
                              ~page=pageA,
-                             ~expression="window.location.pathname !== '/' && document.querySelector('[data-testid=\"empty-thread-state\"]') !== null ? 'true' : 'false'",
+                             ~expression="window.location.pathname !== '/' && document.querySelector('#empty-thread-state') !== null ? 'true' : 'false'",
                              ~label="UI create sync: creator navigates to new empty thread",
                              ~attemptsLeft=50,
                            )
@@ -841,7 +841,7 @@ let runEmptyStateScenario = (~browser, ~baseUrl) => {
             |> then_(_ =>
                  waitForSelectorText(
                    ~page,
-                   ~selector="[data-testid='empty-thread-state']",
+                   ~selector="#empty-thread-state",
                    ~expected="Send a message to start the conversation",
                    ~label="Empty state: new thread shows start conversation prompt",
                    ~attemptsLeft=50,
@@ -860,7 +860,7 @@ let runEmptyStateScenario = (~browser, ~baseUrl) => {
                )
             |> then_(_ =>
                  page->Playwright.evaluateString(
-                   "document.querySelector('[data-testid=\\'empty-thread-state\\']') === null ? 'true' : 'false'"
+                   "document.querySelector('#empty-thread-state') === null ? 'true' : 'false'"
                  )
                )
             |> then_(emptyGone =>
@@ -895,7 +895,7 @@ let runDeleteAllThreadsScenario = (~browser, ~baseUrl) => {
        |> then_(_ =>
             waitForSelectorText(
               ~page,
-              ~selector="[data-testid='no-threads-state']",
+              ~selector="#no-threads-state",
               ~expected="No conversations yet",
               ~label="Delete all threads: UI shows no conversations message",
               ~attemptsLeft=100,
@@ -943,7 +943,7 @@ let runCrossTabDeleteActiveThreadScenario = (~browser, ~baseUrl) => {
                     )
                  |> then_(threadId => {
                       pageB
-                      ->Playwright.click("[data-testid='delete-thread-" ++ threadId ++ "']")
+                      ->Playwright.click("#delete-thread-" ++ threadId ++ "")
                       |> then_(_ => BrowserTestUtils.sleep(1000))
                       |> then_(_ =>
                            pageA->Playwright.evaluateString(
@@ -955,7 +955,7 @@ let runCrossTabDeleteActiveThreadScenario = (~browser, ~baseUrl) => {
                            if (count == 0) {
                              waitForSelectorText(
                                ~page=pageA,
-                               ~selector="[data-testid='no-threads-state']",
+                               ~selector="#no-threads-state",
                                ~expected="No conversations yet",
                                ~label="Cross-tab delete: shows no threads message when last thread deleted",
                                ~attemptsLeft=50,
