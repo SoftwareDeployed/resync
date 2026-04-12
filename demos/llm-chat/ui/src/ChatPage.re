@@ -73,6 +73,11 @@ let handleKeyDown = (store, draft, setDraft, setIsStreaming, event) => {
 let handleKeyDown = (_store, _draft, _setDraft, _setIsStreaming, _event) =>
   ();
 
+let hasConfirmedAssistantMessage = (~messages, ~content) =>
+  messages->Js.Array.some(~f=(message: Model.Message.t) =>
+    message.role == "assistant" && message.content == content
+  );
+
 [@platform js]
 let scrollToBottom = () => {
   switch (
@@ -104,10 +109,10 @@ let isNearBottom = () => {
 };
 
 [@platform js]
-let useAutoScroll = (messages, isStreaming) => {
+let useAutoScroll = (messages, isStreaming, streamingText) => {
   let isNearBottomRef = React.useMemo1(() => ref(true), [||]);
   let scrollRafId = React.useMemo1(() => ref(None), [||]);
-  React.useEffect2(
+  React.useEffect3(
     () => {
       isNearBottomRef := isNearBottom();
       if (isNearBottomRef^) {
@@ -121,12 +126,12 @@ let useAutoScroll = (messages, isStreaming) => {
       };
       None;
     },
-    (messages, isStreaming),
+    (messages, isStreaming, streamingText),
   );
 };
 
 [@platform native]
-let useAutoScroll = (_messages, _isStreaming) => ();
+let useAutoScroll = (_messages, _isStreaming, _streamingText) => ();
 
 [@platform js]
 module DOMHelpers = {
@@ -272,7 +277,6 @@ module View = {
                 };
               | Some("stream_complete") =>
                 setIsStreaming(_ => false);
-                setStreamingText(_ => "");
               | Some("stream_error") =>
                 setIsStreaming(_ => false);
                 setStreamingText(_ => "");
@@ -284,9 +288,24 @@ module View = {
         Some(() => LlmChatStore.Events.unlisten(listenerId));
       });
 
+      React.useEffect2(
+        () => {
+          if (
+            String.length(streamingText) > 0
+            && hasConfirmedAssistantMessage(~messages, ~content=streamingText)
+          ) {
+            setStreamingText(_ => "");
+          };
+          None;
+        },
+        (messages, streamingText),
+      );
+
       React.useEffect1(
         () => {
           setDraft(_ => "");
+          setStreamingText(_ => "");
+          setIsStreaming(_ => false);
           let rafId = Webapi.requestCancellableAnimationFrame(_ => {
             scrollToBottom();
           });
@@ -295,7 +314,7 @@ module View = {
         [|currentThreadId|],
       );
 
-      useAutoScroll(messages, isStreaming);
+      useAutoScroll(messages, isStreaming, streamingText);
 
       <div className="chat-layout">
         <div className="thread-sidebar" id="thread-list">
@@ -334,11 +353,14 @@ module View = {
         </div>
          <div className="chat-main">
            {DOMHelpers.messageList(
-              Js.Array.concat(
-                ~other=[|
-                  if (String.length(streamingText) > 0) {
-                    DOMHelpers.messageDiv(
-                      ~key="streaming-message",
+               Js.Array.concat(
+                 ~other=[|
+                   if (
+                     String.length(streamingText) > 0
+                     && !hasConfirmedAssistantMessage(~messages, ~content=streamingText)
+                   ) {
+                     DOMHelpers.messageDiv(
+                       ~key="streaming-message",
                       ~className="message message--assistant",
                       ~role="assistant",
                       ~dataTestId="streaming-message",

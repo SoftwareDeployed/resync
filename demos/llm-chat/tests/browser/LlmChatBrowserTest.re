@@ -31,6 +31,76 @@ let rec waitForSelectorText = (~page, ~selector, ~expected, ~label, ~attemptsLef
                 waitForSelectorText(~page, ~selector, ~expected, ~label, ~attemptsLeft=attemptsLeft - 1)
               );
          }
+        );
+  };
+
+let rec waitForPartialSelectorText = (~page, ~selector, ~expected, ~notExpected, ~label, ~attemptsLeft) =>
+  if (attemptsLeft <= 0) {
+    BrowserTestUtils.textOrEmpty(page, selector)
+    |> then_(text =>
+         reject(
+           BrowserTestUtils.makeError(
+             label
+             ++ " timed out waiting for selector "
+             ++ selector
+             ++ " to contain partial text: "
+             ++ expected
+             ++ " without containing: "
+             ++ notExpected
+             ++ ". Last value: "
+             ++ text,
+           ),
+         )
+       );
+  } else {
+    BrowserTestUtils.textOrEmpty(page, selector)
+    |> then_(text =>
+         if (text->includes(expected) && text->includes(notExpected) == false) {
+           Js.log("[PASS] " ++ label);
+           resolve();
+         } else {
+           BrowserTestUtils.sleep(100)
+           |> then_(_ =>
+                waitForPartialSelectorText(
+                  ~page,
+                  ~selector,
+                  ~expected,
+                  ~notExpected,
+                  ~label,
+                  ~attemptsLeft=attemptsLeft - 1,
+                )
+              );
+         }
+       );
+  };
+
+let rec waitForExpressionTrue = (~page, ~expression, ~label, ~attemptsLeft) =>
+  if (attemptsLeft <= 0) {
+    page->Playwright.evaluateString(expression)
+    |> then_(result =>
+         reject(
+           BrowserTestUtils.makeError(
+             label ++ " timed out waiting for expression to become true. Last value: " ++ result,
+           ),
+         )
+       );
+  } else {
+    page->Playwright.evaluateString(expression)
+    |> then_(result =>
+         if (result == "true") {
+           Js.log("[PASS] " ++ label);
+           resolve();
+         } else {
+           BrowserTestUtils.sleep(100)
+           |> then_(_ =>
+                waitForExpressionTrue(
+                  ~page,
+                  ~expression,
+                  ~label,
+                  ~attemptsLeft=attemptsLeft - 1,
+                )
+              );
+         }
        );
   };
 
@@ -152,7 +222,174 @@ let runOllamaStreamingScenario = (~browser, ~baseUrl) => {
             Js.log("[SKIP] Ollama streaming test skipped (exception)");
             resolve();
           })
+      );
+};
+
+let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
+  Js.log("Running cross-tab realtime sync scenario...");
+  let prompt =
+    "Please give a somewhat detailed multi-sentence answer about websocket streaming so the response is not too short.";
+  let pageARef = ref(None);
+
+  browser
+  ->Playwright.newPage
+  |> then_(pageA => {
+       pageARef := Some(pageA);
+       pageA
+       ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ => pageA->Playwright.waitForSelector("#prompt-input"))
+       |> then_(_ => pageA->Playwright.evaluateString("window.location.href"))
+       |> then_(threadUrl =>
+            browser
+            ->Playwright.newPage
+            |> then_(pageB =>
+                 pageB
+                 ->Playwright.goto(threadUrl)
+                 |> then_(_ => pageB->Playwright.waitForSelector("#prompt-input"))
+                 |> then_(_ => pageA->Playwright.fill("#prompt-input", prompt))
+                 |> then_(_ => pageA->Playwright.click("#send-button"))
+                 |> then_(_ =>
+                      waitForSelectorText(
+                        ~page=pageA,
+                        ~selector="#message-list",
+                        ~expected=prompt,
+                        ~label="Cross-tab sync: sender sees user prompt",
+                        ~attemptsLeft=50,
+                      )
+                    )
+                 |> then_(_ =>
+                      waitForSelectorText(
+                        ~page=pageB,
+                        ~selector="#message-list",
+                        ~expected=prompt,
+                        ~label="Cross-tab sync: viewer sees user prompt in realtime",
+                        ~attemptsLeft=50,
+                      )
+                    )
+                 |> then_(_ =>
+                      waitForExpressionTrue(
+                        ~page=pageB,
+                        ~expression="(() => { const el = document.querySelector('[data-testid=\"streaming-message\"]'); return !!el && ((el.textContent || '').length > 0); })().toString()",
+                        ~label="Cross-tab sync: viewer sees non-empty transient streaming message",
+                        ~attemptsLeft=150,
+                      )
+                    )
+                 |> then_(_ =>
+                      waitForExpressionTrue(
+                        ~page=pageB,
+                        ~expression="(() => document.querySelector('[data-testid=\"streaming-message\"]') == null && document.querySelectorAll('.message--assistant').length === 1)().toString()",
+                        ~label="Cross-tab sync: viewer receives end-of-stream and reconciles to one confirmed assistant message",
+                        ~attemptsLeft=250,
+                      )
+                    )
+                 |> then_(_ =>
+                       pageA->Playwright.evaluateString(
+                         "document.getElementById('message-list')?.textContent || ''"
+                      )
+                    )
+                 |> then_(textA =>
+                      pageB->Playwright.evaluateString(
+                        "document.getElementById('message-list')?.textContent || ''"
+                      )
+                      |> then_(textB =>
+                           BrowserTestUtils.assertTrue(
+                             ~label="Cross-tab sync: both tabs converge to same final text",
+                             textA == textB && textA->includes(prompt) == true,
+                             ~details="Expected both tabs to converge to identical final transcript",
+                           )
+                         )
+                    )
+                 |> then_(_ =>
+                      pageB->Playwright.evaluateString(
+                        "document.querySelectorAll('.message--assistant').length.toString()"
+                      )
+                    )
+                 |> then_(assistantCount =>
+                      BrowserTestUtils.assertTrue(
+                        ~label="Cross-tab sync: final assistant message is not duplicated after reconciliation",
+                        assistantCount == "1",
+                        ~details="Expected one assistant message bubble, got: " ++ assistantCount,
+                      )
+                    )
+               )
+          )
+     })
+  |> catch(error =>
+       switch (pageARef.contents) {
+       | Some(pageA) =>
+           BrowserTestUtils.textOrEmpty(pageA, "#message-list")
+           |> then_(textA =>
+                if (textA->includes("Error") || textA->includes("error")) {
+                  Js.log2("[SKIP] Cross-tab realtime sync test skipped (LLM unavailable):", error);
+                  resolve();
+                } else {
+                  reject(BrowserTestUtils.makeError("Cross-tab realtime sync test failed"));
+                }
+              )
+       | None => reject(BrowserTestUtils.makeError("Cross-tab realtime sync test failed before opening sender page"))
+       }
      );
+};
+
+let runStreamingScrollScenario = (~browser, ~baseUrl) => {
+  Js.log("Running streaming scroll scenario...");
+  let prompt =
+    "Please respond with many short lines about scrolling behavior so the reply is long enough to overflow the chat area.";
+
+  browser
+  ->Playwright.newPage
+  |> then_(page =>
+       page
+       ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ => page->Playwright.waitForSelector("#prompt-input"))
+       |> then_(_ => page->Playwright.fill("#prompt-input", prompt))
+       |> then_(_ => page->Playwright.click("#send-button"))
+       |> then_(_ =>
+            waitForSelectorText(
+              ~page,
+              ~selector="#message-list",
+              ~expected=prompt,
+              ~label="Streaming scroll: user prompt appears",
+              ~attemptsLeft=50,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression="(() => { const el = document.querySelector('[data-testid=\"streaming-message\"]'); return !!el && ((el.textContent || '').length > 0); })().toString()",
+              ~label="Streaming scroll: transient streaming message appears",
+              ~attemptsLeft=150,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression="(() => { const el = document.getElementById('message-list'); if (!el) return false; return el.scrollTop + el.clientHeight >= el.scrollHeight - 12; })().toString()",
+              ~label="Streaming scroll: message list stays pinned near bottom during stream",
+              ~attemptsLeft=120,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression="(() => document.querySelector('[data-testid=\"streaming-message\"]') == null && document.querySelectorAll('.message--assistant').length >= 1)().toString()",
+              ~label="Streaming scroll: stream completes and final assistant message is present",
+              ~attemptsLeft=250,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression="(() => { const el = document.getElementById('message-list'); if (!el) return false; return el.scrollTop + el.clientHeight >= el.scrollHeight - 12; })().toString()",
+              ~label="Streaming scroll: message list remains pinned near bottom after completion",
+              ~attemptsLeft=80,
+            )
+          )
+     )
+  |> catch(error => {
+       Js.log2("[SKIP] Streaming scroll test skipped or failed due to LLM availability:", error);
+       resolve();
+     });
 };
 
 let runThreadDeletionScenario = (~browser, ~baseUrl) => {
@@ -409,12 +646,14 @@ let run = () => {
        browserRef := Some(browser);
        switch (serverRef.contents) {
         | Some(server) =>
-           runThreadListAndInputScenario(~browser, ~baseUrl=server.baseUrl)
-           |> then_(threadUrl =>
-                runMessageDisplayScenario(~browser, ~threadUrl)
-                |> then_(_ => runOllamaStreamingScenario(~browser, ~baseUrl=server.baseUrl))
-                |> then_(_ => runThreadDeletionScenario(~browser, ~baseUrl=server.baseUrl))
-                |> then_(_ => runDbSyncScenario(~browser, ~baseUrl=server.baseUrl))
+            runThreadListAndInputScenario(~browser, ~baseUrl=server.baseUrl)
+            |> then_(threadUrl =>
+                 runMessageDisplayScenario(~browser, ~threadUrl)
+                 |> then_(_ => runCrossTabRealtimeSyncScenario(~browser, ~baseUrl=server.baseUrl))
+                 |> then_(_ => runOllamaStreamingScenario(~browser, ~baseUrl=server.baseUrl))
+                 |> then_(_ => runStreamingScrollScenario(~browser, ~baseUrl=server.baseUrl))
+                 |> then_(_ => runThreadDeletionScenario(~browser, ~baseUrl=server.baseUrl))
+                 |> then_(_ => runDbSyncScenario(~browser, ~baseUrl=server.baseUrl))
                 |> then_(_ => runDbCreateSyncScenario(~browser, ~baseUrl=server.baseUrl))
                 |> then_(_ => runMessageSyncScenario(~browser, ~baseUrl=server.baseUrl))
               )

@@ -62,12 +62,30 @@ let required_string key json =
   | Some (`String value) -> Ok value
   | _ -> Error ("Missing string field: " ^ key)
 
+let stream_event_json ~event fields =
+  Yojson.Basic.to_string
+    (`Assoc
+      [ ("type", `String "custom");
+        ("payload", `Assoc (("event", `String event) :: fields)) ])
+
+let broadcast_stream_event ~broadcast_fn ~thread_id ~event fields =
+  let message = stream_event_json ~event fields in
+  broadcast_fn thread_id (fun _ -> message)
+
+let finalize_assistant_message ~request ~thread_id ~assistant_message_id ~full_response =
+  if String.length full_response > 0 then
+    let action_id = UUID.make () in
+    Dream.sql request
+      (Database.Chat.add_message
+         (action_id, assistant_message_id, thread_id, "assistant", full_response))
+  else Lwt.return_unit
+
 let stream_ollama ~broadcast_fn ~request ~thread_id ~assistant_message_id () =
   let* messages = Dream.sql request (Database.Chat.get_messages thread_id) in
   let messages_json =
     Array.to_list messages
     |> List.map (fun (msg: Model.Message.t) ->
-        `Assoc [("role", `String msg.role); ("content", `String msg.content)])
+           `Assoc [("role", `String msg.role); ("content", `String msg.content)])
   in
   let ollama_body = Yojson.Safe.to_string (`Assoc [
     ("model", `String "llama3.1");
@@ -82,85 +100,65 @@ let stream_ollama ~broadcast_fn ~request ~thread_id ~assistant_message_id () =
           ~headers:(Cohttp.Header.of_list [("Content-Type", "application/json")])
           (Uri.of_string "http://localhost:11434/api/chat"))
       (fun exn ->
-        let error_msg = Yojson.Basic.to_string (`Assoc [
-          ("type", `String "custom");
-          ("payload", `Assoc [
-            ("event", `String "stream_error");
-            ("thread_id", `String thread_id);
-            ("message_id", `String assistant_message_id);
-            ("error", `String (Printexc.to_string exn))
-          ])
-        ]) in
-        let* () = broadcast_fn thread_id (fun _ -> error_msg) in
+        let* () =
+          broadcast_stream_event ~broadcast_fn ~thread_id ~event:"stream_error"
+            [ ("thread_id", `String thread_id);
+              ("message_id", `String assistant_message_id);
+              ("error", `String (Printexc.to_string exn)) ]
+        in
         Lwt.fail exn)
   in
   let body_stream = Cohttp_lwt.Body.to_stream resp_body in
   let ndjson_parser = NdjsonParser.make () in
   let all_tokens = ref [] in
-  let start_msg = Yojson.Basic.to_string (`Assoc [
-    ("type", `String "custom");
-    ("payload", `Assoc [
-      ("event", `String "stream_started");
-      ("thread_id", `String thread_id);
-      ("message_id", `String assistant_message_id)
-    ])
-  ]) in
-  let* () = broadcast_fn thread_id (fun _ -> start_msg) in
+  let* () =
+    broadcast_stream_event ~broadcast_fn ~thread_id ~event:"stream_started"
+      [ ("thread_id", `String thread_id);
+        ("message_id", `String assistant_message_id) ]
+  in
   let rec read_loop () =
     let* chunk = Lwt_stream.get body_stream in
     match chunk with
     | None ->
-      let done_msg = Yojson.Basic.to_string (`Assoc [
-        ("type", `String "custom");
-        ("payload", `Assoc [
-          ("event", `String "stream_complete");
-          ("thread_id", `String thread_id);
-          ("message_id", `String assistant_message_id)
-        ])
-      ]) in
-      let* () = broadcast_fn thread_id (fun _ -> done_msg) in
-      let full_response = String.concat "" (List.rev !all_tokens) in
-      if String.length full_response > 0 then
-        let action_id = UUID.make () in
-        Dream.sql request
-          (Database.Chat.add_message (action_id, assistant_message_id, thread_id, "assistant", full_response))
-      else Lwt.return_unit
+        let* () =
+          broadcast_stream_event ~broadcast_fn ~thread_id ~event:"stream_complete"
+            [ ("thread_id", `String thread_id);
+              ("message_id", `String assistant_message_id) ]
+        in
+        let full_response = String.concat "" (List.rev !all_tokens) in
+        finalize_assistant_message ~request ~thread_id ~assistant_message_id ~full_response
     | Some chunk ->
-      let* () =
-        (try
-          let jsons = NdjsonParser.feed ndjson_parser chunk in
-          let tokens = ref [] in
-          Array.iter (fun json ->
-            match json with
-            | `Assoc fields ->
-                (match List.assoc_opt "done" fields with
-                 | Some (`Bool true) -> ()
-                 | _ ->
-                   match List.assoc_opt "message" fields with
-                   | Some (`Assoc msg_fields) ->
-                       (match List.assoc_opt "content" msg_fields with
-                        | Some (`String text) when String.length text > 0 ->
-                            tokens := text :: !tokens;
-                            all_tokens := text :: !all_tokens
+        let* () =
+          (try
+             let jsons = NdjsonParser.feed ndjson_parser chunk in
+             let tokens = ref [] in
+             Array.iter (fun json ->
+               match json with
+               | `Assoc fields ->
+                   (match List.assoc_opt "done" fields with
+                    | Some (`Bool true) -> ()
+                    | _ ->
+                        match List.assoc_opt "message" fields with
+                        | Some (`Assoc msg_fields) ->
+                            (match List.assoc_opt "content" msg_fields with
+                             | Some (`String text) when String.length text > 0 ->
+                                 tokens := text :: !tokens;
+                                 all_tokens := text :: !all_tokens
+                             | _ -> ())
                         | _ -> ())
-                   | _ -> ())
-            | _ -> ()
-          ) jsons;
-          Lwt_list.iter_s (fun text ->
-            let token_msg = Yojson.Basic.to_string (`Assoc [
-              ("type", `String "custom");
-              ("payload", `Assoc [
-                ("event", `String "token_received");
-                ("thread_id", `String thread_id);
-                ("message_id", `String assistant_message_id);
-                ("token", `String text)
-              ])
-            ]) in
-            broadcast_fn thread_id (fun _ -> token_msg)
-          ) (List.rev !tokens)
-        with _ -> Lwt.return_unit)
-      in
-      read_loop ()
+               | _ -> ())
+               jsons;
+             Lwt_list.iter_s
+               (fun text ->
+                 broadcast_stream_event ~broadcast_fn ~thread_id
+                   ~event:"token_received"
+                   [ ("thread_id", `String thread_id);
+                     ("message_id", `String assistant_message_id);
+                     ("token", `String text) ])
+               (List.rev !tokens)
+           with _ -> Lwt.return_unit)
+        in
+        read_loop ()
   in
   read_loop ()
 
@@ -173,40 +171,47 @@ let handle_mutation broadcast_fn request ~action_id action =
   match kind with
   | Error error -> Lwt.return (Middleware.Ack (Error error))
   | Ok "send_prompt" ->
-      (match assoc "payload" action with
-       | Some payload ->
-           (match (required_string "thread_id" payload, required_string "prompt" payload) with
-             | Ok thread_id, Ok prompt ->
-                 let message_id = UUID.make () in
-                 let assistant_message_id = UUID.make () in
-                 let* result =
-                   Dream.sql request
-                     (Database.Chat.add_message (action_id, message_id, thread_id, "user", prompt))
-                 in
-                 (match result with
-                  | () ->
-                      Lwt.async (fun () ->
-                        Lwt.catch
-                          (fun () -> stream_ollama ~broadcast_fn ~request ~thread_id ~assistant_message_id ())
-                          (fun exn ->
-                            let error_msg = Yojson.Basic.to_string (`Assoc [
-                              ("type", `String "custom");
-                              ("payload", `Assoc [
-                                ("event", `String "stream_error");
-                                ("thread_id", `String thread_id);
-                                ("message_id", `String assistant_message_id);
-                                ("error", `String (Printexc.to_string exn))
-                              ])
-                            ]) in
-                            broadcast_fn thread_id (fun _ -> error_msg)));
-                      Lwt.return (Middleware.Ack (Ok ()))
-                  | exception Caqti_error.Exn error ->
-                      Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
-                  | exception exn ->
-                      Lwt.return (Middleware.Ack (Error (Printexc.to_string exn))))
-              | Error error, _ | _, Error error ->
-                  Lwt.return (Middleware.Ack (Error error)))
-         | None -> Lwt.return (Middleware.Ack (Error "Missing send_prompt payload")))
+      begin match assoc "payload" action with
+      | None -> Lwt.return (Middleware.Ack (Error "Missing send_prompt payload"))
+      | Some payload ->
+          begin match required_string "thread_id" payload with
+          | Error error -> Lwt.return (Middleware.Ack (Error error))
+          | Ok thread_id ->
+              begin match required_string "prompt" payload with
+              | Error error -> Lwt.return (Middleware.Ack (Error error))
+              | Ok prompt ->
+                  let message_id = UUID.make () in
+                  let assistant_message_id = UUID.make () in
+                  Lwt.catch
+                    (fun () ->
+                      let* () =
+                        Dream.sql request
+                          (Database.Chat.add_message
+                             (action_id, message_id, thread_id, "user", prompt))
+                      in
+                      let () =
+                        Lwt.async (fun () ->
+                          Lwt.catch
+                            (fun () ->
+                              stream_ollama ~broadcast_fn ~request ~thread_id
+                                ~assistant_message_id ())
+                            (fun exn ->
+                              broadcast_stream_event ~broadcast_fn ~thread_id
+                                ~event:"stream_error"
+                                [ ("thread_id", `String thread_id);
+                                  ("message_id", `String assistant_message_id);
+                                  ("error", `String (Printexc.to_string exn)) ]))
+                      in
+                      Lwt.return (Middleware.Ack (Ok ())))
+                    (function
+                      | Caqti_error.Exn error ->
+                          Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
+                      | exn ->
+                          Lwt.return
+                            (Middleware.Ack (Error (Printexc.to_string exn))))
+              end
+          end
+      end
   | Ok "set_error"
   | Ok "select_thread"
   | Ok "set_input" ->
