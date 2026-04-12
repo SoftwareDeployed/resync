@@ -2,7 +2,7 @@
  (name llm_chat_browser_test)
  (modules LlmChatBrowserTest LlmChatTestServer)
  (wrapped false)
- (libraries melange.js playwright_js)
+ (libraries melange.js playwright_js universal_reason_react_uuid_js)
  (modes melange)
  (preprocess (pps server-reason-react.ppx -melange server-reason-react.browser_ppx -js melange.ppx)))
 
