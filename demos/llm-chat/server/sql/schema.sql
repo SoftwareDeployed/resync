@@ -1,6 +1,7 @@
 -- @table threads
 -- @id_column id
 -- @broadcast_channel column=id
+-- @broadcast_to_views table=active_thread_views channel=thread_id
 CREATE TABLE threads (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text NOT NULL DEFAULT 'New Chat',

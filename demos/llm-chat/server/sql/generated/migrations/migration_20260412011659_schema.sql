@@ -1,3 +1,10 @@
+CREATE TABLE IF NOT EXISTS active_thread_views (
+  thread_id uuid REFERENCES threads(id) ON DELETE CASCADE,
+  PRIMARY KEY (thread_id)
+);
+
+CREATE TABLE IF NOT EXISTS schema_migrations (version varchar PRIMARY KEY, applied_at timestamp NOT NULL DEFAULT NOW());
+
 DROP TRIGGER IF EXISTS realtime_notify_threads ON threads;
 DROP FUNCTION IF EXISTS realtime_notify_threads();
 
@@ -75,52 +82,6 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER realtime_notify_threads
 AFTER INSERT OR UPDATE OR DELETE ON threads
 FOR EACH ROW EXECUTE FUNCTION realtime_notify_threads();
-
-DROP TRIGGER IF EXISTS realtime_notify_threads_views ON threads;
-DROP FUNCTION IF EXISTS realtime_notify_threads_views();
-
-CREATE OR REPLACE FUNCTION realtime_notify_threads_views()
-RETURNS TRIGGER AS $$
-DECLARE
-  view_record RECORD;
-  channel_name TEXT;
-  payload JSON;
-  payload_data JSONB;
-  normalized_record RECORD;
-BEGIN
-  IF TG_OP = 'DELETE' THEN
-    payload := json_build_object('type', 'patch', 'table', 'threads', 'id', to_jsonb(OLD.id), 'action', 'DELETE');
-    FOR view_record IN
-      SELECT DISTINCT thread_id FROM active_thread_views
-    LOOP
-      channel_name := view_record.thread_id::text;
-      IF channel_name IS NOT NULL THEN
-        PERFORM pg_notify(channel_name, payload::text);
-      END IF;
-    END LOOP;
-    RETURN OLD;
-  END IF;
-  FOR normalized_record IN
-    SELECT id, title, EXTRACT(EPOCH FROM created_at) * 1000 AS created_at, EXTRACT(EPOCH FROM updated_at) * 1000 AS updated_at FROM threads WHERE id = NEW.id
-  LOOP
-    payload_data := to_jsonb(normalized_record);
-    payload := json_build_object('type', 'patch', 'table', 'threads', 'id', to_jsonb(NEW.id), 'action', TG_OP, 'data', payload_data);
-    FOR view_record IN
-      SELECT DISTINCT thread_id FROM active_thread_views
-    LOOP
-      channel_name := view_record.thread_id::text;
-      IF channel_name IS NOT NULL THEN
-        PERFORM pg_notify(channel_name, payload::text);
-      END IF;
-    END LOOP;
-  END LOOP;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER realtime_notify_threads_views
-AFTER INSERT OR UPDATE OR DELETE ON threads
-FOR EACH ROW EXECUTE FUNCTION realtime_notify_threads_views();
 
 DROP TRIGGER IF EXISTS realtime_notify_messages ON messages;
 DROP FUNCTION IF EXISTS realtime_notify_messages();
@@ -211,3 +172,5 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER realtime_notify_messages_parent
 AFTER INSERT OR UPDATE OR DELETE ON messages
 FOR EACH ROW EXECUTE FUNCTION realtime_notify_messages_parent();
+
+INSERT INTO schema_migrations (version) VALUES ("20260412011659") ON CONFLICT (version) DO NOTHING;

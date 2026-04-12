@@ -1,5 +1,5 @@
 {
-  "schema_hash": "f8640accc7b8166e0e96adb752732022",
+  "schema_hash": "3f1dd3cfd2920bac64561d145fa25e64",
   "tables": [
     {
       "table_name": "threads",
@@ -113,6 +113,25 @@
       ],
       "id_column": "id",
       "composite_key": []
+    },
+    {
+      "table_name": "IF",
+      "columns": [
+        {
+          "name": "thread_id",
+          "sql_type": "uuid",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "foreign_key": {
+            "column": "thread_id",
+            "referenced_table": "threads",
+            "referenced_column": "id"
+          }
+        }
+      ],
+      "id_column": null,
+      "composite_key": [ "thread_id" ]
     }
   ]
 }

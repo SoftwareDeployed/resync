@@ -1,3 +1,5 @@
+CREATE TABLE IF NOT EXISTS schema_migrations (version varchar PRIMARY KEY, applied_at timestamp NOT NULL DEFAULT NOW());
+
 DROP TRIGGER IF EXISTS realtime_notify_threads ON threads;
 DROP FUNCTION IF EXISTS realtime_notify_threads();
 
@@ -211,3 +213,5 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER realtime_notify_messages_parent
 AFTER INSERT OR UPDATE OR DELETE ON messages
 FOR EACH ROW EXECUTE FUNCTION realtime_notify_messages_parent();
+
+INSERT INTO schema_migrations (version) VALUES ("20260412014124") ON CONFLICT (version) DO NOTHING;
