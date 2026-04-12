@@ -139,94 +139,96 @@ module StoreDef =
     type nonrec subscription = subscription;
     type nonrec patch = patch;
 
-    let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
-      storeName: "ecommerce.inventory",
-      emptyState: Model.SSR.empty,
-      reduce: (~state: state, ~action: action) => state,
-      state_of_json,
-      state_to_json,
-      action_of_json: _json => Noop,
-      action_to_json: _action => StoreJson.parse("{\"kind\":\"noop\"}"),
-      makeStore:
-        (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-        {
-          premise_id:
-            StoreBuilder.projected(
-              ~derive?,
-              ~project,
-              ~serverSource=state,
-              ~fromStore=store => store.config,
-              ~select=projections => projections.premise_id,
-              (),
-            ),
-          config: state,
-          period_list:
-            StoreBuilder.projected(
-              ~derive?,
-              ~project,
-              ~serverSource=state,
-              ~fromStore=store => store.config,
-              ~select=projections => projections.period_list,
-              (),
-            ),
-          unit:
-            StoreBuilder.current(
-              ~derive?,
-              ~client=PeriodList.Unit.value,
-              ~server=() => PeriodList.Unit.defaultState,
-              (),
-            ),
-        };
-      },
-      scopeKeyOfState: (state: state) =>
-        switch (state.premise) {
-        | Some(premise) => premise.id
-        | None => "default"
-        },
-      timestampOfState: (state: state) =>
-        switch (state.premise) {
-        | Some(premise) => premise.updated_at->Js.Date.getTime
-        | None => 0.0
-        },
-      setTimestamp: (~state: state, ~timestamp: float) =>
-        switch (state.premise) {
-        | Some(premise) => {
-            ...state,
-            premise: Some({...premise, updated_at: Js.Date.fromFloat(timestamp)}),
-          }
-        | None => state
-        },
-      transport: {
-        subscriptionOfState: (state: state) =>
-          switch (state.premise) {
-          | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
-          | None => None
-          },
-        encodeSubscription: RealtimeSubscription.encode,
-        eventUrl: Constants.event_url,
-        baseUrl: Constants.base_url,
-      },
-      stateElementId: Some("initial-store"),
-      hooks: None,
-    };
-
-    let strategy =
-      StoreBuilder.Sync.custom(
-        ~decodePatch=
-          StorePatch.compose([
-            StoreCrud.decodePatch(
-              ~table=RealtimeSchema.table_name("inventory"),
-              ~decodeRow=Model.InventoryItem.of_json,
-              (),
-            ),
-          ]),
-        ~updateOfPatch=
-          StoreCrud.updateOfPatch(
-            ~getId=(item: Model.InventoryItem.t) => item.id,
-            ~getItems=(state: state) => state.inventory,
-            ~setItems=(state: state, items) => {...state, inventory: items},
-          ),
-      );
+    let input =
+      StoreBuilder.make()
+      |> StoreBuilder.withSchema({
+           emptyState: Model.SSR.empty,
+           reduce: (~state: state, ~action: action) => state,
+           makeStore:
+             (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+             {
+               premise_id:
+                 StoreBuilder.projected(
+                   ~derive?,
+                   ~project,
+                   ~serverSource=state,
+                   ~fromStore=store => store.config,
+                   ~select=projections => projections.premise_id,
+                   (),
+                 ),
+               config: state,
+               period_list:
+                 StoreBuilder.projected(
+                   ~derive?,
+                   ~project,
+                   ~serverSource=state,
+                   ~fromStore=store => store.config,
+                   ~select=projections => projections.period_list,
+                   (),
+                 ),
+               unit:
+                 StoreBuilder.current(
+                   ~derive?,
+                   ~client=PeriodList.Unit.value,
+                   ~server=() => PeriodList.Unit.defaultState,
+                   (),
+                 ),
+             };
+           },
+         })
+      |> StoreBuilder.withJson(
+           ~state_of_json,
+           ~state_to_json,
+           ~action_of_json: _json => Noop,
+           ~action_to_json: _action => StoreJson.parse("{\"kind\":\"noop\"}"),
+         )
+      |> StoreBuilder.withSync(
+           ~storeName="ecommerce.inventory",
+           ~scopeKeyOfState=(state: state) =>
+             switch (state.premise) {
+             | Some(premise) => premise.id
+             | None => "default"
+             },
+           ~timestampOfState=(state: state) =>
+             switch (state.premise) {
+             | Some(premise) => premise.updated_at->Js.Date.getTime
+             | None => 0.0
+             },
+           ~setTimestamp=(~state: state, ~timestamp: float) =>
+             switch (state.premise) {
+             | Some(premise) => {
+                 ...state,
+                 premise: Some({...premise, updated_at: Js.Date.fromFloat(timestamp)}),
+               }
+             | None => state
+             },
+           ~decodePatch=
+             StorePatch.compose([
+               StoreCrud.decodePatch(
+                 ~table=RealtimeSchema.table_name("inventory"),
+                 ~decodeRow=Model.InventoryItem.of_json,
+                 (),
+               ),
+             ]),
+           ~updateOfPatch=
+             StoreCrud.updateOfPatch(
+               ~getId=(item: Model.InventoryItem.t) => item.id,
+               ~getItems=(state: state) => state.inventory,
+               ~setItems=(state: state, items) => {...state, inventory: items},
+             ),
+           ~transport={
+             subscriptionOfState: (state: state) =>
+               switch (state.premise) {
+               | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
+               | None => None
+               },
+             encodeSubscription: RealtimeSubscription.encode,
+             eventUrl: Constants.event_url,
+             baseUrl: Constants.base_url,
+           },
+           ~stateElementId=Some("initial-store"),
+           (),
+         );
   });
 
 include (
@@ -242,7 +244,7 @@ type t = store;
 module Context = StoreDef.Context;
 ```
 
-For a local-only client store such as the ecommerce cart, use `StoreBuilder.Local.Define`. It still uses IndexedDB for confirmed state and syncs newer confirmed snapshots across tabs with `BroadcastChannel`, but it does not create an action ledger or open a websocket.
+For a local-only client store such as the ecommerce cart, use `StoreBuilder.Local.Define` with the same pipeline pattern (ending in `withLocalPersistence` instead of `withSync`). It still uses IndexedDB for confirmed state and syncs newer confirmed snapshots across tabs with `BroadcastChannel`, but it does not create an action ledger or open a websocket.
 
 ## 4. Use typed patches with `StoreCrud`
 
