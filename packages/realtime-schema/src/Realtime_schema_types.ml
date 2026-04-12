@@ -39,6 +39,11 @@ type broadcast_parent = {
   query_name : string;
 }
 
+type broadcast_to_views = {
+  view_table : string;
+  channel_column : string;
+}
+
 type table = {
   name : string;
   columns : column list;
@@ -46,6 +51,7 @@ type table = {
   composite_key : string list;
   broadcast_channel : broadcast_channel option;
   broadcast_parent : broadcast_parent option;
+  broadcast_to_views : broadcast_to_views option;
   create_sql : string;
   source_file : string;
 }

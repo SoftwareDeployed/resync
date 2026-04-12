@@ -49,6 +49,13 @@ let ocaml_of_broadcast_parent = function
         "Some { parent_table = %S; query_name = %S }"
         parent.parent_table parent.query_name
 
+let ocaml_of_broadcast_to_views = function
+  | None -> "None"
+  | Some config ->
+      Printf.sprintf
+        "Some { view_table = %S; channel_column = %S }"
+        config.view_table config.channel_column
+
 let column_record_literal (column : column) =
   Printf.sprintf
     "{ name = %S; sql_type = %s; sql_type_raw = %S; nullable = %b; primary_key = %b; default = %s; foreign_key = %s; definition_sql = %S }"
@@ -63,12 +70,13 @@ let table_record_literal (table : table) =
     table.columns |> List.map column_record_literal |> String.concat "; " |> Printf.sprintf "[%s]"
   in
   Printf.sprintf
-    "{ name = %S; columns = %s; id_column = %s; composite_key = %s; broadcast_channel = %s; broadcast_parent = %s; create_sql = %S; source_file = %S }"
+    "{ name = %S; columns = %s; id_column = %s; composite_key = %s; broadcast_channel = %s; broadcast_parent = %s; broadcast_to_views = %s; create_sql = %S; source_file = %S }"
     table.name columns_literal
     (match table.id_column with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
     (string_list_literal table.composite_key)
     (ocaml_of_broadcast_channel table.broadcast_channel)
     (ocaml_of_broadcast_parent table.broadcast_parent)
+    (ocaml_of_broadcast_to_views table.broadcast_to_views)
     table.create_sql table.source_file
 
 let string_of_handler = function Sql -> "Sql" | Ocaml -> "Ocaml"
@@ -319,11 +327,46 @@ let direct_trigger_sql (schema : schema) (table : table) =
              "  " ^ (maybe_touch_premise "channel_name");
              "  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;";
              "END;";
-             "$$ LANGUAGE plpgsql;";
-             "";
-             "CREATE TRIGGER " ^ function_name;
-             "AFTER INSERT OR UPDATE OR DELETE ON " ^ table.name;
-             "FOR EACH ROW EXECUTE FUNCTION " ^ function_name ^ "();" ])
+              "$$ LANGUAGE plpgsql;";
+              "";
+              "CREATE TRIGGER " ^ function_name;
+              "AFTER INSERT OR UPDATE OR DELETE ON " ^ table.name;
+              "FOR EACH ROW EXECUTE FUNCTION " ^ function_name ^ "();" ])
+
+let views_broadcast_trigger_sql (schema : schema) (table : table) =
+  match table.broadcast_to_views with
+  | None -> None
+  | Some config ->
+      let function_name = "realtime_notify_" ^ table.name ^ "_views" in
+      let query = ready_query_for_table schema table.name in
+      match query with
+      | Some q ->
+          let query_row_sql = replace_first_param (embedded_query_sql q.sql) "NEW.id" in
+          Some
+            (Printf.sprintf
+               "DROP TRIGGER IF EXISTS %s ON %s;\nDROP FUNCTION IF EXISTS %s();\n\nCREATE OR REPLACE FUNCTION %s()\nRETURNS TRIGGER AS $$\nDECLARE\n  view_record RECORD;\n  channel_name TEXT;\n  payload JSON;\n  payload_data JSONB;\n  normalized_record RECORD;\nBEGIN\n  IF TG_OP = 'DELETE' THEN\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', 'DELETE');\n    FOR view_record IN\n      SELECT DISTINCT %s FROM %s\n    LOOP\n      channel_name := view_record.%s::text;\n      IF channel_name IS NOT NULL THEN\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n    END LOOP;\n    RETURN OLD;\n  END IF;\n  FOR normalized_record IN\n    %s\n  LOOP\n    %s\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', TG_OP, 'data', payload_data);\n    FOR view_record IN\n      SELECT DISTINCT %s FROM %s\n    LOOP\n      channel_name := view_record.%s::text;\n      IF channel_name IS NOT NULL THEN\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n    END LOOP;\n  END LOOP;\n  RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER %s\nAFTER INSERT OR UPDATE OR DELETE ON %s\nFOR EACH ROW EXECUTE FUNCTION %s();"
+               function_name table.name function_name function_name
+               (sql_string_literal table.name) (deleted_id_expression table)
+               config.channel_column config.view_table
+               config.channel_column
+               query_row_sql
+               (query_data_assignment_sql "normalized_record" q)
+               (sql_string_literal table.name) (current_id_expression table)
+               config.channel_column config.view_table
+               config.channel_column
+               function_name table.name function_name)
+      | None ->
+          Some
+            (Printf.sprintf
+               "DROP TRIGGER IF EXISTS %s ON %s;\nDROP FUNCTION IF EXISTS %s();\n\nCREATE OR REPLACE FUNCTION %s()\nRETURNS TRIGGER AS $$\nDECLARE\n  view_record RECORD;\n  channel_name TEXT;\n  payload JSON;\nBEGIN\n  IF TG_OP = 'DELETE' THEN\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', 'DELETE');\n    FOR view_record IN\n      SELECT DISTINCT %s FROM %s\n    LOOP\n      channel_name := view_record.%s::text;\n      IF channel_name IS NOT NULL THEN\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n    END LOOP;\n    RETURN OLD;\n  END IF;\n  payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', TG_OP, 'data', to_jsonb(NEW));\n  FOR view_record IN\n      SELECT DISTINCT %s FROM %s\n    LOOP\n      channel_name := view_record.%s::text;\n      IF channel_name IS NOT NULL THEN\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n    END LOOP;\n  RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER %s\nAFTER INSERT OR UPDATE OR DELETE ON %s\nFOR EACH ROW EXECUTE FUNCTION %s();"
+               function_name table.name function_name function_name
+               (sql_string_literal table.name) (deleted_id_expression table)
+               config.channel_column config.view_table
+               config.channel_column
+               (sql_string_literal table.name) (current_id_expression table)
+               config.channel_column config.view_table
+               config.channel_column
+               function_name table.name function_name)
 
 let parent_fk_column (child_table : table) parent_table =
   child_table.columns
@@ -444,9 +487,10 @@ let generated_triggers_sql (schema : schema) =
     schema.tables
     |> List.concat_map (fun table ->
             let direct = Option.to_list (direct_trigger_sql schema table) in
+            let views = Option.to_list (views_broadcast_trigger_sql schema table) in
             let parent = Option.to_list (parent_broadcast_trigger_sql schema table) in
             let reverse = reverse_parent_triggers_sql schema table in
-            direct @ parent @ reverse)
+            direct @ views @ parent @ reverse)
   in
   String.concat "\n\n" parts
 
@@ -647,7 +691,7 @@ let module_source (schema : schema) =
   in
   let _, migration_sql = migration_sql schema in
   Printf.sprintf
-    "include struct\n\ntype sql_type =\n  | Uuid\n  | Varchar\n  | Text\n  | Int\n  | Bigint\n  | Boolean\n  | Timestamp\n  | Timestamptz\n  | Json\n  | Jsonb\n  | Custom of string\n\ntype foreign_key = {\n  column : string;\n  referenced_table : string;\n  referenced_column : string;\n}\n\ntype broadcast_channel =\n  | Column of string\n  | Computed of string\n  | Conditional of string\n  | Subquery of string\n\ntype broadcast_parent = {\n  parent_table : string;\n  query_name : string;\n}\n\ntype column_metadata = {\n  name : string;\n  sql_type : sql_type;\n  sql_type_raw : string;\n  nullable : bool;\n  primary_key : bool;\n  default : string option;\n  foreign_key : foreign_key option;\n  definition_sql : string;\n}\n\ntype table_metadata = {\n  name : string;\n  columns : column_metadata list;\n  id_column : string option;\n  composite_key : string list;\n  broadcast_channel : broadcast_channel option;\n  broadcast_parent : broadcast_parent option;\n  create_sql : string;\n  source_file : string;\n}\n\ntype handler = Sql | Ocaml\n\ntype query_param = {\n  index : int;\n  column_ref : (string * string) option;\n  ocaml_type : string;\n  sql_type : string;\n}\n\ntype query_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  cache_key : string option;\n  return_table : string option;\n  json_columns : string list;\n  params : query_param list;\n  handler : handler;\n}\n\ntype mutation_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  params : query_param list;\n  handler : handler;\n}\n\n%s\n\nlet schema_hash = %S\n\nlet source_files = %s\n\nlet tables : table_metadata list = [\n  %s\n]\n\nlet queries : query_metadata list = [\n  %s\n]\n\nlet mutations : mutation_metadata list = [\n  %s\n]\n\nlet generated_triggers_sql = %S\n\nlet latest_migration_sql = %S\n\nlet find_query name = List.find_opt (fun (query : query_metadata) -> query.name = name) queries\n\nlet find_mutation name = List.find_opt (fun (mutation : mutation_metadata) -> mutation.name = name) mutations\n\nlet find_table name = List.find_opt (fun (table : table_metadata) -> table.name = name) tables\n\nlet find_column table_name column_name =\n  match find_table table_name with\n  | Some table -> List.find_opt (fun (column : column_metadata) -> column.name = column_name) table.columns\n  | None -> None\n\nlet table_name name = match find_table name with Some table -> table.name | None -> name\n\nmodule Tables = struct\n%s\nend\n\nmodule Queries = struct\n%s\nend\n\nmodule Mutations = struct\n%s\nend\nend"
+    "include struct\n\ntype sql_type =\n  | Uuid\n  | Varchar\n  | Text\n  | Int\n  | Bigint\n  | Boolean\n  | Timestamp\n  | Timestamptz\n  | Json\n  | Jsonb\n  | Custom of string\n\ntype foreign_key = {\n  column : string;\n  referenced_table : string;\n  referenced_column : string;\n}\n\ntype broadcast_channel =\n  | Column of string\n  | Computed of string\n  | Conditional of string\n  | Subquery of string\n\ntype broadcast_parent = {\n  parent_table : string;\n  query_name : string;\n}\n\ntype broadcast_to_views = {\n  view_table : string;\n  channel_column : string;\n}\n\ntype column_metadata = {\n  name : string;\n  sql_type : sql_type;\n  sql_type_raw : string;\n  nullable : bool;\n  primary_key : bool;\n  default : string option;\n  foreign_key : foreign_key option;\n  definition_sql : string;\n}\n\ntype table_metadata = {\n  name : string;\n  columns : column_metadata list;\n  id_column : string option;\n  composite_key : string list;\n  broadcast_channel : broadcast_channel option;\n  broadcast_parent : broadcast_parent option;\n  broadcast_to_views : broadcast_to_views option;\n  create_sql : string;\n  source_file : string;\n}\n\ntype handler = Sql | Ocaml\n\ntype query_param = {\n  index : int;\n  column_ref : (string * string) option;\n  ocaml_type : string;\n  sql_type : string;\n}\n\ntype query_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  cache_key : string option;\n  return_table : string option;\n  json_columns : string list;\n  params : query_param list;\n  handler : handler;\n}\n\ntype mutation_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  params : query_param list;\n  handler : handler;\n}\n\n%s\n\nlet schema_hash = %S\n\nlet source_files = %s\n\nlet tables : table_metadata list = [\n  %s\n]\n\nlet queries : query_metadata list = [\n  %s\n]\n\nlet mutations : mutation_metadata list = [\n  %s\n]\n\nlet generated_triggers_sql = %S\n\nlet latest_migration_sql = %S\n\nlet find_query name = List.find_opt (fun (query : query_metadata) -> query.name = name) queries\n\nlet find_mutation name = List.find_opt (fun (mutation : mutation_metadata) -> mutation.name = name) mutations\n\nlet find_table name = List.find_opt (fun (table : table_metadata) -> table.name = name) tables\n\nlet find_column table_name column_name =\n  match find_table table_name with\n  | Some table -> List.find_opt (fun (column : column_metadata) -> column.name = column_name) table.columns\n  | None -> None\n\nlet table_name name = match find_table name with Some table -> table.name | None -> name\n\nmodule Tables = struct\n%s\nend\n\nmodule Queries = struct\n%s\nend\n\nmodule Mutations = struct\n%s\nend\nend"
     table_types schema.schema_hash (string_list_literal schema.source_files)
     (indent table_values) (indent query_values) (indent mutation_values)
     (generated_triggers_sql schema) migration_sql

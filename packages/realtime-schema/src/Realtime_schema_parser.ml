@@ -102,6 +102,20 @@ let parse_broadcast_parent value =
   | Some parent_table, Some query_name -> Some { parent_table; query_name }
   | _ -> None
 
+let parse_broadcast_to_views value =
+  let fields = String.split_on_char ' ' value |> List.filter (( <> ) "") in
+  let lookup key =
+    fields
+    |> List.find_map (fun entry ->
+           match String.split_on_char '=' entry with
+           | [ entry_key; entry_value ] when lowercase entry_key = key ->
+               Some (strip_quotes entry_value)
+           | _ -> None)
+  in
+  match (lookup "table", lookup "channel") with
+  | Some view_table, Some channel_column -> Some { view_table; channel_column }
+  | _ -> None
+
 let find_matching_paren value open_index =
   let rec loop index depth in_single in_double =
     if index >= String.length value then
@@ -217,11 +231,11 @@ let apply_table_constraints columns constraint_fragments =
 
 let parse_table ~source_file ~annotations statement : table option =
   let header = normalize_whitespace statement in
-  let header_regex = Str.regexp_case_fold {|create table \([A-Za-z0-9_]+\)|} in
+  let header_regex = Str.regexp_case_fold {|create table\( if not exists\)? \([A-Za-z0-9_]+\)|} in
   if not (Str.string_match header_regex header 0) then
     None
   else
-    let table_name = Str.matched_group 1 header |> trim in
+    let table_name = Str.matched_group 2 header |> trim in
     let open_index = String.index statement '(' in
     let close_index = find_matching_paren statement open_index in
     let body = String.sub statement (open_index + 1) (close_index - open_index - 1) in
@@ -261,6 +275,11 @@ let parse_table ~source_file ~annotations statement : table option =
       | Some value -> parse_broadcast_parent value
       | None -> None
     in
+    let broadcast_to_views =
+      match annotation_value annotations "broadcast_to_views" with
+      | Some value -> parse_broadcast_to_views value
+      | None -> None
+    in
     Some
       {
         name = table_name;
@@ -269,6 +288,7 @@ let parse_table ~source_file ~annotations statement : table option =
         composite_key;
         broadcast_channel;
         broadcast_parent;
+        broadcast_to_views;
         create_sql = strip_trailing_semicolons statement ^ ";";
         source_file;
       }
