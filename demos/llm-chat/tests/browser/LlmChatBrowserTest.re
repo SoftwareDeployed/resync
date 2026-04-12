@@ -476,32 +476,76 @@ let runThreadDeletionScenario = (~browser, ~baseUrl) => {
        |> then_(_ => page->Playwright.waitForSelector("[data-testid^='delete-thread-']"))
        |> then_(_ =>
             page->Playwright.evaluateString(
-              "document.querySelectorAll('.thread-item').length.toString()"
+              "document.querySelector('.thread-item')?.querySelector('.thread-item-title')?.textContent || ''"
             )
           )
-       |> then_(countBefore =>
-            page->Playwright.click("[data-testid^='delete-thread-']")
-            |> then_(_ => BrowserTestUtils.sleep(500))
-            |> then_(_ =>
-                 page->Playwright.evaluateString(
-                   "document.querySelectorAll('.thread-item').length.toString()"
-                 )
+       |> then_(firstThreadTitle =>
+            page->Playwright.evaluateString(
+              "document.querySelectorAll('.thread-item').length.toString()"
+            )
+            |> then_(countBefore =>
+                 page->Playwright.click("[data-testid^='delete-thread-']")
+                 |> then_(_ => BrowserTestUtils.sleep(800))
+                 |> then_(_ =>
+                      page->Playwright.evaluateString(
+                        "document.querySelectorAll('.thread-item').length.toString()"
+                      )
+                    )
+                 |> then_(countAfter => {
+                      let before = int_of_string(countBefore);
+                      let after_ = int_of_string(countAfter);
+                      BrowserTestUtils.assertTrue(
+                        ~label="Thread count decreased after deletion",
+                        after_ < before,
+                        ~details=
+                          "Before: " ++ countBefore ++ ", After: " ++ countAfter,
+                      );
+                    })
+                 |> then_(_ => {
+                      Js.log("Refreshing page to verify server-side deletion...");
+                      page->Playwright.goto(baseUrl ++ "/")
+                      |> then_(_ => page->Playwright.waitForSelector("#thread-list"))
+                      |> then_(_ => BrowserTestUtils.sleep(800))
+                      |> then_(_ =>
+                           page->Playwright.evaluateString(
+                             "Array.from(document.querySelectorAll('.thread-item-title')).map(el => el.textContent).join(', ')"
+                           )
+                         )
+                      |> then_(titlesAfterRefresh => {
+                           let stillPresent = titlesAfterRefresh->includes(firstThreadTitle);
+                           BrowserTestUtils.assertTrue(
+                             ~label="Deleted thread title absent after refresh",
+                             !stillPresent,
+                             ~details=
+                               "Deleted thread title: " ++ firstThreadTitle ++ ", Found titles: " ++ titlesAfterRefresh,
+                           );
+                         })
+                      |> then_(_ => {
+                           /* Prove websocket is still connected by creating a new thread */
+                           Js.log("Creating new thread to prove websocket is alive...");
+                           page->Playwright.click("#new-thread-button")
+                           |> then_(_ => BrowserTestUtils.sleep(800))
+                           |> then_(_ =>
+                                page->Playwright.evaluateString(
+                                  "document.querySelectorAll('.thread-item').length.toString()"
+                                )
+                              )
+                           |> then_(countAfterCreate => {
+                                let count = int_of_string(countAfterCreate);
+                                BrowserTestUtils.assertTrue(
+                                  ~label="New thread created successfully over websocket",
+                                  count > 0,
+                                  ~details="Thread count after create: " ++ countAfterCreate,
+                                );
+                              })
+                           })
+                    })
                )
-            |> then_(countAfter => {
-                 let before = int_of_string(countBefore);
-                 let after_ = int_of_string(countAfter);
-                 BrowserTestUtils.assertTrue(
-                   ~label="Thread count decreased after deletion",
-                   after_ < before,
-                   ~details=
-                     "Before: " ++ countBefore ++ ", After: " ++ countAfter,
-                 );
-               })
           )
-    )
+     )
   |> catch(error => {
-       Js.log2("[SKIP] Thread deletion test skipped:", error);
-       resolve();
+       Js.log2("[FAIL] Thread deletion test failed:", error);
+       reject(Obj.magic(error));
      })
 };
 

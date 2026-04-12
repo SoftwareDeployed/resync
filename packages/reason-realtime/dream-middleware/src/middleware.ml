@@ -270,31 +270,29 @@ let handle_json_message_with_io t request current_channel json ~send ~close
                       | Ack (Ok ()) ->
                           let* () = send (ack_message ~action_id ~status:"ok" ()) in
                           Lwt.return current_channel
-                      | Ack (Error error) ->
-                          let* () = send (ack_message ~action_id ~status:"error" ~error ()) in
-                          let* () = close () in
-                          Lwt.return current_channel
-                      | NoAck -> Lwt.return current_channel)
-                  | None ->
-                      let* () =
-                        send
-                          (ack_message ~action_id:"" ~status:"error"
-                             ~error:"Invalid mutation frame" ())
-                      in
-                      let* () = close () in
-                      Lwt.return current_channel))
-          | None ->
-              (match t.handle_mutation with
-              | Some handler ->
-                  let* result = handler (make_broadcast_fn t) request ~action_id action in
-                  (match result with
-                  | Ack (Ok ()) ->
-                      let* () = send (ack_message ~action_id ~status:"ok" ()) in
-                      Lwt.return current_channel
-                  | Ack (Error error) ->
-                      let* () = send (ack_message ~action_id ~status:"error" ~error ()) in
-                      let* () = close () in
-                      Lwt.return current_channel
+                       | Ack (Error error) ->
+                           let* () = send (ack_message ~action_id ~status:"error" ~error ()) in
+                           Lwt.return current_channel
+                       | NoAck -> Lwt.return current_channel)
+                   | None ->
+                       let* () =
+                         send
+                           (ack_message ~action_id:"" ~status:"error"
+                              ~error:"Invalid mutation frame" ())
+                       in
+                       let* () = close () in
+                       Lwt.return current_channel))
+           | None ->
+               (match t.handle_mutation with
+               | Some handler ->
+                   let* result = handler (make_broadcast_fn t) request ~action_id action in
+                   (match result with
+                   | Ack (Ok ()) ->
+                       let* () = send (ack_message ~action_id ~status:"ok" ()) in
+                       Lwt.return current_channel
+                   | Ack (Error error) ->
+                       let* () = send (ack_message ~action_id ~status:"error" ~error ()) in
+                       Lwt.return current_channel
                   | NoAck -> Lwt.return current_channel)
               | None ->
                   let* () =

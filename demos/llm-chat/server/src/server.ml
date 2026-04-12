@@ -173,51 +173,56 @@ let require_thread request thread_id f =
   | Some _ -> f ()
 
 let validate_mutation request action_json =
-  let kind =
-    match assoc "kind" action_json with
-    | Some (`String k) -> k
-    | _ -> ""
-  in
-  let action_opt =
-    match kind with
-    | "send_prompt" ->
-        Some (LlmChatStore.SendPrompt { LlmChatStore.thread_id = ""; LlmChatStore.prompt = "" })
-    | "delete_thread" -> Some (LlmChatStore.DeleteThread "")
-    | "select_thread" -> Some (LlmChatStore.SelectThread "")
-    | "create_new_thread" ->
-        Some (LlmChatStore.CreateNewThread { LlmChatStore.id = ""; LlmChatStore.title = "" })
-    | "set_input" -> Some (LlmChatStore.SetInput "")
-    | "set_error" -> Some (LlmChatStore.SetError "")
-    | _ -> None
-  in
-  match action_opt with
-  | None -> Lwt.return (Ok ())
-  | Some action ->
-      let thread_id_opt =
-        match assoc "payload" action_json with
-        | Some payload ->
-            (match required_string "thread_id" payload with
-             | Ok id -> Some id
-             | Error _ -> None)
-        | None -> None
+  Lwt.catch
+    (fun () ->
+      let kind =
+        match assoc "kind" action_json with
+        | Some (`String k) -> k
+        | _ -> ""
       in
-      let* current_thread_id =
-        match thread_id_opt with
-        | Some thread_id ->
-            let* thread = Dream.sql request (Database.Chat.get_thread thread_id) in
-            Lwt.return (match thread with Some _ -> Some thread_id | None -> None)
-        | None -> Lwt.return_none
+      let action_opt =
+        match kind with
+        | "send_prompt" ->
+            Some (LlmChatStore.SendPrompt { LlmChatStore.thread_id = ""; LlmChatStore.prompt = "" })
+        | "delete_thread" -> Some (LlmChatStore.DeleteThread "")
+        | "select_thread" -> Some (LlmChatStore.SelectThread "")
+        | "create_new_thread" ->
+            Some (LlmChatStore.CreateNewThread { LlmChatStore.id = ""; LlmChatStore.title = "" })
+        | "set_input" -> Some (LlmChatStore.SetInput "")
+        | "set_error" -> Some (LlmChatStore.SetError "")
+        | _ -> None
       in
-      let state : Model.t = {
-        threads = [||];
-        current_thread_id;
-        messages = [||];
-        input = "";
-        updated_at = 0.0;
-      } in
-      (match StoreBuilder.GuardTree.resolve ~state ~action LlmChatStore.guardTree with
-       | StoreRuntimeTypes.Allow -> Lwt.return (Ok ())
-       | StoreRuntimeTypes.Deny reason -> Lwt.return (Error reason))
+      match action_opt with
+      | None -> Lwt.return (Ok ())
+      | Some action ->
+          let thread_id_opt =
+            match assoc "payload" action_json with
+            | Some payload ->
+                (match required_string "thread_id" payload with
+                 | Ok id -> Some id
+                 | Error _ -> None)
+            | None -> None
+          in
+          let* current_thread_id =
+            match thread_id_opt with
+            | Some thread_id ->
+                let* thread = Dream.sql request (Database.Chat.get_thread thread_id) in
+                Lwt.return (match thread with Some _ -> Some thread_id | None -> None)
+            | None -> Lwt.return_none
+          in
+          let state : Model.t = {
+            threads = [||];
+            current_thread_id;
+            messages = [||];
+            input = "";
+            updated_at = 0.0;
+          } in
+          (match StoreBuilder.GuardTree.resolve ~state ~action LlmChatStore.guardTree with
+           | StoreRuntimeTypes.Allow -> Lwt.return (Ok ())
+           | StoreRuntimeTypes.Deny reason -> Lwt.return (Error reason)))
+    (function
+     | Caqti_error.Exn error -> Lwt.return (Error (Caqti_error.show error))
+     | exn -> Lwt.return (Error (Printexc.to_string exn)))
 
 let handle_mutation broadcast_fn request ~action_id action =
   let kind =
@@ -299,22 +304,39 @@ let handle_mutation broadcast_fn request ~action_id action =
   | Ok "select_thread"
   | Ok "set_input" ->
       Lwt.return (Middleware.Ack (Ok ()))
-  | Ok "delete_thread" ->
-      (match assoc "payload" action with
-       | Some payload ->
-           (match required_string "thread_id" payload with
-            | Ok thread_id ->
-                let* result =
-                  Dream.sql request (Database.Chat.delete_thread thread_id)
-                in
-                (match result with
-                 | () -> Lwt.return (Middleware.Ack (Ok ()))
-                 | exception Caqti_error.Exn error ->
-                     Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
-                 | exception exn ->
-                     Lwt.return (Middleware.Ack (Error (Printexc.to_string exn))))
-            | Error error -> Lwt.return (Middleware.Ack (Error error)))
-       | None -> Lwt.return (Middleware.Ack (Error "Missing delete_thread payload")))
+   | Ok "delete_thread" ->
+       (match assoc "payload" action with
+        | Some payload ->
+            (match required_string "thread_id" payload with
+             | Ok thread_id ->
+                 Lwt.catch
+                   (fun () ->
+                      let* () = Dream.sql request (Database.Chat.delete_thread thread_id) in
+                      let delete_patch =
+                        `Assoc [
+                          ("type", `String "patch");
+                          ("table", `String "threads");
+                          ("action", `String "DELETE");
+                          ("id", `String thread_id);
+                        ] |> Yojson.Basic.to_string
+                      in
+                      let* () =
+                        Lwt.catch
+                          (fun () -> broadcast_fn thread_id (fun _ -> delete_patch))
+                          (fun exn ->
+                             Printf.eprintf "[delete_thread] broadcast failed: %s\n%!" (Printexc.to_string exn);
+                             Lwt.return_unit)
+                      in
+                      Lwt.return (Middleware.Ack (Ok ())))
+                   (function
+                    | Caqti_error.Exn error ->
+                        Printf.eprintf "[delete_thread] DB error: %s\n%!" (Caqti_error.show error);
+                        Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
+                    | exn ->
+                        Printf.eprintf "[delete_thread] unexpected error: %s\n%!" (Printexc.to_string exn);
+                        Lwt.return (Middleware.Ack (Error (Printexc.to_string exn))))
+             | Error error -> Lwt.return (Middleware.Ack (Error error)))
+        | None -> Lwt.return (Middleware.Ack (Error "Missing delete_thread payload")))
   | Ok _ -> Lwt.return (Middleware.Ack (Error "Unknown action kind"))
 
 let realtime_middleware =
