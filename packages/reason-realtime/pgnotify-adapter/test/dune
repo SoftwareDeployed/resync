@@ -5,8 +5,7 @@
    test_framework
    pgnotify_adapter_behavior_test)
  (libraries lwt.unix postgresql reason_realtime_pgnotify_adapter yojson)
- (modes native)
- (instrumentation (backend bisect_ppx)))
+  (modes native))
 
 (alias
  (name pgnotify-adapter-tests)

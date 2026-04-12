@@ -15,9 +15,8 @@
   melange-json-native
   universal_reason_react_store_native
   universal_reason_react_uuid_native)
- (modes native)
- (instrumentation (backend bisect_ppx))
- (preprocess
+  (modes native)
+  (preprocess
    (pps
     server-reason-react.browser_ppx
     server-reason-react.ppx

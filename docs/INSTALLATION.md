@@ -460,7 +460,7 @@ For a complete test inventory and current coverage status, see `docs/testing.md`
 
 ### Coverage
 
-Behavioral coverage is available immediately through the test inventory in `docs/testing.md` and the suite commands above. Repo-wide OCaml line coverage is **not wired yet**: `bisect_ppx` is not installed in the current switch, and the executable-style native test targets are not instrumented.
+Behavioral coverage is available immediately through the test inventory in `docs/testing.md` and the suite commands above. OCaml line coverage is available via `bisect_ppx` on the instrumented library dune files (`store/native`, `pgnotify-adapter/src`). See `docs/testing.md` for exact commands.
 
 ### Formatting
 

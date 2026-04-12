@@ -604,40 +604,28 @@ module Runtime = {
 
   module MakeSynced = StoreOffline.Synced.Make;
 
-  module type Store = {
+  module type LocalStore = {
     include Exports;
     module Context: {
       let context: React.Context.t(t);
       let useStore: unit => t;
       module Provider: {
-        let make: 'a => React.element;
-        let makeProps: (~value: t, ~children: React.element, unit) => 'a;
+        type props = Js.t({. value: t, children: React.element});
+        let makeProps: (~value: t, ~children: React.element, unit) => props;
+        let make: props => React.element;
       };
     };
   };
 
-  module MakeLocal = (Schema: Schema) => {
-    module Inner = StoreOffline.Local.Make(Schema);
-    include Inner;
-    module Context = {
-      let context = Inner.Context.context;
-      let useStore = Inner.Context.useStore;
-      module Provider = {
-        let make = Obj.magic(Inner.Context.Provider.make);
-        let makeProps = Obj.magic(Inner.Context.Provider.makeProps);
-      };
-    };
-  };
-
-  module MakeSyncedWrapped = (Schema: SyncedSchema) => {
-    module Inner = StoreOffline.Synced.Make(Schema);
-    include Inner;
-    module Context = {
-      let context = Inner.Context.context;
-      let useStore = Inner.Context.useStore;
-      module Provider = {
-        let make = Obj.magic(Inner.Context.Provider.make);
-        let makeProps = Obj.magic(Inner.Context.Provider.makeProps);
+  module type SyncedStore = {
+    include Exports;
+    module Context: {
+      let context: React.Context.t(t);
+      let useStore: unit => t;
+      module Provider: {
+        type props = Js.t({. value: t, children: React.element});
+        let makeProps: (~value: t, ~children: React.element, unit) => props;
+        let make: props => React.element;
       };
     };
   };
@@ -649,7 +637,7 @@ module Runtime = {
 
 let buildLocal =
     (type s, type a, type st, input: local_input(s, a, st))
-    : (module Runtime.Store with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit) => {
+    : (module Runtime.LocalStore with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit) => {
   let stateElementId =
     switch (input.persistence.stateElementId) {
     | Some(value) => value
@@ -657,7 +645,7 @@ let buildLocal =
     };
 
   module M =
-    Runtime.MakeLocal({
+    StoreOffline.Local.Make({
       type state = s;
       type action = a;
       type store = st;
@@ -682,9 +670,7 @@ let buildLocal =
       let cache = `IndexedDB;
     });
 
-  Obj.magic(
-    (module M: Runtime.Exports with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit),
-  );
+  (module M: Runtime.LocalStore with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit);
 };
 
 let buildSynced =
@@ -698,7 +684,7 @@ let buildSynced =
       type ss,
       input: synced_input(s, a, st, sub, p, se, ss),
     )
-    : (module Runtime.Store with type state = s and type action = a and type t = st and type stream_event = se and type streaming_state = ss) => {
+    : (module Runtime.SyncedStore with type state = s and type action = a and type t = st and type stream_event = se and type streaming_state = ss) => {
   let stateElementId =
     switch (input.persistence.stateElementId) {
     | Some(value) => value
@@ -707,7 +693,7 @@ let buildSynced =
   let hooks = input.hooks;
 
   module M =
-    Runtime.MakeSyncedWrapped({
+    StoreOffline.Synced.Make({
       type state = s;
       type action = a;
       type store = st;
@@ -755,14 +741,12 @@ let buildSynced =
       let cache = `IndexedDB;
     });
 
-  Obj.magic(
-    (module M: Runtime.Exports with type state = s and type action = a and type t = st and type stream_event = se and type streaming_state = ss),
-  );
+  (module M: Runtime.SyncedStore with type state = s and type action = a and type t = st and type stream_event = se and type streaming_state = ss);
 };
 
 let buildCrud =
     (type s, type a, type st, type sub, type r, input: synced_crud_input(s, a, st, sub, r))
-    : (module Runtime.Store with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit) => {
+    : (module Runtime.SyncedStore with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit) => {
   let stateElementId =
     switch (input.persistence.stateElementId) {
     | Some(value) => value
@@ -783,7 +767,7 @@ let buildCrud =
     );
 
   module M =
-    Runtime.MakeSyncedWrapped({
+    StoreOffline.Synced.Make({
       type state = s;
       type action = a;
       type store = st;
@@ -831,9 +815,7 @@ let buildCrud =
       let cache = `IndexedDB;
     });
 
-  Obj.magic(
-    (module M: Runtime.Exports with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit),
-  );
+  (module M: Runtime.SyncedStore with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit);
 };
 
 /* ==========================================================================

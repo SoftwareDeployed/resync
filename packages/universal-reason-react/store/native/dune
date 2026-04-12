@@ -37,8 +37,9 @@
    server-reason-react.browser_ppx
    server-reason-react.ppx
    server-reason-react.melange_ppx
-   melange-json-native.ppx))
- (modes native))
+    melange-json-native.ppx))
+  (instrumentation (backend bisect_ppx))
+  (modes native))
 
 (copy_files
  (files ../js/*.re))

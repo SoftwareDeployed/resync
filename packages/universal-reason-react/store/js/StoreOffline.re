@@ -277,11 +277,15 @@ module Local = {
       let context = React.createContext(empty);
 
       module Provider = {
+        type props = Js.t({. value: t, children: React.element});
         let makeProps = (~value, ~children, ()) => {
           "value": value,
           "children": children,
         };
+        [@platform js]
         let make = React.Context.provider(context);
+        [@platform native]
+        let make = (props: props) => React.Context.provider(context)(props);
       };
 
       let useStore = () => React.useContext(context);
@@ -1354,11 +1358,15 @@ module Synced = {
       let context = React.createContext(empty);
 
       module Provider = {
+        type props = Js.t({. value: t, children: React.element});
         let makeProps = (~value, ~children, ()) => {
           "value": value,
           "children": children,
         };
+        [@platform js]
         let make = React.Context.provider(context);
+        [@platform native]
+        let make = (props: props) => React.Context.provider(context)(props);
       };
 
       let useStore = () => React.useContext(context);
