@@ -16,12 +16,13 @@
   universal_reason_react_store_native
   universal_reason_react_uuid_native)
  (modes native)
+ (instrumentation (backend bisect_ppx))
  (preprocess
-  (pps
-   server-reason-react.browser_ppx
-   server-reason-react.ppx
-   server-reason-react.melange_ppx
-   melange-json-native.ppx)))
+   (pps
+    server-reason-react.browser_ppx
+    server-reason-react.ppx
+    server-reason-react.melange_ppx
+    melange-json-native.ppx)))
 
 (alias
  (name store-runtime-tests)

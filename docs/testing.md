@@ -228,15 +228,32 @@ Line coverage is **not** wired in this repo today.
 
 So if you want line coverage, there is one more setup step to do.
 
-## Recommended next step for line coverage
+## Line coverage with bisect_ppx
 
-If you want real OCaml line coverage, add `bisect_ppx` to the switch and instrument the native test executables.
+The native test targets are instrumented with `bisect_ppx`. To generate a coverage report:
 
-Recommended workflow:
+### 1. Run instrumented tests
 
-1. Install `bisect_ppx` in the opam switch.
-2. Add `bisect_ppx` to the `preprocess` stanza for each native test target you want to measure.
-3. Run the test executables with `BISECT_FILE` set.
-4. Generate an HTML or text report from the emitted `.out` files.
+Set `BISECT_FILE` so `bisect_ppx` writes `.coverage` files to a known path:
 
-Until that is wired, this document should be treated as the source of truth for **behavioral coverage**, while the test command output is the source of truth for **execution coverage**.
+```bash
+# Store runtime tests
+BISECT_FILE=./bisect_store_ \
+opam exec -- dune exec --instrument-with bisect_ppx ./packages/universal-reason-react/store/test/store_runtime_test.exe
+
+# Dream middleware tests
+BISECT_FILE=./bisect_middleware_ \
+opam exec -- dune exec --instrument-with bisect_ppx ./packages/reason-realtime/dream-middleware/test/dream_middleware_test.exe
+
+# PostgreSQL adapter tests (requires DB_URL)
+BISECT_FILE=./bisect_pgnotify_ DB_URL="postgres://executor:executor-password@localhost:5432/executor_db" \
+opam exec -- dune exec --instrument-with bisect_ppx ./packages/reason-realtime/pgnotify-adapter/test/pgnotify_adapter_test.exe
+```
+
+### 2. Generate the report
+
+```bash
+opam exec -- bisect-ppx-report html --coverage-path .
+```
+
+This writes an HTML report to `_coverage/index.html` and emits `bisect_*.coverage` files in the repository root during test runs. The `--instrument-with bisect_ppx` flag only affects the build when explicitly requested, leaving normal dev builds untouched.

@@ -1,11 +1,12 @@
 (executable
  (name pgnotify_adapter_test)
  (modules
-  pgnotify_adapter_test
-  test_framework
-  pgnotify_adapter_behavior_test)
+   pgnotify_adapter_test
+   test_framework
+   pgnotify_adapter_behavior_test)
  (libraries lwt.unix postgresql reason_realtime_pgnotify_adapter yojson)
- (modes native))
+ (modes native)
+ (instrumentation (backend bisect_ppx)))
 
 (alias
  (name pgnotify-adapter-tests)

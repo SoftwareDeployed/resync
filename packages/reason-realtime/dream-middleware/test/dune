@@ -10,7 +10,8 @@
   lwt.unix
   reason_realtime_dream_middleware
   yojson)
- (modes native))
+ (modes native)
+ (instrumentation (backend bisect_ppx)))
 
 (alias
  (name dream-middleware-tests)
