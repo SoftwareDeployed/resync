@@ -16,6 +16,54 @@ The current store model is runtime-first:
 - local-only stores persist confirmed snapshots to IndexedDB and sync across tabs with `BroadcastChannel`
 - synced stores persist confirmed snapshots and an action ledger in IndexedDB, then reconcile with websocket acks, patches, and snapshots
 
+## Schema and Reducer Layer
+
+Every store starts with `StoreBuilder.withSchema({emptyState, reduce, makeStore})`.
+
+- `emptyState` is the SSR/server fallback and the initial client fallback.
+- `reduce` is the pure state transition function. Keep it deterministic so retries and optimistic replay stay correct.
+- `makeStore` defines the public store shape you expose to components.
+
+`makeStore` is where you assemble the state surface using the projection helpers below:
+
+- `StoreBuilder.current` for passthrough values
+- `StoreBuilder.derived` for computed values
+- `StoreBuilder.projected` when you need to project one shape into another before selecting from it
+
+The `~derive` argument lets Tilia attach reactivity on the client; on the server the `~server` branch is used to keep SSR deterministic.
+
+## Projection Primitives
+
+These are the building blocks used inside `makeStore`.
+
+- `current(~client, ~server)` for raw values that should pass through unchanged.
+- `derived(~client, ~server)` for computed values.
+- `projected(~project, ~serverSource, ~fromStore, ~select)` for nested projections.
+
+Use `current` for plain state fields, `derived` for counters and flags, and `projected` when the store shape is layered.
+
+## Selector Helpers
+
+`StoreBuilder.Selectors` and `StoreBuilder.Crud` are boilerplate reducers, not separate query engines. They just wrap the primitives above for common cases.
+
+- `Selectors.passthrough` → plain field passthrough
+- `Selectors.clientOnly` → client state with a server fallback
+- `Selectors.arrayLength` / `Selectors.filteredCount` → counts from arrays
+- `Selectors.field` / `Selectors.computed` → nested projection helpers
+- `Crud.totalCount` / `Crud.filteredCount` → common CRUD-store counters
+
+See `docs/API_REFERENCE.md` for the complete signatures.
+
+## Bootstrap Helpers
+
+`StoreBuilder.Bootstrap` removes repeated provider/hydration ceremony from app entrypoints.
+
+- `withHydratedProvider` for one store
+- `withHydratedProviders` for nested stores
+- `withCreatedProvider` for server-side store creation
+
+If you need the raw context provider, you can still use it directly, but `Bootstrap` is the default ergonomic path.
+
 ## Builder Choice
 
 ### `StoreBuilder.buildLocal`
@@ -37,6 +85,8 @@ Behavior:
 - persists confirmed state back to IndexedDB when SSR wins or state changes
 - broadcasts newer confirmed state across tabs for the same `storeName`
 - does not create an action ledger
+
+The local runtime is the right choice when reducer output is the source of truth and no websocket reconciliation is needed.
 
 Example:
 
@@ -92,7 +142,8 @@ Use this for realtime state such as `todo-multiplayer`, ecommerce inventory, or 
 
 Additional pipeline steps (after `withJson`):
 
-- `StoreBuilder.withSync(...)` — wire transport, patches, hooks, and optional streams
+1. `StoreBuilder.withGuardTree(~guardTree)` — optional validation before sync wiring
+2. `StoreBuilder.withSync(...)` — wire transport, patches, hooks, and optional streams
 
 Behavior:
 
@@ -103,6 +154,8 @@ Behavior:
 - sends JSON mutation envelopes over the websocket
 - retries with the same `actionId` until ack or retry exhaustion
 - rebuilds optimistic state from confirmed state plus remaining pending actions
+
+The synced runtime is the right choice when actions are optimistic and the server can later confirm or patch them.
 
 Example:
 
@@ -191,9 +244,19 @@ module StoreDef =
   ));
 ```
 
+Pipeline steps:
+
+1. `StoreBuilder.make()`
+2. `StoreBuilder.withSchema({emptyState, reduce, makeStore})`
+3. `StoreBuilder.withGuardTree(~guardTree)` *(optional)*
+4. `StoreBuilder.withJson(...)`
+5. `StoreBuilder.withSyncCrud(...)`
+
+Use this when patch payloads correspond to ordinary table row upserts/deletes and you want the package to derive the patch decoder for you.
+
 ## Guard Trees (Validation)
 
-StoreBuilder supports declarative guard trees that can be shared between client and server. A guard tree branches on state predicates and decides whether an action is allowed or denied.
+StoreBuilder supports declarative guard trees that can be shared between client and server. A guard tree branches on state predicates and decides whether an action is allowed or denied before `reduce` runs.
 
 ```reason
 let guardTree =
@@ -307,21 +370,18 @@ let updateOfPatch =
 
 ## React Usage
 
-The generated runtime module exposes `Context` in addition to the builder exports.
+Prefer `StoreBuilder.Bootstrap` in entrypoints:
 
 ```reason
-let store = StoreDef.hydrateStore();
-
-<StoreDef.Context.Provider value=store>
-  <App />
-</StoreDef.Context.Provider>
+let {store, element} =
+  StoreBuilder.Bootstrap.withHydratedProvider(
+    ~hydrateStore=StoreDef.hydrateStore,
+    ~provider=StoreDef.Context.Provider,
+    ~children=<App />,
+  );
 ```
 
-In components:
-
-```reason
-let store = StoreDef.Context.useStore();
-```
+Use `StoreDef.Context.useStore()` inside components.
 
 ## Troubleshooting
 
