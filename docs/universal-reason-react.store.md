@@ -16,6 +16,146 @@ The current store model is runtime-first:
 - local-only stores persist confirmed snapshots to IndexedDB and sync across tabs with `BroadcastChannel`
 - synced stores persist confirmed snapshots and an action ledger in IndexedDB, then reconcile with websocket acks, patches, and snapshots
 
+## End-to-End Authoring Example
+
+The smallest complete store in the repo is the todo demo. It shows the full path from types to reducer to store shape to component dispatch.
+
+### 1) Define the store
+
+`demos/todo/ui/src/TodoStore.re` keeps the whole authoring story in one place:
+
+```reason
+[@deriving json]
+type todo = {id: string, text: string, completed: bool};
+
+[@deriving json]
+type state = {todos: array(todo), updated_at: float};
+
+type action =
+  | AddTodo(todo)
+  | SetTodoCompleted({id: string, completed: bool})
+  | RemoveTodo(string);
+
+type store = {state: state, completed_count: int, total_count: int};
+
+let emptyState: state = {todos: [||], updated_at: 0.0};
+
+let completedCount = todos => todos->Js.Array.filter(~f=(item: todo) => item.completed)->Array.length;
+
+let action_to_json = action => switch (action) {
+| AddTodo(todo) => StoreJson.parse("{\"kind\":\"add_todo\",\"todo\":" ++ StoreJson.stringify(todo_to_json, todo) ++ "}")
+| SetTodoCompleted(input) =>
+  StoreJson.parse(
+    "{\"kind\":\"set_todo_completed\",\"id\":"
+    ++ string_to_json(input.id)->Melange_json.to_string
+    ++ ",\"completed\":"
+    ++ bool_to_json(input.completed)->Melange_json.to_string
+    ++ "}",
+  )
+| RemoveTodo(id) =>
+  StoreJson.parse(
+    "{\"kind\":\"remove_todo\",\"id\":"
+    ++ string_to_json(id)->Melange_json.to_string
+    ++ "}",
+  )
+};
+
+let action_of_json = json => {
+  let kind = StoreJson.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
+  switch (kind) {
+  | "add_todo" => AddTodo(StoreJson.requiredField(~json, ~fieldName="todo", ~decode=todo_of_json))
+  | "set_todo_completed" =>
+    SetTodoCompleted({
+      id: StoreJson.requiredField(~json, ~fieldName="id", ~decode=string_of_json),
+      completed:
+        StoreJson.requiredField(~json, ~fieldName="completed", ~decode=bool_of_json),
+    })
+  | _ => RemoveTodo(StoreJson.requiredField(~json, ~fieldName="id", ~decode=string_of_json))
+  };
+};
+
+let reduce = (~state: state, ~action: action) => {
+  let updated_at = Js.Date.now();
+  switch (action) {
+  | AddTodo(todo) => {
+      todos: StoreCrud.upsert(~getId=(item: todo) => item.id, state.todos, todo),
+      updated_at,
+    }
+  | SetTodoCompleted(input) => {
+      todos:
+        Js.Array.map(
+          ~f=(item: todo) => item.id == input.id ? {...item, completed: input.completed} : item,
+          state.todos,
+        ),
+      updated_at,
+    }
+  | RemoveTodo(id) => {
+      todos: StoreCrud.remove(~getId=(item: todo) => item.id, state.todos, id),
+      updated_at,
+    }
+  };
+};
+
+module StoreDef =
+  (val StoreBuilder.buildLocal(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState,
+         reduce,
+         makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+           state: StoreBuilder.current(~derive?, ~client=state, ~server=() => state, ()),
+            completed_count:
+             StoreBuilder.derived(
+               ~derive?,
+               ~client=store => completedCount(store.state.todos),
+               ~server=() => completedCount(state.todos),
+               (),
+             ),
+            total_count:
+             StoreBuilder.derived(~derive?, ~client=store => Array.length(store.state.todos), ~server=() => Array.length(state.todos), ()),
+         },
+       })
+    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withLocalPersistence(
+         ~storeName="todo.simple",
+         ~scopeKeyOfState=_state => "default",
+         ~timestampOfState=state => state.updated_at,
+         ~stateElementId=None,
+         (),
+       )
+  ));
+
+include (
+  StoreDef:
+    StoreBuilder.Runtime.Exports
+      with type state := state
+      and type action := action
+      and type t := store
+);
+
+type t = store;
+module Context = StoreDef.Context;
+```
+
+### 2) Consume it from a component
+
+`demos/todo/ui/src/HomePage.re` reads the store and dispatches actions directly:
+
+```reason
+let store = TodoStore.Context.useStore();
+
+let handleSubmit = event => {
+  preventDefault(event);
+  let text = String.trim(newTodoText);
+  if (text != "") {
+    TodoStore.addTodo(store, text);
+    setNewTodoText(_ => "");
+  };
+};
+```
+
+If you want to see how this store plugs into Dream SSR and hydration, jump to `docs/dream-router-store-setup.md`.
+
 ## Schema and Reducer Layer
 
 Every store starts with `StoreBuilder.withSchema({emptyState, reduce, makeStore})`.

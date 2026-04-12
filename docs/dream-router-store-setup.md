@@ -239,6 +239,92 @@ module Context = StoreDef.Context;
 
 For a local-only client store such as the ecommerce cart, use `StoreBuilder.buildLocal` with the same pipeline pattern (ending in `withLocalPersistence` instead of `withSync`). It still uses IndexedDB for confirmed state and syncs newer confirmed snapshots across tabs with `BroadcastChannel`, but it does not create an action ledger or open a websocket.
 
+### 3a. Minimal end-to-end todo flow
+
+The todo demo is the shortest path from store authoring through server rendering and client hydration.
+
+**Server entry (`demos/todo/server/src/EntryServer.re`)**
+
+```reason
+let getServerState = (_context: UniversalRouterDream.serverContext(TodoStore.t)) => {
+  let state: TodoStore.state = {
+    todos: [|
+      {id: "1", text: "Learn ReasonML", completed: false},
+      {id: "2", text: "Build an app", completed: false},
+      {id: "3", text: "Deploy to production", completed: false},
+    |],
+    updated_at: 0.0,
+  };
+
+  let store = TodoStore.createStore(state);
+  Lwt.return(UniversalRouterDream.State(store));
+};
+
+let render = (~context, ~serverState: TodoStore.t, ()) => {
+  let {UniversalRouterDream.basePath, UniversalRouterDream.pathname: serverPathname, UniversalRouterDream.search: serverSearch} = context;
+  let serializedState = TodoStore.serializeState(serverState.state);
+
+  let app =
+    <UniversalRouter
+      router=Routes.router
+      state=serverState
+      basePath
+      serverPathname
+      serverSearch
+    />;
+
+  let document =
+    UniversalRouter.renderDocument(
+      ~router=Routes.router,
+      ~children=app,
+      ~basePath,
+      ~pathname=serverPathname,
+      ~search=serverSearch,
+      ~serializedState,
+      ~state=serverState,
+      (),
+    );
+
+  <TodoStore.Context.Provider value=serverState>
+    document
+  </TodoStore.Context.Provider>;
+};
+```
+
+**Client entry (`demos/todo/ui/src/Index.re`)**
+
+```reason
+let store = TodoStore.hydrateStore();
+
+let app =
+  React.createElement(
+    TodoStore.Context.Provider.make,
+    {
+      "value": store,
+      "children": <UniversalRouter router=Routes.router state=store />,
+    },
+  );
+
+ReactDOM.Client.hydrateRoot(root, app) |. ignore;
+```
+
+**Page component (`demos/todo/ui/src/HomePage.re`)**
+
+```reason
+let store = TodoStore.Context.useStore();
+
+let handleSubmit = event => {
+  preventDefault(event);
+  let text = String.trim(newTodoText);
+  if (text != "") {
+    TodoStore.addTodo(store, text);
+    setNewTodoText(_ => "");
+  };
+};
+```
+
+For the full store authoring code that feeds this flow, see `docs/universal-reason-react.store.md` and `demos/todo/ui/src/TodoStore.re`.
+
 ## 4. Use typed patches with `StoreCrud`
 
 Use `StoreCrud.patch('row)` as your patch type and `StoreCrud.decodePatch`/`StoreCrud.updateOfPatch` for standard CRUD tables:
