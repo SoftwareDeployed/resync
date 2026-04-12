@@ -132,3 +132,7 @@ dist
 # TernJS port file
 .tern-port
 .aider*
+
+# OCaml bisect_ppx coverage
+_coverage/
+*.coverage
