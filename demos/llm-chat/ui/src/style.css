@@ -280,3 +280,13 @@ body {
 .chat-input-area button:hover {
   background: #0056b3;
 }
+
+.empty-state {
+  align-self: center;
+  justify-self: center;
+  text-align: center;
+  color: #888;
+  font-size: 0.9375rem;
+  padding: 2rem;
+  margin: auto;
+}

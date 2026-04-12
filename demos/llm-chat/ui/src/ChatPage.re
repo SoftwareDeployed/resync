@@ -49,7 +49,11 @@ let onThreadClick = (_router: UniversalRouter.routerApi, threadId, _event) => {
 };
 
 let onNewChatClick = (router: UniversalRouter.routerApi, _event) => {
-  router.push("/");
+  let uuid = UUID.make();
+  LlmChatStore.dispatch(
+    CreateNewThread({id: uuid, title: "New Chat"}),
+  );
+  router.push("/" ++ uuid);
 };
 
 let onDeleteThread = (router: UniversalRouter.routerApi, threadId, event) => {
@@ -188,6 +192,13 @@ module DOMHelpers = {
     Js.Dict.set(dict, "onClick", jsFn(onClick));
     ReactDOM.createElement("button", ~props=unsafeDomProps(dict), children);
   };
+
+  let emptyState = (~dataTestId, text) => {
+    let dict = Js.Dict.empty();
+    Js.Dict.set(dict, "className", jsString("empty-state"));
+    Js.Dict.set(dict, "data-testid", jsString(dataTestId));
+    ReactDOM.createElement("div", ~props=unsafeDomProps(dict), [|React.string(text)|]);
+  };
 };
 
 [@platform native]
@@ -230,6 +241,13 @@ module DOMHelpers = {
         React.JSX.string("className", "className", "thread-delete-button"),
       ];
     ReactDOM.createDOMElementVariadic("button", ~props, children);
+  };
+
+  let emptyState = (~dataTestId, text) => {
+    let props =
+      ReactDOM.domProps(~className="empty-state", ())
+      @ [React.JSX.string("data-testid", "data-testid", dataTestId)];
+    ReactDOM.createDOMElementVariadic("div", ~props, [|React.string(text)|]);
   };
 };
 
@@ -353,84 +371,108 @@ module View = {
         </div>
          <div className="chat-main">
            {DOMHelpers.messageList(
-               Js.Array.concat(
-                 ~other=[|
-                   if (
-                     String.length(streamingText) > 0
-                     && !hasConfirmedAssistantMessage(~messages, ~content=streamingText)
-                   ) {
-                     DOMHelpers.messageDiv(
-                       ~key="streaming-message",
-                      ~className="message message--assistant",
-                      ~role="assistant",
-                      ~dataTestId="streaming-message",
-                      ~children=[|
-                        Streamdown.make(
-                          ~isAnimating=true,
-                          ~children=streamingText,
-                          (),
-                        ),
-                      |],
-                    );
-                  } else {
-                    React.null
-                  },
-                |],
-                messages->Js.Array.map(~f=(message: Model.Message.t) => {
-                  let roleClass =
-                    message.role == "user"
-                      ? "message--user" : "message--assistant";
-                  let isLastMessage = {
-                    let len = Array.length(messages);
-                    len > 0 && messages[len - 1].id == message.id;
-                  };
-                  let children =
-                    if (message.role == "assistant") {
-                      [|
-                        Streamdown.make(
-                          ~isAnimating=isStreaming && isLastMessage,
-                          ~children=message.content,
-                          (),
-                        ),
-                      |];
+               if (
+                 Array.length(threads) == 0
+                 && String.length(currentThreadId) == 0
+               ) {
+                 [|
+                   DOMHelpers.emptyState(
+                     ~dataTestId="no-threads-state",
+                     "No conversations yet. Click 'New Chat' to start one.",
+                   ),
+                 |];
+               } else if (
+                 Array.length(messages) == 0
+                 && String.length(streamingText) == 0
+               ) {
+                 [|
+                   DOMHelpers.emptyState(
+                     ~dataTestId="empty-thread-state",
+                     "Send a message to start the conversation.",
+                   ),
+                 |];
+               } else {
+                 Js.Array.concat(
+                   ~other=[|
+                     if (
+                       String.length(streamingText) > 0
+                       && !hasConfirmedAssistantMessage(~messages, ~content=streamingText)
+                     ) {
+                       DOMHelpers.messageDiv(
+                         ~key="streaming-message",
+                        ~className="message message--assistant",
+                        ~role="assistant",
+                        ~dataTestId="streaming-message",
+                        ~children=[|
+                          Streamdown.make(
+                            ~isAnimating=true,
+                            ~children=streamingText,
+                            (),
+                          ),
+                        |],
+                      );
                     } else {
-                      [|React.string(message.content)|];
+                      React.null
+                    },
+                  |],
+                  messages->Js.Array.map(~f=(message: Model.Message.t) => {
+                    let roleClass =
+                      message.role == "user"
+                        ? "message--user" : "message--assistant";
+                    let isLastMessage = {
+                      let len = Array.length(messages);
+                      len > 0 && messages[len - 1].id == message.id;
                     };
-                  DOMHelpers.messageDiv(
-                    ~key=message.id,
-                    ~className="message " ++ roleClass,
-                    ~role=message.role,
-                    ~dataTestId="message-" ++ message.id,
-                    ~children,
-                  );
-                }),
-              ),
+                    let children =
+                      if (message.role == "assistant") {
+                        [|
+                          Streamdown.make(
+                            ~isAnimating=isStreaming && isLastMessage,
+                            ~children=message.content,
+                            (),
+                          ),
+                        |];
+                      } else {
+                        [|React.string(message.content)|];
+                      };
+                    DOMHelpers.messageDiv(
+                      ~key=message.id,
+                      ~className="message " ++ roleClass,
+                      ~role=message.role,
+                      ~dataTestId="message-" ++ message.id,
+                      ~children,
+                    );
+                  }),
+                );
+              },
             )}
-          <div className="chat-input-area">
-             {DOMHelpers.promptInput(
-                ~value=draft,
-                ~placeholder="Type a message...",
-                ~id="prompt-input",
-                ~dataTestId="prompt-input",
-                ~onChange=event => handleInputChange(setDraft, event),
-                ~onKeyDown=
-                  event =>
-                    handleKeyDown(
-                      store,
-                      draft,
-                      setDraft,
-                      setIsStreaming,
-                      event,
-                    ),
-              )}
-             {DOMHelpers.sendButton(
-                ~id="send-button",
-                ~dataTestId="send-button",
-                ~disabled=isStreaming,
-                ~onClick=_ => handleSend(store, draft, setDraft, setIsStreaming),
-                ~children=[|React.string("Send")|],
-              )}
-          </div>
+           {String.length(currentThreadId) > 0
+              ? <div className="chat-input-area">
+                   {DOMHelpers.promptInput(
+                      ~value=draft,
+                      ~placeholder="Type a message...",
+                      ~id="prompt-input",
+                      ~dataTestId="prompt-input",
+                      ~onChange=event => handleInputChange(setDraft, event),
+                      ~onKeyDown=
+                        event =>
+                          handleKeyDown(
+                            store,
+                            draft,
+                            setDraft,
+                            setIsStreaming,
+                            event,
+                          ),
+                    )}
+                   {DOMHelpers.sendButton(
+                      ~id="send-button",
+                      ~dataTestId="send-button",
+                      ~disabled=isStreaming,
+                      ~onClick=_ => handleSend(store, draft, setDraft, setIsStreaming),
+                      ~children=[|React.string("Send")|],
+                    )}
+                </div>
+              : React.null}
         </div>
       </div>;
     });
