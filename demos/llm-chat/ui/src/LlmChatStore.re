@@ -399,6 +399,27 @@ let reconcilePatch = (patch, streaming) =>
   | _ => streaming
   };
 
+let guardTree =
+  StoreBuilder.GuardTree.whenTrue(
+    ~condition=(state: state) =>
+      switch (state.current_thread_id) {
+      | Some(_) => true
+      | None => false
+      },
+    ~then_=StoreBuilder.GuardTree.acceptAll,
+    ~else_=
+      StoreBuilder.GuardTree.denyIf(
+        ~predicate=(action: action) =>
+          switch (action) {
+          | SendPrompt(_) | DeleteThread(_) | SelectThread(_) => true
+          | _ => false
+          },
+        ~reason="No active thread",
+        (),
+      ),
+    (),
+  );
+
 module StoreDef =
   StoreBuilder.Synced.Define({
     type nonrec state = state;
@@ -409,53 +430,50 @@ module StoreDef =
     type nonrec stream_event = stream_event;
     type nonrec streaming_state = streaming_state;
 
-    let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
-      storeName: "llm-chat",
-      emptyState,
-      reduce,
-      state_of_json,
-      state_to_json,
-      action_of_json,
-      action_to_json,
-      makeStore,
-      scopeKeyOfState: state => scopeKeyOfState(state),
-      timestampOfState: state => timestampOfState(state),
-      setTimestamp,
-      transport: {
-        subscriptionOfState: (state: state): option(subscription) =>
-          switch (state.current_thread_id) {
-          | Some(id) => Some(RealtimeSubscription.thread(id))
-          | None => None
-          },
-        encodeSubscription: RealtimeSubscription.encode,
-        eventUrl: Constants.event_url,
-        baseUrl: Constants.base_url,
-      },
-      stateElementId: Some("initial-store"),
-      hooks:
-        Some({
-          StoreBuilder.Sync.onActionError: Some(onActionError),
-          onActionAck: None,
-          onCustom: None,
-          onMedia: None,
-          onError: None,
-          onOpen: None,
-          onConnectionHandle: None,
-        }),
-    };
-
-    let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state)) = Some({
-      decodeStreamEvent,
-      emptyStreamingState,
-      reduceStream,
-      reconcilePatch,
-    });
-
-    let strategy: StoreBuilder.Sync.customStrategy(state, patch) =
-      StoreBuilder.Sync.custom(
-        ~decodePatch,
-        ~updateOfPatch,
-      );
+    let input =
+      StoreBuilder.make()
+      |> StoreBuilder.withSchema({
+           emptyState,
+           reduce,
+           makeStore,
+         })
+      |> StoreBuilder.withGuardTree(~guardTree)
+      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+       |> StoreBuilder.withSync(
+            ~storeName = "llm-chat",
+            ~scopeKeyOfState = state => scopeKeyOfState(state),
+            ~timestampOfState = state => timestampOfState(state),
+            ~setTimestamp,
+            ~decodePatch,
+            ~updateOfPatch,
+            ~transport = {
+              subscriptionOfState: (state: state): option(subscription) =>
+                switch (state.current_thread_id) {
+                | Some(id) => Some(RealtimeSubscription.thread(id))
+                | None => None
+                },
+              encodeSubscription: RealtimeSubscription.encode,
+              eventUrl: Constants.event_url,
+              baseUrl: Constants.base_url,
+            },
+            ~streams=Some({
+              decodeStreamEvent,
+              emptyStreamingState,
+              reduceStream,
+              reconcilePatch,
+            }),
+           ~hooks={
+             StoreBuilder.Sync.onActionError: Some(onActionError),
+             onActionAck: None,
+             onCustom: None,
+             onMedia: None,
+             onError: None,
+             onOpen: None,
+             onConnectionHandle: None,
+           },
+           ~stateElementId=Some("initial-store"),
+           (),
+         );
   });
 
 include (

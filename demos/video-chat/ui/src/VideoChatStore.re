@@ -668,159 +668,154 @@ module StoreDef =
     type nonrec stream_event = stream_event;
     type nonrec streaming_state = unit;
 
-    let base: StoreBuilder.Synced.baseConfig(state, action, store, subscription) = {
-      storeName,
-      emptyState,
-      reduce,
-      state_of_json,
-      state_to_json,
-      action_of_json,
-      action_to_json,
-      makeStore:
-        (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-        let room_id =
-          switch (state.room) {
-          | Some(room) => room.id
-          | None => ""
-          };
-        {
-          room_id,
-          state,
-          peers_count:
-            StoreBuilder.derived(
-              ~derive?,
-              ~client=
-                (store: store) =>
-                  switch (store.state.room) {
-                  | Some(room) => Array.length(room.peers)
-                  | None => 0
-                  },
-              ~server=
-                () =>
-                  switch (state.room) {
-                  | Some(room) => Array.length(room.peers)
-                  | None => 0
-                  },
-              (),
-            ),
-        };
-      },
-      scopeKeyOfState,
-      timestampOfState,
-      setTimestamp,
-      transport: {
-        subscriptionOfState: (state: state): option(subscription) =>
-          Some(state.client_id),
-        encodeSubscription: (sub: subscription) => sub,
-        eventUrl: Constants.event_url,
-        baseUrl: Constants.base_url,
-      },
-      stateElementId: Some("initial-store"),
-      hooks:
-        Some({
-          StoreBuilder.Sync.onActionError: Some(onActionError),
-          onActionAck: None,
-          onCustom: None,
-          onMedia: None,
-          onError:
-            Some((~dispatch) => (message) => {
-              Js.Console.error("[VideoChatStore] Server error: " ++ message);
-              dispatch(ResetJoinStatus);
-            }),
-          onOpen: Some((~dispatch) => dispatch(ResetJoinStatus)),
-          onConnectionHandle:
-            Some((handle) => MediaTransport.setHandle(Some(handle))),
-        }),
-    };
-
-    let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state)) =
-      Some({
-        decodeStreamEvent,
-        emptyStreamingState,
-        reduceStream,
-        reconcilePatch,
-      });
-
-    let strategy: StoreBuilder.Sync.customStrategy(state, patch) =
-      StoreBuilder.Sync.custom(
-        ~decodePatch=json => {
-          let type_field =
-            StoreJson.optionalField(
-              ~json,
-              ~fieldName="type",
-              ~decode=string_of_json,
-            );
-          let table_field =
-            StoreJson.optionalField(
-              ~json,
-              ~fieldName="table",
-              ~decode=string_of_json,
-            );
-          let action_field =
-            StoreJson.optionalField(
-              ~json,
-              ~fieldName="action",
-              ~decode=string_of_json,
-            );
-          switch (type_field, table_field, action_field) {
-          | (Some("patch"), Some("chat_messages"), Some("INSERT")) =>
-            let data =
-              StoreJson.requiredField(
-                ~json,
-                ~fieldName="data",
-                ~decode=value => value,
-              );
-            let message =
-              try(
-                Some(
-                  Model.ChatMessage.{
-                    id:
-                      StoreJson.requiredField(
-                        ~json=data,
-                        ~fieldName="id",
-                        ~decode=string_of_json,
-                      ),
-                    sender_id:
-                      StoreJson.requiredField(
-                        ~json=data,
-                        ~fieldName="sender_id",
-                        ~decode=string_of_json,
-                      ),
-                    text:
-                      StoreJson.requiredField(
-                        ~json=data,
-                        ~fieldName="text",
-                        ~decode=string_of_json,
-                      ),
-                    sent_at:
-                      StoreJson.requiredField(
-                        ~json=data,
-                        ~fieldName="sent_at",
-                        ~decode=float_of_json,
-                      ),
-                  },
-                )
-              ) {
-              | _ => None
+    let input =
+      StoreBuilder.make()
+      |> StoreBuilder.withSchema({
+           emptyState,
+           reduce,
+           makeStore:
+             (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+             let room_id =
+               switch (state.room) {
+               | Some(room) => room.id
+               | None => ""
+               };
+             {
+               room_id,
+               state,
+               peers_count:
+                 StoreBuilder.derived(
+                   ~derive?,
+                   ~client=
+                     (store: store) =>
+                       switch (store.state.room) {
+                       | Some(room) => Array.length(room.peers)
+                       | None => 0
+                       },
+                   ~server=
+                     () =>
+                       switch (state.room) {
+                       | Some(room) => Array.length(room.peers)
+                       | None => 0
+                       },
+                   (),
+                 ),
+             };
+           },
+         })
+      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+       |> StoreBuilder.withSync(
+            ~storeName,
+            ~scopeKeyOfState,
+            ~timestampOfState,
+            ~setTimestamp,
+            ~decodePatch=json => {
+              let type_field =
+                StoreJson.optionalField(
+                  ~json,
+                  ~fieldName="type",
+                  ~decode=string_of_json,
+                );
+              let table_field =
+                StoreJson.optionalField(
+                  ~json,
+                  ~fieldName="table",
+                  ~decode=string_of_json,
+                );
+              let action_field =
+                StoreJson.optionalField(
+                  ~json,
+                  ~fieldName="action",
+                  ~decode=string_of_json,
+                );
+              switch (type_field, table_field, action_field) {
+              | (Some("patch"), Some("chat_messages"), Some("INSERT")) =>
+                let data =
+                  StoreJson.requiredField(
+                    ~json,
+                    ~fieldName="data",
+                    ~decode=value => value,
+                  );
+                let message =
+                  try(
+                    Some(
+                      Model.ChatMessage.{
+                        id:
+                          StoreJson.requiredField(
+                            ~json=data,
+                            ~fieldName="id",
+                            ~decode=string_of_json,
+                          ),
+                        sender_id:
+                          StoreJson.requiredField(
+                            ~json=data,
+                            ~fieldName="sender_id",
+                            ~decode=string_of_json,
+                          ),
+                        text:
+                          StoreJson.requiredField(
+                            ~json=data,
+                            ~fieldName="text",
+                            ~decode=string_of_json,
+                          ),
+                        sent_at:
+                          StoreJson.requiredField(
+                            ~json=data,
+                            ~fieldName="sent_at",
+                            ~decode=float_of_json,
+                          ),
+                      },
+                    )
+                  ) {
+                  | _ => None
+                  };
+                switch (message) {
+                | Some(msg) => Some(ReceiveMessage(msg))
+                | None => None
+                };
+              | _ =>
+                switch (action_of_json(json)) {
+                | JoinRoom(_)
+                | LeaveRoom(_)
+                | ToggleVideo(_)
+                | ToggleAudio(_)
+                | ResetJoinStatus
+                | JoinRoomAcknowledged => None
+                | patch => Some(patch)
+                }
               };
-            switch (message) {
-            | Some(msg) => Some(ReceiveMessage(msg))
-            | None => None
-            };
-          | _ =>
-            switch (action_of_json(json)) {
-            | JoinRoom(_)
-            | LeaveRoom(_)
-            | ToggleVideo(_)
-            | ToggleAudio(_)
-            | ResetJoinStatus
-            | JoinRoomAcknowledged => None
-            | patch => Some(patch)
-            }
-          };
-        },
-        ~updateOfPatch=(patch, state) => reduce(~state, ~action=patch),
-      );
+            },
+            ~updateOfPatch=(patch, state) => reduce(~state, ~action=patch),
+            ~transport = {
+              subscriptionOfState: (state: state): option(subscription) =>
+                Some(state.client_id),
+              encodeSubscription: (sub: subscription) => sub,
+              eventUrl: Constants.event_url,
+              baseUrl: Constants.base_url,
+            },
+            ~streams=Some({
+              decodeStreamEvent,
+              emptyStreamingState,
+              reduceStream,
+              reconcilePatch,
+            }),
+            ~hooks={
+              StoreBuilder.Sync.onActionError: Some(onActionError),
+              onActionAck: None,
+              onCustom: None,
+              onMedia: None,
+              onError:
+                Some((~dispatch) => (message) => {
+                  Js.Console.error("[VideoChatStore] Server error: " ++ message);
+                  dispatch(ResetJoinStatus);
+                }),
+              onOpen: Some((~dispatch) => dispatch(ResetJoinStatus)),
+              onConnectionHandle:
+                Some((handle) => MediaTransport.setHandle(Some(handle))),
+            },
+            ~stateElementId=Some("initial-store"),
+            (),
+          );
   });
 
 include (

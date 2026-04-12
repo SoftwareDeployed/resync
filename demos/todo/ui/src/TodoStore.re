@@ -132,7 +132,7 @@ let reduce = (~state: state, ~action: action) => {
 };
 
 /* ============================================================================
-   New Grouped API (Task 4) - Using Local.Define
+   Pipeline Builder API
    ============================================================================ */
 
 module StoreDef =
@@ -141,42 +141,44 @@ module StoreDef =
     type nonrec action = action;
     type nonrec store = store;
 
-    let config: StoreBuilder.Local.config(state, action, store) = {
-      storeName,
-      emptyState,
-      reduce,
-      state_of_json,
-      state_to_json,
-      action_of_json,
-      action_to_json,
-      makeStore:
-        (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-        state:
-          StoreBuilder.current(
-            ~derive?,
-            ~client=state,
-            ~server=() => state,
-            (),
-          ),
-        completed_count:
-          StoreBuilder.derived(
-            ~derive?,
-            ~client=store => completedCount(store.state.todos),
-            ~server=() => completedCount(state.todos),
-            (),
-          ),
-        total_count:
-          StoreBuilder.derived(
-            ~derive?,
-            ~client=store => Array.length(store.state.todos),
-            ~server=() => Array.length(state.todos),
-            (),
-          ),
-      },
-      scopeKeyOfState: (_state: state) => "default",
-      timestampOfState: (state: state) => state.updated_at,
-      stateElementId: None,
-    };
+    let input =
+      StoreBuilder.make()
+      |> StoreBuilder.withSchema({
+           emptyState,
+           reduce,
+           makeStore:
+             (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+             state:
+               StoreBuilder.current(
+                 ~derive?,
+                 ~client=state,
+                 ~server=() => state,
+                 (),
+               ),
+             completed_count:
+               StoreBuilder.derived(
+                 ~derive?,
+                 ~client=store => completedCount(store.state.todos),
+                 ~server=() => completedCount(state.todos),
+                 (),
+               ),
+             total_count:
+               StoreBuilder.derived(
+                 ~derive?,
+                 ~client=store => Array.length(store.state.todos),
+                 ~server=() => Array.length(state.todos),
+                 (),
+               ),
+           },
+         })
+      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+      |> StoreBuilder.withLocalPersistence(
+           ~storeName,
+           ~scopeKeyOfState = (_state: state) => "default",
+           ~timestampOfState = (state: state) => state.updated_at,
+           ~stateElementId=None,
+           (),
+         );
   });
 
 include (
