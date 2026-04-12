@@ -21,8 +21,14 @@ type streaming_state = {
 
 let emptyStreamingState = {activeStreams: Belt.Map.String.empty};
 
+type create_thread_payload = {
+  id: string,
+  title: string,
+};
+
 type action =
   | SendPrompt(send_prompt_payload)
+  | CreateNewThread(create_thread_payload)
   | SetInput(string)
   | SetError(string)
   | SelectThread(string)
@@ -59,6 +65,14 @@ let action_to_json = action =>
       ++ string_to_json(payload.thread_id)->Melange_json.to_string
       ++ ",\"prompt\":"
       ++ string_to_json(payload.prompt)->Melange_json.to_string
+      ++ "}}"
+    )
+  | CreateNewThread(payload) =>
+    StoreJson.parse(
+      "{\"kind\":\"create_new_thread\",\"payload\":{\"id\":"
+      ++ string_to_json(payload.id)->Melange_json.to_string
+      ++ ",\"title\":"
+      ++ string_to_json(payload.title)->Melange_json.to_string
       ++ "}}"
     )
   | SetInput(text) =>
@@ -108,6 +122,11 @@ let action_of_json = json => {
     SetError(
       StoreJson.requiredField(~json=payload, ~fieldName="message", ~decode=string_of_json),
     )
+  | "create_new_thread" =>
+    CreateNewThread({
+      id: StoreJson.requiredField(~json=payload, ~fieldName="id", ~decode=string_of_json),
+      title: StoreJson.requiredField(~json=payload, ~fieldName="title", ~decode=string_of_json),
+    })
   | "select_thread" =>
     SelectThread(
       StoreJson.requiredField(~json=payload, ~fieldName="thread_id", ~decode=string_of_json),
@@ -124,6 +143,32 @@ let reduce = (~state: state, ~action: action) => {
   let updatedAt = Js.Date.now();
   let withTimestamp = nextState => setTimestamp(~state=nextState, ~timestamp=updatedAt);
   switch (action) {
+  | CreateNewThread(payload) =>
+    let alreadyExists =
+      state.threads->Js.Array.some(~f=(t: Model.Thread.t) => t.id == payload.id);
+    if (alreadyExists) {
+      withTimestamp({
+        ...state,
+        current_thread_id: Some(payload.id),
+        messages: [||],
+        input: "",
+      });
+    } else {
+      let newThread: Model.Thread.t = {
+        id: payload.id,
+        title: payload.title,
+        updated_at: updatedAt,
+      };
+      let newThreads =
+        Js.Array.concat(~other=state.threads, [|newThread|]);
+      withTimestamp({
+        ...state,
+        threads: newThreads,
+        current_thread_id: Some(payload.id),
+        messages: [||],
+        input: "",
+      });
+    };
   | SendPrompt(payload) =>
     withTimestamp({
       ...state,

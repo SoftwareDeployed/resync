@@ -17,10 +17,11 @@
        llm_chat_js
        universal_reason_react_router_js
        universal_reason_react_store_js
-       reason_realtime_stream_js
-       reason_streamdown_js
-       universal_reason_react_lucide_icons_js
-       melange-webapi
+        reason_realtime_stream_js
+        reason_streamdown_js
+        universal_reason_react_lucide_icons_js
+        universal_reason_react_uuid_js
+        melange-webapi
        melange-json
        melange.belt
        melange.dom
