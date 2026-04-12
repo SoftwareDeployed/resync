@@ -45,8 +45,12 @@ let resolve_subscription request selection =
   | None -> Lwt.return_none
   | Some thread_id ->
       let* thread_info = Dream.sql request (Database.Chat.get_thread thread_id) in
-      let* () = Dream.sql request (Database.Chat.record_thread_view thread_id) in
-      Lwt.return (Option.map (fun _ -> thread_id) thread_info)
+      (match thread_info with
+       | Some _ ->
+           let* () = Dream.sql request (Database.Chat.record_thread_view thread_id) in
+           Lwt.return_some thread_id
+       | None ->
+           Lwt.return_some thread_id)
 
 let realtime_adapter =
   Adapter.pack
@@ -162,6 +166,12 @@ let stream_ollama ~broadcast_fn ~request ~thread_id ~assistant_message_id () =
   in
   read_loop ()
 
+let require_thread request thread_id f =
+  let* thread = Dream.sql request (Database.Chat.get_thread thread_id) in
+  match thread with
+  | None -> Lwt.return (Middleware.Ack (Error ("Thread not found: " ^ thread_id)))
+  | Some _ -> f ()
+
 let handle_mutation broadcast_fn request ~action_id action =
   let kind =
     match assoc "kind" action with
@@ -180,36 +190,62 @@ let handle_mutation broadcast_fn request ~action_id action =
               begin match required_string "prompt" payload with
               | Error error -> Lwt.return (Middleware.Ack (Error error))
               | Ok prompt ->
-                  let message_id = UUID.make () in
-                  let assistant_message_id = UUID.make () in
-                  Lwt.catch
-                    (fun () ->
-                      let* () =
-                        Dream.sql request
-                          (Database.Chat.add_message
-                             (action_id, message_id, thread_id, "user", prompt))
-                      in
-                      let () =
-                        Lwt.async (fun () ->
-                          Lwt.catch
-                            (fun () ->
-                              stream_ollama ~broadcast_fn ~request ~thread_id
-                                ~assistant_message_id ())
-                            (fun exn ->
-                              broadcast_stream_event ~broadcast_fn ~thread_id
-                                ~event:"stream_error"
-                                [ ("thread_id", `String thread_id);
-                                  ("message_id", `String assistant_message_id);
-                                  ("error", `String (Printexc.to_string exn)) ]))
-                      in
-                      Lwt.return (Middleware.Ack (Ok ())))
-                    (function
-                      | Caqti_error.Exn error ->
-                          Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
-                      | exn ->
-                          Lwt.return
-                            (Middleware.Ack (Error (Printexc.to_string exn))))
+                  require_thread request thread_id (fun () ->
+                    let message_id = UUID.make () in
+                    let assistant_message_id = UUID.make () in
+                    Lwt.catch
+                      (fun () ->
+                        let* () =
+                          Dream.sql request
+                            (Database.Chat.add_message
+                               (action_id, message_id, thread_id, "user", prompt))
+                        in
+                        let () =
+                          Lwt.async (fun () ->
+                            Lwt.catch
+                              (fun () ->
+                                stream_ollama ~broadcast_fn ~request ~thread_id
+                                  ~assistant_message_id ())
+                              (fun exn ->
+                                broadcast_stream_event ~broadcast_fn ~thread_id
+                                  ~event:"stream_error"
+                                  [ ("thread_id", `String thread_id);
+                                    ("message_id", `String assistant_message_id);
+                                    ("error", `String (Printexc.to_string exn)) ]))
+                        in
+                        Lwt.return (Middleware.Ack (Ok ())))
+                      (function
+                        | Caqti_error.Exn error ->
+                            Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
+                        | exn ->
+                            Lwt.return
+                              (Middleware.Ack (Error (Printexc.to_string exn)))))
               end
+          end
+      end
+  | Ok "create_new_thread" ->
+      begin match assoc "payload" action with
+      | None -> Lwt.return (Middleware.Ack (Error "Missing create_new_thread payload"))
+      | Some payload ->
+          begin match
+            (required_string "id" payload, required_string "title" payload)
+          with
+          | (Ok thread_id, Ok title) ->
+              let* result =
+                Dream.sql request (Database.Chat.create_thread thread_id title)
+              in
+              (match result with
+               | () ->
+                   let* () =
+                     Dream.sql request (Database.Chat.record_thread_view thread_id)
+                   in
+                   Lwt.return (Middleware.Ack (Ok ()))
+               | exception Caqti_error.Exn error ->
+                   Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
+               | exception exn ->
+                   Lwt.return (Middleware.Ack (Error (Printexc.to_string exn))))
+          | (Error error, _) | (_, Error error) ->
+              Lwt.return (Middleware.Ack (Error error))
           end
       end
   | Ok "set_error"
@@ -251,10 +287,14 @@ let () =
          Dream.get "/app.js" (fun req -> Dream.from_filesystem doc_root "Index.re.js" req);
          Dream.get "/style.css" (fun req -> Dream.from_filesystem doc_root "Index.re.css" req);
           Dream.get "/favicon.ico" (fun _ -> Dream.respond ~status:`No_Content "");
-          Dream.get "/" (fun req ->
-            let uuid = UUID.make () in
-            let* _ = Dream.sql req (Database.Chat.create_thread uuid "New Chat") in
-            Dream.redirect req ("/" ^ uuid));
+           Dream.get "/" (fun req ->
+             let* threads = Dream.sql req (Database.Chat.get_threads ()) in
+             match Array.length threads > 0 with
+             | true -> Dream.redirect req ("/" ^ threads.(0).id)
+             | false ->
+                 let uuid = UUID.make () in
+                 let* _ = Dream.sql req (Database.Chat.create_thread uuid "New Chat") in
+                 Dream.redirect req ("/" ^ uuid));
           Dream.post "/api/test/delete-thread/:thread_id" (fun request ->
             let thread_id = Dream.param request "thread_id" in
             let* _ = Dream.sql request (Database.Chat.delete_thread thread_id) in
@@ -274,6 +314,9 @@ let () =
             let content = try Yojson.Safe.Util.(to_string (member "content" json)) with _ -> "test message" in
             let action_id = UUID.make () in
             let message_id = UUID.make () in
-            let* _ = Dream.sql request (Database.Chat.add_message (action_id, message_id, thread_id, role, content)) in
-            Dream.respond (Yojson.Safe.to_string (`Assoc [("id", `String message_id); ("thread_id", `String thread_id)])));
-          Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app) ]
+             let* _ = Dream.sql request (Database.Chat.add_message (action_id, message_id, thread_id, role, content)) in
+             Dream.respond (Yojson.Safe.to_string (`Assoc [("id", `String message_id); ("thread_id", `String thread_id)])));
+           Dream.post "/api/test/delete-all-threads" (fun request ->
+             let* _ = Dream.sql request (Database.Chat.delete_all_threads ()) in
+             Dream.json "{\"status\":\"deleted_all\"}");
+           Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app) ]

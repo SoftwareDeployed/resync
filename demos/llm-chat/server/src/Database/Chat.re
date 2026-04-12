@@ -114,3 +114,16 @@ let delete_thread = (thread_id: string) => {
     Caqti_lwt.or_fail(result);
   };
 };
+
+let delete_all_threads = () => {
+  let query =
+    Caqti_request.Infix.(
+      (T.unit ->. T.unit)(
+        {sql|DELETE FROM threads|sql}
+      )
+    );
+  (module Db: DB) => {
+    let* result = Db.exec(query, ());
+    Caqti_lwt.or_fail(result);
+  };
+};
