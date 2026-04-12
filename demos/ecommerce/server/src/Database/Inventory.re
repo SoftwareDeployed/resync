@@ -45,3 +45,16 @@ let get_by_id = (item_id: string) => {
     Caqti_lwt.or_fail(item_or_error);
   };
 };
+
+let update_quantity = (item_id: string, quantity: int) => {
+  let query =
+    Caqti_request.Infix.(
+      (T.t2(T.string, T.int) ->. T.unit)(
+        "UPDATE inventory SET quantity = $2 WHERE id = $1"
+      )
+    );
+  (module Db: DB) => {
+    let* result = Db.exec(query, (item_id, quantity));
+    Caqti_lwt.or_fail(result);
+  };
+};

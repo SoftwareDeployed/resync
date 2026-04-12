@@ -51,9 +51,21 @@ module Contents = {
                     CartStore.decrement_item(cart_store, cart_item.inventory_id);
                   };
 
+                  let inventoryQuantity =
+                    switch (
+                      Js.Array.find(
+                        ~f=(item: Model.InventoryItem.t) =>
+                          item.id == cart_item.inventory_id,
+                        main_store.config.inventory,
+                      )
+                    ) {
+                    | Some(item) => item.quantity
+                    | None => 9999
+                    };
+
                   let%browser_only increment_item = event => {
                     event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
-                    CartStore.increment_item(cart_store, cart_item.inventory_id);
+                    CartStore.increment_item(cart_store, cart_item.inventory_id, ~maxQuantity=inventoryQuantity, ());
                   };
 
                   let%browser_only remove_item = event => {

@@ -19,7 +19,7 @@ let make =
     let%browser_only add_to_cart_click = e => {
       e->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
       Js.log2("[cart] add button click", item.id);
-      CartStore.add_to_cart(cart_store, item);
+      CartStore.add_to_cart(cart_store, item, ~maxQuantity=item.quantity, ());
     };
     let add_to_cart_button =
       switch%platform (Runtime.platform) {
@@ -50,11 +50,16 @@ let make =
           className="flex flex-row justify-between w-full bg-gray-300 text-white shadow-sm">
           <h2 className="tracking-wider text-xs px-2"> item.name->str </h2>
         </div>
-        <div
-          className="flex flex-col grow flex-1 w-full bg-white/40 rounded-sm m-[1.5] justify-between items-end">
-          <p className="text-xs text-left m-2"> item.description->str </p>
-          <Pricing period_list={item.period_list} />
-        </div>
+         <div
+           className="flex flex-col grow flex-1 w-full bg-white/40 rounded-sm m-[1.5] justify-between items-end">
+           <p className="text-xs text-left m-2"> item.description->str </p>
+           <span
+             id={"inventory-stock-" ++ item.id}
+             className="text-xs text-slate-600 m-2">
+             {("Stock: " ++ Int.to_string(item.quantity))->str}
+           </span>
+           <Pricing period_list={item.period_list} />
+         </div>
       </UniversalRouter.RouteLink>
       add_to_cart_button
     </div>;

@@ -251,11 +251,16 @@ let setQuantity = (store: t, ~inventoryId, ~quantity) => {
   dispatch(SetItemQuantity({inventory_id: inventoryId, quantity}));
 };
 
-let increment_item = (store: t, inventoryId: string) => {
-  let nextQuantity =
+let increment_item = (store: t, inventoryId: string, ~maxQuantity=?, ()) => {
+  let currentQuantity =
     switch (store.state.items->Js.Dict.get(inventoryId)) {
-    | Some((cartItem: CartItem.t)) => cartItem.quantity + 1
-    | None => 1
+    | Some((cartItem: CartItem.t)) => cartItem.quantity
+    | None => 0
+    };
+  let nextQuantity =
+    switch (maxQuantity) {
+    | Some(max) => min(max, currentQuantity + 1)
+    | None => currentQuantity + 1
     };
   setQuantity(store, ~inventoryId, ~quantity=nextQuantity);
 };
@@ -271,8 +276,8 @@ let decrement_item = (store: t, inventoryId: string) => {
 
 let remove_item = (_store: t, inventoryId: string) => dispatch(RemoveItem(inventoryId));
 
-let add_to_cart = (store: t, item: Model.InventoryItem.t) => {
-  increment_item(store, item.id);
+let add_to_cart = (store: t, item: Model.InventoryItem.t, ~maxQuantity=?, ()) => {
+  increment_item(store, item.id, ~maxQuantity?, ());
 };
 
 let clear = () => dispatch(ClearCart);

@@ -122,6 +122,27 @@ let seedConfirmedStateBeforeNavigation = (page: Playwright.page, ~dbName: string
   Playwright.addInitScript(page, jsCode);
 };
 
+/* Wait until the page body contains the given text.
+   Polls every 100ms with a 10-second timeout. */
+let waitForBodyContains = (page: Playwright.page, ~expectedText: string) => {
+  let jsCode =
+    "new Promise(function(resolve, reject) {"
+    ++ "  var timeoutId = setTimeout(function() {"
+    ++ "    reject('Timed out waiting for text to appear: " ++ expectedText ++ "');"
+    ++ "  }, 10000);"
+    ++ "  var poll = function() {"
+    ++ "    if (document.body.innerText.indexOf('" ++ expectedText ++ "') !== -1) {"
+    ++ "      clearTimeout(timeoutId);"
+    ++ "      resolve('ok');"
+    ++ "    } else {"
+    ++ "      setTimeout(poll, 100);"
+    ++ "    }"
+    ++ "  };"
+    ++ "  poll();"
+    ++ "})";
+  Playwright.evaluateString(page, jsCode);
+};
+
 /* Wait until the page body no longer contains the given text.
    Polls every 100ms with a 10-second timeout. */
 let waitForBodyNotContains = (page: Playwright.page, ~unexpectedText: string) => {
