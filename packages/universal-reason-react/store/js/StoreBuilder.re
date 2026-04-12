@@ -603,118 +603,138 @@ module Runtime = {
   };
 
   module MakeSynced = StoreOffline.Synced.Make;
+
+  module type Store = {
+    include Exports;
+    module Context: {
+      let context: React.Context.t(t);
+      let useStore: unit => t;
+      module Provider: {
+        let make: 'a => React.element;
+        let makeProps: (~value: t, ~children: React.element, unit) => 'a;
+      };
+    };
+  };
+
+  module MakeLocal = (Schema: Schema) => {
+    module Inner = StoreOffline.Local.Make(Schema);
+    include Inner;
+    module Context = {
+      let context = Inner.Context.context;
+      let useStore = Inner.Context.useStore;
+      module Provider = {
+        let make = Obj.magic(Inner.Context.Provider.make);
+        let makeProps = Obj.magic(Inner.Context.Provider.makeProps);
+      };
+    };
+  };
+
+  module MakeSyncedWrapped = (Schema: SyncedSchema) => {
+    module Inner = StoreOffline.Synced.Make(Schema);
+    include Inner;
+    module Context = {
+      let context = Inner.Context.context;
+      let useStore = Inner.Context.useStore;
+      module Provider = {
+        let make = Obj.magic(Inner.Context.Provider.make);
+        let makeProps = Obj.magic(Inner.Context.Provider.makeProps);
+      };
+    };
+  };
 };
 
 /* ============================================================================
-   Pipeline Definition Functors
+   Terminal Builder Functions
    ============================================================================ */
 
-module Local = {
-  module type Input = {
-    type state;
-    type action;
-    type store;
-    let input: local_input(state, action, store);
-  };
+let buildLocal =
+    (type s, type a, type st, input: local_input(s, a, st))
+    : (module Runtime.Store with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit) => {
+  let stateElementId =
+    switch (input.persistence.stateElementId) {
+    | Some(value) => value
+    | None => "initial-store"
+    };
 
-  module Define = (Input: Input) => {
-    let stateElementId =
-      switch (Input.input.persistence.stateElementId) {
-      | Some(value) => value
-      | None => "initial-store"
-      };
+  module M =
+    Runtime.MakeLocal({
+      type state = s;
+      type action = a;
+      type store = st;
 
-    module Schema = {
-      type state = Input.state;
-      type action = Input.action;
-      type store = Input.store;
-
-      let reduce = Input.input.schema.reduce;
-      let emptyState = Input.input.schema.emptyState;
-      let storeName = Input.input.persistence.storeName;
+      let reduce = input.schema.reduce;
+      let emptyState = input.schema.emptyState;
+      let storeName = input.persistence.storeName;
       let stateElementId = stateElementId;
-      let scopeKeyOfState = Input.input.persistence.scopeKeyOfState;
-      let timestampOfState = Input.input.persistence.timestampOfState;
-      let state_of_json = Input.input.json.state_of_json;
-      let state_to_json = Input.input.json.state_to_json;
-      let action_of_json = Input.input.json.action_of_json;
-      let action_to_json = Input.input.json.action_to_json;
-      let makeStore = Input.input.schema.makeStore;
+      let scopeKeyOfState = input.persistence.scopeKeyOfState;
+      let timestampOfState = input.persistence.timestampOfState;
+      let state_of_json = input.json.state_of_json;
+      let state_to_json = input.json.state_to_json;
+      let action_of_json = input.json.action_of_json;
+      let action_to_json = input.json.action_to_json;
+      let makeStore = input.schema.makeStore;
       let validate =
-        switch (Input.input.guardTree) {
-        | Some(tree) => Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
+        switch (input.guardTree) {
+        | Some(tree) =>
+          Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
         | None => None
         };
       let cache = `IndexedDB;
-    };
+    });
 
-    include StoreOffline.Local.Make(Schema);
-
-    let originalContext = Context.context;
-    let originalProviderMake = Context.Provider.make;
-    let originalProviderMakeProps = Context.Provider.makeProps;
-    let originalUseStore = Context.useStore;
-
-    module Context = {
-      let context = originalContext;
-      let useStore = originalUseStore;
-
-      module Provider = {
-        let makeProps = originalProviderMakeProps;
-        let make = originalProviderMake;
-      };
-    };
-  };
+  Obj.magic(
+    (module M: Runtime.Exports with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit),
+  );
 };
 
-module Synced = {
-  module type Input = {
-    type state;
-    type action;
-    type store;
-    type subscription;
-    type patch;
-    type stream_event;
-    type streaming_state;
-    let input: synced_input(state, action, store, subscription, patch, stream_event, streaming_state);
-  };
+let buildSynced =
+    (
+      type s,
+      type a,
+      type st,
+      type sub,
+      type p,
+      type se,
+      type ss,
+      input: synced_input(s, a, st, sub, p, se, ss),
+    )
+    : (module Runtime.Store with type state = s and type action = a and type t = st and type stream_event = se and type streaming_state = ss) => {
+  let stateElementId =
+    switch (input.persistence.stateElementId) {
+    | Some(value) => value
+    | None => "initial-store"
+    };
+  let hooks = input.hooks;
 
-  module Define = (Input: Input) => {
-    let stateElementId =
-      switch (Input.input.persistence.stateElementId) {
-      | Some(value) => value
-      | None => "initial-store"
-      };
-    let hooks = Input.input.hooks;
+  module M =
+    Runtime.MakeSyncedWrapped({
+      type state = s;
+      type action = a;
+      type store = st;
+      type subscription = sub;
+      type patch = p;
+      type stream_event = se;
+      type streaming_state = ss;
 
-    module Schema = {
-      type state = Input.state;
-      type action = Input.action;
-      type store = Input.store;
-      type subscription = Input.subscription;
-      type patch = Input.patch;
-      type stream_event = Input.stream_event;
-      type streaming_state = Input.streaming_state;
-
-      let reduce = Input.input.schema.reduce;
-      let emptyState = Input.input.schema.emptyState;
-      let storeName = Input.input.persistence.storeName;
+      let reduce = input.schema.reduce;
+      let emptyState = input.schema.emptyState;
+      let storeName = input.persistence.storeName;
       let stateElementId = stateElementId;
-      let scopeKeyOfState = Input.input.persistence.scopeKeyOfState;
-      let timestampOfState = Input.input.persistence.timestampOfState;
-      let setTimestamp = Input.input.persistence.setTimestamp;
-      let state_of_json = Input.input.json.state_of_json;
-      let state_to_json = Input.input.json.state_to_json;
-      let action_of_json = Input.input.json.action_of_json;
-      let action_to_json = Input.input.json.action_to_json;
-      let makeStore = Input.input.schema.makeStore;
-      let subscriptionOfState = Input.input.persistence.transport.subscriptionOfState;
-      let encodeSubscription = Input.input.persistence.transport.encodeSubscription;
-      let eventUrl = Input.input.persistence.transport.eventUrl;
-      let baseUrl = Input.input.persistence.transport.baseUrl;
-      let decodePatch = Input.input.strategy.decodePatch;
-      let updateOfPatch = Input.input.strategy.updateOfPatch;
-      let streams = Input.input.streams;
+      let scopeKeyOfState = input.persistence.scopeKeyOfState;
+      let timestampOfState = input.persistence.timestampOfState;
+      let setTimestamp = input.persistence.setTimestamp;
+      let state_of_json = input.json.state_of_json;
+      let state_to_json = input.json.state_to_json;
+      let action_of_json = input.json.action_of_json;
+      let action_to_json = input.json.action_to_json;
+      let makeStore = input.schema.makeStore;
+      let subscriptionOfState = input.persistence.transport.subscriptionOfState;
+      let encodeSubscription = input.persistence.transport.encodeSubscription;
+      let eventUrl = input.persistence.transport.eventUrl;
+      let baseUrl = input.persistence.transport.baseUrl;
+      let decodePatch = input.strategy.decodePatch;
+      let updateOfPatch = input.strategy.updateOfPatch;
+      let streams = input.streams;
       let onActionError =
         switch (hooks.onActionError) {
         | Some(callback) => callback
@@ -727,85 +747,67 @@ module Synced = {
       let onOpen = hooks.onOpen;
       let onConnectionHandle = hooks.onConnectionHandle;
       let validate =
-        switch (Input.input.guardTree) {
-        | Some(tree) => Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
+        switch (input.guardTree) {
+        | Some(tree) =>
+          Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
         | None => None
         };
       let cache = `IndexedDB;
+    });
+
+  Obj.magic(
+    (module M: Runtime.Exports with type state = s and type action = a and type t = st and type stream_event = se and type streaming_state = ss),
+  );
+};
+
+let buildCrud =
+    (type s, type a, type st, type sub, type r, input: synced_crud_input(s, a, st, sub, r))
+    : (module Runtime.Store with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit) => {
+  let stateElementId =
+    switch (input.persistence.stateElementId) {
+    | Some(value) => value
+    | None => "initial-store"
     };
+  let hooks = input.hooks;
+  let crudPatch =
+    StoreCrud.decodePatch(
+      ~table=input.crud.table,
+      ~decodeRow=input.crud.decodeRow,
+      (),
+    );
+  let crudUpdate =
+    StoreCrud.updateOfPatch(
+      ~getId=input.crud.getId,
+      ~getItems=input.crud.getItems,
+      ~setItems=input.crud.setItems,
+    );
 
-    include StoreOffline.Synced.Make(Schema);
-
-    let originalContext = Context.context;
-    let originalProviderMake = Context.Provider.make;
-    let originalProviderMakeProps = Context.Provider.makeProps;
-    let originalUseStore = Context.useStore;
-
-    module Context = {
-      let context = originalContext;
-      let useStore = originalUseStore;
-
-      module Provider = {
-        let makeProps = originalProviderMakeProps;
-        let make = originalProviderMake;
-      };
-    };
-  };
-
-  module type CrudInput = {
-    type state;
-    type action;
-    type store;
-    type subscription;
-    type row;
-    let input: synced_crud_input(state, action, store, subscription, row);
-  };
-
-  module DefineCrud = (Input: CrudInput) => {
-    let stateElementId =
-      switch (Input.input.persistence.stateElementId) {
-      | Some(value) => value
-      | None => "initial-store"
-      };
-    let hooks = Input.input.hooks;
-    let crudPatch =
-      StoreCrud.decodePatch(
-        ~table=Input.input.crud.table,
-        ~decodeRow=Input.input.crud.decodeRow,
-        (),
-      );
-    let crudUpdate =
-      StoreCrud.updateOfPatch(
-        ~getId=Input.input.crud.getId,
-        ~getItems=Input.input.crud.getItems,
-        ~setItems=Input.input.crud.setItems,
-      );
-
-    module Schema = {
-      type state = Input.state;
-      type action = Input.action;
-      type store = Input.store;
-      type subscription = Input.subscription;
-      type patch = StoreCrud.patch(Input.row);
+  module M =
+    Runtime.MakeSyncedWrapped({
+      type state = s;
+      type action = a;
+      type store = st;
+      type subscription = sub;
+      type patch = StoreCrud.patch(r);
       type stream_event = unit;
       type streaming_state = unit;
 
-      let reduce = Input.input.schema.reduce;
-      let emptyState = Input.input.schema.emptyState;
-      let storeName = Input.input.persistence.storeName;
+      let reduce = input.schema.reduce;
+      let emptyState = input.schema.emptyState;
+      let storeName = input.persistence.storeName;
       let stateElementId = stateElementId;
-      let scopeKeyOfState = Input.input.persistence.scopeKeyOfState;
-      let timestampOfState = Input.input.persistence.timestampOfState;
-      let setTimestamp = Input.input.persistence.setTimestamp;
-      let state_of_json = Input.input.json.state_of_json;
-      let state_to_json = Input.input.json.state_to_json;
-      let action_of_json = Input.input.json.action_of_json;
-      let action_to_json = Input.input.json.action_to_json;
-      let makeStore = Input.input.schema.makeStore;
-      let subscriptionOfState = Input.input.persistence.transport.subscriptionOfState;
-      let encodeSubscription = Input.input.persistence.transport.encodeSubscription;
-      let eventUrl = Input.input.persistence.transport.eventUrl;
-      let baseUrl = Input.input.persistence.transport.baseUrl;
+      let scopeKeyOfState = input.persistence.scopeKeyOfState;
+      let timestampOfState = input.persistence.timestampOfState;
+      let setTimestamp = input.persistence.setTimestamp;
+      let state_of_json = input.json.state_of_json;
+      let state_to_json = input.json.state_to_json;
+      let action_of_json = input.json.action_of_json;
+      let action_to_json = input.json.action_to_json;
+      let makeStore = input.schema.makeStore;
+      let subscriptionOfState = input.persistence.transport.subscriptionOfState;
+      let encodeSubscription = input.persistence.transport.encodeSubscription;
+      let eventUrl = input.persistence.transport.eventUrl;
+      let baseUrl = input.persistence.transport.baseUrl;
       let decodePatch = StorePatch.compose([crudPatch]);
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
       let streams = None;
@@ -821,49 +823,17 @@ module Synced = {
       let onOpen = hooks.onOpen;
       let onConnectionHandle = hooks.onConnectionHandle;
       let validate =
-        switch (Input.input.guardTree) {
-        | Some(tree) => Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
+        switch (input.guardTree) {
+        | Some(tree) =>
+          Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
         | None => None
         };
       let cache = `IndexedDB;
-    };
+    });
 
-    include StoreOffline.Synced.Make(Schema);
-
-    let originalContext = Context.context;
-    let originalProviderMake = Context.Provider.make;
-    let originalProviderMakeProps = Context.Provider.makeProps;
-    let originalUseStore = Context.useStore;
-
-    module Context = {
-      let context = originalContext;
-      let useStore = originalUseStore;
-
-      module Provider = {
-        let makeProps = originalProviderMakeProps;
-        let make = originalProviderMake;
-      };
-    };
-  };
-
-  /* ==========================================================================
-     CRUD Convenience Helpers
-     ========================================================================== */
-
-  module Crud = {
-    let totalCount =
-        (~derive: option(Tilia.Core.deriver('store))=?, ~getItems: 'store => array('row), ()) =>
-      Selectors.arrayLength(~derive?, ~getArray=getItems, ());
-
-    let filteredCount =
-        (
-          ~derive: option(Tilia.Core.deriver('store))=?,
-          ~getItems: 'store => array('row),
-          ~predicate: 'row => bool,
-          (),
-        ) =>
-      Selectors.filteredCount(~derive?, ~getArray=getItems, ~predicate, ());
-  };
+  Obj.magic(
+    (module M: Runtime.Exports with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit),
+  );
 };
 
 /* ==========================================================================

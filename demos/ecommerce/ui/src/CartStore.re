@@ -196,43 +196,38 @@ let reduce = (~state: state, ~action: action) => {
    ============================================================================ */
 
 module StoreDef =
-  StoreBuilder.Local.Define({
-    type nonrec state = state;
-    type nonrec action = action;
-    type nonrec store = store;
-
-    let input =
-      StoreBuilder.make()
-      |> StoreBuilder.withSchema({
-           emptyState,
-           reduce,
-           makeStore:
-             (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-             state:
-               StoreBuilder.current(
-                 ~derive?,
-                 ~client=state,
-                 ~server=() => state,
-                 (),
-               ),
-             item_count:
-               StoreBuilder.derived(
-                 ~derive?,
-                 ~client=store => itemCount(store.state),
-                 ~server=() => itemCount(state),
-                 (),
-               ),
-           },
-         })
-      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-      |> StoreBuilder.withLocalPersistence(
-           ~storeName,
-           ~scopeKeyOfState = (_state: state) => "default",
-           ~timestampOfState = (state: state) => state.updated_at,
-           ~stateElementId=Some(stateElementId),
-           (),
-         );
-  });
+  (val StoreBuilder.buildLocal(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState,
+         reduce,
+         makeStore:
+           (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+           state:
+             StoreBuilder.current(
+               ~derive?,
+               ~client=state,
+               ~server=() => state,
+               (),
+             ),
+           item_count:
+             StoreBuilder.derived(
+               ~derive?,
+               ~client=store => itemCount(store.state),
+               ~server=() => itemCount(state),
+               (),
+             ),
+         },
+       })
+    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withLocalPersistence(
+         ~storeName,
+         ~scopeKeyOfState = (_state: state) => "default",
+         ~timestampOfState = (state: state) => state.updated_at,
+         ~stateElementId=Some(stateElementId),
+         (),
+       ),
+  ));
 
 include (
   StoreDef:

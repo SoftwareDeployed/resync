@@ -165,30 +165,28 @@ The server depends on `*_native` libraries; the client depends on `*_js` librari
 
 ### Store pattern
 
-All stores use the grouped functor APIs (`StoreBuilder.Local.Define`, `StoreBuilder.Synced.Define`, or `StoreBuilder.Synced.DefineCrud`) with a config record defined inline. Do NOT define top-level bindings and then pass them through as `let x = x`:
+All stores use the terminal value-level builders (`StoreBuilder.buildLocal`, `StoreBuilder.buildSynced`, or `StoreBuilder.buildCrud`) with the pipeline API. Do NOT define top-level bindings and then pass them through as `let x = x`:
 
 ```reason
-// CORRECT: grouped API with inline config record
+// CORRECT: terminal builder with inline pipeline
 module StoreDef =
-  StoreBuilder.Local.Define({
-    type nonrec state = state;
-    type nonrec action = action;
-    type nonrec store = store;
-
-    let config: StoreBuilder.Local.config(state, action, store) = {
-      storeName: "todo.simple",
-      emptyState: { /* ... */ },
-      reduce: (~state, ~action) => state,
-      scopeKeyOfState: _state => "default",
-      timestampOfState: state => state.updated_at,
-      state_of_json,
-      state_to_json,
-      action_of_json,
-      action_to_json,
-      makeStore: (~state, ~derive=?, ()) => { /* ... */ },
-      stateElementId: None, // or Some("custom-id")
-    };
-  });
+  (val StoreBuilder.buildLocal(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         storeName: "todo.simple",
+         emptyState: { /* ... */ },
+         reduce: (~state, ~action) => state,
+         makeStore: (~state, ~derive=?, ()) => { /* ... */ },
+       })
+    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withLocalPersistence(
+         ~storeName="todo.simple",
+         ~scopeKeyOfState=_state => "default",
+         ~timestampOfState=state => state.updated_at,
+         ~stateElementId=None,
+         (),
+       )
+  ));
 
 include (
   StoreDef:
@@ -198,6 +196,7 @@ include (
       and type t := store
 );
 
+type t = store;
 module Context = StoreDef.Context;
 
 // WRONG: top-level bindings passed to functor
@@ -210,8 +209,8 @@ module Runtime = StoreBuilder.Runtime.Make({
 ```
 
 Runtime behavior:
-- `StoreBuilder.Local.Define` is local-only and persists confirmed snapshots to IndexedDB, then propagates newer confirmed state across tabs with `BroadcastChannel`
-- `StoreBuilder.Synced.Define` and `StoreBuilder.Synced.DefineCrud` persist confirmed snapshots plus an IndexedDB action ledger, send typed JSON actions over websocket, and propagate optimistic actions plus confirmed snapshots across tabs
+- `StoreBuilder.buildLocal` is local-only and persists confirmed snapshots to IndexedDB, then propagates newer confirmed state across tabs with `BroadcastChannel`
+- `StoreBuilder.buildSynced` and `StoreBuilder.buildCrud` persist confirmed snapshots plus an IndexedDB action ledger, send typed JSON actions over websocket, and propagate optimistic actions plus confirmed snapshots across tabs
 - For synced stores, cross-tab updates should not depend solely on websocket delivery; optimistic replay comes from the shared IndexedDB ledger
 
 ### Collections use `array`, not `list`

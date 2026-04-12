@@ -8,9 +8,9 @@ Tilia-backed store tooling for universal Reason React applications with synchron
 
 The current store model is runtime-first:
 
-- `StoreBuilder.Local.Define` builds a local-only runtime store
-- `StoreBuilder.Synced.Define` builds a realtime runtime store
-- `StoreBuilder.Synced.DefineCrud` builds a realtime runtime store with CRUD patches
+- `StoreBuilder.buildLocal` builds a local-only runtime store
+- `StoreBuilder.buildSynced` builds a realtime runtime store
+- `StoreBuilder.buildCrud` builds a realtime runtime store with CRUD patches
 - SSR always hydrates synchronously from the server-rendered payload
 - IndexedDB is the browser persistence layer
 - local-only stores persist confirmed snapshots to IndexedDB and sync across tabs with `BroadcastChannel`
@@ -18,7 +18,7 @@ The current store model is runtime-first:
 
 ## Builder Choice
 
-### `StoreBuilder.Local.Define`
+### `StoreBuilder.buildLocal`
 
 Use this for local-only state such as the simple todo demo or the ecommerce cart.
 
@@ -42,42 +42,37 @@ Example:
 
 ```reason
 module StoreDef =
-  StoreBuilder.Local.Define({
-    type nonrec state = state;
-    type nonrec action = action;
-    type nonrec store = store;
-
-    let input =
-      StoreBuilder.make()
-      |> StoreBuilder.withSchema({
-           emptyState: {todos: [||], updated_at: 0.0},
-           reduce: (~state, ~action) => state,
-           makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-             state:
-               StoreBuilder.current(
-                 ~derive?,
-                 ~client=state,
-                 ~server=() => state,
-                 (),
-               ),
-             total_count:
-               StoreBuilder.derived(
-                 ~derive?,
-                 ~client=store => Array.length(store.state.todos),
-                 ~server=() => Array.length(state.todos),
-                 (),
-               ),
-           },
-         })
-      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-      |> StoreBuilder.withLocalPersistence(
-           ~storeName="todo.simple",
-           ~scopeKeyOfState=_state => "default",
-           ~timestampOfState=state => state.updated_at,
-           ~stateElementId=None,
-           (),
-         );
-  });
+  (val StoreBuilder.buildLocal(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState: {todos: [||], updated_at: 0.0},
+         reduce: (~state, ~action) => state,
+         makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+           state:
+             StoreBuilder.current(
+               ~derive?,
+               ~client=state,
+               ~server=() => state,
+               (),
+             ),
+           total_count:
+             StoreBuilder.derived(
+               ~derive?,
+               ~client=store => Array.length(store.state.todos),
+               ~server=() => Array.length(state.todos),
+               (),
+             ),
+         },
+       })
+    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withLocalPersistence(
+         ~storeName="todo.simple",
+         ~scopeKeyOfState=_state => "default",
+         ~timestampOfState=state => state.updated_at,
+         ~stateElementId=None,
+         (),
+       )
+  ));
 
 include (
   StoreDef:
@@ -87,10 +82,11 @@ include (
       and type t := store
 );
 
+type t = store;
 module Context = StoreDef.Context;
 ```
 
-### `StoreBuilder.Synced.Define`
+### `StoreBuilder.buildSynced`
 
 Use this for realtime state such as `todo-multiplayer`, ecommerce inventory, or the LLM chat demo.
 
@@ -104,7 +100,7 @@ Behavior:
 - reconciles the newer confirmed snapshot from IndexedDB after mount
 - persists the confirmed snapshot into IndexedDB even when SSR wins
 - queues optimistic actions in IndexedDB
-- sends JSON mutation envelopes over the active websocket
+- sends JSON mutation envelopes over the websocket
 - retries with the same `actionId` until ack or retry exhaustion
 - rebuilds optimistic state from confirmed state plus remaining pending actions
 
@@ -112,49 +108,40 @@ Example:
 
 ```reason
 module StoreDef =
-  StoreBuilder.Synced.Define({
-    type nonrec state = state;
-    type nonrec action = action;
-    type nonrec store = store;
-    type nonrec subscription = subscription;
-    type nonrec patch = patch;
-    type nonrec stream_event = stream_event;
-    type nonrec streaming_state = streaming_state;
-
-    let input =
-      StoreBuilder.make()
-      |> StoreBuilder.withSchema({
-           emptyState: {todos: [||], updated_at: 0.0},
-           reduce,
-           makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-             state,
-             total_count:
-               StoreBuilder.derived(
-                 ~derive?,
-                 ~client=store => Array.length(store.state.todos),
-                 ~server=() => Array.length(state.todos),
-                 (),
-               ),
-           },
-         })
-      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-      |> StoreBuilder.withSync(
-           ~storeName="todo-multiplayer",
-           ~scopeKeyOfState,
-           ~timestampOfState,
-           ~setTimestamp,
-           ~decodePatch,
-           ~updateOfPatch,
-           ~transport={
-             subscriptionOfState,
-             encodeSubscription: RealtimeSubscription.encode,
-             eventUrl: Constants.event_url,
-             baseUrl: Constants.base_url,
-           },
-           ~stateElementId=None,
-           (),
-         );
-  });
+  (val StoreBuilder.buildSynced(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState: {todos: [||], updated_at: 0.0},
+         reduce,
+         makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+           state,
+           total_count:
+             StoreBuilder.derived(
+               ~derive?,
+               ~client=store => Array.length(store.state.todos),
+               ~server=() => Array.length(state.todos),
+               (),
+             ),
+         },
+       })
+    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withSync(
+         ~storeName="todo-multiplayer",
+         ~scopeKeyOfState,
+         ~timestampOfState,
+         ~setTimestamp,
+         ~decodePatch,
+         ~updateOfPatch,
+         ~transport={
+           subscriptionOfState,
+           encodeSubscription: RealtimeSubscription.encode,
+           eventUrl: Constants.event_url,
+           baseUrl: Constants.base_url,
+         },
+         ~stateElementId=None,
+         (),
+       )
+  ));
 
 include (
   StoreDef:
@@ -164,50 +151,44 @@ include (
       and type t := store
 );
 
+type t = store;
 module Context = StoreDef.Context;
 ```
 
-### `StoreBuilder.Synced.DefineCrud`
+### `StoreBuilder.buildCrud`
 
-For stores using standard CRUD patches, use `DefineCrud` which pre-wires the patch decoding:
+For stores using standard CRUD patches, use `buildCrud` which pre-wires the patch decoding:
 
 ```reason
 module StoreDef =
-  StoreBuilder.Synced.DefineCrud({
-    type nonrec state = state;
-    type nonrec action = action;
-    type nonrec store = store;
-    type nonrec subscription = subscription;
-    type nonrec row = TodoItem.t;
-
-    let input =
-      StoreBuilder.make()
-      |> StoreBuilder.withSchema({
-           emptyState,
-           reduce,
-           makeStore,
-         })
-      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-      |> StoreBuilder.withSyncCrud(
-           ~storeName="todo.crud",
-           ~scopeKeyOfState,
-           ~timestampOfState,
-           ~setTimestamp,
-           ~transport={
-             subscriptionOfState,
-             encodeSubscription: RealtimeSubscription.encode,
-             eventUrl: Constants.event_url,
-             baseUrl: Constants.base_url,
-           },
-           ~table=RealtimeSchema.table_name("todos"),
-           ~decodeRow=TodoItem.of_json,
-           ~getId=(item: TodoItem.t) => item.id,
-           ~getItems=(state: state) => state.todos,
-           ~setItems=(state: state, todos) => {...state, todos},
-           ~stateElementId=None,
-           (),
-         );
-  });
+  (val StoreBuilder.buildCrud(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState,
+         reduce,
+         makeStore,
+       })
+    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withSyncCrud(
+         ~storeName="todo.crud",
+         ~scopeKeyOfState,
+         ~timestampOfState,
+         ~setTimestamp,
+         ~transport={
+           subscriptionOfState,
+           encodeSubscription: RealtimeSubscription.encode,
+           eventUrl: Constants.event_url,
+           baseUrl: Constants.base_url,
+         },
+         ~table=RealtimeSchema.table_name("todos"),
+         ~decodeRow=TodoItem.of_json,
+         ~getId=(item: TodoItem.t) => item.id,
+         ~getItems=(state: state) => state.todos,
+         ~setItems=(state: state, todos) => {...state, todos},
+         ~stateElementId=None,
+         (),
+       )
+  ));
 ```
 
 ## Guard Trees (Validation)

@@ -100,7 +100,7 @@ Keep route definitions close to the page and layout components they reference.
 
 ## 3. Define a store with `StoreBuilder`
 
-For an SSR + realtime store, use `StoreBuilder.Synced.Define`. For a local-only store, use `StoreBuilder.Local.Define`.
+For an SSR + realtime store, use `StoreBuilder.buildSynced`. For a local-only store, use `StoreBuilder.buildLocal`.
 
 Both builders:
 
@@ -132,104 +132,97 @@ type store = {
 };
 
 module StoreDef =
-  StoreBuilder.Synced.Define({
-    type nonrec state = state;
-    type nonrec action = action;
-    type nonrec store = store;
-    type nonrec subscription = subscription;
-    type nonrec patch = patch;
-
-    let input =
-      StoreBuilder.make()
-      |> StoreBuilder.withSchema({
-           emptyState: Model.SSR.empty,
-           reduce: (~state: state, ~action: action) => state,
-           makeStore:
-             (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-             {
-               premise_id:
-                 StoreBuilder.projected(
-                   ~derive?,
-                   ~project,
-                   ~serverSource=state,
-                   ~fromStore=store => store.config,
-                   ~select=projections => projections.premise_id,
-                   (),
-                 ),
-               config: state,
-               period_list:
-                 StoreBuilder.projected(
-                   ~derive?,
-                   ~project,
-                   ~serverSource=state,
-                   ~fromStore=store => store.config,
-                   ~select=projections => projections.period_list,
-                   (),
-                 ),
-               unit:
-                 StoreBuilder.current(
-                   ~derive?,
-                   ~client=PeriodList.Unit.value,
-                   ~server=() => PeriodList.Unit.defaultState,
-                   (),
-                 ),
-             };
-           },
-         })
-      |> StoreBuilder.withJson(
-           ~state_of_json,
-           ~state_to_json,
-           ~action_of_json: _json => Noop,
-           ~action_to_json: _action => StoreJson.parse("{\"kind\":\"noop\"}"),
-         )
-      |> StoreBuilder.withSync(
-           ~storeName="ecommerce.inventory",
-           ~scopeKeyOfState=(state: state) =>
-             switch (state.premise) {
-             | Some(premise) => premise.id
-             | None => "default"
-             },
-           ~timestampOfState=(state: state) =>
-             switch (state.premise) {
-             | Some(premise) => premise.updated_at->Js.Date.getTime
-             | None => 0.0
-             },
-           ~setTimestamp=(~state: state, ~timestamp: float) =>
-             switch (state.premise) {
-             | Some(premise) => {
-                 ...state,
-                 premise: Some({...premise, updated_at: Js.Date.fromFloat(timestamp)}),
-               }
-             | None => state
-             },
-           ~decodePatch=
-             StorePatch.compose([
-               StoreCrud.decodePatch(
-                 ~table=RealtimeSchema.table_name("inventory"),
-                 ~decodeRow=Model.InventoryItem.of_json,
+  (val StoreBuilder.buildSynced(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState: Model.SSR.empty,
+         reduce: (~state: state, ~action: action) => state,
+         makeStore:
+           (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+           {
+             premise_id:
+               StoreBuilder.projected(
+                 ~derive?,
+                 ~project,
+                 ~serverSource=state,
+                 ~fromStore=store => store.config,
+                 ~select=projections => projections.premise_id,
                  (),
                ),
-             ]),
-           ~updateOfPatch=
-             StoreCrud.updateOfPatch(
-               ~getId=(item: Model.InventoryItem.t) => item.id,
-               ~getItems=(state: state) => state.inventory,
-               ~setItems=(state: state, items) => {...state, inventory: items},
-             ),
-           ~transport={
-             subscriptionOfState: (state: state) =>
-               switch (state.premise) {
-               | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
-               | None => None
-               },
-             encodeSubscription: RealtimeSubscription.encode,
-             eventUrl: Constants.event_url,
-             baseUrl: Constants.base_url,
+             config: state,
+             period_list:
+               StoreBuilder.projected(
+                 ~derive?,
+                 ~project,
+                 ~serverSource=state,
+                 ~fromStore=store => store.config,
+                 ~select=projections => projections.period_list,
+                 (),
+               ),
+             unit:
+               StoreBuilder.current(
+                 ~derive?,
+                 ~client=PeriodList.Unit.value,
+                 ~server=() => PeriodList.Unit.defaultState,
+                 (),
+               ),
+           };
+         },
+       })
+    |> StoreBuilder.withJson(
+         ~state_of_json,
+         ~state_to_json,
+         ~action_of_json: _json => Noop,
+         ~action_to_json: _action => StoreJson.parse("{\"kind\":\"noop\"}"),
+       )
+    |> StoreBuilder.withSync(
+         ~storeName="ecommerce.inventory",
+         ~scopeKeyOfState=(state: state) =>
+           switch (state.premise) {
+           | Some(premise) => premise.id
+           | None => "default"
            },
-           ~stateElementId=Some("initial-store"),
-           (),
-         );
-  });
+         ~timestampOfState=(state: state) =>
+           switch (state.premise) {
+           | Some(premise) => premise.updated_at->Js.Date.getTime
+           | None => 0.0
+           },
+         ~setTimestamp=(~state: state, ~timestamp: float) =>
+           switch (state.premise) {
+           | Some(premise) => {
+               ...state,
+               premise: Some({...premise, updated_at: Js.Date.fromFloat(timestamp)}),
+             }
+           | None => state
+           },
+         ~decodePatch=
+           StorePatch.compose([
+             StoreCrud.decodePatch(
+               ~table=RealtimeSchema.table_name("inventory"),
+               ~decodeRow=Model.InventoryItem.of_json,
+               (),
+             ),
+           ]),
+         ~updateOfPatch=
+           StoreCrud.updateOfPatch(
+             ~getId=(item: Model.InventoryItem.t) => item.id,
+             ~getItems=(state: state) => state.inventory,
+             ~setItems=(state: state, items) => {...state, inventory: items},
+           ),
+         ~transport={
+           subscriptionOfState: (state: state) =>
+             switch (state.premise) {
+             | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
+             | None => None
+             },
+           encodeSubscription: RealtimeSubscription.encode,
+           eventUrl: Constants.event_url,
+           baseUrl: Constants.base_url,
+         },
+         ~stateElementId=Some("initial-store"),
+         (),
+       )
+  ));
 
 include (
   StoreDef:
@@ -244,7 +237,7 @@ type t = store;
 module Context = StoreDef.Context;
 ```
 
-For a local-only client store such as the ecommerce cart, use `StoreBuilder.Local.Define` with the same pipeline pattern (ending in `withLocalPersistence` instead of `withSync`). It still uses IndexedDB for confirmed state and syncs newer confirmed snapshots across tabs with `BroadcastChannel`, but it does not create an action ledger or open a websocket.
+For a local-only client store such as the ecommerce cart, use `StoreBuilder.buildLocal` with the same pipeline pattern (ending in `withLocalPersistence` instead of `withSync`). It still uses IndexedDB for confirmed state and syncs newer confirmed snapshots across tabs with `BroadcastChannel`, but it does not create an action ledger or open a websocket.
 
 ## 4. Use typed patches with `StoreCrud`
 
@@ -279,7 +272,7 @@ type patch =
 
 ## 5. Sync with `RealtimeClient`
 
-If you use `StoreBuilder.Synced.Define`, realtime sync is configured through the store schema and wired automatically by the runtime builder.
+If you use `StoreBuilder.buildSynced`, realtime sync is configured through the store schema and wired automatically by the runtime builder.
 
 The store module provides:
 
@@ -293,7 +286,7 @@ The store module provides:
 - `action_of_json`
 - `action_to_json`
 
-That is enough for `StoreBuilder.Synced.Define` to:
+That is enough for `StoreBuilder.buildSynced` to:
 
 - subscribe over the active websocket
 - persist confirmed snapshots and queued actions to IndexedDB

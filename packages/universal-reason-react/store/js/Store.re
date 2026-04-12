@@ -8,6 +8,4 @@ module IndexedDB = StoreIndexedDB;
 module Selectors = StoreBuilder.Selectors;
 module Bootstrap = StoreBuilder.Bootstrap;
 module Runtime = StoreBuilder.Runtime;
-module Local = StoreBuilder.Local;
-module Synced = StoreBuilder.Synced;
 module Sync = StoreBuilder.Sync;

@@ -421,60 +421,51 @@ let guardTree =
   );
 
 module StoreDef =
-  StoreBuilder.Synced.Define({
-    type nonrec state = state;
-    type nonrec action = action;
-    type nonrec store = store;
-    type nonrec subscription = subscription;
-    type nonrec patch = patch;
-    type nonrec stream_event = stream_event;
-    type nonrec streaming_state = streaming_state;
-
-    let input =
-      StoreBuilder.make()
-      |> StoreBuilder.withSchema({
-           emptyState,
-           reduce,
-           makeStore,
-         })
-      |> StoreBuilder.withGuardTree(~guardTree)
-      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-       |> StoreBuilder.withSync(
-            ~storeName = "llm-chat",
-            ~scopeKeyOfState = state => scopeKeyOfState(state),
-            ~timestampOfState = state => timestampOfState(state),
-            ~setTimestamp,
-            ~decodePatch,
-            ~updateOfPatch,
-            ~transport = {
-              subscriptionOfState: (state: state): option(subscription) =>
-                switch (state.current_thread_id) {
-                | Some(id) => Some(RealtimeSubscription.thread(id))
-                | None => None
-                },
-              encodeSubscription: RealtimeSubscription.encode,
-              eventUrl: Constants.event_url,
-              baseUrl: Constants.base_url,
-            },
-            ~streams=Some({
-              decodeStreamEvent,
-              emptyStreamingState,
-              reduceStream,
-              reconcilePatch,
-            }),
-           ~hooks={
-             StoreBuilder.Sync.onActionError: Some(onActionError),
-             onActionAck: None,
-             onCustom: None,
-             onMedia: None,
-             onError: None,
-             onOpen: None,
-             onConnectionHandle: None,
-           },
-           ~stateElementId=Some("initial-store"),
-           (),
-         );
-  });
+  (val StoreBuilder.buildSynced(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState,
+         reduce,
+         makeStore,
+       })
+    |> StoreBuilder.withGuardTree(~guardTree)
+    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withSync(
+         ~storeName = "llm-chat",
+         ~scopeKeyOfState = state => scopeKeyOfState(state),
+         ~timestampOfState = state => timestampOfState(state),
+         ~setTimestamp,
+         ~decodePatch,
+         ~updateOfPatch,
+         ~transport = {
+           subscriptionOfState: (state: state): option(subscription) =>
+             switch (state.current_thread_id) {
+             | Some(id) => Some(RealtimeSubscription.thread(id))
+             | None => None
+             },
+           encodeSubscription: RealtimeSubscription.encode,
+           eventUrl: Constants.event_url,
+           baseUrl: Constants.base_url,
+         },
+         ~streams=Some({
+           decodeStreamEvent,
+           emptyStreamingState,
+           reduceStream,
+           reconcilePatch,
+         }),
+         ~hooks={
+           StoreBuilder.Sync.onActionError: Some(onActionError),
+           onActionAck: None,
+           onCustom: None,
+           onMedia: None,
+           onError: None,
+           onOpen: None,
+           onConnectionHandle: None,
+         },
+         ~stateElementId=Some("initial-store"),
+         (),
+       ),
+  ));
 
 include (
   StoreDef:

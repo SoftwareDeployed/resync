@@ -318,9 +318,9 @@ type store_event('action) =
 
 Typed store runtime event surface. This is intentionally a **store runtime** event model, not a raw websocket frame model. Snapshot and patch transport frames remain internal so reducers stay pure and observer code hooks into store outcomes instead of socket plumbing.
 
-### StoreBuilder.Local.Define
+### StoreBuilder.buildLocal
 
-Module functor for creating local-only runtime stores via the pipeline API. Local stores persist confirmed snapshots to IndexedDB and propagate newer confirmed state across tabs with `BroadcastChannel`.
+Terminal builder for creating local-only runtime stores via the pipeline API. Local stores persist confirmed snapshots to IndexedDB and propagate newer confirmed state across tabs with `BroadcastChannel`.
 
 **Pipeline:**
 1. `StoreBuilder.make()`
@@ -332,42 +332,37 @@ Module functor for creating local-only runtime stores via the pipeline API. Loca
 **Example:**
 ```reason
 module StoreDef =
-  StoreBuilder.Local.Define({
-    type nonrec state = state;
-    type nonrec action = action;
-    type nonrec store = store;
-
-    let input =
-      StoreBuilder.make()
-      |> StoreBuilder.withSchema({
-           emptyState,
-           reduce,
-           makeStore: (~state: state, ~derive: Tilia.Core.deriver(store)=?, ()) => {
-             state:
-               StoreBuilder.current(
-                 ~derive?,
-                 ~client=state,
-                 ~server=() => state,
-                 (),
-               ),
-             item_count:
-               StoreBuilder.derived(
-                 ~derive?,
-                 ~client=store => itemCount(store.state),
-                 ~server=() => itemCount(state),
-                 (),
-               ),
-           },
-         })
-      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-      |> StoreBuilder.withLocalPersistence(
-           ~storeName="ecommerce.cart",
-           ~scopeKeyOfState=_state => "default",
-           ~timestampOfState=state => state.updated_at,
-           ~stateElementId=Some("cart-store"),
-           (),
-         );
-  });
+  (val StoreBuilder.buildLocal(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState,
+         reduce,
+         makeStore: (~state: state, ~derive: Tilia.Core.deriver(store)=?, ()) => {
+           state:
+             StoreBuilder.current(
+               ~derive?,
+               ~client=state,
+               ~server=() => state,
+               (),
+             ),
+           item_count:
+             StoreBuilder.derived(
+               ~derive?,
+               ~client=store => itemCount(store.state),
+               ~server=() => itemCount(state),
+               (),
+             ),
+         },
+       })
+    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withLocalPersistence(
+         ~storeName="ecommerce.cart",
+         ~scopeKeyOfState=_state => "default",
+         ~timestampOfState=state => state.updated_at,
+         ~stateElementId=Some("cart-store"),
+         (),
+       )
+  ));
 
 include (
   StoreDef:
@@ -393,9 +388,9 @@ module Context = StoreDef.Context;
 - `module Context`: React context for store access
 - `module Events`: Event listener module
 
-### StoreBuilder.Synced.Define
+### StoreBuilder.buildSynced
 
-Module functor for creating custom synced runtime stores via the pipeline API. Synced stores persist confirmed snapshots plus an IndexedDB action ledger, send typed JSON actions over websocket, and propagate optimistic actions plus confirmed snapshots across tabs.
+Terminal builder for creating custom synced runtime stores via the pipeline API. Synced stores persist confirmed snapshots plus an IndexedDB action ledger, send typed JSON actions over websocket, and propagate optimistic actions plus confirmed snapshots across tabs.
 
 **Pipeline:**
 1. `StoreBuilder.make()`
@@ -430,67 +425,58 @@ type hooks('action) = {
 **Example:**
 ```reason
 module StoreDef =
-  StoreBuilder.Synced.Define({
-    type nonrec state = state;
-    type nonrec action = action;
-    type nonrec store = store;
-    type nonrec subscription = subscription;
-    type patch = action;
-    type nonrec stream_event = stream_event;
-    type nonrec streaming_state = streaming_state;
-
-    let input =
-      StoreBuilder.make()
-      |> StoreBuilder.withSchema({
-           emptyState,
-           reduce,
-           makeStore: (~state: state, ~derive: Tilia.Core.deriver(store)=?, ()) => {
-             room_id:
-               switch (state.room) {
-               | Some(room) => room.id
-               | None => ""
-               },
-             state,
-             peers_count:
-               StoreBuilder.derived(
-                 ~derive?,
-                 ~client=store =>
-                   switch (store.state.room) {
-                   | Some(room) => Array.length(room.peers)
-                   | None => 0
-                   },
-                 ~server=() =>
-                   switch (state.room) {
-                   | Some(room) => Array.length(room.peers)
-                   | None => 0
-                   },
-                 (),
-               ),
-           },
-         })
-      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-      |> StoreBuilder.withSync(
-           ~storeName="video-chat",
-           ~scopeKeyOfState=state => state.client_id,
-           ~timestampOfState=state => state.updated_at,
-           ~setTimestamp,
-           ~decodePatch=json =>
-             switch (action_of_json(json)) {
-             | JoinRoom(_) | LeaveRoom(_) | ToggleVideo(_) | ToggleAudio(_)
-             | ResetJoinStatus | JoinRoomAcknowledged => None
-             | patch => Some(patch)
+  (val StoreBuilder.buildSynced(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState,
+         reduce,
+         makeStore: (~state: state, ~derive: Tilia.Core.deriver(store)=?, ()) => {
+           room_id:
+             switch (state.room) {
+             | Some(room) => room.id
+             | None => ""
              },
-           ~updateOfPatch=(patch, state) => reduce(~state, ~action=patch),
-           ~transport={
-             subscriptionOfState: state => Some(state.client_id),
-             encodeSubscription: sub => sub,
-             eventUrl: Constants.event_url,
-             baseUrl: Constants.base_url,
+           state,
+           peers_count:
+             StoreBuilder.derived(
+               ~derive?,
+               ~client=store =>
+                 switch (store.state.room) {
+                 | Some(room) => Array.length(room.peers)
+                 | None => 0
+                 },
+               ~server=() =>
+                 switch (state.room) {
+                 | Some(room) => Array.length(room.peers)
+                 | None => 0
+                 },
+               (),
+             ),
+         },
+       })
+    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withSync(
+         ~storeName="video-chat",
+         ~scopeKeyOfState=state => state.client_id,
+         ~timestampOfState=state => state.updated_at,
+         ~setTimestamp,
+         ~decodePatch=json =>
+           switch (action_of_json(json)) {
+           | JoinRoom(_) | LeaveRoom(_) | ToggleVideo(_) | ToggleAudio(_)
+           | ResetJoinStatus | JoinRoomAcknowledged => None
+           | patch => Some(patch)
            },
-           ~stateElementId=Some("initial-store"),
-           (),
-         );
-  });
+         ~updateOfPatch=(patch, state) => reduce(~state, ~action=patch),
+         ~transport={
+           subscriptionOfState: state => Some(state.client_id),
+           encodeSubscription: sub => sub,
+           eventUrl: Constants.event_url,
+           baseUrl: Constants.base_url,
+         },
+         ~stateElementId=Some("initial-store"),
+         (),
+       )
+  ));
 
 include (
   StoreDef:
@@ -504,9 +490,9 @@ type t = store;
 module Context = StoreDef.Context;
 ```
 
-### StoreBuilder.Synced.DefineCrud
+### StoreBuilder.buildCrud
 
-Module functor for creating CRUD synced runtime stores via the pipeline API. `withSyncCrud` pre-wires the patch decoding for standard table-backed stores.
+Terminal builder for creating CRUD synced runtime stores via the pipeline API. `withSyncCrud` pre-wires the patch decoding for standard table-backed stores.
 
 **Pipeline:**
 1. `StoreBuilder.make()`
@@ -518,45 +504,38 @@ Module functor for creating CRUD synced runtime stores via the pipeline API. `wi
 **Example:**
 ```reason
 module StoreDef =
-  StoreBuilder.Synced.DefineCrud({
-    type nonrec state = state;
-    type nonrec action = action;
-    type nonrec store = store;
-    type nonrec subscription = subscription;
-    type row = Model.Todo.t;
-
-    let input =
-      StoreBuilder.make()
-      |> StoreBuilder.withSchema({
-           emptyState,
-           reduce,
-           makeStore: (~state: state, ~derive: Tilia.Core.deriver(store)=?, ()) => {
-             list_id:
-               switch (state.list) {
-               | Some(list) => list.id
-               | None => ""
-               },
-             state,
-             completed_count:
-               StoreBuilder.Synced.Crud.filteredCount(
-                 ~derive?,
-                 ~getItems=(store: store) => store.state.todos,
-                 ~predicate=(item: Model.Todo.t) => item.completed,
-                 (),
-               ),
-             total_count:
-               StoreBuilder.Synced.Crud.totalCount(
-                 ~derive?,
-                 ~getItems=(store: store) => store.state.todos,
-                 (),
-               ),
-           },
-         })
-      |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-      |> StoreBuilder.withSyncCrud(
-           ~storeName="todo-multiplayer",
-           ~scopeKeyOfState,
-           ~timestampOfState,
+  (val StoreBuilder.buildCrud(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState,
+         reduce,
+         makeStore: (~state: state, ~derive: Tilia.Core.deriver(store)=?, ()) => {
+           list_id:
+             switch (state.list) {
+             | Some(list) => list.id
+             | None => ""
+             },
+           state,
+           completed_count:
+             StoreBuilder.Crud.filteredCount(
+               ~derive?,
+               ~getItems=(store: store) => store.state.todos,
+               ~predicate=(item: Model.Todo.t) => item.completed,
+               (),
+             ),
+           total_count:
+             StoreBuilder.Crud.totalCount(
+               ~derive?,
+               ~getItems=(store: store) => store.state.todos,
+               (),
+             ),
+         },
+       })
+    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withSyncCrud(
+         ~storeName="todo-multiplayer",
+         ~scopeKeyOfState,
+         ~timestampOfState,
            ~setTimestamp,
            ~transport={
              subscriptionOfState: state =>
@@ -776,7 +755,7 @@ let computed:
 
 Applies a transform function to state.
 
-### StoreBuilder.Synced.Crud
+### StoreBuilder.Crud
 
 Convenience helpers layered on top of `DefineCrud` for common CRUD patterns.
 
@@ -793,7 +772,7 @@ Total items count derived selector. Returns 0 on the server.
 **Example:**
 ```reason
 total_count:
-  StoreBuilder.Synced.Crud.totalCount(
+  StoreBuilder.Crud.totalCount(
     ~derive?,
     ~getItems=(store: store) => store.state.todos,
     (),
@@ -818,7 +797,7 @@ Filtered items count derived selector. Returns 0 on the server.
 **Example:**
 ```reason
 completed_count:
-  StoreBuilder.Synced.Crud.filteredCount(
+  StoreBuilder.Crud.filteredCount(
     ~derive?,
     ~getItems=(store: store) => store.state.todos,
     ~predicate=(item: Model.Todo.t) => item.completed,
