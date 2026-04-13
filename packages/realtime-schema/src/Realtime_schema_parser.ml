@@ -378,7 +378,8 @@ let infer_query_params tables sql =
           | None -> ("string", "text"))
       | None -> ("string", "text")
     in
-    Hashtbl.replace params index { index; column_ref; ocaml_type; sql_type }
+    let payload_key = match column_ref with Some (_, col) -> Some col | None -> None in
+    Hashtbl.replace params index { index; column_ref; payload_key; ocaml_type; sql_type }
   in
   (* Handle INSERT ... VALUES ($1, $2, ...) by positional mapping to column list *)
   (match insert_table_and_columns with
@@ -431,7 +432,7 @@ let infer_query_params tables sql =
         match target_table with
         | Some table_name -> record_param index table_name column_name
         | None ->
-            Hashtbl.replace params index { index; column_ref = None; ocaml_type = "string"; sql_type = "text" };
+            Hashtbl.replace params index { index; column_ref = None; payload_key = None; ocaml_type = "string"; sql_type = "text" };
       scan_eq regex (next + 1)
     with Not_found -> ()
   in
@@ -448,7 +449,7 @@ let infer_query_params tables sql =
       let next = Str.search_forward placeholder_regex sql_without_casts position in
       let index = Str.matched_group 1 sql_without_casts |> int_of_string in
       if not (Hashtbl.mem params index) then
-        Hashtbl.replace params index { index; column_ref = None; ocaml_type = "string"; sql_type = "text" };
+        Hashtbl.replace params index { index; column_ref = None; payload_key = None; ocaml_type = "string"; sql_type = "text" };
       scan_placeholders (next + 1)
     with Not_found -> ()
   in

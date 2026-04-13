@@ -63,6 +63,7 @@ type handler =
 type query_param = {
   index : int;
   column_ref : (string * string) option;
+  payload_key : string option;
   ocaml_type : string;
   sql_type : string;
 }

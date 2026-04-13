@@ -140,7 +140,7 @@ let resolve_insert tables (stmt_fields : (string * Yojson.Basic.t) list) =
                         | None -> ("string", "text")
                       in
                       Hashtbl.replace params param_num
-                        { index = param_num; column_ref = Some (table_name, column_name); ocaml_type; sql_type })
+                        { index = param_num; column_ref = Some (table_name, column_name); payload_key = Some column_name; ocaml_type; sql_type })
                     refs)
                 cells
           | _ -> ())
@@ -208,8 +208,8 @@ let resolve_where_params ~default_table tables (params : (int, query_param) Hash
             | None -> ("string", "text"))
         | None -> ("string", "text")
       in
-      Hashtbl.replace params param_num
-        { index = param_num; column_ref = Some (table_name, column_name); ocaml_type; sql_type })
+Hashtbl.replace params param_num
+                        { index = param_num; column_ref = Some (table_name, column_name); payload_key = Some column_name; ocaml_type; sql_type })
     refs
 
 let resolve_update tables (stmt_fields : (string * Yojson.Basic.t) list) =
@@ -237,7 +237,7 @@ let resolve_update tables (stmt_fields : (string * Yojson.Basic.t) list) =
                         | None -> ("string", "text")
                       in
                       Hashtbl.replace params param_num
-                        { index = param_num; column_ref = Some (table_name, column_name); ocaml_type; sql_type })
+                        { index = param_num; column_ref = Some (table_name, column_name); payload_key = Some column_name; ocaml_type; sql_type })
                     refs)
               | None -> ())
           | _ -> ())
@@ -364,7 +364,7 @@ let resolve_select tables (stmt_fields : (string * Yojson.Basic.t) list) =
           | None -> ("string", "text")
         in
         Hashtbl.replace params param_num
-          { index = param_num; column_ref = Some (actual_table, column_name); ocaml_type; sql_type })
+          { index = param_num; column_ref = Some (actual_table, column_name); payload_key = Some column_name; ocaml_type; sql_type })
       refs
   in
 

@@ -526,7 +526,7 @@ let realtime_adapter =
     (Pgnotify_adapter.create ~db_uri ())
 
 let handle_mutation _broadcast_fn request ~db ~action_id ~mutation_name action =
-  (* Parse action and execute mutation - see full example *)
+  (* Only needed for custom @handler ocaml mutations *)
   Lwt.return (Ack (Ok ()))
 
 let realtime_middleware =
@@ -534,6 +534,7 @@ let realtime_middleware =
     ~adapter:realtime_adapter
     ~resolve_subscription
     ~load_snapshot:get_config_json
+    ~dispatch_mutation:RealtimeSchema.dispatch_mutation
     ~handle_mutation
     ()
 

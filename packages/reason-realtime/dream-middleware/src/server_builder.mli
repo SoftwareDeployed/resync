@@ -22,6 +22,7 @@ val with_middleware :
   resolve_subscription:(Dream.request -> string -> string option Lwt.t) ->
   load_snapshot:(Dream.request -> string -> string Lwt.t) ->
   ?handle_mutation:(Middleware.broadcast_fn -> Dream.request -> db:(module Caqti_lwt.CONNECTION) -> action_id:string -> mutation_name:string -> Yojson.Basic.t -> Mutation_result.t Lwt.t) ->
+  ?dispatch_mutation:Middleware.dispatch_mutation ->
   ?validate_mutation:(Dream.request -> Yojson.Basic.t -> (unit, string) result Lwt.t) ->
   ?handle_media:(Middleware.broadcast_fn -> Dream.request -> string -> string -> (unit, string) result Lwt.t) ->
   ?handle_disconnect:(Middleware.broadcast_fn -> string -> unit Lwt.t) ->

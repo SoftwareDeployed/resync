@@ -91,48 +91,6 @@ let handle_mutation _broadcast_fn _request ~db ~action_id ~mutation_name:_ actio
   in
   match kind with
   | Error error -> Lwt.return (Ack (Error error))
-  | Ok "add_todo" ->
-      (match assoc "payload" action with
-      | Some payload ->
-          (match
-             ( required_string "id" payload,
-               required_string "list_id" payload,
-               required_string "text" payload )
-           with
-          | Ok id, Ok list_id, Ok text ->
-              let* result =
-                Mutation_json.mutation_result ~action_id
-                  (RealtimeSchema.Mutations.AddTodo.exec db (id, list_id, text))
-              in
-              Mutation_json.finish_mutation_result ~action_id result
-          | Error error, _, _ | _, Error error, _ | _, _, Error error ->
-              Lwt.return (Ack (Error error)))
-      | None -> Lwt.return (Ack (Error "Missing add_todo payload")))
-  | Ok "set_todo_completed" ->
-      (match assoc "payload" action with
-      | Some payload ->
-          (match (required_string "id" payload, required_bool "completed" payload) with
-          | Ok id, Ok completed ->
-              let* result =
-                Mutation_json.mutation_result ~action_id
-                  (RealtimeSchema.Mutations.SetTodoCompleted.exec db (id, completed))
-              in
-              Mutation_json.finish_mutation_result ~action_id result
-          | Error error, _ | _, Error error -> Lwt.return (Ack (Error error)))
-      | None ->
-          Lwt.return (Ack (Error "Missing set_todo_completed payload")))
-  | Ok "remove_todo" ->
-      (match assoc "payload" action with
-      | Some payload ->
-          (match required_string "id" payload with
-          | Ok id ->
-              let* result =
-                Mutation_json.mutation_result ~action_id
-                  (RealtimeSchema.Mutations.RemoveTodo.exec db id)
-              in
-              Mutation_json.finish_mutation_result ~action_id result
-          | Error error -> Lwt.return (Ack (Error error)))
-      | None -> Lwt.return (Ack (Error "Missing remove_todo payload")))
   | Ok "fail_server_mutation" ->
       let* result =
         Mutation_json.mutation_result ~action_id
@@ -166,6 +124,7 @@ let () =
   |> Server_builder.with_middleware
     ~resolve_subscription
     ~load_snapshot:get_config_json
+    ~dispatch_mutation:RealtimeSchema.dispatch_mutation
     ~handle_mutation
   |> Server_builder.with_routes [
     Dream.get "/static/**" (Dream.static doc_root);

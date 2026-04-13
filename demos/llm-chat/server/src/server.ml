@@ -341,39 +341,6 @@ let handle_mutation broadcast_fn request ~db ~action_id ~mutation_name:_ action 
   | Ok "select_thread"
   | Ok "set_input" ->
       Lwt.return (Ack (Ok ()))
-  | Ok "delete_thread" ->
-      (match assoc "payload" action with
-       | Some payload ->
-           (match required_string "thread_id" payload with
-            | Ok thread_id ->
-                Lwt.catch
-                  (fun () ->
-                     let* () = RealtimeSchema.Mutations.DeleteThread.exec db thread_id in
-                     let delete_patch =
-                       `Assoc
-                         [ ("type", `String "patch");
-                           ("table", `String "threads");
-                           ("action", `String "DELETE");
-                           ("id", `String thread_id) ]
-                       |> Yojson.Basic.to_string
-                     in
-                     let* () =
-                       Lwt.catch
-                         (fun () -> broadcast_fn thread_id (fun _ -> delete_patch))
-                         (fun exn ->
-                            Printf.eprintf "[delete_thread] broadcast failed: %s\n%!" (Printexc.to_string exn);
-                            Lwt.return_unit)
-                     in
-                     Lwt.return (Ack (Ok ())))
-                  (function
-                    | Caqti_error.Exn error ->
-                        Printf.eprintf "[delete_thread] DB error: %s\n%!" (Caqti_error.show error);
-                        Lwt.return (Ack (Error (Caqti_error.show error)))
-                    | exn ->
-                        Printf.eprintf "[delete_thread] unexpected error: %s\n%!" (Printexc.to_string exn);
-                        Lwt.return (Ack (Error (Printexc.to_string exn))))
-            | Error error -> Lwt.return (Ack (Error error)))
-        | None -> Lwt.return (Ack (Error "Missing delete_thread payload")))
   | Ok _ -> Lwt.return (Ack (Error "Unknown action kind"))
 
 let () =
@@ -397,6 +364,7 @@ let () =
   |> Server_builder.with_middleware
     ~resolve_subscription
     ~load_snapshot:get_config_json
+    ~dispatch_mutation:RealtimeSchema.dispatch_mutation
     ~handle_mutation
     ~validate_mutation
   |> Server_builder.with_routes [

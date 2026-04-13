@@ -1152,11 +1152,12 @@ let create: (
   ~resolve_subscription: Dream.request => string => string option Lwt.t,
   ~load_snapshot: Dream.request => string => string Lwt.t,
   ?handle_mutation: Dream.request => action_id:string => Yojson.Basic.t => (unit, string) result Lwt.t,
+  ?dispatch_mutation: (module Caqti_lwt.CONNECTION) => mutation_name:string => Yojson.Basic.t => (unit, string) result Lwt.t option,
   unit,
 ) => Middleware.t;
 ```
 
-Creates middleware instance. `~handle_mutation` is optional and receives JSON mutation frames in the form `{type: "mutation", actionId, action}`.
+Creates middleware instance. `~handle_mutation` is optional and receives JSON mutation frames in the form `{type: "mutation", actionId, action}`. If `~dispatch_mutation` is provided, the middleware tries it first for every mutation; only when it returns `None` does the frame fall through to `~handle_mutation`.
 
 #### `Middleware.route`
 
@@ -1345,8 +1346,31 @@ module Mutations.AddTodo = struct
   let param_type = Caqti_type.t2(Caqti_type.string, Caqti_type.string) [@@platform native]
   let request = Caqti_request.Infix.(param_type ->. Caqti_type.unit)(sql) [@@platform native]
   let exec (module Db : Caqti_lwt.CONNECTION) params = ... [@@platform native]
+
+  (* For @handler sql mutations only *)
+  let dispatch (module Db : Caqti_lwt.CONNECTION) action = ... [@@platform native]
 end
 ```
+
+For `@handler sql` mutations, the PPX also generates a router that the middleware can use for auto-dispatch:
+
+```reason
+let dispatch_mutation (module Db : Caqti_lwt.CONNECTION) ~mutation_name action = ...
+```
+
+Wire it into the middleware so standard SQL mutations do not require a custom `handle_mutation`:
+
+```reason
+Middleware.create(
+  ~adapter,
+  ~resolve_subscription,
+  ~load_snapshot,
+  ~dispatch_mutation:RealtimeSchema.dispatch_mutation,
+  (),
+)
+```
+
+Only mutations that return `None` from `dispatch_mutation` fall through to `~handle_mutation`.
 
 **Important:** All Caqti bindings are decorated with `[@@platform native]` so the shared schema file compiles under both Melange (JS) and native OCaml targets.
 
