@@ -78,8 +78,17 @@ After the basics are working, move to:
 
 ### Real-time Packages
 
+- **[reason-realtime/stream](reason-realtime.stream.md)** - Streaming primitives for SSE, NDJSON, and Dream stream helpers.
 - **[reason-realtime/dream-middleware](reason-realtime.dream-middleware.md)** - Dream websocket middleware for server-to-client realtime delivery and JSON action handling.
 - **[reason-realtime/pgnotify-adapter](reason-realtime.pgnotify-adapter.md)** - PostgreSQL LISTEN/NOTIFY adapter for database-driven real-time events.
+
+### SQL-First Realtime Guides
+
+- **[SQL annotations](realtime-schema.sql-annotations.md)** - Annotated SQL syntax for tables, queries, mutations, and broadcasts.
+- **[SQL queries](realtime-schema.queries.md)** - Named realtime queries and how to use them from server code.
+- **[SQL mutations](realtime-schema.mutations.md)** - Named realtime mutations and mutation handling flow.
+- **[Generated artifacts](realtime-schema.generated-artifacts.md)** - What the generated SQL, snapshot, and migrations contain.
+- **[Streaming lifecycle](realtime.streaming-lifecycle.md)** - End-to-end flow from mutation dispatch to realtime patch delivery.
 
 ### Setup Guides
 
