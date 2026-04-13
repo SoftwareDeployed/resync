@@ -1286,6 +1286,70 @@ Stop listening on a channel and remove handlers.
 
 **Test coverage:** DB-backed integration tests for subscribe/delivery/unsubscribe live under `packages/reason-realtime/pgnotify-adapter/test`. See `docs/testing.md` for setup and commands.
 
+## realtime-schema PPX Generated Helpers
+
+The `[%realtime_schema "..."]` PPX generates per-query and per-mutation modules with ready-to-use Caqti helpers.
+
+### Table modules
+
+Every `@table` emits a module under `RealtimeSchema.Tables.*` with a `caqti_type` for the table record:
+
+```reason
+module Tables.Inventory = struct
+  let name = "inventory"
+  let id_column = Some "id"
+  let composite_key = []
+  let caqti_type = Caqti_type.product(...) [@@platform native]
+end
+```
+
+### Query modules
+
+Every `@query` emits a module under `RealtimeSchema.Queries.*` with:
+
+```reason
+module Queries.GetInventoryList = struct
+  let name = "get_inventory_list"
+  let sql = "SELECT ..."
+  let json_columns = ["period_list"]
+  let handler = Sql
+
+  type row = {
+    id : string;
+    premise_id : string;
+    name : string;
+    description : string;
+    quantity : int;
+    period_list : string;
+  } [@@platform native]
+
+  let caqti_type = Caqti_type.product(...) [@@platform native]
+  let param_type = Caqti_type.string [@@platform native]
+  let request row_type = Caqti_request.Infix.(param_type ->* row_type)(sql) [@@platform native]
+  let find_request row_type = Caqti_request.Infix.(param_type ->? row_type)(sql) [@@platform native]
+  let collect (module Db : Caqti_lwt.CONNECTION) row_type params = ... [@@platform native]
+  let find_opt (module Db : Caqti_lwt.CONNECTION) row_type params = ... [@@platform native]
+end
+```
+
+### Mutation modules
+
+Every `@mutation` emits a module under `RealtimeSchema.Mutations.*` with:
+
+```reason
+module Mutations.AddTodo = struct
+  let name = "add_todo"
+  let sql = "INSERT INTO todos ..."
+  let handler = Sql
+
+  let param_type = Caqti_type.t2(Caqti_type.string, Caqti_type.string) [@@platform native]
+  let request = Caqti_request.Infix.(param_type ->. Caqti_type.unit)(sql) [@@platform native]
+  let exec (module Db : Caqti_lwt.CONNECTION) params = ... [@@platform native]
+end
+```
+
+**Important:** All Caqti bindings are decorated with `[@@platform native]` so the shared schema file compiles under both Melange (JS) and native OCaml targets.
+
 ## universal-reason-react/intl
 
 Universal internationalization library with `Intl.NumberFormatter` and `Intl.DateTimeFormatter` for both server (via ICU4C) and client (via native `Intl`).

@@ -500,12 +500,24 @@ let resolve_subscription request selection =
   match RealtimeSubscription.decode_channel selection with
   | None -> Lwt.return_none
   | Some list_id ->
-    let* list_info = Dream.sql request (Database.Todo.get_list_info list_id) in
+    let* list_info =
+      Dream.sql request (fun db ->
+        RealtimeSchema.Queries.GetListInfo.find_opt
+          db
+          RealtimeSchema.Queries.GetListInfo.caqti_type
+          list_id)
+    in
     Lwt.return (Option.map (fun _ -> list_id) list_info)
 
 let get_config_json request list_id =
-  let* todos = Dream.sql request (Database.Todo.get_list list_id) in
-  let config : Model.t = {todos; list = None} in
+  let* todos =
+    Dream.sql request (fun db ->
+      RealtimeSchema.Queries.GetList.collect
+        db
+        RealtimeSchema.Queries.GetList.caqti_type
+        list_id)
+  in
+  let config : Model.t = {todos = Array.of_list todos; list = None} in
   Lwt.return (TodoStore.serializeSnapshot config)
 
 let realtime_adapter =
@@ -550,8 +562,15 @@ open Lwt.Syntax;
 let getServerState = (context: UniversalRouterDream.serverContext(TodoStore.t)) => {
   let UniversalRouterDream.{basePath, request} = context;
   /* Extract list_id from path, fetch from DB, return store */
-  let* todos = Dream.sql(request, Database.Todo.get_list(listId));
-  let config: Model.t = {todos, list: Some(list)};
+  let* todos =
+    Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+      RealtimeSchema.Queries.GetList.collect(
+        (module Db),
+        RealtimeSchema.Queries.GetList.caqti_type,
+        listId,
+      )
+    );
+  let config: Model.t = {todos = Array.of_list(todos), list: Some(list)};
   let store = TodoStore.createStore(config);
   Lwt.return(UniversalRouterDream.State(store));
 };

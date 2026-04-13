@@ -406,7 +406,7 @@ dune build ./ui    # Specific target
 1. **Proper Lwt handling:**
 ```reason
 // In test
-let%lwt result = Database.getUser("123");
+let%lwt result = Queries.GetUser.find_opt db Queries.GetUser.caqti_type "123";
 Alcotest.(check (option user)) "user exists" (Some(expected)) result;
 Lwt.return_unit;
 ```
@@ -433,8 +433,8 @@ export TEST_DB_URL="postgres://localhost:5432/myapp_test"
 2. **Setup/teardown in tests:**
 ```reason
 let test_setup = () => {
-  let* () = Database.truncate_all();
-  let* () = Database.seed_test_data();
+  let* () = Mutations.TruncateAll.exec db ();
+  let* () = Mutations.SeedTestData.exec db ();
   Lwt.return_unit;
 };
 ```
@@ -451,8 +451,15 @@ let test_setup = () => {
 ```reason
 // Only send necessary data
 let getServerState = (context) => {
-  let* items = Database.getItems(~limit=20);  // Paginate
-  Lwt.return(State({items}));
+  let* items =
+    Dream.sql(context.request, (module Db: Caqti_lwt.CONNECTION) =>
+      Queries.GetItems.collect(
+        (module Db),
+        Queries.GetItems.caqti_type,
+        20,  // Paginate
+      )
+    );
+  Lwt.return(State({items: Array.of_list(items)}));
 };
 ```
 

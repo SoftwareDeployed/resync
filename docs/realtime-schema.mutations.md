@@ -44,7 +44,7 @@ The mutation is handled in OCaml and may compose multiple SQL operations or call
 
 ### Example: todo-multiplayer server handler
 
-`demos/todo-multiplayer/server/src/Database/Todo.re` shows the generated mutation SQL being consumed from OCaml. The PPX now emits a full Caqti request module for each mutation, so you can execute it directly without hand-writing the request boilerplate:
+`demos/todo-multiplayer/server/src/server.ml` and `demos/todo-multiplayer/server/src/EntryServer.re` show the generated mutation SQL being consumed from OCaml. The PPX emits a full Caqti request module for each mutation, so you can execute it directly without hand-writing the request boilerplate:
 
 ```reason
 let create_list = (list_id: string) =>
@@ -62,19 +62,23 @@ The framework transparently handles idempotency, so mutations only need to expre
 
 ### Example: custom mutation dispatcher in llm-chat
 
-`demos/llm-chat/server/src/server.ml` shows the case where you need a custom OCaml handler instead of a direct SQL mutation. It pattern-matches the action kind, writes to the DB, and broadcasts streaming events:
+`demos/llm-chat/server/src/server.ml` shows the case where you need a custom OCaml handler instead of a direct SQL mutation. It pattern-matches the action kind, writes to the DB using the generated mutation helper, and broadcasts streaming events:
 
-```reason
+```ocaml
 | Ok "send_prompt" ->
     require_thread request thread_id (fun () ->
       let message_id = UUID.make () in
       let assistant_message_id = UUID.make () in
-      let* () = Database.Chat.add_message message_id thread_id "user" prompt db in
+      let* () =
+        RealtimeSchema.Mutations.AddMessage.exec
+          db
+          (message_id, thread_id, "user", prompt)
+      in
       Lwt.async (fun () -> stream_ollama ~broadcast_fn ~request ~thread_id ~assistant_message_id ());
       Lwt.return (Ack (Ok ())))
 ```
 
-That is the practical shape of `@handler ocaml`: the SQL layer gives you the named operation, and the handler can compose extra side effects around it.
+That is the practical shape of `@handler ocaml`: the SQL layer gives you the named operation via `RealtimeSchema.Mutations.*.exec`, and the handler can compose extra side effects around it.
 
 ## Practical rules
 

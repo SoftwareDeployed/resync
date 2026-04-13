@@ -252,18 +252,39 @@ let fetchDataForRoute = (basePath: string, request: Dream.request) => {
   switch (basePath) {
   | "/" =>
     // Home page - fetch featured items
-    let* featuredItems = Dream.sql(request, Database.getFeaturedItems());
+    let* featuredItems =
+      Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+        RealtimeSchema.Queries.GetFeaturedItems.collect(
+          (module Db),
+          RealtimeSchema.Queries.GetFeaturedItems.caqti_type,
+          (),
+        )
+      );
     Lwt.return({items: featuredItems, user: None})
     
   | "/products" =>
     // Products page - fetch all products
-    let* products = Dream.sql(request, Database.getAllProducts());
+    let* products =
+      Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+        RealtimeSchema.Queries.GetAllProducts.collect(
+          (module Db),
+          RealtimeSchema.Queries.GetAllProducts.caqti_type,
+          (),
+        )
+      );
     Lwt.return({items: products, user: None})
     
   | "/products/:id" =>
     // Product detail - fetch single product
     let productId = extractParam(basePath, "id");
-    let* product = Dream.sql(request, Database.getProductById(productId));
+    let* product =
+      Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+        RealtimeSchema.Queries.GetProductById.find_opt(
+          (module Db),
+          RealtimeSchema.Queries.GetProductById.caqti_type,
+          productId,
+        )
+      );
     Lwt.return({items: Option.to_list(product), user: None})
     
   | "/dashboard" =>
@@ -271,9 +292,23 @@ let fetchDataForRoute = (basePath: string, request: Dream.request) => {
     let* user = authenticate(request);
     switch (user) {
     | Some(userId) =>
-      let* userData = Dream.sql(request, Database.getUserData(userId));
-      let* orders = Dream.sql(request, Database.getUserOrders(userId));
-      Lwt.return({user: Some(userData), orders: orders})
+      let* userData =
+        Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+          RealtimeSchema.Queries.GetUserData.find_opt(
+            (module Db),
+            RealtimeSchema.Queries.GetUserData.caqti_type,
+            userId,
+          )
+        );
+      let* orders =
+        Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+          RealtimeSchema.Queries.GetUserOrders.collect(
+            (module Db),
+            RealtimeSchema.Queries.GetUserOrders.caqti_type,
+            userId,
+          )
+        );
+      Lwt.return({user: userData, orders: orders})
     | None =>
       Lwt.return({user: None, orders: []})
     }

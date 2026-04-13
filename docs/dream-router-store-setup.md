@@ -416,14 +416,33 @@ let getServerState = (context: UniversalRouterDream.serverContext) => {
   let* premise =
     Dream.sql(
       request,
-      Database.Premise.get_route_premise(basePath),
+      (module Db: Caqti_lwt.CONNECTION) =>
+        RealtimeSchema.Queries.GetRoutePremise.find_opt(
+          (module Db),
+          RealtimeSchema.Queries.GetRoutePremise.caqti_type,
+          basePath,
+        ),
     );
 
   switch (premise) {
   | None => Lwt.return(UniversalRouterDream.NotFound)
-  | Some(premise) =>
-    let* inventory =
-        Dream.sql(request, Database.Inventory.get_list(premise.id));
+  | Some(premise_row) =>
+    let premise: Model.Premise.t = {
+      id: premise_row.id,
+      name: premise_row.name,
+      slug: premise_row.slug,
+    };
+    let* inventory_rows =
+        Dream.sql(
+          request,
+          (module Db: Caqti_lwt.CONNECTION) =>
+            RealtimeSchema.Queries.GetInventoryList.collect(
+              (module Db),
+              RealtimeSchema.Queries.GetInventoryList.caqti_type,
+              premise.id,
+            ),
+        );
+    let inventory = Array.of_list(inventory_rows);
     let config: Model.t = {inventory, premise: Some(premise)};
     Lwt.return(UniversalRouterDream.State(config))
   };

@@ -50,41 +50,63 @@ Typical flow:
 2. Regenerate the schema module.
 3. Call the generated `Queries.<Name>.sql` from server code.
 
-### Example: ecommerce inventory query
+### Generated query helpers
 
-`demos/ecommerce/server/src/Database/Inventory.re` wires the generated query into a typed Caqti request:
+For every `@query`, the PPX generates a module with Caqti helpers:
 
 ```reason
-let get_list = (premise_id: string) => {
-  let query =
-    Caqti_request.Infix.(
-      (T.string ->* inventory_item_caqti_type)(RealtimeSchema.Queries.GetInventoryList.sql)
-    );
-  (module Db: DB) => {
-    let* items_or_error = Db.collect_list(query, premise_id);
-    let* items_list = Caqti_lwt.or_fail(items_or_error);
-    Lwt.return(Array.of_list(items_list));
-  };
-};
+module GetInventoryList = struct
+  let name = "get_inventory_list"
+  let sql = "SELECT ..."
+
+  type row = {
+    id : string;
+    premise_id : string;
+    name : string;
+    description : string;
+    quantity : int;
+    period_list : string;
+  } [@@platform native]
+
+  let caqti_type = Caqti_type.product(...) [@@platform native]
+  let param_type = Caqti_type.string [@@platform native]
+  let request row_type = Caqti_request.Infix.(param_type ->* row_type)(sql) [@@platform native]
+  let find_request row_type = Caqti_request.Infix.(param_type ->? row_type)(sql) [@@platform native]
+  let collect (module Db : Caqti_lwt.CONNECTION) row_type params = ... [@@platform native]
+  let find_opt (module Db : Caqti_lwt.CONNECTION) row_type params = ... [@@platform native]
+end
 ```
 
-The route entrypoint then uses `Dream.sql(request, Database.Inventory.get_list(premiseId))` to execute it inside the request context.
+### Example: ecommerce inventory query
+
+Server code calls the generated `collect` directly without hand-writing Caqti requests:
+
+```ocaml
+let* item_rows =
+  Dream.sql request (fun db ->
+    RealtimeSchema.Queries.GetInventoryList.collect
+      db
+      RealtimeSchema.Queries.GetInventoryList.caqti_type
+      premise_id)
+in
+let items = Array.of_list item_rows
+```
 
 ### Example: single-row lookup
 
-The same file uses the `GetCompleteInventory` query for a single row lookup:
+For queries that return at most one row, use `find_opt`:
 
-```reason
-let get_by_id = (item_id: string) => {
-  let query =
-    Caqti_request.Infix.(
-      (T.string ->? inventory_item_caqti_type)(RealtimeSchema.Queries.GetCompleteInventory.sql)
-    );
-  (module Db: DB) => {
-    let* item_or_error = Db.find_opt(query, item_id);
-    Caqti_lwt.or_fail(item_or_error);
-  };
-};
+```ocaml
+let* item_row =
+  Dream.sql request (fun db ->
+    RealtimeSchema.Queries.GetCompleteInventory.find_opt
+      db
+      RealtimeSchema.Queries.GetCompleteInventory.caqti_type
+      item_id)
+in
+match item_row with
+| None -> ...
+| Some row -> ...
 ```
 
 ## Query authoring conventions

@@ -228,7 +228,7 @@ let handle_mutation request ~action_id action = {
       let payload = (* decode action.payload *) action;
       let listId = "...";
       let text = "...";
-      let* () = Dream.sql(request, Database.Todo.add_todo((action_id, listId, text))) in
+      let* () = RealtimeSchema.Mutations.AddTodo.exec(db, (action_id, listId, text)) in
       Lwt.return(Ok(()));
     }
   | _ => Lwt.return(Error("Unknown action kind"))

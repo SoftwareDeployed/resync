@@ -162,21 +162,43 @@ end
 
 module Queries = struct
   module GetInventoryList = struct
+    let name = "get_inventory_list"
     let sql = "SELECT ..."
     let json_columns = ["period_list"]
     let handler = Sql
+
+    type row = {
+      id : string;
+      premise_id : string;
+      name : string;
+      description : string;
+      quantity : int;
+      period_list : string;
+    } [@@platform native]
+
+    let caqti_type = Caqti_type.product(...) [@@platform native]
+    let param_type = Caqti_type.string [@@platform native]
+    let request row_type = Caqti_request.Infix.(param_type ->* row_type)(sql) [@@platform native]
+    let find_request row_type = Caqti_request.Infix.(param_type ->? row_type)(sql) [@@platform native]
+    let collect (module Db : Caqti_lwt.CONNECTION) row_type params = ... [@@platform native]
+    let find_opt (module Db : Caqti_lwt.CONNECTION) row_type params = ... [@@platform native]
   end
 end
 
 module Mutations = struct
   module AddTodo = struct
+    let name = "add_todo"
     let sql = "INSERT INTO todos ..."
     let handler = Sql
+
+    let param_type = Caqti_type.t2(Caqti_type.string, Caqti_type.string) [@@platform native]
+    let request = Caqti_request.Infix.(param_type ->. Caqti_type.unit)(sql) [@@platform native]
+    let exec (module Db : Caqti_lwt.CONNECTION) params = ... [@@platform native]
   end
 end
 ```
 
-Every named query and mutation is emitted as reusable metadata. Server code can build typed Caqti functions from `RealtimeSchema.Queries.*.sql` and `RealtimeSchema.Mutations.*.sql`, and OCaml-backed mutation handlers can compose those generated names instead of hard-coding SQL strings in multiple places.
+Every named query and mutation is emitted as reusable metadata. Server code can call generated Caqti functions directly from `RealtimeSchema.Queries.*` and `RealtimeSchema.Mutations.*`, and OCaml-backed mutation handlers can compose those generated helpers instead of hard-coding SQL strings in multiple places.
 
 ### 2. SchemaTriggers.sql (Auto-Generated)
 
@@ -458,20 +480,44 @@ dune exec realtime-schema-codegen -- \
 
 ### Server-Side: Caqti Queries and Mutations
 
-Server code uses `RealtimeSchema.Queries.*.sql` and `RealtimeSchema.Mutations.*.sql` for typed query strings and `Realtime_schema_caqti.json_text` for decoding JSON-text columns:
+Server code calls the generated Caqti helpers directly. No hand-written `Caqti_request` boilerplate is required:
 
-```reason
-let get_list =
-  Caqti_request.of_string ~encode:Caqti_type.string
-    ~decode:(Caqti_type.list Realtime_schema_caqti.json_text)
-    RealtimeSchema.Queries.GetInventoryList.sql
+```ocaml
+(* List-collect query *)
+let* item_rows =
+  Dream.sql request (fun db ->
+    RealtimeSchema.Queries.GetInventoryList.collect
+      db
+      RealtimeSchema.Queries.GetInventoryList.caqti_type
+      premise_id)
+in
+let items = Array.of_list item_rows
 ```
 
+```ocaml
+(* Single-row lookup *)
+let* item_row =
+  Dream.sql request (fun db ->
+    RealtimeSchema.Queries.GetCompleteInventory.find_opt
+      db
+      RealtimeSchema.Queries.GetCompleteInventory.caqti_type
+      item_id)
+```
+
+```ocaml
+(* Mutation *)
+let* () =
+  RealtimeSchema.Mutations.AddTodo.exec db (list_id, text)
+```
+
+If you need to build a custom request, you can still use `RealtimeSchema.Queries.*.sql`, `RealtimeSchema.Mutations.*.sql`, and `RealtimeSchema.Queries.*.param_type`:
+
 ```reason
-let add_todo =
-  Caqti_request.Infix.((Caqti_type.t2(Caqti_type.string, Caqti_type.string) ->. Caqti_type.unit)(
-    RealtimeSchema.Mutations.AddTodo.sql,
-  ));
+let custom_request =
+  Caqti_request.Infix.(
+    RealtimeSchema.Queries.GetInventoryList.param_type ->*
+    RealtimeSchema.Queries.GetInventoryList.caqti_type
+  )(RealtimeSchema.Queries.GetInventoryList.sql)
 ```
 
 Client code sends named mutation commands over the active websocket connection, for example `mutation add_todo {"list_id":"...","text":"..."}`. The server executes the mutation, Postgres triggers broadcast a patch, and the client store applies that patch through `StoreSync`.
