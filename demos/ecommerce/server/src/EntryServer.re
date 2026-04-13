@@ -2,20 +2,53 @@ open Lwt.Syntax;
 
 let getServerState = (context: UniversalRouterDream.serverContext(Store.t)) => {
   let UniversalRouterDream.{ basePath, request } = context;
-  let* premise =
-    Dream.sql(request, Database.Premise.get_route_premise(basePath));
+  let* premiseRow =
+    Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+      RealtimeSchema.Queries.GetRoutePremise.find_opt(
+        (module Db),
+        RealtimeSchema.Queries.GetRoutePremise.caqti_type,
+        basePath,
+      )
+    );
 
-  switch (premise) {
+  switch (premiseRow) {
   | None => Lwt.return(UniversalRouterDream.NotFound)
-  | Some(premise) =>
+  | Some(row) =>
+    let premise = ({
+      PeriodList.Premise.id: row.id,
+      name: row.name,
+      description: row.description,
+      updated_at: Js.Date.fromFloat(row.updated_at),
+    }: PeriodList.Premise.t);
     let premiseId = premise.PeriodList.Premise.id;
     let inventoryPromise =
       if (premiseId == "") {
-        Lwt.return([||]);
+        Lwt.return([]);
       } else {
-        Dream.sql(request, Database.Inventory.get_list(premiseId));
+        Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+          RealtimeSchema.Queries.GetInventoryList.collect(
+            (module Db),
+            RealtimeSchema.Queries.GetInventoryList.caqti_type,
+            premiseId,
+          )
+        );
       };
-    let* inventory = inventoryPromise;
+    let* inventoryRows = inventoryPromise;
+    let inventory =
+      Array.map(
+        (itemRow: RealtimeSchema.Queries.GetInventoryList.row) => ({
+          Model.InventoryItem.description: itemRow.description,
+          id: itemRow.id,
+          name: itemRow.name,
+          quantity: itemRow.quantity,
+          premise_id: itemRow.premise_id,
+          period_list:
+            Model.Pricing.period_list_of_json(
+              Melange_json.of_string(itemRow.period_list),
+            ),
+        }: Model.InventoryItem.t),
+        Array.of_list(inventoryRows),
+      );
     let config: Model.t = {
       inventory,
       premise: Some(premise),

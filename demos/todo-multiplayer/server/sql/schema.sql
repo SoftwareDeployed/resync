@@ -28,6 +28,11 @@ SELECT id, list_id, text, completed FROM todos WHERE list_id = $1 ORDER BY creat
 */
 
 /*
+@query get_list_info
+SELECT id, name, EXTRACT(EPOCH FROM updated_at) * 1000 AS updated_at FROM todo_lists WHERE id = $1;
+*/
+
+/*
 @mutation create_list
 INSERT INTO todo_lists (id) VALUES ($1);
 */

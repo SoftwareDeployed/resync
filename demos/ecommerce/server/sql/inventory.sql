@@ -81,3 +81,8 @@ CREATE TABLE inventory_period_map (
 INSERT INTO inventory_period_map (inventory_id, period_id)
 SELECT 'b55351b1-1b78-4b6c-bd13-6859dc9ad411', id
 FROM period;
+
+/*
+@mutation update_quantity
+UPDATE inventory SET quantity = $2 WHERE id = $1;
+*/

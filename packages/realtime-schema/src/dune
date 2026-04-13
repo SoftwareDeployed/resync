@@ -6,9 +6,10 @@
   Realtime_schema_types
   Realtime_schema_utils
   Realtime_schema_parser
-  Realtime_schema_codegen)
+  Realtime_schema_codegen
+  Realtime_schema_pg_query)
  (wrapped false)
- (libraries caqti melange-json-native str yojson unix))
+ (libraries caqti melange-json-native pg_query str yojson unix))
 
 (library
  (name realtime_schema_ppx)

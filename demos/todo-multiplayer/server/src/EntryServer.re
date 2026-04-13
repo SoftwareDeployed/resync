@@ -42,14 +42,38 @@ let getServerState = (context: UniversalRouterDream.serverContext(TodoStore.t)) 
     if (!isUuid(listId)) {
       Lwt.return(UniversalRouterDream.NotFound);
     } else {
-      let* listInfo = Dream.sql(request, Database.Todo.get_list_info(listId));
+      let* listInfo =
+        Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+          RealtimeSchema.Queries.GetListInfo.find_opt(
+            (module Db),
+            RealtimeSchema.Queries.GetListInfo.caqti_type,
+            listId,
+          )
+        );
       switch (listInfo) {
       | None => Lwt.return(UniversalRouterDream.NotFound)
-      | Some(list) =>
-        let* todos = Dream.sql(request, Database.Todo.get_list(listId));
+      | Some(listRow) =>
+        let* todoRows =
+          Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+            RealtimeSchema.Queries.GetList.collect(
+              (module Db),
+              RealtimeSchema.Queries.GetList.caqti_type,
+              listId,
+            )
+          );
+        let todos =
+          List.map(
+            (row: RealtimeSchema.Queries.GetList.row) =>
+              ({Model.Todo.id: row.id, list_id: row.list_id, text: row.text, completed: row.completed}: Model.Todo.t),
+            todoRows,
+          );
+        let list =
+          Some((
+            {Model.TodoList.id: listRow.id, name: listRow.name, updated_at: listRow.updated_at}: Model.TodoList.t
+          ));
         let config: Model.t = {
-          todos,
-          list: Some(list),
+          todos: Array.of_list(todos),
+          list,
         };
         let store = TodoStore.createStore(config);
         Lwt.return(UniversalRouterDream.State(store));

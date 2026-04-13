@@ -42,18 +42,63 @@ let getServerState = (context: UniversalRouterDream.serverContext(LlmChatStore.t
     if (!isUuid(threadId)) {
       Lwt.return(UniversalRouterDream.NotFound);
     } else {
-      let* threadInfo = Dream.sql(request, Database.Chat.get_thread(threadId));
-      switch (threadInfo) {
+      let* threadRow =
+        Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+          RealtimeSchema.Queries.GetThread.find_opt(
+            (module Db),
+            RealtimeSchema.Queries.GetThread.caqti_type,
+            threadId,
+          )
+        );
+      switch (threadRow) {
       | None => Lwt.return(UniversalRouterDream.NotFound)
-      | Some(_thread) =>
-        let* messages = Dream.sql(request, Database.Chat.get_messages(threadId));
-        let* threads = Dream.sql(request, Database.Chat.get_threads());
+      | Some(row) =>
+        let thread = ({
+          Model.Thread.id: row.id,
+          title: row.title,
+          updated_at: row.updated_at,
+        }: Model.Thread.t);
+        let* messageRows =
+          Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+            RealtimeSchema.Queries.GetMessages.collect(
+              (module Db),
+              RealtimeSchema.Queries.GetMessages.caqti_type,
+              threadId,
+            )
+          );
+        let messages =
+          Array.map(
+            (msgRow: RealtimeSchema.Queries.GetMessages.row) => ({
+              Model.Message.id: msgRow.id,
+              thread_id: msgRow.thread_id,
+              role: msgRow.role,
+              content: msgRow.content,
+            }: Model.Message.t),
+            Array.of_list(messageRows),
+          );
+        let* threadRows =
+          Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+            RealtimeSchema.Queries.GetThreads.collect(
+              (module Db),
+              RealtimeSchema.Queries.GetThreads.caqti_type,
+              (),
+            )
+          );
+        let threads =
+          Array.map(
+            (tr: RealtimeSchema.Queries.GetThreads.row) => ({
+              Model.Thread.id: tr.id,
+              title: tr.title,
+              updated_at: tr.updated_at,
+            }: Model.Thread.t),
+            Array.of_list(threadRows),
+          );
         let config: Model.t = {
           threads,
           current_thread_id: Some(threadId),
           messages,
           input: "",
-          updated_at: _thread.updated_at,
+          updated_at: thread.updated_at,
         };
         let store = LlmChatStore.createStore(config);
         Lwt.return(UniversalRouterDream.State(store));

@@ -53,4 +53,3 @@
  (name ecommerce-server)
  (deps server.exe))
 
-(include_subdirs qualified)

@@ -311,6 +311,10 @@ let alias_map_of_query sql =
   loop 0
 
 let infer_query_params tables sql =
+  let pg_params = Realtime_schema_pg_query.infer_params tables sql in
+  match pg_params with
+  | _ :: _ -> pg_params
+  | [] ->
   let normalized = normalize_whitespace sql in
   let alias_map = alias_map_of_query normalized in
   let sql_without_casts = Str.global_replace (Str.regexp {|::[A-Za-z0-9_]+|}) "" normalized in
@@ -460,13 +464,16 @@ let parse_query ~source_file ~annotations tables statement : query option =
   match annotation_value annotations "query" with
   | None -> None
   | Some name ->
-      let normalized = normalize_whitespace statement in
       let return_table =
-        let regex = Str.regexp_case_fold {|from \([A-Za-z0-9_]+\)|} in
-        try
-          let _ = Str.search_forward regex normalized 0 in
-          Some (Str.matched_group 1 normalized)
-        with Not_found -> None
+        match Realtime_schema_pg_query.infer_return_table statement with
+        | Some t -> Some t
+        | None ->
+            let normalized = normalize_whitespace statement in
+            let regex = Str.regexp_case_fold {|from \([A-Za-z0-9_]+\)|} in
+            try
+              let _ = Str.search_forward regex normalized 0 in
+              Some (Str.matched_group 1 normalized)
+            with Not_found -> None
       in
       let json_columns =
         let from_plural =

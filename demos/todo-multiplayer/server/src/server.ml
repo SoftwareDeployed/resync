@@ -2,9 +2,34 @@ open Lwt.Syntax
 open Mutation_result
 
 let get_config request list_id =
-  let* list_info = Dream.sql request (Database.Todo.get_list_info list_id) in
-  let* todos = Dream.sql request (Database.Todo.get_list list_id) in
-  let config : Model.t = { todos; list = list_info } in
+  let* list_info =
+    Dream.sql request (fun db ->
+      RealtimeSchema.Queries.GetListInfo.find_opt
+        db
+        RealtimeSchema.Queries.GetListInfo.caqti_type
+        list_id)
+  in
+  let* todos =
+    Dream.sql request (fun db ->
+      RealtimeSchema.Queries.GetList.collect
+        db
+        RealtimeSchema.Queries.GetList.caqti_type
+        list_id)
+  in
+  let todos_arr =
+    Array.map
+      (fun (row : RealtimeSchema.Queries.GetList.row) ->
+         ({ Model.Todo.id = row.id; list_id = row.list_id; text = row.text; completed = row.completed }
+           : Model.Todo.t))
+      (Array.of_list todos)
+  in
+  let list =
+    Option.map
+      (fun (row : RealtimeSchema.Queries.GetListInfo.row) ->
+         ({ Model.TodoList.id = row.id; name = row.name; updated_at = row.updated_at } : Model.TodoList.t))
+      list_info
+  in
+  let config : Model.t = { todos = todos_arr; list } in
   Lwt.return config
 
 let get_config_json request list_id =
@@ -15,7 +40,13 @@ let resolve_subscription request selection =
   match RealtimeSubscription.decode_channel selection with
   | None -> Lwt.return_none
   | Some list_id ->
-      let* list_info = Dream.sql request (Database.Todo.get_list_info list_id) in
+      let* list_info =
+        Dream.sql request (fun db ->
+          RealtimeSchema.Queries.GetListInfo.find_opt
+            db
+            RealtimeSchema.Queries.GetListInfo.caqti_type
+            list_id)
+      in
       Lwt.return (Option.map (fun _ -> list_id) list_info)
 
 let generate_uuid () =
@@ -34,6 +65,22 @@ let generate_uuid () =
   let hex4c = random_hex 4 in
   let hex12 = random_hex 12 in
   Printf.sprintf "%s-%s-%s-%s-%s" hex8 hex4a hex4b hex4c hex12
+
+let fail_query_like_mutation () =
+  let query =
+    Caqti_request.Infix.(
+      (Caqti_type.unit ->. Caqti_type.unit)
+        ({sql|
+          DO $$
+          BEGIN
+            PERFORM 1 / 0;
+          END
+          $$;
+        |sql}))
+  in
+  fun (module Db : Caqti_lwt.CONNECTION) ->
+  let* result = Db.exec query () in
+  Caqti_lwt.or_fail result
 
 let handle_mutation _broadcast_fn _request ~db ~action_id ~mutation_name:_ action =
   let open Mutation_json in
@@ -55,7 +102,7 @@ let handle_mutation _broadcast_fn _request ~db ~action_id ~mutation_name:_ actio
           | Ok id, Ok list_id, Ok text ->
               let* result =
                 Mutation_json.mutation_result ~action_id
-                  (Database.Todo.add_todo id list_id text db)
+                  (RealtimeSchema.Mutations.AddTodo.exec db (id, list_id, text))
               in
               Mutation_json.finish_mutation_result ~action_id result
           | Error error, _, _ | _, Error error, _ | _, _, Error error ->
@@ -68,7 +115,7 @@ let handle_mutation _broadcast_fn _request ~db ~action_id ~mutation_name:_ actio
           | Ok id, Ok completed ->
               let* result =
                 Mutation_json.mutation_result ~action_id
-                  (Database.Todo.set_todo_completed id completed db)
+                  (RealtimeSchema.Mutations.SetTodoCompleted.exec db (id, completed))
               in
               Mutation_json.finish_mutation_result ~action_id result
           | Error error, _ | _, Error error -> Lwt.return (Ack (Error error)))
@@ -81,7 +128,7 @@ let handle_mutation _broadcast_fn _request ~db ~action_id ~mutation_name:_ actio
           | Ok id ->
               let* result =
                 Mutation_json.mutation_result ~action_id
-                  (Database.Todo.remove_todo id db)
+                  (RealtimeSchema.Mutations.RemoveTodo.exec db id)
               in
               Mutation_json.finish_mutation_result ~action_id result
           | Error error -> Lwt.return (Ack (Error error)))
@@ -89,7 +136,7 @@ let handle_mutation _broadcast_fn _request ~db ~action_id ~mutation_name:_ actio
   | Ok "fail_server_mutation" ->
       let* result =
         Mutation_json.mutation_result ~action_id
-          (Database.Todo.fail_query_like_mutation () db)
+          (fail_query_like_mutation () db)
       in
       Mutation_json.finish_mutation_result ~action_id result
   | Ok "fail_client_mutation" ->
@@ -127,7 +174,8 @@ let () =
     Dream.get "/favicon.ico" (fun _ -> Dream.respond ~status:`No_Content "");
     Dream.get "/" (fun req ->
       let uuid = generate_uuid () in
-      let* _ = Dream.sql req (Database.Todo.create_list uuid) in
+      let* _ = Dream.sql req (fun db ->
+        RealtimeSchema.Mutations.CreateList.exec db uuid) in
       Dream.redirect req ("/" ^ uuid));
     Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
   ]

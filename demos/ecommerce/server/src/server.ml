@@ -1,8 +1,36 @@
 open Lwt.Syntax
 
 let get_config request premise_id =
-  let* premise = Dream.sql request (Database.Premise.get_premise premise_id) in
-  let* inventory = Dream.sql request (Database.Inventory.get_list premise_id) in
+  let* premise_row =
+    Dream.sql request (fun db ->
+      RealtimeSchema.Queries.GetPremise.find_opt
+        db
+        RealtimeSchema.Queries.GetPremise.caqti_type
+        premise_id)
+  in
+  let premise =
+    Option.map
+      (fun (row : RealtimeSchema.Queries.GetPremise.row) ->
+         ({ PeriodList.Premise.id = row.id; name = row.name; description = row.description;
+            updated_at = Js.Date.fromFloat row.updated_at } : PeriodList.Premise.t))
+      premise_row
+  in
+  let* inventory_rows =
+    Dream.sql request (fun db ->
+      RealtimeSchema.Queries.GetInventoryList.collect
+        db
+        RealtimeSchema.Queries.GetInventoryList.caqti_type
+        premise_id)
+  in
+  let inventory =
+    Array.map
+      (fun (row : RealtimeSchema.Queries.GetInventoryList.row) ->
+         ({ Model.InventoryItem.description = row.description; id = row.id; name = row.name;
+            quantity = row.quantity; premise_id = row.premise_id;
+            period_list = Model.Pricing.period_list_of_json (Melange_json.of_string row.period_list) }
+           : Model.InventoryItem.t))
+      (Array.of_list inventory_rows)
+  in
   let config : Model.t = {inventory; premise} in
   Lwt.return config
 
@@ -14,10 +42,14 @@ let resolve_subscription request selection =
   match RealtimeSubscription.decode_channel selection with
   | None -> Lwt.return_none
   | Some premise_id ->
-      let* premise =
-        Dream.sql request (Database.Premise.get_premise premise_id)
+      let* premise_row =
+        Dream.sql request (fun db ->
+          RealtimeSchema.Queries.GetPremise.find_opt
+            db
+            RealtimeSchema.Queries.GetPremise.caqti_type
+            premise_id)
       in
-      Lwt.return (Option.map (fun _ -> premise_id) premise)
+      Lwt.return (Option.map (fun _ -> premise_id) premise_row)
 
 let static_asset_path request =
   let path, _search = Dream.target(request) |> Dream.split_target in
@@ -54,7 +86,8 @@ let () =
     Dream.get "/api/test/inventory/:id/quantity/:quantity" (fun req ->
       let item_id = Dream.param req "id" in
       let quantity = Dream.param req "quantity" |> int_of_string in
-      let* () = Dream.sql req (Database.Inventory.update_quantity item_id quantity) in
+      let* () = Dream.sql req (fun db ->
+        RealtimeSchema.Mutations.UpdateQuantity.exec db (item_id, quantity)) in
       Dream.respond ~status:`OK "updated");
     Dream.get "/" (UniversalRouterDream.handler ~app:EntryServer.app);
     Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);

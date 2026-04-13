@@ -43,4 +43,3 @@
 (copy_files
  (files "../../ui/src/.build_stamp"))
 
-(include_subdirs qualified)

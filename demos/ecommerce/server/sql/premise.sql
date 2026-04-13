@@ -21,3 +21,28 @@ CREATE TABLE premise_route (
 
 INSERT INTO premise_route (premise_id, route_root)
 VALUES ('a55351b1-1b78-4b6c-bd13-6859dc9ad410', '/');
+
+/*
+@query get_premise
+SELECT
+  premise.id,
+  premise.name,
+  premise.description,
+  EXTRACT(EPOCH FROM premise.updated_at) AS updated_at
+FROM premise
+WHERE premise.id = $1
+LIMIT 1;
+*/
+
+/*
+@query get_route_premise
+SELECT
+  premise.id,
+  premise.name,
+  premise.description,
+  EXTRACT(EPOCH FROM premise.updated_at) AS updated_at
+FROM premise_route
+LEFT JOIN premise ON premise.id = premise_route.premise_id
+WHERE premise_route.route_root = $1
+LIMIT 1;
+*/

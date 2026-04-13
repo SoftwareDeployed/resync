@@ -51,3 +51,23 @@ VALUES ($1::uuid, $2::uuid, $3, $4);
 @mutation update_message_content
 UPDATE messages SET content = $2 WHERE id = $1::uuid;
 */
+
+/*
+@query get_threads
+SELECT id, title, EXTRACT(EPOCH FROM updated_at) * 1000 AS updated_at FROM threads ORDER BY updated_at DESC;
+*/
+
+/*
+@mutation record_thread_view
+INSERT INTO active_thread_views (thread_id) VALUES ($1::uuid) ON CONFLICT DO NOTHING;
+*/
+
+/*
+@mutation delete_thread
+DELETE FROM threads WHERE id = $1::uuid;
+*/
+
+/*
+@mutation delete_all_threads
+DELETE FROM threads;
+*/

@@ -89,6 +89,13 @@ let caqti_type_of_ocaml_type = function
   | "float" -> "Caqti_type.float"
   | _ -> "Caqti_type.string"
 
+let caqti_type_constructor_of_sql_type = function
+  | Uuid | Varchar | Text | Json | Jsonb | Custom _ -> "Caqti_type.string"
+  | Int -> "Caqti_type.int"
+  | Bigint -> "Caqti_type.int64"
+  | Boolean -> "Caqti_type.bool"
+  | Timestamp | Timestamptz -> "Caqti_type.float"
+
 let mutation_param_type_expr params =
   let type_of_param p = caqti_type_of_ocaml_type p.ocaml_type in
   match params with
@@ -132,8 +139,8 @@ let mutation_record_literal (mutation : mutation) =
     mutation.name mutation.sql mutation.source_file
     (params_literal mutation.params) (string_of_handler mutation.handler)
 
-let column_type_annotation (column : column) =
-  match ocaml_type_of_sql_type column.sql_type with
+let ocaml_type_string_of_sql_type sql_type =
+  match ocaml_type_of_sql_type sql_type with
   | "string" -> "string"
   | "int" -> "int"
   | "int64" -> "int64"
@@ -141,6 +148,9 @@ let column_type_annotation (column : column) =
   | "float" -> "float"
   | "Yojson.Safe.t" -> "Yojson.Safe.t"
   | other -> other
+
+let column_type_annotation (column : column) =
+  ocaml_type_string_of_sql_type column.sql_type
 
 let record_type_declaration (table : table) =
   let fields =
@@ -150,17 +160,73 @@ let record_type_declaration (table : table) =
   in
   Printf.sprintf "type %s = {\n%s\n}" (type_name_of_table table.name) fields
 
-let query_module_declaration (query : query) =
+let caqti_type_for_columns ~type_name (columns : (string * sql_type) list) =
+  match columns with
+  | [] -> "let caqti_type = Caqti_type.unit"
+  | _ ->
+      let field_names = List.map (fun (name, _) -> sanitize_identifier name) columns in
+      let constructor_args = String.concat " " field_names in
+      let record_body =
+        field_names
+        |> List.map (fun name -> Printf.sprintf "%s = %s;" name name)
+        |> String.concat " "
+      in
+      let proj_chain =
+        columns
+        |> List.map (fun (name, sql_type) ->
+               Printf.sprintf "    @@ Caqti_type.proj %s (fun (r : %s) -> r.%s)"
+                 (caqti_type_constructor_of_sql_type sql_type)
+                 type_name
+                 (sanitize_identifier name))
+        |> String.concat "\n"
+      in
+      Printf.sprintf
+        "let caqti_type =\n    Caqti_type.product(fun %s -> { %s })\n%s\n    @@ Caqti_type.proj_end [@@platform native]"
+        constructor_args record_body proj_chain
+
+let query_module_declaration tables (query : query) =
   let params_literal =
     query.params
     |> List.map (fun param -> Printf.sprintf "(%d, %S, %S)" param.index param.ocaml_type param.sql_type)
     |> String.concat "; "
   in
+  let row_type_and_caqti =
+    match Realtime_schema_pg_query.infer_select_columns tables query.return_table query.sql with
+    | Some columns when columns <> [] ->
+        let fields =
+          columns
+          |> List.map (fun (name, sql_type) ->
+                 Printf.sprintf "  %s : %s;" (sanitize_identifier name) (ocaml_type_string_of_sql_type sql_type))
+          |> String.concat "\n"
+        in
+        let type_decl = Printf.sprintf "type row = {\n%s\n} [@@platform native]" fields in
+        let caqti_decl = caqti_type_for_columns ~type_name:"row" columns in
+        Printf.sprintf "%s\n\n  %s [@@platform native]" type_decl caqti_decl
+    | _ -> ""
+  in
+  let caqti_items =
+    let param_type_expr = mutation_param_type_expr query.params in
+    Printf.sprintf
+      "let param_type = %s [@@platform native]\n\
+      \  let request row_type = Caqti_request.Infix.(param_type ->* row_type)(sql) [@@platform native]\n\
+      \  let find_request row_type = Caqti_request.Infix.(param_type ->? row_type)(sql) [@@platform native]\n\
+      \  let collect (module Db : Caqti_lwt.CONNECTION) row_type params =\n\
+      \    let open Lwt.Syntax in\n\
+      \    let* result = Db.collect_list (request row_type) params in\n\
+      \    Caqti_lwt.or_fail result [@@platform native]\n\
+      \  let find_opt (module Db : Caqti_lwt.CONNECTION) row_type params =\n\
+      \    let open Lwt.Syntax in\n\
+      \    let* result = Db.find_opt (find_request row_type) params in\n\
+      \    Caqti_lwt.or_fail result [@@platform native]"
+      param_type_expr
+  in
   Printf.sprintf
-    "module %s = struct\n  let name = %S\n  let sql = %S\n  let params = [%s]\n  let return_table = %s\n  let json_columns = %s\n  let handler = %s\nend"
+    "module %s = struct\n  let name = %S\n  let sql = %S\n  let params = [%s]\n  let return_table = %s\n  let json_columns = %s\n  let handler = %s\n\n  %s\n\n  %s\nend"
     (module_name_of_table query.name) query.name query.sql params_literal
     (match query.return_table with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
     (string_list_literal query.json_columns) (string_of_handler query.handler)
+    row_type_and_caqti
+    caqti_items
 
 let mutation_module_declaration (mutation : mutation) =
   let params_literal =
@@ -722,21 +788,50 @@ let migration_sql ?previous_snapshot (schema : schema) =
   in
   (version, String.concat "\n\n" statements ^ "\n")
 
+let table_caqti_type_declaration (table : table) =
+  let columns_list : column list = table.columns in
+  match columns_list with
+  | [] -> "let caqti_type = Caqti_type.unit [@@platform native]"
+  | _ ->
+      let field_names = List.map (fun (c : column) -> sanitize_identifier c.name) columns_list in
+      let constructor_args = String.concat " " field_names in
+      let record_body =
+        field_names
+        |> List.map (fun name -> Printf.sprintf "%s = %s;" name name)
+        |> String.concat " "
+      in
+      let proj_chain =
+        let record_type = type_name_of_table table.name in
+        columns_list
+        |> List.map (fun (col : column) ->
+               Printf.sprintf "    @@ Caqti_type.proj %s (fun (r : %s) -> r.%s)"
+                 (caqti_type_constructor_of_sql_type col.sql_type)
+                 record_type
+                 (sanitize_identifier col.name))
+        |> String.concat "\n"
+      in
+      Printf.sprintf
+        "let caqti_type =\n    Caqti_type.product(fun %s -> { %s })\n%s\n    @@ Caqti_type.proj_end [@@platform native]"
+        constructor_args record_body proj_chain
+
+let table_module_declaration (table : table) =
+  Printf.sprintf
+    "module %s = struct\n  let name = %S\n  let id_column = %s\n  let composite_key = %s\n\n  %s\nend"
+    (module_name_of_table table.name) table.name
+    (match table.id_column with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
+    (string_list_literal table.composite_key)
+    (table_caqti_type_declaration table)
+
 let module_source (schema : schema) =
   let table_types = schema.tables |> List.map record_type_declaration |> String.concat "\n\n" in
   let table_values = schema.tables |> List.map table_record_literal |> String.concat ";\n  " in
   let query_values = schema.queries |> List.map query_record_literal |> String.concat ";\n  " in
   let mutation_values = schema.mutations |> List.map mutation_record_literal |> String.concat ";\n  " in
-  let query_modules = schema.queries |> List.map query_module_declaration |> String.concat "\n\n" in
+  let query_modules = schema.queries |> List.map (query_module_declaration schema.tables) |> String.concat "\n\n" in
   let mutation_modules = schema.mutations |> List.map mutation_module_declaration |> String.concat "\n\n" in
   let table_modules =
     schema.tables
-    |> List.map (fun (table : table) ->
-           Printf.sprintf
-             "module %s = struct\n  let name = %S\n  let id_column = %s\n  let composite_key = %s\nend"
-             (module_name_of_table table.name) table.name
-             (match table.id_column with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
-             (string_list_literal table.composite_key))
+    |> List.map table_module_declaration
     |> String.concat "\n\n"
   in
   let _, migration_sql = migration_sql schema in
