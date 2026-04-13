@@ -100,8 +100,8 @@ That is the practical shape of `@handler ocaml`: the SQL layer gives you the nam
 
 ## Example sources
 
-- `demos/ecommerce/server/sql/inventory.sql`
-- `demos/todo-multiplayer/server/sql/schema.sql`
+- `demos/todo-multiplayer/server/sql/schema.sql` - Primary source for mutation examples
+- `demos/ecommerce/server/sql/inventory.sql` - Table annotations (queries, not mutations)
 
 ## Related docs
 

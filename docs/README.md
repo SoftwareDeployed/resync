@@ -13,6 +13,8 @@ This documentation covers the complete stack for building universal Reason React
 
 ## Quick Start
 
+**New to Resync?** Start with the **[Getting Started Guide](GETTING-STARTED.md)** for a step-by-step tutorial to build a PostgreSQL-backed realtime app with synced store, queries, and mutations.
+
 ### Prerequisites
 
 - OCaml toolchain (opam)
@@ -66,6 +68,10 @@ After the basics are working, move to:
 - [ecommerce demo](../demos/ecommerce/) for a larger multi-store realtime app
 
 ## Package Documentation
+
+### Getting Started
+
+- **[GETTING-STARTED.md](GETTING-STARTED.md)** - Step-by-step guide to build a PostgreSQL-backed realtime app with synced store, queries, and mutations. The recommended starting point for new users.
 
 ### Core Packages
 

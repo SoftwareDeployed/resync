@@ -4,12 +4,16 @@ This document explains how named realtime queries work in the SQL-first schema s
 
 ## Named queries
 
-Define a query with a `/* @query name */` block comment immediately before the SQL statement.
+Define a query with a `/* @query name */` block comment. The SQL statement must be **inside** the block comment, not after it:
 
 ```sql
-/* @query current_inventory */
+/*
+@query current_inventory
 SELECT * FROM inventory WHERE premise_id = $1;
+*/
 ```
+
+**Important**: The parser requires both the annotation and the SQL to be inside the same block comment. A standalone block comment followed by SQL outside the block will not be parsed.
 
 The ecommerce demo uses the same pattern with a richer projection:
 

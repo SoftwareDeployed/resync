@@ -32,6 +32,22 @@ Incremental SQL migrations generated when the schema changes.
 
 The migrations are still plain SQL, so you can inspect them before applying them with `psql` or your demo init script.
 
+**Note:** Not all demos have migrations. The `llm-chat` demo uses migrations (see `demos/llm-chat/server/sql/generated/migrations/`), while the `ecommerce` and `todo-multiplayer` demos use direct schema application.
+
+## Trigger Functions
+
+Each annotated table generates a trigger function. For example:
+
+**Ecommerce demo triggers:**
+- `realtime_notify_inventory` - inventory table changes
+- `realtime_notify_period_via_inventory_period_map` - period propagation
+- `realtime_notify_inventory_period_map_parent` - parent rebroadcast
+
+**Todo-multiplayer demo triggers:**
+- `realtime_notify_todo_lists` - todo_lists table changes
+- `realtime_notify_todos` - todos table changes
+- `realtime_notify_todos_parent` - parent rebroadcast to todo_lists
+
 ## OCaml metadata
 
 The PPX emits OCaml metadata for tables, queries, and mutations so server code can reference generated names instead of duplicating SQL strings.
@@ -55,8 +71,9 @@ That is why server code can call `RealtimeSchema.Queries.GetInventoryList.sql` o
 
 ## Examples in this repo
 
-- `demos/ecommerce/server/sql/generated/`
-- `demos/todo-multiplayer/server/sql/generated/`
+- `demos/ecommerce/server/sql/generated/` - triggers and snapshot
+- `demos/todo-multiplayer/server/sql/generated/` - triggers and snapshot
+- `demos/llm-chat/server/sql/generated/` - triggers, snapshot, and migrations
 
 ## Related docs
 

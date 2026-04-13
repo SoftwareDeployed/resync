@@ -9,10 +9,11 @@ Complete setup instructions for Universal Reason React applications.
 
 ### Required Software
 
-- **OCaml** (= 5.4.0) - This version is required
+- **OCaml** (= 5.4.1) - This version is required
 - **opam** (2.1.0 or later)
 - **PostgreSQL** (13 or later)
 - **Node.js** (18 or later) - for bundling
+- **pnpm** (8 or later) - package manager (required)
 - **dune** (3.0 or later)
 
 ### Platform Support
@@ -38,8 +39,8 @@ opam init --bare
 
 eval $(opam env)
 
-# Create a local switch with OCaml 5.4.0 (recommended for this project)
-opam switch create . 5.4.0 --deps-only
+# Create a local switch with OCaml 5.4.1 (recommended for this project)
+opam switch create . 5.4.1 --deps-only
 
 eval $(opam env)
 ```
@@ -53,11 +54,11 @@ eval $(opam env)
 git clone https://github.com/SoftwareDeployed/resync
 cd resync
 
-# Install dependencies
-opam install . --deps-only --with-test
+# Install JavaScript dependencies (pnpm required)
+pnpm install
 
-# Alternative: install dev dependencies too
-opam install . --deps-only --with-test --with-doc
+# Install OCaml dependencies
+opam install . --deps-only --with-test
 ```
 
 ### 3. Setup PostgreSQL
@@ -219,8 +220,8 @@ cd myapp
   (name myapp)
   (synopsis "My Universal Reason React App")
   (description "A full-stack Reason React application")
-  (depends
-   (ocaml (= 5.4.0))
+(depends
+ (ocaml (= 5.4.1))
    dune
    dream
    reason
@@ -541,8 +542,8 @@ opam init --bare --disable-sandboxing
 # Or manually configure
 opam init --bare
 
-# Create a local switch with OCaml 5.4.0
-opam switch create . 5.4.0
+# Create a local switch with OCaml 5.4.1
+opam switch create . 5.4.1
 ```
 
 ### Dependencies fail to install
