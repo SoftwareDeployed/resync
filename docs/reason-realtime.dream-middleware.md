@@ -37,59 +37,66 @@ Add to your `dune` file:
 
 ## Quick Start
 
-### Basic Setup
+### Basic Setup with ServerBuilder
 
-```reason
-// server.ml
-open Dream;
+For new apps, use `Server_builder` to collapse the repetitive env-var parsing, adapter startup, and `Dream.run` boilerplate:
 
-let resolve_subscription request selection = {
-  let route = Dream.path request in
-  let user = switch (Dream.session_field(request, "user_id")) {
-  | Some(value) => value
-  | None => "anonymous"
-  };
-  if (String.equal(selection, "public")) {
-    Lwt.return(Some("inventory"));
-  } else {
-    Lwt.return(Some(user ++ ":" ++ selection));
-  };
-};
+```ocaml
+(* server.ml *)
+open Lwt.Syntax
 
-let load_snapshot request channel = {
-  let body =
-    if (String.equal(channel, "inventory")) {
-      "{\"type\":\"snapshot\",\"channel\":\"inventory\",\"payload\":{}}"
-    } else {
-      "{\"type\":\"snapshot\",\"channel\":\"\" ++ channel,\"payload\":{}}"
-    }
-  in
-  Lwt.return(body);
-};
+let resolve_subscription request selection =
+  Lwt.return (Some selection)
 
-let pg_adapter = Pgnotify_adapter.create(~db_uri="postgres://user:pass@localhost:5432/mydb", ());
-
-let adapter = Adapter.pack(pg_adapter);
-
-let middleware =
-  Middleware.create(
-    ~adapter,
-    ~resolve_subscription,
-    ~load_snapshot,
-    (),
-  );
+let load_snapshot _request channel =
+  Lwt.return (Printf.sprintf "{\"type\":\"snapshot\",\"channel\":\"%s\"}" channel)
 
 let () =
-  (* Start adapter polling *)
-  let _ = Lwt.async(() => Adapter.start(adapter));
-  Dream.run
+  let builder =
+    Server_builder.make
+      ~doc_root_var:"APP_DOC_ROOT"
+      ~db_url_var:"DB_URL"
+      ~default_interface:"127.0.0.1"
+      ~default_port:8080
+      ()
+  in
+  let db_uri = Option.get (Server_builder.db_uri builder) in
+  let adapter =
+    Adapter.pack
+      (module Pgnotify_adapter : Adapter.S with type t = Pgnotify_adapter.t)
+      (Pgnotify_adapter.create ~db_uri ())
+  in
+  builder
+  |> Server_builder.with_packed_adapter adapter
+  |> Server_builder.with_middleware ~resolve_subscription ~load_snapshot
+  |> Server_builder.with_routes [
+    Dream.get "/" (fun _ -> Dream.html "Hello from app");
+  ]
+  |> Server_builder.run
+```
+
+`Server_builder` handles:
+- reading `TODO_MP_DOC_ROOT`, `DB_URL`, `SERVER_INTERFACE`, and `SERVER_PORT` from the environment
+- starting the adapter
+- assembling `Dream.sql_pool`, `Dream.logger`, and `Dream.router`
+- running `Dream.run`
+
+### Manual Setup (legacy)
+
+If you need full control over the Dream pipeline, you can still wire things manually:
+
+```ocaml
+let adapter = Adapter.pack (module Pgnotify_adapter) (Pgnotify_adapter.create ~db_uri ()) in
+let middleware = Middleware.create ~adapter ~resolve_subscription ~load_snapshot () in
+let () =
+  Lwt.async (fun () -> Adapter.start adapter);
+  Dream.run ~interface:"127.0.0.1" ~port:8080
   @@ Dream.logger
-  @@ Dream.router([
-    Middleware.route "/_events" middleware,
-    Dream.get "/**" (fun request =>
-      Dream.html("Hello from app")
-    ),
-  ]);
+  @@ Dream.sql_pool ~size:10 db_uri
+  @@ Dream.router [
+    Middleware.route "_events" middleware;
+    Dream.get "/" (fun _ -> Dream.html "Hello");
+  ]
 ```
 
 ### Broadcasting from Adapter Callbacks
@@ -149,6 +156,33 @@ let broadcast: (Middleware.t, string, string) => Lwt.t(unit);
 ```
 
 Broadcast a payload to all connected clients subscribed to the channel.
+
+#### `Server_builder`
+
+A pipeline-style helper that reduces boilerplate in demo `server.ml` files.
+
+| Function | Purpose |
+|----------|---------|
+| `Server_builder.make` | Reads env vars (`DOC_ROOT`, `DB_URL`, `SERVER_INTERFACE`, `SERVER_PORT`) and returns a config record. Override names with `~doc_root_var`, `~db_url_var`, etc. |
+| `Server_builder.with_packed_adapter` | Attaches an `Adapter.packed` (e.g. from `Pgnotify_adapter`). |
+| `Server_builder.with_middleware` | Creates and attaches the realtime middleware. Requires an adapter. |
+| `Server_builder.with_routes` | Appends custom `Dream.route` values. The `/_events` route is added automatically by `with_middleware`. |
+| `Server_builder.with_pre_start` | Registers a hook to run just before `Dream.run` (e.g. `Lwt.async media_polling_loop`). |
+| `Server_builder.run` | Starts adapter, runs hooks, assembles `Dream.sql_pool`/`Dream.router`/`Dream.logger`, and calls `Dream.run`. |
+
+#### `Mutation_json`
+
+Reusable helpers extracted from the repetitive mutation-handler boilerplate in server code:
+
+```ocaml
+val assoc : string -> Yojson.Basic.t -> Yojson.Basic.t option
+val required_string : string -> Yojson.Basic.t -> (string, string) result
+val required_bool : string -> Yojson.Basic.t -> (bool, string) result
+val mutation_result : action_id:string -> unit Lwt.t -> (unit, mutation_error) result Lwt.t
+val finish_mutation_result : action_id:string -> (unit, mutation_error) result -> Mutation_result.t Lwt.t
+```
+
+Use these in custom `~handle_mutation` callbacks instead of redefining the same JSON traversal and error formatting in every demo.
 
 #### `Adapter`
 

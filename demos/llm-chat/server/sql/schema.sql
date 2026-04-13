@@ -9,11 +9,6 @@ CREATE TABLE threads (
   updated_at timestamptz NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE processed_actions (
-  id uuid PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT NOW()
-);
-
 -- @table messages
 -- @id_column id
 -- @broadcast_channel column=thread_id
@@ -48,14 +43,8 @@ INSERT INTO threads (id, title) VALUES ($1::uuid, $2);
 
 /*
 @mutation add_message
-WITH action_guard AS (
-  INSERT INTO processed_actions (id)
-  VALUES ($1::uuid)
-  ON CONFLICT DO NOTHING
-  RETURNING id
-)
 INSERT INTO messages (id, thread_id, role, content)
-SELECT $2::uuid, $3::uuid, $4, $5 FROM action_guard;
+VALUES ($1::uuid, $2::uuid, $3, $4);
 */
 
 /*

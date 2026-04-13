@@ -170,28 +170,17 @@ The `get_inventory_list` query uses the same JSON normalization pattern without 
 
 ### Todo-multiplayer mutations
 
-`demos/todo-multiplayer/server/sql/schema.sql` demonstrates idempotent writes with `processed_actions`:
+`demos/todo-multiplayer/server/sql/schema.sql` shows simple mutations:
 
 ```sql
 /*
 @mutation add_todo
-WITH action_guard AS (
-  INSERT INTO processed_actions (id)
-  VALUES ($1::uuid)
-  ON CONFLICT DO NOTHING
-  RETURNING id
-), inserted AS (
-  INSERT INTO todos (id, list_id, text)
-  SELECT $2::uuid, $3::uuid, $4 FROM action_guard
-  RETURNING list_id
-)
-UPDATE todo_lists
-SET updated_at = NOW()
-WHERE id IN (SELECT list_id FROM inserted);
+INSERT INTO todos (id, list_id, text)
+VALUES ($1::uuid, $2::uuid, $3);
 */
 ```
 
-That guard pattern makes the mutation safe to retry when the client resends the same `action_id`.
+The middleware automatically makes every mutation idempotent by wrapping it in a per-mutation action ledger (`_resync_actions_<name>`). You do not need to write `action_guard` CTEs or maintain `processed_actions` tables.
 
 ## Workflow
 

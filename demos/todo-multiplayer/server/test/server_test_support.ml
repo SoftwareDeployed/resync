@@ -1,14 +1,7 @@
 open Lwt.Syntax
 
-open Caqti_request.Infix
-
-let create_list_query =
-  (Caqti_type.string ->. Caqti_type.unit)
-    RealtimeSchema.Mutations.CreateList.sql
-
 let create_list uuid (module Db : Caqti_lwt.CONNECTION) =
-  let* result = Db.exec create_list_query uuid in
-  Caqti_lwt.or_fail result
+  RealtimeSchema.Mutations.CreateList.exec (module Db) uuid
 
 let generate_uuid () =
   Random.self_init ();

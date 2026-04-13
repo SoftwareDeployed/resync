@@ -9,11 +9,6 @@ CREATE TABLE todo_lists (
   updated_at timestamptz NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE processed_actions (
-  id uuid PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT NOW()
-);
-
 -- @table todos
 -- @id_column id
 -- @broadcast_channel column=list_id
@@ -39,54 +34,21 @@ INSERT INTO todo_lists (id) VALUES ($1);
 
 /*
 @mutation add_todo
-WITH action_guard AS (
-  INSERT INTO processed_actions (id)
-  VALUES ($1::uuid)
-  ON CONFLICT DO NOTHING
-  RETURNING id
-), inserted AS (
-  INSERT INTO todos (id, list_id, text)
-  SELECT $2::uuid, $3::uuid, $4 FROM action_guard
-  RETURNING list_id
-)
-UPDATE todo_lists
-SET updated_at = NOW()
-WHERE id IN (SELECT list_id FROM inserted);
+INSERT INTO todos (id, list_id, text)
+VALUES ($1::uuid, $2::uuid, $3);
 */
 
 /*
 @mutation set_todo_completed
-WITH action_guard AS (
-  INSERT INTO processed_actions (id)
-  VALUES ($1::uuid)
-  ON CONFLICT DO NOTHING
-  RETURNING id
-), updated AS (
-  UPDATE todos
-  SET completed = $3
-  WHERE id = $2::uuid AND EXISTS (SELECT 1 FROM action_guard)
-  RETURNING list_id
-)
-UPDATE todo_lists
-SET updated_at = NOW()
-WHERE id IN (SELECT list_id FROM updated);
+UPDATE todos
+SET completed = $2
+WHERE id = $1::uuid;
 */
 
 /*
 @mutation remove_todo
-WITH action_guard AS (
-  INSERT INTO processed_actions (id)
-  VALUES ($1::uuid)
-  ON CONFLICT DO NOTHING
-  RETURNING id
-), deleted AS (
-  DELETE FROM todos
-  WHERE id = $2::uuid AND EXISTS (SELECT 1 FROM action_guard)
-  RETURNING list_id
-)
-UPDATE todo_lists
-SET updated_at = NOW()
-WHERE id IN (SELECT list_id FROM deleted);
+DELETE FROM todos
+WHERE id = $1::uuid;
 */
 
 /*

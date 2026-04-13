@@ -1,5 +1,5 @@
 {
-  "schema_hash": "3f1dd3cfd2920bac64561d145fa25e64",
+  "schema_hash": "8381c1bc8f6f29fa619ea6a76dc43c16",
   "tables": [
     {
       "table_name": "threads",
@@ -30,29 +30,6 @@
         },
         {
           "name": "updated_at",
-          "sql_type": "timestamptz",
-          "nullable": false,
-          "primary_key": false,
-          "default": "NOW()",
-          "foreign_key": null
-        }
-      ],
-      "id_column": "id",
-      "composite_key": []
-    },
-    {
-      "table_name": "processed_actions",
-      "columns": [
-        {
-          "name": "id",
-          "sql_type": "uuid",
-          "nullable": true,
-          "primary_key": true,
-          "default": null,
-          "foreign_key": null
-        },
-        {
-          "name": "created_at",
           "sql_type": "timestamptz",
           "nullable": false,
           "primary_key": false,
@@ -115,7 +92,7 @@
       "composite_key": []
     },
     {
-      "table_name": "IF",
+      "table_name": "active_thread_views",
       "columns": [
         {
           "name": "thread_id",

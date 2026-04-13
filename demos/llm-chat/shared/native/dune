@@ -4,6 +4,8 @@
  (modules Model Constants RealtimeSchema)
  (wrapped false)
  (libraries
+   caqti
+   caqti-lwt
    melange-json-native
    server-reason-react.js
    universal_reason_react_store_native

@@ -313,6 +313,7 @@ let alias_map_of_query sql =
 let infer_query_params tables sql =
   let normalized = normalize_whitespace sql in
   let alias_map = alias_map_of_query normalized in
+  let sql_without_casts = Str.global_replace (Str.regexp {|::[A-Za-z0-9_]+|}) "" normalized in
   let bare_from_table =
     let regex = Str.regexp_case_fold {|from \([A-Za-z0-9_]+\)|} in
     try
@@ -320,12 +321,51 @@ let infer_query_params tables sql =
       Some (Str.matched_group 1 normalized)
     with Not_found -> None
   in
-  let regex =
-    Str.regexp_case_fold {|\([A-Za-z0-9_]+\)\.\([A-Za-z0-9_]+\) *= *\$\([0-9]+\)|}
+  let update_table =
+    let regex = Str.regexp_case_fold {|update \([A-Za-z0-9_]+\)|} in
+    try
+      let _ = Str.search_forward regex normalized 0 in
+      Some (Str.matched_group 1 normalized)
+    with Not_found -> None
+  in
+  let delete_table =
+    let regex = Str.regexp_case_fold {|delete from \([A-Za-z0-9_]+\)|} in
+    try
+      let _ = Str.search_forward regex normalized 0 in
+      Some (Str.matched_group 1 normalized)
+    with Not_found -> None
+  in
+  let insert_table_and_columns =
+    let regex = Str.regexp_case_fold {|insert into \([A-Za-z0-9_]+\) *\(([^)]+)\)|} in
+    try
+      let _ = Str.search_forward regex normalized 0 in
+      let table_name = Str.matched_group 1 normalized in
+      let cols_str = Str.matched_group 2 normalized in
+      let cols_str =
+        let trimmed = trim cols_str in
+        if starts_with ~prefix:"(" trimmed && ends_with ~suffix:")" trimmed then
+          String.sub trimmed 1 (String.length trimmed - 2) |> trim
+        else
+          trimmed
+      in
+      let cols = split_top_level ~separator:',' cols_str |> List.map trim in
+      Some (table_name, cols)
+    with Not_found -> None
+  in
+  let target_table =
+    match insert_table_and_columns with
+    | Some (table_name, _) -> Some table_name
+    | None -> (
+        match update_table with
+        | Some _ -> update_table
+        | None -> (
+            match delete_table with
+            | Some _ -> delete_table
+            | None -> bare_from_table))
   in
   let params = Hashtbl.create 4 in
-  let record_param index table_name column_name =
-    let column_ref = Some (table_name, column_name) in
+  let record_param ?column_ref index table_name column_name =
+    let column_ref = match column_ref with Some r -> r | None -> Some (table_name, column_name) in
     let ocaml_type, sql_type =
       match List.find_opt (fun (table : table) -> table.name = table_name) tables with
       | Some table -> (
@@ -336,37 +376,79 @@ let infer_query_params tables sql =
     in
     Hashtbl.replace params index { index; column_ref; ocaml_type; sql_type }
   in
+  (* Handle INSERT ... VALUES ($1, $2, ...) by positional mapping to column list *)
+  (match insert_table_and_columns with
+  | Some (table_name, columns) -> (
+      let values_regex = Str.regexp_case_fold {|values *(\([^)]+\))|} in
+      try
+        let _ = Str.search_forward values_regex sql_without_casts 0 in
+        let values_str = Str.matched_group 1 sql_without_casts in
+        let values = split_top_level ~separator:',' values_str |> List.map trim in
+        List.iteri
+          (fun idx value ->
+            let placeholder_regex = Str.regexp {|\$\([0-9]+\)|} in
+            try
+              let _ = Str.search_forward placeholder_regex value 0 in
+              let index = Str.matched_group 1 value |> int_of_string in
+              let column_name = List.nth columns idx in
+              record_param index table_name column_name
+            with Not_found | Failure _ -> ())
+          values
+      with Not_found -> ())
+  | None -> ());
+  (* Handle table.column = $N *)
+  let regex =
+    Str.regexp_case_fold {|\([A-Za-z0-9_]+\)\.\([A-Za-z0-9_]+\) *= *\$\([0-9]+\)|}
+  in
   let rec loop position =
     try
-      let next = Str.search_forward regex normalized position in
-      let alias = Str.matched_group 1 normalized in
-      let column_name = Str.matched_group 2 normalized in
-      let index = Str.matched_group 3 normalized |> int_of_string in
-      let table_name =
-        match Hashtbl.find_opt alias_map alias with
-        | Some table_name -> table_name
-        | None -> Option.value bare_from_table ~default:alias
-      in
-      record_param index table_name column_name;
+      let next = Str.search_forward regex sql_without_casts position in
+      let alias = Str.matched_group 1 sql_without_casts in
+      let column_name = Str.matched_group 2 sql_without_casts in
+      let index = Str.matched_group 3 sql_without_casts |> int_of_string in
+      if not (Hashtbl.mem params index) then (
+        let table_name =
+          match Hashtbl.find_opt alias_map alias with
+          | Some table_name -> table_name
+          | None -> Option.value target_table ~default:alias
+        in
+        record_param index table_name column_name);
       loop (next + 1)
     with Not_found -> ()
   in
   loop 0;
-  let fallback_regex = Str.regexp_case_fold {|\([A-Za-z0-9_]+\) *= *\$\([0-9]+\)|} in
-  let rec fallback_loop position =
+  (* Handle SET column = $N, WHERE column = $N, AND column = $N *)
+  let rec scan_eq regex position =
     try
-      let next = Str.search_forward fallback_regex normalized position in
-      let column_name = Str.matched_group 1 normalized in
-      let index = Str.matched_group 2 normalized |> int_of_string in
+      let next = Str.search_forward regex sql_without_casts position in
+      let column_name = Str.matched_group 1 sql_without_casts in
+      let index = Str.matched_group 2 sql_without_casts |> int_of_string in
       if not (Hashtbl.mem params index) then
-        match bare_from_table with
+        match target_table with
         | Some table_name -> record_param index table_name column_name
         | None ->
             Hashtbl.replace params index { index; column_ref = None; ocaml_type = "string"; sql_type = "text" };
-      fallback_loop (next + 1)
+      scan_eq regex (next + 1)
     with Not_found -> ()
   in
-  fallback_loop 0;
+  let set_regex = Str.regexp_case_fold {|set \([A-Za-z0-9_]+\) *= *\$\([0-9]+\)|} in
+  scan_eq set_regex 0;
+  let where_regex = Str.regexp_case_fold {|where \([A-Za-z0-9_]+\) *= *\$\([0-9]+\)|} in
+  scan_eq where_regex 0;
+  let join_regex = Str.regexp_case_fold {|and \([A-Za-z0-9_]+\) *= *\$\([0-9]+\)|} in
+  scan_eq join_regex 0;
+  (* Catch any remaining $N placeholders without context *)
+  let placeholder_regex = Str.regexp {|\$\([0-9]+\)|} in
+  let rec scan_placeholders position =
+    try
+      let next = Str.search_forward placeholder_regex sql_without_casts position in
+      let index = Str.matched_group 1 sql_without_casts |> int_of_string in
+      if not (Hashtbl.mem params index) then
+        Hashtbl.replace params index { index; column_ref = None; ocaml_type = "string"; sql_type = "text" };
+      scan_placeholders (next + 1)
+    with Not_found -> ()
+  in
+  scan_placeholders 0;
   Hashtbl.to_seq_values params |> List.of_seq |> List.sort (fun a b -> compare a.index b.index)
 
 let parse_handler annotations =

@@ -1,26 +1,5 @@
 open Lwt.Syntax
 
-let doc_root =
-  match Sys.getenv_opt "ECOMMERCE_DOC_ROOT" with
-  | Some doc_root -> doc_root
-  | None -> failwith "ECOMMERCE_DOC_ROOT is required"
-
-let db_uri =
-  match Sys.getenv_opt "DB_URL" with
-  | Some uri -> uri
-  | None -> failwith "DB_URL is required"
-
-let server_interface =
-  match Sys.getenv_opt "SERVER_INTERFACE" with
-  | Some interface -> interface
-  | None -> "127.0.0.1"
-
-let server_port =
-  match Sys.getenv_opt "SERVER_PORT" with
-  | Some port -> int_of_string port
-  | None -> 8899
-
-(* Fetch config for a premise from database *)
 let get_config request premise_id =
   let* premise = Dream.sql request (Database.Premise.get_premise premise_id) in
   let* inventory = Dream.sql request (Database.Inventory.get_list premise_id) in
@@ -40,40 +19,44 @@ let resolve_subscription request selection =
       in
       Lwt.return (Option.map (fun _ -> premise_id) premise)
 
-let realtime_adapter =
-  Adapter.pack
-    (module Pgnotify_adapter : Adapter.S with type t = Pgnotify_adapter.t)
-    (Pgnotify_adapter.create ~db_uri ())
-
-let realtime_middleware =
-  Middleware.create ~adapter:realtime_adapter ~resolve_subscription
-    ~load_snapshot:get_config_json ()
-
 let static_asset_path request =
   let path, _search = Dream.target(request) |> Dream.split_target in
   Filename.basename path
 
 let () =
-  (match Lwt_main.run (Adapter.start realtime_adapter) with
-  | () -> ()
-  | exception Failure msg ->
-      Printf.eprintf "Failed to connect notification listener: %s\n" msg);
-  Dream.run ~interface:server_interface ~port:server_port @@ Dream.logger
-  @@ Dream.sql_pool ~size:50 db_uri
-  @@ Dream.router
-       [
-           Middleware.route "_events" realtime_middleware;
-           Dream.get "/static/**" (fun req ->
-               Dream.from_filesystem doc_root (static_asset_path req) req);
-          Dream.get "/app.js" (fun req ->
-                Dream.from_filesystem doc_root "Index.re.js" req);
-            Dream.get "/style.css" (fun req ->
-                Dream.from_filesystem doc_root "Index.re.css" req);
-            Dream.get "/api/test/inventory/:id/quantity/:quantity" (fun req ->
-                let item_id = Dream.param req "id" in
-                let quantity = Dream.param req "quantity" |> int_of_string in
-                let* () = Dream.sql req (Database.Inventory.update_quantity item_id quantity) in
-                Dream.respond ~status:`OK "updated");
-          Dream.get "/" (UniversalRouterDream.handler ~app:EntryServer.app);
-          Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
-        ]
+  let builder =
+    Server_builder.make
+      ~doc_root_var:"ECOMMERCE_DOC_ROOT"
+      ~db_url_var:"DB_URL"
+      ~default_interface:"127.0.0.1"
+      ~default_port:8899
+      ()
+  in
+  let doc_root = Server_builder.doc_root builder in
+  let db_uri = Option.get (Server_builder.db_uri builder) in
+  let adapter =
+    Adapter.pack
+      (module Pgnotify_adapter : Adapter.S with type t = Pgnotify_adapter.t)
+      (Pgnotify_adapter.create ~db_uri ())
+  in
+  builder
+  |> Server_builder.with_packed_adapter adapter
+  |> Server_builder.with_middleware
+    ~resolve_subscription
+    ~load_snapshot:get_config_json
+  |> Server_builder.with_routes [
+    Dream.get "/static/**" (fun req ->
+      Dream.from_filesystem doc_root (static_asset_path req) req);
+    Dream.get "/app.js" (fun req ->
+      Dream.from_filesystem doc_root "Index.re.js" req);
+    Dream.get "/style.css" (fun req ->
+      Dream.from_filesystem doc_root "Index.re.css" req);
+    Dream.get "/api/test/inventory/:id/quantity/:quantity" (fun req ->
+      let item_id = Dream.param req "id" in
+      let quantity = Dream.param req "quantity" |> int_of_string in
+      let* () = Dream.sql req (Database.Inventory.update_quantity item_id quantity) in
+      Dream.respond ~status:`OK "updated");
+    Dream.get "/" (UniversalRouterDream.handler ~app:EntryServer.app);
+    Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
+  ]
+  |> Server_builder.run

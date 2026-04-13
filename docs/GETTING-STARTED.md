@@ -94,19 +94,8 @@ SELECT id, list_id, text, completed FROM todos WHERE list_id = $1 ORDER BY creat
 
 /*
 @mutation add_todo
-WITH action_guard AS (
-  INSERT INTO processed_actions (id)
-  VALUES ($1::uuid)
-  ON CONFLICT DO NOTHING
-  RETURNING id
-), inserted AS (
-  INSERT INTO todos (id, list_id, text)
-  SELECT $2::uuid, $3::uuid, $4 FROM action_guard
-  RETURNING list_id
-)
-UPDATE todo_lists
-SET updated_at = NOW()
-WHERE id IN (SELECT list_id FROM inserted);
+INSERT INTO todos (id, list_id, text)
+VALUES ($1::uuid, $2::uuid, $3);
 */
 ```
 
@@ -119,14 +108,11 @@ WHERE id IN (SELECT list_id FROM inserted);
 | `-- @broadcast_channel column=<col>` | Determines NOTIFY channel |
 | `-- @broadcast_parent table=<t> query=<q>` | Propagates updates to parent |
 | `/* @query <name> */` | Named query for server-side use |
-| `/* @mutation <name> */` | Named mutation with action guard |
+| `/* @mutation <name> */` | Named mutation (idempotency handled by middleware) |
 
 ### Mutation Pattern
 
-The `action_guard` CTE ensures idempotent mutations:
-1. Inserts action ID into `processed_actions` (fails silently if duplicate)
-2. Only proceeds if the guard succeeds
-3. Returns the affected parent for broadcast
+Mutations should only contain the logical data change. The middleware automatically ensures idempotency by tracking each `action_id` in a per-mutation system table (`_resync_actions_<name>`).
 
 ---
 
@@ -498,6 +484,7 @@ let removeTodo = (_store: t, id: string) => dispatch(RemoveTodo(id));
 
 ```ocaml
 open Lwt.Syntax
+open Mutation_result
 
 let doc_root =
   match Sys.getenv_opt "MY_APP_DOC_ROOT" with
@@ -526,9 +513,9 @@ let realtime_adapter =
     (module Pgnotify_adapter : Adapter.S with type t = Pgnotify_adapter.t)
     (Pgnotify_adapter.create ~db_uri ())
 
-let handle_mutation _broadcast_fn request ~action_id action =
+let handle_mutation _broadcast_fn request ~db ~action_id ~mutation_name action =
   (* Parse action and execute mutation - see full example *)
-  Lwt.return (Middleware.Ack (Ok ()))
+  Lwt.return (Ack (Ok ()))
 
 let realtime_middleware =
   Middleware.create

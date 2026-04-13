@@ -1,24 +1,5 @@
 open Lwt.Syntax
-
-let doc_root =
-  match Sys.getenv_opt "LLM_CHAT_DOC_ROOT" with
-  | Some doc_root -> doc_root
-  | None -> failwith "LLM_CHAT_DOC_ROOT is required"
-
-let db_uri =
-  match Sys.getenv_opt "DB_URL" with
-  | Some uri -> uri
-  | None -> failwith "DB_URL is required"
-
-let server_interface =
-  match Sys.getenv_opt "SERVER_INTERFACE" with
-  | Some interface -> interface
-  | None -> "127.0.0.1"
-
-let server_port =
-  match Sys.getenv_opt "SERVER_PORT" with
-  | Some port -> int_of_string port
-  | None -> 8897
+open Mutation_result
 
 let get_config request thread_id =
   let* thread_info = Dream.sql request (Database.Chat.get_thread thread_id) in
@@ -52,20 +33,6 @@ let resolve_subscription request selection =
        | None ->
            Lwt.return_some thread_id)
 
-let realtime_adapter =
-  Adapter.pack
-    (module Pgnotify_adapter : Adapter.S with type t = Pgnotify_adapter.t)
-    (Pgnotify_adapter.create ~db_uri ())
-
-let assoc key = function
-  | `Assoc fields -> List.assoc_opt key fields
-  | _ -> None
-
-let required_string key json =
-  match assoc key json with
-  | Some (`String value) -> Ok value
-  | _ -> Error ("Missing string field: " ^ key)
-
 let stream_event_json ~event fields =
   Yojson.Basic.to_string
     (`Assoc
@@ -78,10 +45,9 @@ let broadcast_stream_event ~broadcast_fn ~thread_id ~event fields =
 
 let finalize_assistant_message ~request ~thread_id ~assistant_message_id ~full_response =
   if String.length full_response > 0 then
-    let action_id = UUID.make () in
     Dream.sql request
       (Database.Chat.add_message
-         (action_id, assistant_message_id, thread_id, "assistant", full_response))
+         assistant_message_id thread_id "assistant" full_response)
   else Lwt.return_unit
 
 let stream_ollama ~broadcast_fn ~request ~thread_id ~assistant_message_id () =
@@ -169,14 +135,14 @@ let stream_ollama ~broadcast_fn ~request ~thread_id ~assistant_message_id () =
 let require_thread request thread_id f =
   let* thread = Dream.sql request (Database.Chat.get_thread thread_id) in
   match thread with
-  | None -> Lwt.return (Middleware.Ack (Error ("Thread not found: " ^ thread_id)))
+  | None -> Lwt.return (Ack (Error ("Thread not found: " ^ thread_id)))
   | Some _ -> f ()
 
 let validate_mutation request action_json =
   Lwt.catch
     (fun () ->
       let kind =
-        match assoc "kind" action_json with
+        match Mutation_json.assoc "kind" action_json with
         | Some (`String k) -> k
         | _ -> ""
       in
@@ -196,9 +162,9 @@ let validate_mutation request action_json =
       | None -> Lwt.return (Ok ())
       | Some action ->
           let thread_id_opt =
-            match assoc "payload" action_json with
+            match Mutation_json.assoc "payload" action_json with
             | Some payload ->
-                (match required_string "thread_id" payload with
+                (match Mutation_json.required_string "thread_id" payload with
                  | Ok id -> Some id
                  | Error _ -> None)
             | None -> None
@@ -221,26 +187,27 @@ let validate_mutation request action_json =
            | StoreRuntimeTypes.Allow -> Lwt.return (Ok ())
            | StoreRuntimeTypes.Deny reason -> Lwt.return (Error reason)))
     (function
-     | Caqti_error.Exn error -> Lwt.return (Error (Caqti_error.show error))
-     | exn -> Lwt.return (Error (Printexc.to_string exn)))
+      | Caqti_error.Exn error -> Lwt.return (Error (Caqti_error.show error))
+      | exn -> Lwt.return (Error (Printexc.to_string exn)))
 
-let handle_mutation broadcast_fn request ~action_id action =
+let handle_mutation broadcast_fn request ~db ~action_id ~mutation_name:_ action =
+  let open Mutation_json in
   let kind =
     match assoc "kind" action with
     | Some (`String value) -> Ok value
     | _ -> Error "Missing action kind"
   in
   match kind with
-  | Error error -> Lwt.return (Middleware.Ack (Error error))
+  | Error error -> Lwt.return (Ack (Error error))
   | Ok "send_prompt" ->
       begin match assoc "payload" action with
-      | None -> Lwt.return (Middleware.Ack (Error "Missing send_prompt payload"))
+      | None -> Lwt.return (Ack (Error "Missing send_prompt payload"))
       | Some payload ->
           begin match required_string "thread_id" payload with
-          | Error error -> Lwt.return (Middleware.Ack (Error error))
+          | Error error -> Lwt.return (Ack (Error error))
           | Ok thread_id ->
               begin match required_string "prompt" payload with
-              | Error error -> Lwt.return (Middleware.Ack (Error error))
+              | Error error -> Lwt.return (Ack (Error error))
               | Ok prompt ->
                   require_thread request thread_id (fun () ->
                     let message_id = UUID.make () in
@@ -248,9 +215,8 @@ let handle_mutation broadcast_fn request ~action_id action =
                     Lwt.catch
                       (fun () ->
                         let* () =
-                          Dream.sql request
-                            (Database.Chat.add_message
-                               (action_id, message_id, thread_id, "user", prompt))
+                          Database.Chat.add_message
+                            message_id thread_id "user" prompt db
                         in
                         let () =
                           Lwt.async (fun () ->
@@ -259,133 +225,145 @@ let handle_mutation broadcast_fn request ~action_id action =
                                 stream_ollama ~broadcast_fn ~request ~thread_id
                                   ~assistant_message_id ())
                               (fun exn ->
-                                broadcast_stream_event ~broadcast_fn ~thread_id
-                                  ~event:"stream_error"
-                                  [ ("thread_id", `String thread_id);
-                                    ("message_id", `String assistant_message_id);
-                                    ("error", `String (Printexc.to_string exn)) ]))
+                                 broadcast_stream_event ~broadcast_fn ~thread_id
+                                   ~event:"stream_error"
+                                   [ ("thread_id", `String thread_id);
+                                     ("message_id", `String assistant_message_id);
+                                     ("error", `String (Printexc.to_string exn)) ]))
                         in
-                        Lwt.return (Middleware.Ack (Ok ())))
+                        Lwt.return (Ack (Ok ())))
                       (function
                         | Caqti_error.Exn error ->
-                            Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
+                            Lwt.return (Ack (Error (Caqti_error.show error)))
                         | exn ->
                             Lwt.return
-                              (Middleware.Ack (Error (Printexc.to_string exn)))))
+                              (Ack (Error (Printexc.to_string exn)))))
               end
           end
       end
   | Ok "create_new_thread" ->
       begin match assoc "payload" action with
-      | None -> Lwt.return (Middleware.Ack (Error "Missing create_new_thread payload"))
+      | None -> Lwt.return (Ack (Error "Missing create_new_thread payload"))
       | Some payload ->
           begin match
             (required_string "id" payload, required_string "title" payload)
           with
           | (Ok thread_id, Ok title) ->
               let* result =
-                Dream.sql request (Database.Chat.create_thread thread_id title)
+                Database.Chat.create_thread thread_id title db
               in
               (match result with
                | () ->
                    let* () =
-                     Dream.sql request (Database.Chat.record_thread_view thread_id)
+                     Database.Chat.record_thread_view thread_id db
                    in
-                   Lwt.return (Middleware.Ack (Ok ()))
+                   Lwt.return (Ack (Ok ()))
                | exception Caqti_error.Exn error ->
-                   Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
+                   Lwt.return (Ack (Error (Caqti_error.show error)))
                | exception exn ->
-                   Lwt.return (Middleware.Ack (Error (Printexc.to_string exn))))
+                   Lwt.return (Ack (Error (Printexc.to_string exn))))
           | (Error error, _) | (_, Error error) ->
-              Lwt.return (Middleware.Ack (Error error))
+              Lwt.return (Ack (Error error))
           end
       end
   | Ok "set_error"
   | Ok "select_thread"
   | Ok "set_input" ->
-      Lwt.return (Middleware.Ack (Ok ()))
-   | Ok "delete_thread" ->
-       (match assoc "payload" action with
-        | Some payload ->
-            (match required_string "thread_id" payload with
-             | Ok thread_id ->
-                 Lwt.catch
-                   (fun () ->
-                      let* () = Dream.sql request (Database.Chat.delete_thread thread_id) in
-                      let delete_patch =
-                        `Assoc [
-                          ("type", `String "patch");
-                          ("table", `String "threads");
-                          ("action", `String "DELETE");
-                          ("id", `String thread_id);
-                        ] |> Yojson.Basic.to_string
-                      in
-                      let* () =
-                        Lwt.catch
-                          (fun () -> broadcast_fn thread_id (fun _ -> delete_patch))
-                          (fun exn ->
-                             Printf.eprintf "[delete_thread] broadcast failed: %s\n%!" (Printexc.to_string exn);
-                             Lwt.return_unit)
-                      in
-                      Lwt.return (Middleware.Ack (Ok ())))
-                   (function
-                    | Caqti_error.Exn error ->
-                        Printf.eprintf "[delete_thread] DB error: %s\n%!" (Caqti_error.show error);
-                        Lwt.return (Middleware.Ack (Error (Caqti_error.show error)))
-                    | exn ->
-                        Printf.eprintf "[delete_thread] unexpected error: %s\n%!" (Printexc.to_string exn);
-                        Lwt.return (Middleware.Ack (Error (Printexc.to_string exn))))
-             | Error error -> Lwt.return (Middleware.Ack (Error error)))
-        | None -> Lwt.return (Middleware.Ack (Error "Missing delete_thread payload")))
-  | Ok _ -> Lwt.return (Middleware.Ack (Error "Unknown action kind"))
-
-let realtime_middleware =
-  Middleware.create ~adapter:realtime_adapter ~resolve_subscription
-    ~load_snapshot:get_config_json ~handle_mutation ~validate_mutation ()
+      Lwt.return (Ack (Ok ()))
+  | Ok "delete_thread" ->
+      (match assoc "payload" action with
+       | Some payload ->
+           (match required_string "thread_id" payload with
+            | Ok thread_id ->
+                Lwt.catch
+                  (fun () ->
+                     let* () = Database.Chat.delete_thread thread_id db in
+                     let delete_patch =
+                       `Assoc [
+                         ("type", `String "patch");
+                         ("table", `String "threads");
+                         ("action", `String "DELETE");
+                         ("id", `String thread_id);
+                       ] |> Yojson.Basic.to_string
+                     in
+                     let* () =
+                       Lwt.catch
+                         (fun () -> broadcast_fn thread_id (fun _ -> delete_patch))
+                         (fun exn ->
+                            Printf.eprintf "[delete_thread] broadcast failed: %s\n%!" (Printexc.to_string exn);
+                            Lwt.return_unit)
+                     in
+                     Lwt.return (Ack (Ok ())))
+                  (function
+                   | Caqti_error.Exn error ->
+                       Printf.eprintf "[delete_thread] DB error: %s\n%!" (Caqti_error.show error);
+                       Lwt.return (Ack (Error (Caqti_error.show error)))
+                   | exn ->
+                       Printf.eprintf "[delete_thread] unexpected error: %s\n%!" (Printexc.to_string exn);
+                       Lwt.return (Ack (Error (Printexc.to_string exn))))
+            | Error error -> Lwt.return (Ack (Error error)))
+       | None -> Lwt.return (Ack (Error "Missing delete_thread payload")))
+  | Ok _ -> Lwt.return (Ack (Error "Unknown action kind"))
 
 let () =
-  (match Lwt_main.run (Adapter.start realtime_adapter) with
-   | () -> ()
-   | exception Failure msg ->
-       Printf.eprintf "Failed to connect notification listener: %s\n" msg);
-  Dream.run ~interface:server_interface ~port:server_port @@ Dream.logger
-  @@ Dream.sql_pool ~size:10 db_uri
-  @@ Dream.router
-       [ Middleware.route "_events" realtime_middleware;
-         Dream.get "/static/**" (Dream.static doc_root);
-         Dream.get "/app.js" (fun req -> Dream.from_filesystem doc_root "Index.re.js" req);
-         Dream.get "/style.css" (fun req -> Dream.from_filesystem doc_root "Index.re.css" req);
-          Dream.get "/favicon.ico" (fun _ -> Dream.respond ~status:`No_Content "");
-           Dream.get "/" (fun req ->
-             let* threads = Dream.sql req (Database.Chat.get_threads ()) in
-             match Array.length threads > 0 with
-             | true -> Dream.redirect req ("/" ^ threads.(0).id)
-             | false ->
-                 let uuid = UUID.make () in
-                 let* _ = Dream.sql req (Database.Chat.create_thread uuid "New Chat") in
-                 Dream.redirect req ("/" ^ uuid));
-          Dream.post "/api/test/delete-thread/:thread_id" (fun request ->
-            let thread_id = Dream.param request "thread_id" in
-            let* _ = Dream.sql request (Database.Chat.delete_thread thread_id) in
-            Dream.json "{\"status\":\"deleted\"}");
-          Dream.post "/api/test/create-thread" (fun request ->
-            let* body = Dream.body request in
-            let json = Yojson.Safe.from_string body in
-            let title = try Yojson.Safe.Util.(to_string (member "title" json)) with _ -> "Test Thread" in
-            let uuid = UUID.make () in
-            let* _ = Dream.sql request (Database.Chat.create_thread uuid title) in
-            Dream.respond (Yojson.Safe.to_string (`Assoc [("id", `String uuid); ("title", `String title)])));
-          Dream.post "/api/test/add-message" (fun request ->
-            let* body = Dream.body request in
-            let json = Yojson.Safe.from_string body in
-            let thread_id = try Yojson.Safe.Util.(to_string (member "thread_id" json)) with _ -> "" in
-            let role = try Yojson.Safe.Util.(to_string (member "role" json)) with _ -> "assistant" in
-            let content = try Yojson.Safe.Util.(to_string (member "content" json)) with _ -> "test message" in
-            let action_id = UUID.make () in
-            let message_id = UUID.make () in
-             let* _ = Dream.sql request (Database.Chat.add_message (action_id, message_id, thread_id, role, content)) in
-             Dream.respond (Yojson.Safe.to_string (`Assoc [("id", `String message_id); ("thread_id", `String thread_id)])));
-           Dream.post "/api/test/delete-all-threads" (fun request ->
-             let* _ = Dream.sql request (Database.Chat.delete_all_threads ()) in
-             Dream.json "{\"status\":\"deleted_all\"}");
-           Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app) ]
+  let builder =
+    Server_builder.make
+      ~doc_root_var:"LLM_CHAT_DOC_ROOT"
+      ~db_url_var:"DB_URL"
+      ~default_interface:"127.0.0.1"
+      ~default_port:8897
+      ()
+  in
+  let doc_root = Server_builder.doc_root builder in
+  let db_uri = Option.get (Server_builder.db_uri builder) in
+  let adapter =
+    Adapter.pack
+      (module Pgnotify_adapter : Adapter.S with type t = Pgnotify_adapter.t)
+      (Pgnotify_adapter.create ~db_uri ())
+  in
+  builder
+  |> Server_builder.with_packed_adapter adapter
+  |> Server_builder.with_middleware
+    ~resolve_subscription
+    ~load_snapshot:get_config_json
+    ~handle_mutation
+    ~validate_mutation
+  |> Server_builder.with_routes [
+    Dream.get "/static/**" (Dream.static doc_root);
+    Dream.get "/app.js" (fun req -> Dream.from_filesystem doc_root "Index.re.js" req);
+    Dream.get "/style.css" (fun req -> Dream.from_filesystem doc_root "Index.re.css" req);
+    Dream.get "/favicon.ico" (fun _ -> Dream.respond ~status:`No_Content "");
+    Dream.get "/" (fun req ->
+      let* threads = Dream.sql req (Database.Chat.get_threads ()) in
+      match Array.length threads > 0 with
+      | true -> Dream.redirect req ("/" ^ threads.(0).id)
+      | false ->
+          let uuid = UUID.make () in
+          let* _ = Dream.sql req (Database.Chat.create_thread uuid "New Chat") in
+          Dream.redirect req ("/" ^ uuid));
+    Dream.post "/api/test/delete-thread/:thread_id" (fun request ->
+      let thread_id = Dream.param request "thread_id" in
+      let* _ = Dream.sql request (Database.Chat.delete_thread thread_id) in
+      Dream.json "{\"status\":\"deleted\"}");
+    Dream.post "/api/test/create-thread" (fun request ->
+      let* body = Dream.body request in
+      let json = Yojson.Safe.from_string body in
+      let title = try Yojson.Safe.Util.(to_string (member "title" json)) with _ -> "Test Thread" in
+      let uuid = UUID.make () in
+      let* _ = Dream.sql request (Database.Chat.create_thread uuid title) in
+      Dream.respond (Yojson.Safe.to_string (`Assoc [("id", `String uuid); ("title", `String title)])));
+    Dream.post "/api/test/add-message" (fun request ->
+      let* body = Dream.body request in
+      let json = Yojson.Safe.from_string body in
+      let thread_id = try Yojson.Safe.Util.(to_string (member "thread_id" json)) with _ -> "" in
+      let role = try Yojson.Safe.Util.(to_string (member "role" json)) with _ -> "assistant" in
+      let content = try Yojson.Safe.Util.(to_string (member "content" json)) with _ -> "test message" in
+      let message_id = UUID.make () in
+      let* _ = Dream.sql request (Database.Chat.add_message message_id thread_id role content) in
+      Dream.respond (Yojson.Safe.to_string (`Assoc [("id", `String message_id); ("thread_id", `String thread_id)])));
+    Dream.post "/api/test/delete-all-threads" (fun request ->
+      let* _ = Dream.sql request (Database.Chat.delete_all_threads ()) in
+      Dream.json "{\"status\":\"deleted_all\"}");
+    Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
+  ]
+  |> Server_builder.run

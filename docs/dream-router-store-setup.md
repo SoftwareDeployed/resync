@@ -481,17 +481,40 @@ let app =
 
 ## 8. Mount the app in Dream
 
-In `server.ml`, keep explicit non-page Dream routes first, then mount the universal app handler.
+In `server.ml`, use `Server_builder` to collapse the env-var parsing, adapter startup, and `Dream.run` boilerplate. Keep explicit non-page Dream routes first, then mount the universal app handler.
 
-```reason
-Dream.router([
-  Middleware.route "/_events" realtime_middleware,
-  Dream.get "/static/**" (Dream.static doc_root),
-  Dream.get "/app.js" app_js_handler,
-  Dream.get "/style.css" css_handler,
-  Dream.get "/" (UniversalRouterDream.handler ~app:EntryServer.app),
-  Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app),
-]);
+```ocaml
+let () =
+  let builder =
+    Server_builder.make
+      ~doc_root_var:"ECOMMERCE_DOC_ROOT"
+      ~db_url_var:"DB_URL"
+      ~default_interface:"127.0.0.1"
+      ~default_port:8899
+      ()
+  in
+  let doc_root = Server_builder.doc_root builder in
+  let db_uri = Option.get (Server_builder.db_uri builder) in
+  let adapter =
+    Adapter.pack
+      (module Pgnotify_adapter : Adapter.S with type t = Pgnotify_adapter.t)
+      (Pgnotify_adapter.create ~db_uri ())
+  in
+  builder
+  |> Server_builder.with_packed_adapter adapter
+  |> Server_builder.with_middleware
+       ~resolve_subscription
+       ~load_snapshot:get_config_json
+  |> Server_builder.with_routes [
+    Dream.get "/static/**" (Dream.static doc_root);
+    Dream.get "/app.js" (fun req ->
+      Dream.from_filesystem doc_root "Index.re.js" req);
+    Dream.get "/style.css" (fun req ->
+      Dream.from_filesystem doc_root "Index.re.css" req);
+    Dream.get "/" (UniversalRouterDream.handler ~app:EntryServer.app);
+    Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
+  ]
+  |> Server_builder.run
 ```
 
 If you are using PostgreSQL-backed realtime tables, make sure your setup applies the generated `realtime.sql` triggers before expecting websocket patches to arrive.

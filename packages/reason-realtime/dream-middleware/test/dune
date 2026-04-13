@@ -2,7 +2,8 @@
  (name dream_middleware_test)
  (modules
   dream_middleware_test
-  middleware_behavior_test)
+  middleware_behavior_test
+  action_store_test)
  (libraries
   alcotest
   dream

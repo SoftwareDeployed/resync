@@ -54,6 +54,8 @@ The PPX emits OCaml metadata for tables, queries, and mutations so server code c
 
 That is why server code can call `RealtimeSchema.Queries.GetInventoryList.sql` or `RealtimeSchema.Mutations.CreateList.sql` without hardcoding the SQL in OCaml.
 
+For mutations, the PPX also emits a complete Caqti module: `param_type`, `request`, and `exec`. This lets you run schema-defined mutations directly without hand-writing Caqti request boilerplate.
+
 ## Workflow
 
 1. Edit annotated SQL.

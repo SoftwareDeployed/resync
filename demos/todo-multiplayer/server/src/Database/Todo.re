@@ -1,5 +1,4 @@
 open Lwt.Syntax;
-open Caqti_request.Infix;
 module type DB = Caqti_lwt.CONNECTION;
 module T = Caqti_type;
 
@@ -28,101 +27,20 @@ let get_list = (list_id: string) => {
   };
 };
 
-let create_list = (list_id: string) => {
-  let query =
-    Caqti_request.Infix.(
-      (T.string ->. T.unit)(RealtimeSchema.Mutations.CreateList.sql)
-    );
-  (module Db: DB) => {
-    let* result = Db.exec(query, list_id);
-    Caqti_lwt.or_fail(result);
-  };
-};
+let create_list = (list_id: string) =>
+  (module Db: DB) => RealtimeSchema.Mutations.CreateList.exec((module Db), list_id);
 
-let add_todo = args => {
-  let (action_id, id, list_id, text) = args;
-  let query =
-    Caqti_request.Infix.(
-      (T.t4(T.string, T.string, T.string, T.string) ->. T.unit)(
-        {sql|
-          WITH action_guard AS (
-            INSERT INTO processed_actions (id)
-            VALUES ($1::uuid)
-            ON CONFLICT DO NOTHING
-            RETURNING id
-          ), inserted AS (
-            INSERT INTO todos (id, list_id, text)
-            SELECT $2::uuid, $3::uuid, $4 FROM action_guard
-            RETURNING list_id
-          )
-          UPDATE todo_lists
-          SET updated_at = NOW()
-          WHERE id IN (SELECT list_id FROM inserted)
-        |sql},
-      )
-    );
-  (module Db: DB) => {
-    let* result = Db.exec(query, (action_id, id, list_id, text));
-    Caqti_lwt.or_fail(result);
-  };
-};
+let add_todo = (id, list_id, text) =>
+  (module Db: DB) => RealtimeSchema.Mutations.AddTodo.exec((module Db), (id, list_id, text));
 
-let set_todo_completed = args => {
-  let (action_id, todo_id, completed) = args;
-  let query =
-    Caqti_request.Infix.(
-      (T.t3(T.string, T.string, T.bool) ->. T.unit)(
-        {sql|
-          WITH action_guard AS (
-            INSERT INTO processed_actions (id)
-            VALUES ($1::uuid)
-            ON CONFLICT DO NOTHING
-            RETURNING id
-          ), updated AS (
-            UPDATE todos
-            SET completed = $3
-            WHERE id = $2::uuid AND EXISTS (SELECT 1 FROM action_guard)
-            RETURNING list_id
-          )
-          UPDATE todo_lists
-          SET updated_at = NOW()
-          WHERE id IN (SELECT list_id FROM updated)
-        |sql},
-      )
-    );
-  (module Db: DB) => {
-    let* result = Db.exec(query, (action_id, todo_id, completed));
-    Caqti_lwt.or_fail(result);
-  };
-};
+let set_todo_completed = (todo_id, completed) =>
+  (module Db: DB) => RealtimeSchema.Mutations.SetTodoCompleted.exec((module Db), (todo_id, completed));
 
-let remove_todo = args => {
-  let (action_id, todo_id) = args;
-  let query =
-    Caqti_request.Infix.(
-      (T.t2(T.string, T.string) ->. T.unit)(
-        {sql|
-          WITH action_guard AS (
-            INSERT INTO processed_actions (id)
-            VALUES ($1::uuid)
-            ON CONFLICT DO NOTHING
-            RETURNING id
-          ), deleted AS (
-            DELETE FROM todos
-            WHERE id = $2::uuid AND EXISTS (SELECT 1 FROM action_guard)
-            RETURNING list_id
-          )
-          UPDATE todo_lists
-          SET updated_at = NOW()
-          WHERE id IN (SELECT list_id FROM deleted)
-        |sql},
-      )
-    );
-  (module Db: DB) => {
-    let* result = Db.exec(query, (action_id, todo_id));
-    Caqti_lwt.or_fail(result);
-  };
-};
+let remove_todo = (todo_id: string) =>
+  (module Db: DB) => RealtimeSchema.Mutations.RemoveTodo.exec((module Db), todo_id);
+
+let rename_list = (list_id: string, name: string) =>
+  (module Db: DB) => RealtimeSchema.Mutations.RenameList.exec((module Db), (list_id, name));
 
 let fail_query_like_mutation = () => {
   let query =
@@ -139,19 +57,6 @@ let fail_query_like_mutation = () => {
     );
   (module Db: DB) => {
     let* result = Db.exec(query, ());
-    Caqti_lwt.or_fail(result);
-  };
-};
-
-let rename_list = (list_id: string, name: string) => {
-  let query =
-    Caqti_request.Infix.(
-      (T.t2(T.string, T.string) ->. T.unit)(
-        RealtimeSchema.Mutations.RenameList.sql,
-      )
-    );
-  (module Db: DB) => {
-    let* result = Db.exec(query, (list_id, name));
     Caqti_lwt.or_fail(result);
   };
 };

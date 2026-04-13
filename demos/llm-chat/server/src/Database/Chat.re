@@ -1,5 +1,4 @@
 open Lwt.Syntax;
-open Caqti_request.Infix;
 module type DB = Caqti_lwt.CONNECTION;
 module T = Caqti_type;
 
@@ -64,30 +63,11 @@ let get_threads = () => {
   };
 };
 
-let create_thread = (thread_id: string, title: string) => {
-  let query =
-    Caqti_request.Infix.(
-      (T.t2(T.string, T.string) ->. T.unit)(RealtimeSchema.Mutations.CreateThread.sql)
-    );
-  (module Db: DB) => {
-    let* result = Db.exec(query, (thread_id, title));
-    Caqti_lwt.or_fail(result);
-  };
-};
+let create_thread = (thread_id: string, title: string) =>
+  (module Db: DB) => RealtimeSchema.Mutations.CreateThread.exec((module Db), (thread_id, title));
 
-let add_message = args => {
-  let (action_id, id, thread_id, role, content) = args;
-  let query =
-    Caqti_request.Infix.(
-      (T.t5(T.string, T.string, T.string, T.string, T.string) ->. T.unit)(
-        RealtimeSchema.Mutations.AddMessage.sql
-      )
-    );
-  (module Db: DB) => {
-    let* result = Db.exec(query, (action_id, id, thread_id, role, content));
-    Caqti_lwt.or_fail(result);
-  };
-};
+let add_message = (id, thread_id, role, content) =>
+  (module Db: DB) => RealtimeSchema.Mutations.AddMessage.exec((module Db), (id, thread_id, role, content));
 
 let record_thread_view = (thread_id: string) => {
   let query =

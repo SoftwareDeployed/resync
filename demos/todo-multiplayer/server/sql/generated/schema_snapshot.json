@@ -1,5 +1,5 @@
 {
-  "schema_hash": "9c7cd9d4094c73273c183e97f83675d9",
+  "schema_hash": "b59715f128fae4f602bb71261bd2979b",
   "tables": [
     {
       "table_name": "todo_lists",
@@ -30,29 +30,6 @@
         },
         {
           "name": "updated_at",
-          "sql_type": "timestamptz",
-          "nullable": false,
-          "primary_key": false,
-          "default": "NOW()",
-          "foreign_key": null
-        }
-      ],
-      "id_column": "id",
-      "composite_key": []
-    },
-    {
-      "table_name": "processed_actions",
-      "columns": [
-        {
-          "name": "id",
-          "sql_type": "uuid",
-          "nullable": true,
-          "primary_key": true,
-          "default": null,
-          "foreign_key": null
-        },
-        {
-          "name": "created_at",
           "sql_type": "timestamptz",
           "nullable": false,
           "primary_key": false,

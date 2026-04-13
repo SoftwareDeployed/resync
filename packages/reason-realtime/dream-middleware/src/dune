@@ -1,7 +1,8 @@
 (library
  (name reason_realtime_dream_middleware)
  (public_name resync.reason_realtime_dream_middleware)
- (modules Adapter Middleware)
+ (modules Adapter Middleware Mutation_result Action_store Sql_action_store In_memory_action_store Server_builder Mutation_json)
+ (modules_without_implementation action_store)
  (wrapped false)
-  (libraries dream lwt.unix)
+  (libraries dream lwt.unix caqti caqti-lwt)
   (instrumentation (backend bisect_ppx)))

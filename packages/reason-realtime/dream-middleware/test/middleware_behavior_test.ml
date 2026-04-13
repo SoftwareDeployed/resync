@@ -30,10 +30,14 @@ let make_runtime
     ?(resolve_subscription = fun _request selection -> Lwt.return_some selection)
     ?(load_snapshot = fun _request channel ->
       Lwt.return (Printf.sprintf "{\"channel\":\"%s\"}" channel))
-    ?handle_mutation ?handle_media adapter_state =
+    ?handle_mutation ?handle_media ?(action_store = (module In_memory_action_store : Action_store.S))
+    ?(use_db = fun _request callback ->
+      let m = (Obj.magic () : (module Caqti_lwt.CONNECTION)) in
+      callback m)
+    adapter_state =
   let packed = Adapter.pack (module Fake_adapter) adapter_state in
   Middleware.create ~adapter:packed ~resolve_subscription ~load_snapshot
-    ?handle_mutation ?handle_media ()
+    ?handle_mutation ?handle_media ~action_store ~use_db ()
 
 let suite =
   ( "middleware websocket behavior",
@@ -80,8 +84,8 @@ let suite =
           | _ -> Alcotest.fail "Expected select to subscribe room-1");
       Alcotest.test_case "mutation success sends ack ok" `Quick (fun () ->
           let adapter = Fake_adapter.create () in
-          let handle_mutation _broadcast _request ~action_id:_ _action =
-            Lwt.return (Middleware.Ack (Ok ()))
+          let handle_mutation _broadcast _request ~db:_ ~action_id:_ ~mutation_name:_ _action =
+            Lwt.return (Mutation_result.Ack (Ok ()))
           in
           let runtime = make_runtime ~handle_mutation adapter in
           let sent = ref [] in
@@ -98,6 +102,109 @@ let suite =
           let payload = Middleware.ack_message ~action_id:"a-1" ~status:"ok" () in
           if !sent = [ payload ] then ()
           else Alcotest.fail "Expected ok ack payload");
+      Alcotest.test_case "mutation duplicate skips handler" `Quick (fun () ->
+          let adapter = Fake_adapter.create () in
+          let call_count = ref 0 in
+          let handle_mutation _broadcast _request ~db:_ ~action_id:_ ~mutation_name:_ _action =
+            incr call_count;
+            Lwt.return (Mutation_result.Ack (Ok ()))
+          in
+          let runtime = make_runtime ~handle_mutation adapter in
+          let _ =
+            Lwt_main.run
+              (Middleware.handle_message_with_io runtime request None
+                 "{\"type\":\"mutation\",\"actionId\":\"dup-1\",\"action\":{\"kind\":\"noop\"}}"
+                 ~send:(fun _ -> Lwt.return_unit)
+                 ~close:(fun () -> Lwt.return_unit)
+                 ~subscribe:(fun _ -> Lwt.return_some "c"))
+          in
+          let _ =
+            Lwt_main.run
+              (Middleware.handle_message_with_io runtime request None
+                 "{\"type\":\"mutation\",\"actionId\":\"dup-1\",\"action\":{\"kind\":\"noop\"}}"
+                 ~send:(fun _ -> Lwt.return_unit)
+                 ~close:(fun () -> Lwt.return_unit)
+                 ~subscribe:(fun _ -> Lwt.return_some "c"))
+          in
+          if !call_count = 1 then ()
+          else Alcotest.fail (Printf.sprintf "Expected handler called once, got %d" !call_count));
+      Alcotest.test_case "mutation failure records and replays" `Quick (fun () ->
+          let adapter = Fake_adapter.create () in
+          let call_count = ref 0 in
+          let handle_mutation _broadcast _request ~db:_ ~action_id:_ ~mutation_name:_ _action =
+            incr call_count;
+            Lwt.return (Mutation_result.Ack (Error "bad"))
+          in
+          let runtime = make_runtime ~handle_mutation adapter in
+          let sent = ref [] in
+          let _ =
+            Lwt_main.run
+              (Middleware.handle_message_with_io runtime request None
+                 "{\"type\":\"mutation\",\"actionId\":\"fail-1\",\"action\":{\"kind\":\"noop\"}}"
+                 ~send:(fun message ->
+                   sent := message :: !sent;
+                   Lwt.return_unit)
+                 ~close:(fun () -> Lwt.return_unit)
+                 ~subscribe:(fun _ -> Lwt.return_some "c"))
+          in
+          let _ =
+            Lwt_main.run
+              (Middleware.handle_message_with_io runtime request None
+                 "{\"type\":\"mutation\",\"actionId\":\"fail-1\",\"action\":{\"kind\":\"noop\"}}"
+                 ~send:(fun message ->
+                   sent := message :: !sent;
+                   Lwt.return_unit)
+                 ~close:(fun () -> Lwt.return_unit)
+                 ~subscribe:(fun _ -> Lwt.return_some "c"))
+          in
+          let payload = Middleware.ack_message ~action_id:"fail-1" ~status:"error" ~error:"bad" () in
+          if !call_count = 1 && !sent = [ payload; payload ] then ()
+          else Alcotest.fail "Expected handler called once and two error acks");
+      Alcotest.test_case "mutation NoAck allows retry" `Quick (fun () ->
+          let adapter = Fake_adapter.create () in
+          let call_count = ref 0 in
+          let handle_mutation _broadcast _request ~db:_ ~action_id:_ ~mutation_name:_ _action =
+            incr call_count;
+            Lwt.return Mutation_result.NoAck
+          in
+          let runtime = make_runtime ~handle_mutation adapter in
+          let _ =
+            Lwt_main.run
+              (Middleware.handle_message_with_io runtime request None
+                 "{\"type\":\"mutation\",\"actionId\":\"noack-1\",\"action\":{\"kind\":\"noop\"}}"
+                 ~send:(fun _ -> Lwt.return_unit)
+                 ~close:(fun () -> Lwt.return_unit)
+                 ~subscribe:(fun _ -> Lwt.return_some "c"))
+          in
+          let _ =
+            Lwt_main.run
+              (Middleware.handle_message_with_io runtime request None
+                 "{\"type\":\"mutation\",\"actionId\":\"noack-1\",\"action\":{\"kind\":\"noop\"}}"
+                 ~send:(fun _ -> Lwt.return_unit)
+                 ~close:(fun () -> Lwt.return_unit)
+                 ~subscribe:(fun _ -> Lwt.return_some "c"))
+          in
+          if !call_count = 2 then ()
+          else Alcotest.fail (Printf.sprintf "Expected handler called twice, got %d" !call_count));
+      Alcotest.test_case "handler receives db module" `Quick (fun () ->
+          let adapter = Fake_adapter.create () in
+          let received_db = ref false in
+          let handle_mutation _broadcast _request ~db ~action_id:_ ~mutation_name:_ _action =
+            (match db with
+            | (module _ : Caqti_lwt.CONNECTION) -> received_db := true);
+            Lwt.return (Mutation_result.Ack (Ok ()))
+          in
+          let runtime = make_runtime ~handle_mutation adapter in
+          let _ =
+            Lwt_main.run
+              (Middleware.handle_message_with_io runtime request None
+                 "{\"type\":\"mutation\",\"actionId\":\"db-1\",\"action\":{\"kind\":\"noop\"}}"
+                 ~send:(fun _ -> Lwt.return_unit)
+                 ~close:(fun () -> Lwt.return_unit)
+                 ~subscribe:(fun _ -> Lwt.return_some "c"))
+          in
+          if !received_db then ()
+          else Alcotest.fail "Expected handler to receive db module");
       Alcotest.test_case "invalid mutation sends error ack" `Quick (fun () ->
           let adapter = Fake_adapter.create () in
           let runtime = make_runtime adapter in

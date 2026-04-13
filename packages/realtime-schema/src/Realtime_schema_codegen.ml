@@ -81,6 +81,28 @@ let table_record_literal (table : table) =
 
 let string_of_handler = function Sql -> "Sql" | Ocaml -> "Ocaml"
 
+let caqti_type_of_ocaml_type = function
+  | "string" -> "Caqti_type.string"
+  | "int" -> "Caqti_type.int"
+  | "int64" -> "Caqti_type.int64"
+  | "bool" -> "Caqti_type.bool"
+  | "float" -> "Caqti_type.float"
+  | _ -> "Caqti_type.string"
+
+let mutation_param_type_expr params =
+  let type_of_param p = caqti_type_of_ocaml_type p.ocaml_type in
+  match params with
+  | [] -> "Caqti_type.unit"
+  | [ p ] -> type_of_param p
+  | [ p1; p2 ] -> Printf.sprintf "Caqti_type.t2 %s %s" (type_of_param p1) (type_of_param p2)
+  | [ p1; p2; p3 ] -> Printf.sprintf "Caqti_type.t3 %s %s %s" (type_of_param p1) (type_of_param p2) (type_of_param p3)
+  | [ p1; p2; p3; p4 ] ->
+      Printf.sprintf "Caqti_type.t4 %s %s %s %s" (type_of_param p1) (type_of_param p2) (type_of_param p3) (type_of_param p4)
+  | [ p1; p2; p3; p4; p5 ] ->
+      Printf.sprintf "Caqti_type.t5 %s %s %s %s %s"
+        (type_of_param p1) (type_of_param p2) (type_of_param p3) (type_of_param p4) (type_of_param p5)
+  | _ -> "Caqti_type.unit"
+
 let params_literal params =
   params
   |> List.map (fun param ->
@@ -146,10 +168,22 @@ let mutation_module_declaration (mutation : mutation) =
     |> List.map (fun param -> Printf.sprintf "(%d, %S, %S)" param.index param.ocaml_type param.sql_type)
     |> String.concat "; "
   in
+  let caqti_items =
+    let param_type_expr = mutation_param_type_expr mutation.params in
+    Printf.sprintf
+      "let param_type = %s [@@platform native]\n\
+      \  let request = Caqti_request.Infix.(param_type ->. Caqti_type.unit)(sql) [@@platform native]\n\
+      \  let exec (module Db : Caqti_lwt.CONNECTION) params =\n\
+      \    let open Lwt.Syntax in\n\
+      \    let* result = Db.exec request params in\n\
+      \    Caqti_lwt.or_fail result [@@platform native]"
+      param_type_expr
+  in
   Printf.sprintf
-    "module %s = struct\n  let name = %S\n  let sql = %S\n  let params = [%s]\n  let handler = %s\nend"
+    "module %s = struct\n  let name = %S\n  let sql = %S\n  let params = [%s]\n  let handler = %s\n\n  %s\nend"
     (module_name_of_table mutation.name) mutation.name mutation.sql params_literal
     (string_of_handler mutation.handler)
+    caqti_items
 
 let table_id_expression row_alias (table : table) =
   match table.id_column with
@@ -494,6 +528,21 @@ let generated_triggers_sql (schema : schema) =
   in
   String.concat "\n\n" parts
 
+let mutation_action_table_sql (mutation : mutation) =
+  Printf.sprintf
+    "CREATE TABLE IF NOT EXISTS _resync_actions_%s (\n\
+    \  action_id uuid PRIMARY KEY,\n\
+    \  status text NOT NULL CHECK (status IN ('ok', 'failed')),\n\
+    \  processed_at timestamptz NOT NULL DEFAULT NOW(),\n\
+    \  error_message text\n\
+    );"
+    mutation.name
+
+let mutation_action_tables_sql (schema : schema) =
+  schema.mutations
+  |> List.map mutation_action_table_sql
+  |> String.concat "\n\n"
+
 let migration_version () =
   let tm = Unix.gmtime (Unix.time ()) in
   Printf.sprintf "%04d%02d%02d%02d%02d%02d"
@@ -665,6 +714,7 @@ let migration_sql ?previous_snapshot (schema : schema) =
   let statements =
     statements
     @ [
+        mutation_action_tables_sql schema;
         "CREATE TABLE IF NOT EXISTS schema_migrations (version varchar PRIMARY KEY, applied_at timestamp NOT NULL DEFAULT NOW());";
         generated_triggers_sql schema;
         Printf.sprintf "INSERT INTO schema_migrations (version) VALUES (%S) ON CONFLICT (version) DO NOTHING;" version;
