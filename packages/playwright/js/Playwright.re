@@ -48,6 +48,12 @@ external textContent: (page, string) => Js.Promise.t(Js.Nullable.t(string)) = "t
 external waitForSelector: (page, string) => Js.Promise.t(Js.Nullable.t('a)) = "waitForSelector";
 
 [@mel.send]
+external waitForSelectorWithOptions: (page, string, Js.t({..})) => Js.Promise.t(Js.Nullable.t('a)) = "waitForSelector";
+
+let waitForSelectorWithTimeout = (page, selector, ~timeout) =>
+  waitForSelectorWithOptions(page, selector, {"timeout": timeout});
+
+[@mel.send]
 external reload: page => Js.Promise.t(Js.Nullable.t('a)) = "reload";
 
 [@mel.send]
@@ -61,3 +67,18 @@ external addInitScript: (page, string) => Js.Promise.t(unit) = "addInitScript";
 
 [@mel.scope "process"]
 external cwd: unit => string = "cwd";
+
+/* Console message capture */
+type consoleMessage;
+
+[@mel.send]
+external text: consoleMessage => string = "text";
+
+[@mel.send]
+external type_: consoleMessage => string = "type";
+
+[@mel.send]
+external onConsole: (page, string, consoleMessage => unit) => unit = "on";
+
+[@mel.send]
+external onPageError: (page, string, string => unit) => unit = "on";
