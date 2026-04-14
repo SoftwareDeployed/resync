@@ -163,7 +163,7 @@ module Synced = {
       let onMedia = hooks.onMedia;
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
-      let onConnectionHandle = hooks.onConnectionHandle;
+      let onMultiplexedHandle = hooks.onMultiplexedHandle;
       let validate = None;
       let cache = Input.config.cache;
     };
@@ -283,7 +283,7 @@ module Crud = {
       let onMedia = hooks.onMedia;
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
-      let onConnectionHandle = hooks.onConnectionHandle;
+      let onMultiplexedHandle = hooks.onMultiplexedHandle;
       let validate = None;
       let cache = Input.config.cache;
     };

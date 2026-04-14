@@ -354,8 +354,8 @@ module Synced = {
     type listener_id = StoreEvents.listener_id;
 
     /* Connection state owned by controller */
-    let getConnectionHandle: unit => option(RealtimeClient.Socket.connection_handle);
-    let setConnectionHandle: option(RealtimeClient.Socket.connection_handle) => unit;
+    let getConnectionHandle: unit => option(RealtimeClientMultiplexed.Multiplexed.t);
+    let setConnectionHandle: option(RealtimeClientMultiplexed.Multiplexed.t) => unit;
     let disposeConnectionHandle: unit => unit;
     let getHasOpened: unit => bool;
     let setHasOpened: bool => unit;
@@ -385,7 +385,7 @@ module Synced = {
     type listener_id = StoreEvents.listener_id;
 
     /* Connection state */
-    let connectionHandleRef: ref(option(RealtimeClient.Socket.connection_handle)) = ref(None);
+    let connectionHandleRef: ref(option(RealtimeClientMultiplexed.Multiplexed.t)) = ref(None);
     let hasOpenedRef: ref(bool) = ref(false);
 
     let getConnectionHandle = () => connectionHandleRef.contents;
@@ -394,7 +394,7 @@ module Synced = {
     let disposeConnectionHandle = () => {
       switch (connectionHandleRef.contents) {
       | Some(handle) =>
-        RealtimeClient.Socket.disposeHandle(handle);
+        RealtimeClientMultiplexed.Multiplexed.dispose(handle);
         connectionHandleRef := None;
       | None => ()
       };
@@ -513,10 +513,10 @@ module Synced = {
     let onMedia: option(StoreJson.json => unit);
     let onError: option((~dispatch: action => unit) => string => unit);
     let onOpen: option((~dispatch: action => unit) => unit);
-    /* Optional hook called when a connection handle is created. Allows external
+    /* Optional hook called when a multiplexed handle is created. Allows external
        code (e.g., video-chat media transport) to access the handle for sending
        raw frames without storing singleton state in RealtimeClient. */
-    let onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit);
+    let onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit);
     let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
     let cache: [ | `IndexedDB | `None ];
   };
@@ -814,10 +814,10 @@ module Synced = {
       let sent =
         switch (Controller.getConnectionHandle()) {
         | Some(handle) =>
-          RealtimeClient.Socket.sendAction(
-            ~handle,
+          RealtimeClientMultiplexed.Multiplexed.sendAction(
             ~actionId=record.id,
             ~action=record.action,
+            handle,
           )
         | None => false
         };
@@ -1134,9 +1134,14 @@ module Synced = {
         Controller.disposeConnectionHandle();
         Js.Promise.make((~resolve, ~reject as _) => {
           let resolveUnit = v => resolve(. v);
-          let handle =
-            RealtimeClient.Socket.subscribeSynced(
-              ~subscription=Schema.encodeSubscription(subscription),
+          let multiplexed =
+            RealtimeClientMultiplexed.Multiplexed.make(
+              ~eventUrl=Schema.eventUrl,
+              ~baseUrl=Schema.baseUrl,
+            );
+          let _ =
+            RealtimeClientMultiplexed.Multiplexed.subscribe(
+              ~channel=Schema.encodeSubscription(subscription),
               ~updatedAt=Schema.timestampOfState(state),
               ~onOpen=() => {
                 StoreRuntimeLifecycle.markConnectionOpen(lifecycle);
@@ -1159,58 +1164,13 @@ module Synced = {
               },
               ~onClose=() => emitEvent(StoreEvents.Close),
               ~onPatch=handlePatch,
-              ~onCustom=json => {
-                switch (Schema.streams) {
-                | Some({decodeStreamEvent, reduceStream, _}) =>
-                  switch (decodeStreamEvent(json)) {
-                  | Some(event) =>
-                    streamingRef := reduceStream(streamingRef.contents, event);
-                    emitEvent(StoreEvents.CustomEvent(json));
-                  | None => ()
-                  };
-                | None =>
-                  emitEvent(StoreEvents.CustomEvent(json));
-                  switch (Schema.onCustom) {
-                  | Some(onCustom) => onCustom(json)
-                  | None => ()
-                  };
-                };
-              },
-              ~onMedia=json => {
-                switch (Schema.streams) {
-                | Some({decodeStreamEvent, reduceStream, _}) =>
-                  switch (decodeStreamEvent(json)) {
-                  | Some(event) =>
-                    streamingRef := reduceStream(streamingRef.contents, event);
-                    emitEvent(StoreEvents.MediaEvent(json));
-                  | None => ()
-                  };
-                | None =>
-                  emitEvent(StoreEvents.MediaEvent(json));
-                  switch (Schema.onMedia) {
-                  | Some(onMedia) => onMedia(json)
-                  | None => ()
-                  };
-                };
-              },
-              ~onError=message => {
-                /* Connection errors are surfaced from the runtime-owned sync layer, not
-                   by ad hoc demo-owned socket hooks. */
-                emitEvent(StoreEvents.ConnectionError(message));
-                switch (Schema.onError) {
-                | Some(onError) => onError(~dispatch=safeDispatch)(message)
-                | None => ()
-                };
-              },
               ~onSnapshot=handleSnapshot,
               ~onAck=handleAck,
-              ~eventUrl=Schema.eventUrl,
-              ~baseUrl=Schema.baseUrl,
-              (),
+              multiplexed,
             );
-          Controller.setConnectionHandle(Some(handle));
-          switch (Schema.onConnectionHandle) {
-          | Some(callback) => callback(handle)
+          Controller.setConnectionHandle(Some(multiplexed));
+          switch (Schema.onMultiplexedHandle) {
+          | Some(callback) => callback(multiplexed)
           | None => ()
           };
         })

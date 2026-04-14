@@ -256,7 +256,7 @@ module Sync = {
     onMedia: option(StoreJson.json => unit),
     onError: option((~dispatch: 'action => unit) => string => unit),
     onOpen: option((~dispatch: 'action => unit) => unit),
-    onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit),
+    onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit),
   };
 
   type crudConfig('row, 'state) = {
@@ -283,7 +283,7 @@ module Sync = {
     onMedia: None,
     onError: None,
     onOpen: None,
-    onConnectionHandle: None,
+    onMultiplexedHandle: None,
   };
 
   let defaultOnActionError = (_message: string) => ();
@@ -597,7 +597,7 @@ module Runtime = {
     let onMedia: option(StoreJson.json => unit);
     let onError: option((~dispatch: action => unit) => string => unit);
     let onOpen: option((~dispatch: action => unit) => unit);
-    let onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit);
+    let onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit);
     let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
     let cache: [ | `IndexedDB | `None ];
   };
@@ -731,7 +731,7 @@ let buildSynced =
       let onMedia = hooks.onMedia;
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
-      let onConnectionHandle = hooks.onConnectionHandle;
+      let onMultiplexedHandle = hooks.onMultiplexedHandle;
       let validate =
         switch (input.guardTree) {
         | Some(tree) =>
@@ -805,7 +805,7 @@ let buildCrud =
       let onMedia = hooks.onMedia;
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
-      let onConnectionHandle = hooks.onConnectionHandle;
+      let onMultiplexedHandle = hooks.onMultiplexedHandle;
       let validate =
         switch (input.guardTree) {
         | Some(tree) =>
