@@ -28,16 +28,6 @@ let sendRaw = dict => {
   };
 };
 
-let sendRaw = dict => {
-  let frame = Js.Json.stringify(Js.Json.object_(dict));
-  switch (handleRef.contents) {
-  | Some(handle) =>
-    let _ = RealtimeClient.Socket.sendFrame(~handle, ~frame);
-    ();
-  | None => ()
-  };
-};
-
 let lastFrameSent: ref(option(string)) = ref(None);
 
 let sendMediaFrame = (roomId, peerId, frameData) => {
