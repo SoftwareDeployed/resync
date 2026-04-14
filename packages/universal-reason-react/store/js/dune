@@ -1,29 +1,30 @@
 (library
  (name universal_reason_react_store_js)
  (public_name resync.universal_reason_react_store_js)
-  (modules
-   BroadcastChannel
-   Hydration
-   RealtimeClient
-   RealtimeClientMultiplexed
-   Store
-    StoreBuilder
-     StoreActionLedger
-    StoreFrp
-    StoreCache
-    StoreComputed
-    StoreCrud
-     StoreEvents
-     StoreFrpFixture
-    StoreGuardTree
-     StoreIndexedDB
-    StoreJson
-     StoreOffline
-   StorePatch
-     StoreRuntimeHelpers
-     StoreRuntimeLifecycle
-     StoreRuntimeTypes
-     StoreSignal
+(modules
+  BroadcastChannel
+  Hydration
+  QueryRegistry
+  RealtimeClient
+  RealtimeClientMultiplexed
+  Store
+  StoreBuilder
+  StoreActionLedger
+  StoreFrp
+  StoreCache
+  StoreComputed
+  StoreCrud
+  StoreEvents
+  StoreFrpFixture
+  StoreGuardTree
+  StoreIndexedDB
+  StoreJson
+  StoreOffline
+  StorePatch
+  StoreRuntimeHelpers
+  StoreRuntimeLifecycle
+  StoreRuntimeTypes
+  StoreSignal
   StoreSource
   Tilia
   WebSocket)
