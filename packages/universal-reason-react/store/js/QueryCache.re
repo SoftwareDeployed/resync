@@ -1,6 +1,6 @@
 // QueryCache.re - Client-side query cache with WebSocket subscription
 
-open QueryRegistry;
+open QueryRegistryTypes;
 
 type query_entry('row) = {
   key: query_key,
@@ -37,7 +37,7 @@ let subscribe = (
   ~updatedAt: float=0.0,
   ~onPatch: (~payload: StoreJson.json, ~timestamp: float) => unit,
   ~onSnapshot: StoreJson.json => unit,
-  ~decodeRow: StoreJson.json => 'row,
+  ~decodeRow as _: StoreJson.json => 'row,
   (),
 ) : (Tilia.Core.signal(query_result('row)), unit => unit) => {
   let (signal, setSignal) = Tilia.Core.signal(Loading);
@@ -108,5 +108,5 @@ let updateResult = (t, ~key: query_key, ~result: query_result('row)) => {
 let getResult = (t, ~key: query_key): option(query_result('row)) => {
   t.entriesRef.contents
   ->Js.Dict.get(key)
-  ->Option.map(entry => Tilia.Core.lift(entry.signal));
+  |> Option.map(entry => Tilia.Core.lift(entry.signal));
 };

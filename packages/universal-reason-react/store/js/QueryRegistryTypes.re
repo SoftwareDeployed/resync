@@ -1,4 +1,4 @@
-// QueryRegistry.re - Shared type definitions for query registration system
+// QueryRegistryTypes.re - Shared type definitions for query registration system
 
 type query_key = string;
 

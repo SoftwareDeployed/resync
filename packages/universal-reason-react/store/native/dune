@@ -4,7 +4,6 @@
 (modules
   BroadcastChannel
   Hydration
-  QueryCache
   QueryRegistry
   RealtimeClient
   RealtimeClientMultiplexed

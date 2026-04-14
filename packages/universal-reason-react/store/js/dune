@@ -5,7 +5,7 @@
   BroadcastChannel
   Hydration
   QueryCache
-  QueryRegistry
+  QueryRegistryTypes
   RealtimeClient
   RealtimeClientMultiplexed
   Store
