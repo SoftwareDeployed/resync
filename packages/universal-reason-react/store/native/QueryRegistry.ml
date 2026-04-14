@@ -51,7 +51,8 @@ type query_registry = {
   db_connection : (module Caqti_lwt.CONNECTION) option;
 }
 
-let current_registry : query_registry option ref = ref None
+(* Thread-local storage using Lwt key *)
+let registry_key : query_registry Lwt.key = Lwt.new_key ()
 
 let hash_params params =
   Marshal.to_string params []
@@ -65,26 +66,25 @@ let with_registry ~db f =
     results = Hashtbl.create 8;
     db_connection = Some db;
   } in
-  current_registry := Some registry;
-  let* result = f () in
-  current_registry := None;
-  Lwt.return result
+  Lwt.with_value registry_key (Some registry) f
 
 let decode_results decodeRow json =
   match json with
-  | `List items -> List.map decodeRow items
-  | _ -> []
+  | `List items -> List.map decodeRow items |> Array.of_list
+  | _ -> [||]
 
 let register_query ~channel ~params ~sql ~decodeRow ~rowToJson param_type row_type =
-  match !current_registry with
+  match Lwt.get registry_key with
   | None -> None
   | Some registry ->
     let key = makeKey ~channel ~paramsHash:(hash_params params) in
-    if Hashtbl.mem registry.queries key then
-      match Hashtbl.find_opt registry.results key with
+    match Hashtbl.find_opt registry.queries key with
+    | Some _ ->
+      begin match Hashtbl.find_opt registry.results key with
       | Some json -> Some (decode_results decodeRow json)
       | None -> None
-    else begin
+      end
+    | None ->
       let request = Caqti_request.Infix.(param_type ->* row_type)(sql) in
       let execute (module Db : Caqti_lwt.CONNECTION) =
         let* result = Db.collect_list request params in
@@ -103,16 +103,15 @@ let register_query ~channel ~params ~sql ~decodeRow ~rowToJson param_type row_ty
         decode = decodeRow;
       });
       None
-    end
 
 let execute_queries () =
-  match !current_registry with
+  match Lwt.get registry_key with
   | None -> Lwt.return ()
   | Some registry ->
     match registry.state with
     | Collecting ->
       let queries = Hashtbl.to_seq_values registry.queries |> List.of_seq in
-      let* () = Lwt_list.iter_s (fun (Query q) ->
+      let* () = Lwt_list.iter_p (fun (Query q) ->
         match registry.db_connection with
         | None -> Lwt.return ()
         | Some (module Db) ->
@@ -121,7 +120,7 @@ let execute_queries () =
               let* result = q.execute (module Db) in
               match result with
               | Stdlib.Ok json ->
-                Hashtbl.add registry.results q.key json;
+                Hashtbl.replace registry.results q.key json;
                 Lwt.return ()
               | Stdlib.Error _ -> Lwt.return ())
             (fun _exn -> Lwt.return ())
@@ -131,6 +130,13 @@ let execute_queries () =
     | _ -> Lwt.return ()
 
 let get_results () =
-  match !current_registry with
-  | None -> []
-  | Some registry -> Hashtbl.to_seq registry.results |> List.of_seq
+  match Lwt.get registry_key with
+  | None ->
+    { queries = [||]; results = Js.Dict.empty () }
+  | Some registry ->
+    let queries = Hashtbl.to_seq_keys registry.queries |> Array.of_seq in
+    let results = Js.Dict.empty () in
+    Hashtbl.iter (fun key json ->
+      Js.Dict.set results key (Obj.magic json)
+    ) registry.results;
+    { queries; results }
