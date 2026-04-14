@@ -2,10 +2,11 @@
  (name universal_reason_react_store_native)
  (public_name resync.universal_reason_react_store_native)
   (modules
-    BroadcastChannel
-    Hydration
-    RealtimeClient
-    Store
+     BroadcastChannel
+     Hydration
+     RealtimeClient
+     RealtimeClientMultiplexed
+     Store
      StoreBuilder
       StoreActionLedger
       StoreCache

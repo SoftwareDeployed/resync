@@ -5,6 +5,7 @@
    BroadcastChannel
    Hydration
    RealtimeClient
+   RealtimeClientMultiplexed
    Store
     StoreBuilder
      StoreActionLedger

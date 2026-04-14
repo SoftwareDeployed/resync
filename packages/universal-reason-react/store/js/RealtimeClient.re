@@ -422,3 +422,14 @@ module Socket = {
     handle;
   };
 };
+
+[@platform native]
+module Multiplexed = {
+  type t;
+  type subscription_handle = { channel: string, id: int };
+  let make = (~eventUrl as _, ~baseUrl as _) => Obj.magic();
+  let subscribe = (~channel as _, ~updatedAt as _, ~onOpen as _, ~onClose as _, ~onPatch as _, ~onSnapshot as _, ~onAck as _, _t) => { channel: "", id: 0 };
+  let unsubscribe = (_t, _handle) => ();
+  let sendAction = (~actionId as _, ~action as _, _t) => false;
+  let dispose = (_t) => ();
+};
