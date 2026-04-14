@@ -1,7 +1,7 @@
 open Lwt.Syntax
 
 module Fake_adapter = struct
-  type handler = ?wrap:(string -> string) -> string -> unit Lwt.t
+  type handler = ?wrap:(channel:string -> string -> string) -> string -> unit Lwt.t
 
   type t = {
     subscriptions : (string, handler) Hashtbl.t;
