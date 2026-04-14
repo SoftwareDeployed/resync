@@ -1,9 +1,12 @@
 let rootElement = ReactDOM.querySelector("#root");
 
 let%browser_only _ =
+  Js.Console.log("[Index.re] Client bootstrap starting, root element check...");
   switch (rootElement) {
   | Some(domNode) =>
+    Js.Console.log("[Index.re] Root element found, calling hydrateStore...");
     let store = TodoStore.hydrateStore();
+    Js.Console.log2("[Index.re] Store hydrated, list_id:", store.list_id);
 
     let result =
       StoreBuilder.Bootstrap.withHydratedProvider(
@@ -16,6 +19,8 @@ let%browser_only _ =
           |]),
       );
 
+    Js.Console.log("[Index.re] Calling hydrateRoot...");
     ReactDOM.Client.hydrateRoot(domNode, result.element)->ignore;
-  | None => Js.log("No root element found")
+    Js.Console.log("[Index.re] hydrateRoot called");
+  | None => Js.Console.error("[Index.re] No root element found")
   };
