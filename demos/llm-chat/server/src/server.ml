@@ -87,7 +87,7 @@ let stream_event_json ~event fields =
 
 let broadcast_stream_event ~broadcast_fn ~thread_id ~event fields =
   let message = stream_event_json ~event fields in
-  broadcast_fn thread_id (fun _ -> message)
+  broadcast_fn thread_id (fun ~channel:_ _ -> message)
 
 let finalize_assistant_message ~request ~thread_id ~assistant_message_id ~full_response =
   if String.length full_response > 0 then

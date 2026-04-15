@@ -88,12 +88,12 @@ let wrap_message msg =
 let broadcast_to_peers broadcast_fn peers except_id msg =
   Lwt_list.iter_s (fun peer_id ->
     if peer_id <> except_id then
-      broadcast_fn peer_id (fun _ -> wrap_message msg)
+      broadcast_fn peer_id (fun ~channel:_ _ -> wrap_message msg)
     else
       Lwt.return_unit
   ) peers
 
-let broadcast_fns : (string, (string -> (string -> string) -> unit Lwt.t)) Hashtbl.t = Hashtbl.create 16
+let broadcast_fns : (string, (string -> (channel:string -> string -> string) -> unit Lwt.t)) Hashtbl.t = Hashtbl.create 16
 
 let handle_mutation broadcast_fn _request ~db:_ ~action_id ~mutation_name:_ action =
   match get_string "kind" action with
@@ -116,7 +116,7 @@ let handle_mutation broadcast_fn _request ~db:_ ~action_id ~mutation_name:_ acti
           let* () = Lwt_list.iter_s (fun existing_peer_id ->
             let peer_info_msg = patch_json "peer_joined"
               (`Assoc [("room_id", `String room_id); ("peer_id", `String existing_peer_id); ("joined_at", `Float (Unix.gettimeofday ()))]) in
-            broadcast_fn peer_id (fun _ -> wrap_message peer_info_msg)
+            broadcast_fn peer_id (fun ~channel:_ _ -> wrap_message peer_info_msg)
           ) all_peers in
           Lwt.return (Ack (Ok ()))
         end
@@ -207,7 +207,7 @@ let handle_media broadcast_fn _request channel payload_str =
         ("type", `String "error");
         ("message", `String ("Peer " ^ peer_id ^ " is not in room " ^ room_id));
       ] |> Yojson.Basic.to_string in
-      let* () = broadcast_fn peer_id (fun _ -> error_msg) in
+      let* () = broadcast_fn peer_id (fun ~channel:_ _ -> error_msg) in
       Lwt.return (Error ("Peer " ^ peer_id ^ " is not in room " ^ room_id)))
   | _ -> Lwt.return (Error "Missing room_id or peer_id")
 
@@ -219,7 +219,7 @@ let rec media_polling_loop () =
     | Some frame_data ->
         (match Hashtbl.find_opt broadcast_fns peer_id with
         | Some broadcast_fn ->
-            broadcast_fn peer_id (fun _ -> frame_data)
+            broadcast_fn peer_id (fun ~channel:_ _ -> frame_data)
         | None -> Lwt.return_unit)
     | None -> Lwt.return_unit
   ) all_peers in
