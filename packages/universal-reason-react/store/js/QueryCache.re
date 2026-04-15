@@ -196,7 +196,10 @@ let result_to_json = (result: query_result(StoreJson.json)): StoreJson.json => {
   switch (result) {
   | Loading => `Assoc([("_tag", `String("Loading"))])
   | Loaded(jsonArray) =>
-    `Assoc([("_tag", `String("Loaded")), ("data", `Array(jsonArray))])
+    `Assoc([
+      ("_tag", `String("Loaded")),
+      ("data", `List(Belt.List.fromArray(jsonArray))),
+    ])
   | Error(msg) =>
     `Assoc([("_tag", `String("Error")), ("message", `String(msg))])
   };
@@ -205,7 +208,7 @@ let result_to_json = (result: query_result(StoreJson.json)): StoreJson.json => {
 // JS stub - client only decodes, doesn't encode
 [@platform js]
 let result_to_json = (_result: query_result(StoreJson.json)): StoreJson.json => {
-  Obj.magic(Js.Json.null_);
+  Obj.magic(Js.Json.null);
 };
 
 // Helper to deserialize a single query result from JSON

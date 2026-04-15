@@ -243,8 +243,8 @@ let encode_params_code (params : query_param list) =
         field_name json_fn field_name)
     |> String.concat "\n "
   in
-  Printf.sprintf
-    "let encodeParams (p: query_params) =\n let dict = Js.Dict.empty () in\n %s\n Melange_json.declassify (`Assoc (Array.to_list (Js.Dict.entries dict)))"
+    Printf.sprintf
+    "let encodeParams (p: params) =\n let dict = Js.Dict.empty () in\n %s\n Melange_json.declassify (`Assoc (Array.to_list (Js.Dict.entries dict)))"
     dict_entries
 
 let params_hash_code (params : query_param list) =
@@ -258,9 +258,9 @@ let params_hash_code (params : query_param list) =
   in
   let string_conv = string_conversion_fn param.ocaml_type in
   if string_conv = "" then
-    Printf.sprintf "let paramsHash (p: query_params) = p.%s" field_name
+    Printf.sprintf "let paramsHash (p: params) = p.%s" field_name
   else
-    Printf.sprintf "let paramsHash (p: query_params) = %s(p.%s)" string_conv field_name
+    Printf.sprintf "let paramsHash (p: params) = %s(p.%s)" string_conv field_name
   | _ ->
   let hash_parts =
     params
@@ -277,7 +277,31 @@ let params_hash_code (params : query_param list) =
         Printf.sprintf "%s(p.%s)" string_conv field_name)
     |> String.concat " ^ \":\" ^ "
   in
-  Printf.sprintf "let paramsHash (p: query_params) = %s" hash_parts
+  Printf.sprintf "let paramsHash (p: params) = %s" hash_parts
+
+let caqti_param_expr (params : query_param list) =
+  match params with
+  | [] -> "()"
+  | [ param ] ->
+      let field_name =
+        match param.payload_key with
+        | Some key -> sanitize_identifier key
+        | None -> Printf.sprintf "param_%d" param.index
+      in
+      Printf.sprintf "p.%s" field_name
+  | params ->
+      let fields =
+        params
+        |> List.map (fun (param : query_param) ->
+               let field_name =
+                 match param.payload_key with
+                 | Some key -> sanitize_identifier key
+                 | None -> Printf.sprintf "param_%d" param.index
+               in
+               Printf.sprintf "p.%s" field_name)
+        |> String.concat ", "
+      in
+      Printf.sprintf "(%s)" fields
 
 let channel_function_code tables (query : query) =
   match query.return_table with
@@ -304,7 +328,7 @@ let channel_function_code tables (query : query) =
             | Some key -> sanitize_identifier key
             | None -> Printf.sprintf "param_%d" param.index
           in
-          Printf.sprintf "let channel (p: query_params) = p.%s" field_name)
+          Printf.sprintf "let channel (p: params) = p.%s" field_name)
       | Some _ -> "let channel _ = \"\""))
 
 let decode_row_code (columns : (string * sql_type) list) =
@@ -397,17 +421,20 @@ let query_module_declaration tables (query : query) =
   \ Caqti_lwt.or_fail result [@@platform native]"
  param_type_expr
   in
-let execute_func =
-  "let execute (module Db : Caqti_lwt.CONNECTION) (p : query_params) =\n\
-  \ let open Lwt.Syntax in\n\
-  \ Lwt.catch\n\
-  \ (fun () ->\n\
-  \ let* rows = collect (module Db) caqti_type p in\n\
-  \ Lwt.return (Ok (Array.of_list rows)))\n\
-  \ (function\n\
-  \ | Caqti_error.Exn error -> Lwt.return (Error (Caqti_error.show error))\n\
-  \ | exn -> Lwt.return (Error (Printexc.to_string exn)))\n\
-  \ [@@platform native]"
+let caqti_args = caqti_param_expr query.params in
+  let execute_func =
+  Printf.sprintf
+  "let execute (module Db : Caqti_lwt.CONNECTION) (p : params) =\n\
+   \ let open Lwt.Syntax in\n\
+   \ Lwt.catch\n\
+   \ (fun () ->\n\
+   \ let* rows = collect (module Db) caqti_type %s in\n\
+   \ Lwt.return (Ok (Array.of_list rows)))\n\
+   \ (function\n\
+   \ | Caqti_error.Exn error -> Lwt.return (Error (Caqti_error.show error))\n\
+   \ | exn -> Lwt.return (Error (Printexc.to_string exn)))\n\
+   \ [@@platform native]"
+  caqti_args
   in
   let new_items =
     Printf.sprintf "%s\n\n %s\n\n %s\n\n %s\n\n %s\n\n %s\n\n %s"

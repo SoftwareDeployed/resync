@@ -1,10 +1,12 @@
 (library
  (name universal_reason_react_store_native)
  (public_name resync.universal_reason_react_store_native)
-(modules
+ (modules
   BroadcastChannel
   Hydration
+  QueryCache
   QueryRegistry
+  QueryRegistryTypes
   RealtimeClient
   RealtimeClientMultiplexed
   Store
@@ -26,26 +28,29 @@
   StoreSignal
   StoreSource
   Tilia
+  UseQuery
   WebSocket)
  (wrapped false)
-  (libraries
-    caqti
-    caqti-lwt
-    lwt
-    melange-json-native
-    server-reason-react.react
-    server-reason-react.js
-    universal_reason_react_indexeddb_native
-    universal_reason_react_uuid_native
-    yojson)
+ (libraries
+  caqti
+  caqti-lwt
+  lwt
+  melange-json-native
+  server-reason-react.belt
+  server-reason-react.react
+  server-reason-react.js
+  universal_reason_react_indexeddb_native
+  universal_reason_react_uuid_native
+  yojson)
  (preprocess
   (pps
    server-reason-react.browser_ppx
    server-reason-react.ppx
    server-reason-react.melange_ppx
-    melange-json-native.ppx))
-  (instrumentation (backend bisect_ppx))
-  (modes native))
+   melange-json-native.ppx))
+ (instrumentation
+  (backend bisect_ppx))
+ (modes native))
 
 (copy_files
  (files ../js/*.re))
