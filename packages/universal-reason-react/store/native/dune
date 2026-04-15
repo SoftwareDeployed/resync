@@ -28,8 +28,9 @@
   StoreSignal
   StoreSource
   Tilia
-  UseQuery
-  WebSocket)
+   UseQuery
+   UseMutation
+   WebSocket)
  (wrapped false)
  (libraries
   caqti

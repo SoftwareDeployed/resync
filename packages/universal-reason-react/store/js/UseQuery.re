@@ -68,7 +68,8 @@ let hydrateCache = (jsonStr: string) => {
 [@platform native]
 let hydrateCache = (_jsonStr: string) => ();
 
-// Main useQuery hook
+// Main useQuery hook - JS version (client-side)
+[@platform js]
 let useQuery =
     (
       type p,
@@ -81,124 +82,167 @@ let useQuery =
   let paramsHash = Q.paramsHash(params);
   let key = makeKey(~channel, ~paramsHash);
 
-  switch%platform (Runtime.platform) {
-  | Client =>
-    // Client: Subscribe via QueryCache, decode raw JSON on access
-    let cache = getQueryCache();
+  // Client: Subscribe via QueryCache, decode raw JSON on access
+  let cache = getQueryCache();
 
-    // Subscribe to cache updates
-    let (signal, unsubscribe) =
-      React.useMemo1(
-        () => {
-          QueryCache.subscribe(
-            ~t=cache,
-            ~key,
-            ~channel,
-            ~decodeRow=Q.decodeRow,
-            ~updatedAt=0.0,
-            (),
-          );
-        },
-        [|key|],
-      );
-
-    // Track current result with React state
-    let (result, setResult) =
-      React.useState(() => {
-        let initialSignalValue = Tilia.Core.lift(signal);
-        switch (initialSignalValue) {
-        | Loading => {data: Loading, loading: true, error: None}
-        | Loaded(jsonRows) =>
-          let decodedRows = jsonRows->Js.Array.map(~f=Q.decodeRow);
-          {data: Loaded(decodedRows), loading: false, error: None};
-        | Error(msg) => {data: Error(msg), loading: false, error: Some(msg)};
-        };
-      });
-
-    // Effect to subscribe to signal changes
-    React.useEffect1(
+  // Subscribe to cache updates
+  let (signal, unsubscribe) =
+    React.useMemo1(
       () => {
-        // Set up subscription to signal changes
-        let currentResult = Tilia.Core.lift(signal);
-        let newResult =
-          switch (currentResult) {
-          | Loading => {data: Loading, loading: true, error: None}
-          | Loaded(jsonRows) =>
-            let decodedRows = jsonRows->Js.Array.map(~f=Q.decodeRow);
-            {data: Loaded(decodedRows), loading: false, error: None};
-          | Error(msg) => {data: Error(msg), loading: false, error: Some(msg)};
-          };
-        
-        // Only update if different
-        if (newResult.data != result.data) {
-          setResult(_ => newResult);
-        };
-
-        // Cleanup subscription on unmount or key change
-        Some(unsubscribe);
+        QueryCache.subscribe(
+          ~t=cache,
+          ~key,
+          ~channel,
+          ~decodeRow=Q.decodeRow,
+          ~updatedAt=0.0,
+          (),
+        )
       },
       [|key|],
     );
 
-    result;
+  // Track current result with React state
+  let (result, setResult) =
+    React.useState(() => {
+      let initialSignalValue = Tilia.Core.lift(signal);
+      switch (initialSignalValue) {
+      | Loading => {
+          data: Loading,
+          loading: true,
+          error: None,
+        }
+      | Loaded(jsonRows) =>
+        let decodedRows = jsonRows->Js.Array.map(~f=Q.decodeRow);
+        {
+          data: Loaded(decodedRows),
+          loading: false,
+          error: None,
+        };
+      | Error(msg) => {
+          data: Error(msg),
+          loading: false,
+          error: Some(msg),
+        }
+      };
+    });
 
-  | Server =>
-    // Server: Register with QueryRegistry for SSR collection
-    // Note: On native, QueryRegistry stores Yojson.Safe.t but Q.decodeRow
-    // expects StoreJson.json (which is Yojson.Basic.t on native).
-    // We use Obj.magic for this safe conversion since both are JSON representations.
-    let _ =
-      QueryRegistry.register_query(
-        ~key,
-        ~channel,
-        ~params,
-        ~sql="",
-        ~execute=db => {
-          Lwt.bind(Q.execute(db, params), (result: Stdlib.result(array(r), string)) => {
+  // Effect to subscribe to signal changes
+  React.useEffect1(
+    () => {
+      // Set up subscription to signal changes
+      let currentResult = Tilia.Core.lift(signal);
+      let newResult =
+        switch (currentResult) {
+        | Loading => {
+            data: Loading,
+            loading: true,
+            error: None,
+          }
+        | Loaded(jsonRows) =>
+          let decodedRows = jsonRows->Js.Array.map(~f=Q.decodeRow);
+          {
+            data: Loaded(decodedRows),
+            loading: false,
+            error: None,
+          };
+        | Error(msg) => {
+            data: Error(msg),
+            loading: false,
+            error: Some(msg),
+          }
+        };
+
+      // Only update if different
+      if (newResult.data != result.data) {
+        setResult(_ => newResult);
+      };
+
+      // Cleanup subscription on unmount or key change
+      Some(unsubscribe);
+    },
+    [|key|],
+  );
+
+  result;
+};
+
+// Main useQuery hook - Native version (server-side SSR)
+[@platform native]
+let useQuery =
+    (
+      type p,
+      type r,
+      module Q: QueryModule with type params = p and type row = r,
+      params: p,
+      (),
+    ) => {
+  let channel = Q.channel(params);
+  let paramsHash = Q.paramsHash(params);
+  let key = makeKey(~channel, ~paramsHash);
+
+  // Server: Register with QueryRegistry for SSR collection
+  // Note: On native, QueryRegistry stores Yojson.Safe.t but Q.decodeRow
+  // expects StoreJson.json (which is Yojson.Basic.t on native).
+  // We use Obj.magic for this safe conversion since both are JSON representations.
+  let _ =
+    QueryRegistry.register_query(
+      ~key,
+      ~channel,
+      ~params,
+      ~sql="",
+      ~execute=
+        db => {
+          Lwt.bind(
+            Q.execute(db, params),
+            (result: Stdlib.result(array(r), string)) => {
             switch (result) {
             | Ok(rows) =>
               // Convert array of rows to Yojson.Safe.t
               // First convert rows to Basic.t, then to string, then parse as Safe.t
-              let jsonRows = rows->Js.Array.map(~f=(row: r) => {
-                let basicJson = Q.row_to_json(row);
-                let jsonStr = StoreJson.stringify(_x => basicJson, ());
-                Yojson.Safe.from_string(jsonStr);
-              });
+              let jsonRows =
+                rows->Js.Array.map(~f=(row: r) => {
+                  let basicJson = Q.row_to_json(row);
+                  let jsonStr = StoreJson.stringify(_x => basicJson, ());
+                  Yojson.Safe.from_string(jsonStr);
+                });
               Lwt.return(Stdlib.Ok(`List(jsonRows |> Array.to_list)));
             | Error(msg) => Lwt.return(Stdlib.Error(msg))
             }
           })
         },
-        ~decode=json => Q.decodeRow(Obj.magic(json)),
-      );
+      ~decode=json => Q.decodeRow(Obj.magic(json)),
+    );
 
-    // Get result from registry if available
-    let data =
-      switch (Lwt.get(QueryRegistry.registry_key)) {
-      | Some(registry) =>
-        switch (Hashtbl.find_opt(registry.results, key)) {
-        | Some(json) =>
-          try(Loaded([|Q.decodeRow(Obj.magic(json))|])) {
-          | _ => Loading
-          }
-        | None => Loading
+  // Get result from registry if available
+  let data =
+    switch (Lwt.get(QueryRegistry.registry_key)) {
+    | Some(registry) =>
+      switch (Hashtbl.find_opt(registry.results, key)) {
+      | Some(json) =>
+        try(Loaded([|Q.decodeRow(Obj.magic(json))|])) {
+        | _ => Loading
         }
       | None => Loading
-      };
+      }
+    | None => Loading
+    };
 
-    let loading =
-      switch (data) {
-      | Loading => true
-      | _ => false
-      };
+  let loading =
+    switch (data) {
+    | Loading => true
+    | _ => false
+    };
 
-    let error =
-      switch (data) {
-      | Error(msg) => Some(msg)
-      | _ => None
-      };
+  let error =
+    switch (data) {
+    | Error(msg) => Some(msg)
+    | _ => None
+    };
 
-    {data, loading, error};
+  {
+    data,
+    loading,
+    error,
   };
 };
 
@@ -226,6 +270,6 @@ let useIsQueryLoading =
     // On server, queries are executed synchronously in two-pass render
     // After first pass, all queries should be loaded
     let _ = key;
-    false
+    false;
   };
 };

@@ -435,7 +435,7 @@ let caqti_args = caqti_param_expr query.params in
    \ | exn -> Lwt.return (Error (Printexc.to_string exn)))\n\
    \ [@@platform native]"
   caqti_args
-  in
+   in
   let new_items =
     Printf.sprintf "%s\n\n %s\n\n %s\n\n %s\n\n %s\n\n %s\n\n %s"
     params_type_decl channel_func params_hash_func encode_params_func decode_row_func row_to_json_func execute_func

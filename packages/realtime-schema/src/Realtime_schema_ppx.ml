@@ -22,10 +22,14 @@ let expand ~loc ~path:_ raw_path =
   in
   let schema = Realtime_schema_parser.parse_directory sql_dir in
   let module_source = Realtime_schema_codegen.module_source schema in
-  let module_structure = parse_module_source ~loc module_source in
-  Ast_builder.Default.pstr_include ~loc
-    (Ast_builder.Default.include_infos ~loc
-       (Ast_builder.Default.pmod_structure ~loc module_structure))
+  let structure_items = parse_module_source ~loc module_source in
+  match structure_items with
+  | [ item ] -> item
+  | _ ->
+    Location.raise_errorf ~loc
+      "realtime_schema: expected generated code to produce exactly one \
+       structure item, got %d"
+      (List.length structure_items)
 
 let ext =
   Extension.declare "realtime_schema" Extension.Context.structure_item

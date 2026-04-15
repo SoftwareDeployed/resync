@@ -28,3 +28,30 @@ type registry_snapshot = {
 let makeKey = (~channel: string, ~paramsHash: string): query_key => {
   channel ++ ":" ++ paramsHash;
 };
+
+// Module type for query modules used by useQuery hook
+module type QueryModule = {
+  type params;
+  type row;
+  let channel: params => string;
+  let paramsHash: params => string;
+  let decodeRow: StoreJson.json => row;
+  let row_to_json: row => StoreJson.json;
+  [@platform native]
+  let execute:
+    (module Caqti_lwt.CONNECTION) =>
+    params =>
+    Lwt.t(Stdlib.result(array(row), string));
+};
+
+// Module type for mutation modules used by useMutation hook
+module type MutationModule = {
+  type params;
+  let encodeParams: params => StoreJson.json;
+  let name: string;
+};
+
+// Module type for mutation modules on native (server-side SSR)
+module type MutationModuleNative = {
+  type params;
+};

@@ -4,7 +4,14 @@ module NotFoundPage = {
 };
 
 module HomePageComponent = {
-  let make = (~params as _, ~searchParams as _, ()) => <HomePage />;
+  let make = (~params, ~searchParams as _, ()) => {
+    let listId =
+      switch (UniversalRouter.Params.find("listId", params)) {
+      | Some(id) => id
+      | None => ""
+      };
+    <HomePage listId />;
+  };
 };
 
 let router: UniversalRouter.t(TodoStore.t) =
