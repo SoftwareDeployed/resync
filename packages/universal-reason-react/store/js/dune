@@ -28,6 +28,7 @@
   StoreSignal
   StoreSource
   Tilia
+  UseMutation
   UseQuery
   WebSocket)
  (wrapped false)
