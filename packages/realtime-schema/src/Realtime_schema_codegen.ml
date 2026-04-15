@@ -128,7 +128,7 @@ let params_literal params =
 let query_record_literal (query : query) =
   let json_columns_literal = string_list_literal query.json_columns in
   Printf.sprintf
-    "{ name = %S; sql = %S; source_file = %S; cache_key = %s; return_table = %s; json_columns = %s; params = %s; handler = %s }"
+    "{ name = %S; sql = %S; source_file = %S; cache_key = %s; return_table = %s; json_columns = %s; params_metadata = %s; handler = %s }"
     query.name query.sql query.source_file
     (match query.cache_key with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
     (match query.return_table with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
@@ -136,7 +136,7 @@ let query_record_literal (query : query) =
 
 let mutation_record_literal (mutation : mutation) =
   Printf.sprintf
-    "{ name = %S; sql = %S; source_file = %S; params = %s; handler = %s }"
+    "{ name = %S; sql = %S; source_file = %S; params_metadata = %s; handler = %s }"
     mutation.name mutation.sql mutation.source_file
     (params_literal mutation.params) (string_of_handler mutation.handler)
 
@@ -185,14 +185,175 @@ let caqti_type_for_columns ~type_name (columns : (string * sql_type) list) =
         "let caqti_type =\n    Caqti_type.product(fun %s -> { %s })\n%s\n    @@ Caqti_type.proj_end [@@platform native]"
         constructor_args record_body proj_chain
 
+let ocaml_type_to_json_fn ocaml_type =
+  match ocaml_type with
+  | "string" | "Uuid" | "Varchar" | "Text" -> "string_to_json"
+  | "int" | "Int" | "Bigint" -> "int_to_json"
+  | "bool" | "Boolean" -> "bool_to_json"
+  | "float" | "Float" | "Timestamp" | "Timestamptz" -> "float_to_json"
+  | _ -> "string_to_json"
+
+let ocaml_type_of_json_fn ocaml_type =
+  match ocaml_type with
+  | "string" | "Uuid" | "Varchar" | "Text" -> "string_of_json"
+  | "int" | "Int" | "Bigint" -> "int_of_json"
+  | "bool" | "Boolean" -> "bool_of_json"
+  | "float" | "Float" | "Timestamp" | "Timestamptz" -> "float_of_json"
+  | _ -> "string_of_json"
+
+let string_conversion_fn ocaml_type =
+  match ocaml_type with
+  | "string" | "Uuid" | "Varchar" | "Text" -> ""
+  | "int" | "Int" | "Bigint" -> "string_of_int"
+  | "bool" | "Boolean" -> "string_of_bool"
+  | "float" | "Float" | "Timestamp" | "Timestamptz" -> "string_of_float"
+  | _ -> ""
+
+let params_type_declaration (params : query_param list) =
+  match params with
+  | [] -> "type params = unit"
+  | _ ->
+  let fields =
+    params
+    |> List.map (fun (param : query_param) ->
+      let field_name =
+        match param.payload_key with
+        | Some key -> sanitize_identifier key
+        | None -> Printf.sprintf "param_%d" param.index
+      in
+      Printf.sprintf " %s : %s;" field_name param.ocaml_type)
+    |> String.concat "\n"
+  in
+  Printf.sprintf "type params = {\n%s\n}" fields
+
+let encode_params_code (params : query_param list) =
+  match params with
+  | [] -> "let encodeParams () = Melange_json.Primitives.unit_to_json ()"
+  | _ ->
+  let dict_entries =
+    params
+    |> List.map (fun (param : query_param) ->
+      let field_name =
+        match param.payload_key with
+        | Some key -> sanitize_identifier key
+        | None -> Printf.sprintf "param_%d" param.index
+      in
+      let json_fn = ocaml_type_to_json_fn param.ocaml_type in
+      Printf.sprintf "Js.Dict.set dict %S (Melange_json.Primitives.%s p.%s);"
+        field_name json_fn field_name)
+    |> String.concat "\n "
+  in
+  Printf.sprintf
+    "let encodeParams (p: query_params) =\n let dict = Js.Dict.empty () in\n %s\n Melange_json.declassify (`Assoc (Array.to_list (Js.Dict.entries dict)))"
+    dict_entries
+
+let params_hash_code (params : query_param list) =
+  match params with
+  | [] -> "let paramsHash () = \"\""
+  | [param] ->
+  let field_name =
+    match param.payload_key with
+    | Some key -> sanitize_identifier key
+    | None -> Printf.sprintf "param_%d" param.index
+  in
+  let string_conv = string_conversion_fn param.ocaml_type in
+  if string_conv = "" then
+    Printf.sprintf "let paramsHash (p: query_params) = p.%s" field_name
+  else
+    Printf.sprintf "let paramsHash (p: query_params) = %s(p.%s)" string_conv field_name
+  | _ ->
+  let hash_parts =
+    params
+    |> List.map (fun (param : query_param) ->
+      let field_name =
+        match param.payload_key with
+        | Some key -> sanitize_identifier key
+        | None -> Printf.sprintf "param_%d" param.index
+      in
+      let string_conv = string_conversion_fn param.ocaml_type in
+      if string_conv = "" then
+        Printf.sprintf "p.%s" field_name
+      else
+        Printf.sprintf "%s(p.%s)" string_conv field_name)
+    |> String.concat " ^ \":\" ^ "
+  in
+  Printf.sprintf "let paramsHash (p: query_params) = %s" hash_parts
+
+let channel_function_code tables (query : query) =
+  match query.return_table with
+  | None -> "let channel _ = \"\""
+  | Some table_name -> (
+    match List.find_opt (fun (t : table) -> t.name = table_name) tables with
+    | None -> "let channel _ = \"\""
+    | Some table -> (
+      match table.broadcast_channel with
+      | None -> "let channel _ = \"\""
+      | Some (Column column_name) -> (
+        match
+          List.find_opt
+            (fun (param : query_param) ->
+              match param.column_ref with
+              | Some (t_name, c_name) -> t_name = table_name && c_name = column_name
+              | None -> false)
+            query.params
+        with
+        | None -> "let channel _ = \"\""
+        | Some param ->
+          let field_name =
+            match param.payload_key with
+            | Some key -> sanitize_identifier key
+            | None -> Printf.sprintf "param_%d" param.index
+          in
+          Printf.sprintf "let channel (p: query_params) = p.%s" field_name)
+      | Some _ -> "let channel _ = \"\""))
+
+let decode_row_code (columns : (string * sql_type) list) =
+  match columns with
+  | [] -> "let decodeRow _ = ()"
+  | _ ->
+      let field_decodes =
+        columns
+        |> List.map (fun (name, sql_type) ->
+               let field_name = sanitize_identifier name in
+               let ocaml_type = ocaml_type_string_of_sql_type sql_type in
+               let json_fn = ocaml_type_of_json_fn ocaml_type in
+               Printf.sprintf
+" %s = StoreJson.requiredField ~json ~fieldName:%S ~decode:Melange_json.Primitives.%s;"
+                 field_name name json_fn)
+        |> String.concat "\n"
+      in
+      Printf.sprintf
+        "let decodeRow json = {\n%s\n}"
+        field_decodes
+
+let row_to_json_code (columns : (string * sql_type) list) =
+  match columns with
+  | [] -> "let row_to_json _ = Melange_json.Primitives.unit_to_json ()"
+  | _ ->
+      let dict_entries =
+        columns
+        |> List.map (fun (name, sql_type) ->
+               let field_name = sanitize_identifier name in
+               let ocaml_type = ocaml_type_string_of_sql_type sql_type in
+               let json_fn = ocaml_type_to_json_fn ocaml_type in
+               Printf.sprintf
+                 "Js.Dict.set dict %S (Melange_json.Primitives.%s row.%s);"
+                 name json_fn field_name)
+        |> String.concat "\n  "
+      in
+      Printf.sprintf
+        "let row_to_json (row: row) =\n  let dict = Js.Dict.empty () in\n  %s\n  Melange_json.declassify (`Assoc (Array.to_list (Js.Dict.entries dict)))"
+        dict_entries
+
 let query_module_declaration tables (query : query) =
-  let params_literal =
+  let params_metadata_literal =
     query.params
     |> List.map (fun param -> Printf.sprintf "(%d, %S, %S)" param.index param.ocaml_type param.sql_type)
     |> String.concat "; "
   in
+  let inferred_columns = Realtime_schema_pg_query.infer_select_columns tables query.return_table query.sql in
   let row_type_and_caqti =
-    match Realtime_schema_pg_query.infer_select_columns tables query.return_table query.sql with
+    match inferred_columns with
     | Some columns when columns <> [] ->
         let fields =
           columns
@@ -200,34 +361,66 @@ let query_module_declaration tables (query : query) =
                  Printf.sprintf "  %s : %s;" (sanitize_identifier name) (ocaml_type_string_of_sql_type sql_type))
           |> String.concat "\n"
         in
-        let type_decl = Printf.sprintf "type row = {\n%s\n} [@@platform native]" fields in
+        (* row type is SHARED - no [@@platform native] *)
+        let type_decl = Printf.sprintf "type row = {\n%s\n}" fields in
         let caqti_decl = caqti_type_for_columns ~type_name:"row" columns in
         Printf.sprintf "%s\n\n  %s [@@platform native]" type_decl caqti_decl
     | _ -> ""
   in
+  let params_type_decl = params_type_declaration query.params in
+  let channel_func = channel_function_code tables query in
+  let params_hash_func = params_hash_code query.params in
+  let encode_params_func = encode_params_code query.params in
+  let decode_row_func =
+    match inferred_columns with
+    | Some columns when columns <> [] -> decode_row_code columns
+    | _ -> "let decodeRow _ = ()"
+  in
+  let row_to_json_func =
+    match inferred_columns with
+    | Some columns when columns <> [] -> row_to_json_code columns
+    | _ -> "let row_to_json _ = Melange_json.Primitives.unit_to_json ()"
+  in
   let caqti_items =
-    let param_type_expr = mutation_param_type_expr query.params in
-    Printf.sprintf
-      "let param_type = %s [@@platform native]\n\
-      \  let request row_type = Caqti_request.Infix.(param_type ->* row_type)(sql) [@@platform native]\n\
-      \  let find_request row_type = Caqti_request.Infix.(param_type ->? row_type)(sql) [@@platform native]\n\
-      \  let collect (module Db : Caqti_lwt.CONNECTION) row_type params =\n\
-      \    let open Lwt.Syntax in\n\
-      \    let* result = Db.collect_list (request row_type) params in\n\
-      \    Caqti_lwt.or_fail result [@@platform native]\n\
-      \  let find_opt (module Db : Caqti_lwt.CONNECTION) row_type params =\n\
-      \    let open Lwt.Syntax in\n\
-      \    let* result = Db.find_opt (find_request row_type) params in\n\
-      \    Caqti_lwt.or_fail result [@@platform native]"
-      param_type_expr
+ let param_type_expr = mutation_param_type_expr query.params in
+ Printf.sprintf
+ "let param_type = %s [@@platform native]\n\
+  \ let request row_type = Caqti_request.Infix.(param_type ->* row_type)(sql) [@@platform native]\n\
+  \ let find_request row_type = Caqti_request.Infix.(param_type ->? row_type)(sql) [@@platform native]\n\
+  \ let collect (module Db : Caqti_lwt.CONNECTION) row_type param_values =\n\
+  \ let open Lwt.Syntax in\n\
+  \ let* result = Db.collect_list (request row_type) param_values in\n\
+  \ Caqti_lwt.or_fail result [@@platform native]\n\
+  \ let find_opt (module Db : Caqti_lwt.CONNECTION) row_type param_values =\n\
+  \ let open Lwt.Syntax in\n\
+  \ let* result = Db.find_opt (find_request row_type) param_values in\n\
+  \ Caqti_lwt.or_fail result [@@platform native]"
+ param_type_expr
+  in
+let execute_func =
+  "let execute (module Db : Caqti_lwt.CONNECTION) (p : query_params) =\n\
+  \ let open Lwt.Syntax in\n\
+  \ Lwt.catch\n\
+  \ (fun () ->\n\
+  \ let* rows = collect (module Db) caqti_type p in\n\
+  \ Lwt.return (Ok (Array.of_list rows)))\n\
+  \ (function\n\
+  \ | Caqti_error.Exn error -> Lwt.return (Error (Caqti_error.show error))\n\
+  \ | exn -> Lwt.return (Error (Printexc.to_string exn)))\n\
+  \ [@@platform native]"
+  in
+  let new_items =
+    Printf.sprintf "%s\n\n %s\n\n %s\n\n %s\n\n %s\n\n %s\n\n %s"
+    params_type_decl channel_func params_hash_func encode_params_func decode_row_func row_to_json_func execute_func
   in
   Printf.sprintf
-    "module %s = struct\n  let name = %S\n  let sql = %S\n  let params = [%s]\n  let return_table = %s\n  let json_columns = %s\n  let handler = %s\n\n  %s\n\n  %s\nend"
-    (module_name_of_table query.name) query.name query.sql params_literal
-    (match query.return_table with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
-    (string_list_literal query.json_columns) (string_of_handler query.handler)
-    row_type_and_caqti
-    caqti_items
+    "module %s = struct\n let name = %S\n let sql = %S\n let params_metadata = [%s]\n let return_table = %s\n let json_columns = %s\n let handler = %s\n\n %s\n\n %s\n\n %s\nend"
+    (module_name_of_table query.name) query.name query.sql params_metadata_literal
+  (match query.return_table with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
+  (string_list_literal query.json_columns) (string_of_handler query.handler)
+  row_type_and_caqti
+  caqti_items
+  new_items
 
 let json_extractor_code ~key ~ocaml_type =
   let extractor =
@@ -330,32 +523,36 @@ let dispatch_function_for_mutation (mutation : mutation) =
         payload_binding param_extractions body
 
 let mutation_module_declaration (mutation : mutation) =
-  let params_literal =
+  let params_metadata_literal =
     mutation.params
     |> List.map (fun param -> Printf.sprintf "(%d, %S, %S)" param.index param.ocaml_type param.sql_type)
     |> String.concat "; "
   in
-  let caqti_items =
-    let param_type_expr = mutation_param_type_expr mutation.params in
-    Printf.sprintf
-      "let param_type = %s [@@platform native]\n\
-      \  let request = Caqti_request.Infix.(param_type ->. Caqti_type.unit)(sql) [@@platform native]\n\
-      \  let exec (module Db : Caqti_lwt.CONNECTION) params =\n\
-      \    let open Lwt.Syntax in\n\
-      \    let* result = Db.exec request params in\n\
-      \    Caqti_lwt.or_fail result [@@platform native]"
-      param_type_expr
+ let caqti_items =
+ let param_type_expr = mutation_param_type_expr mutation.params in
+ Printf.sprintf
+ "let param_type = %s [@@platform native]\n\
+  \ let request = Caqti_request.Infix.(param_type ->. Caqti_type.unit)(sql) [@@platform native]\n\
+  \ let exec (module Db : Caqti_lwt.CONNECTION) param_values =\n\
+  \ let open Lwt.Syntax in\n\
+  \ let* result = Db.exec request param_values in\n\
+  \ Caqti_lwt.or_fail result [@@platform native]"
+ param_type_expr
   in
   let dispatch_items = dispatch_function_for_mutation mutation in
   let items =
     if dispatch_items = "" then caqti_items
     else Printf.sprintf "%s\n\n  %s" caqti_items dispatch_items
   in
+  let params_type_decl = params_type_declaration mutation.params in
+  let encode_params_func = encode_params_code mutation.params in
   Printf.sprintf
-    "module %s = struct\n  let name = %S\n  let sql = %S\n  let params = [%s]\n  let handler = %s\n\n  %s\nend"
-    (module_name_of_table mutation.name) mutation.name mutation.sql params_literal
+    "module %s = struct\n let name = %S\n let sql = %S\n let params_metadata = [%s]\n let handler = %s\n\n %s\n\n %s\n\n %s\nend"
+    (module_name_of_table mutation.name) mutation.name mutation.sql params_metadata_literal
     (string_of_handler mutation.handler)
     items
+    params_type_decl
+    encode_params_func
 
 let table_id_expression row_alias (table : table) =
   match table.id_column with
@@ -960,7 +1157,7 @@ let module_source (schema : schema) =
   let _, migration_sql = migration_sql schema in
   Printf.sprintf
     "include struct\n\ntype sql_type =\n  | Uuid\n  | Varchar\n  | Text\n  | Int\n  | Bigint\n  | Boolean\n  | Timestamp\n  | Timestamptz\n  | Json\n  | Jsonb\n  | Custom of string\n\ntype foreign_key = {\n  column : string;\n  referenced_table : string;\n  referenced_column : string;\n}\n\ntype broadcast_channel =\n  | Column of string\n  | Computed of string\n  | Conditional of string\n  | Subquery of string\n\ntype broadcast_parent = {\n  parent_table : string;\n  query_name : string;\n}\n\ntype broadcast_to_views = {\n  view_table : string;\n  channel_column : string;\n}\n\ntype column_metadata = {\n  name : string;\n  sql_type : sql_type;\n  sql_type_raw : string;\n  nullable : bool;\n  primary_key : bool;\n  default : string option;\n  foreign_key : foreign_key option;\n  definition_sql : string;\n}\n\ntype table_metadata = {\n  name : string;\n  columns : column_metadata list;\n  id_column : string option;\n  composite_key : string list;\n  broadcast_channel : broadcast_channel option;\n  broadcast_parent : broadcast_parent option;\n  broadcast_to_views : broadcast_to_views option;\n  create_sql : string;\n  source_file : string;\n}\n\ntype handler = Sql | Ocaml\n\ntype query_param = {\n  index : int;\n  column_ref : (string * string) option;
-  payload_key : string option;\n  ocaml_type : string;\n  sql_type : string;\n}\n\ntype query_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  cache_key : string option;\n  return_table : string option;\n  json_columns : string list;\n  params : query_param list;\n  handler : handler;\n}\n\ntype mutation_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  params : query_param list;\n  handler : handler;\n}\n\n%s\n\nlet schema_hash = %S\n\nlet source_files = %s\n\nlet tables : table_metadata list = [\n  %s\n]\n\nlet queries : query_metadata list = [\n  %s\n]\n\nlet mutations : mutation_metadata list = [\n  %s\n]\n\nlet generated_triggers_sql = %S\n\nlet latest_migration_sql = %S\n\nlet find_query name = List.find_opt (fun (query : query_metadata) -> query.name = name) queries\n\nlet find_mutation name = List.find_opt (fun (mutation : mutation_metadata) -> mutation.name = name) mutations\n\nlet find_table name = List.find_opt (fun (table : table_metadata) -> table.name = name) tables\n\nlet find_column table_name column_name =\n  match find_table table_name with\n  | Some table -> List.find_opt (fun (column : column_metadata) -> column.name = column_name) table.columns\n  | None -> None\n\nlet table_name name = match find_table name with Some table -> table.name | None -> name\n\nmodule Tables = struct\n%s\nend\n\nmodule Queries = struct\n%s\nend\n\nmodule Mutations = struct\n%s\nend\n\n%s\nend"
+  payload_key : string option;\n  ocaml_type : string;\n  sql_type : string;\n}\n\ntype query_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  cache_key : string option;\n  return_table : string option;\n  json_columns : string list;\n  params_metadata : query_param list;\n handler : handler;\n}\n\ntype mutation_metadata = {\n name : string;\n sql : string;\n source_file : string;\n params_metadata : query_param list;\n  handler : handler;\n}\n\n%s\n\nlet schema_hash = %S\n\nlet source_files = %s\n\nlet tables : table_metadata list = [\n  %s\n]\n\nlet queries : query_metadata list = [\n  %s\n]\n\nlet mutations : mutation_metadata list = [\n  %s\n]\n\nlet generated_triggers_sql = %S\n\nlet latest_migration_sql = %S\n\nlet find_query name = List.find_opt (fun (query : query_metadata) -> query.name = name) queries\n\nlet find_mutation name = List.find_opt (fun (mutation : mutation_metadata) -> mutation.name = name) mutations\n\nlet find_table name = List.find_opt (fun (table : table_metadata) -> table.name = name) tables\n\nlet find_column table_name column_name =\n  match find_table table_name with\n  | Some table -> List.find_opt (fun (column : column_metadata) -> column.name = column_name) table.columns\n  | None -> None\n\nlet table_name name = match find_table name with Some table -> table.name | None -> name\n\nmodule Tables = struct\n%s\nend\n\nmodule Queries = struct\n%s\nend\n\nmodule Mutations = struct\n%s\nend\n\n%s\nend"
     table_types schema.schema_hash (string_list_literal schema.source_files)
     (indent table_values) (indent query_values) (indent mutation_values)
     (generated_triggers_sql schema) migration_sql
