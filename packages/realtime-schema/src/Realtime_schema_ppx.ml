@@ -1,4 +1,5 @@
 open Ppxlib
+open Ast_builder.Default
 
 let parse_module_source ~loc source =
   let lexbuf = Lexing.from_string source in
@@ -21,8 +22,8 @@ let expand ~loc ~path:_ raw_path =
       raw_path
   in
   let schema = Realtime_schema_parser.parse_directory sql_dir in
-  let module_source = Realtime_schema_codegen.module_source schema in
-  let structure_items = parse_module_source ~loc module_source in
+  let module_source_string = Realtime_schema_codegen.module_source_string schema in
+  let structure_items = parse_module_source ~loc module_source_string in
   match structure_items with
   | [ item ] -> item
   | _ ->
