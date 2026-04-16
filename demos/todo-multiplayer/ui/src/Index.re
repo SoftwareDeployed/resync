@@ -8,13 +8,21 @@ let%browser_only _ =
     let store = TodoStore.hydrateStore();
     Js.Console.log2("[Index.re] Store hydrated, list_id:", store.list_id);
 
+    // Hydrate query cache from SSR data before rendering
+    Js.Console.log("[Index.re] Hydrating query cache from SSR...");
+    UseQuery.hydrateCacheFromDom(~cacheId="query-cache", ());
+    Js.Console.log("[Index.re] Query cache hydrated");
+
+    // Create client-side serverState with empty serializedQueries
+    let serverState: Routes.serverState = {store, serializedQueries: ""};
+
     let result =
       StoreBuilder.Bootstrap.withHydratedProvider(
         ~hydrateStore=() => store,
         ~provider=TodoStore.Context.Provider.make,
         ~children=
           React.array([|
-            <UniversalRouter key="router" router=Routes.router state=store />,
+            <UniversalRouter key="router" router=Routes.router state=serverState />,
             <ClientOnly key="toaster"> {() => Sonner.renderToaster()} </ClientOnly>,
           |]),
       );

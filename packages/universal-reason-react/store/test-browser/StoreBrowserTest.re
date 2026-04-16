@@ -134,6 +134,7 @@ let run = () => {
             testBasicFlow(~page, ~baseUrl="http://127.0.0.1:8090")
             |> then_(_ => {
                  Js.log("Basic flow test passed. Starting hydration conflict test...");
+                 resolve();
                })
             |> then_(_ => browser->Playwright.newPage)
             |> then_(page2 =>
@@ -142,6 +143,7 @@ let run = () => {
                )
             |> then_(_ => {
                  Js.log("Hydration conflict test passed. Starting cross-tab broadcast test...");
+                 resolve();
                })
             |> then_(_ => testCrossTabBroadcast(~browser))
             |> then_(_ => browser->Playwright.close)

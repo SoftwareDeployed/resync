@@ -96,7 +96,7 @@ let loadServerState = (~router, ~basePath, ~request, ~getServerState) => {
   };
 };
 
-let renderDocument = (~router, ~basePath, ~serializedState="", ~state=?, ~children, request) => {
+let renderDocument = (~router, ~basePath, ~serializedState="", ~serializedQueries="", ~state=?, ~children, request) => {
   switch (matchRequest(~router, ~basePath, request)) {
   | Some(matchResult) =>
     UniversalRouter.renderDocument(
@@ -106,6 +106,7 @@ let renderDocument = (~router, ~basePath, ~serializedState="", ~state=?, ~childr
       ~pathname=matchResult.pathname,
       ~search=requestSearch(request),
       ~serializedState,
+      ~serializedQueries,
       ~state,
       (),
     )
@@ -117,6 +118,7 @@ let renderDocument = (~router, ~basePath, ~serializedState="", ~state=?, ~childr
       ~pathname="/",
       ~search=requestSearch(request),
       ~serializedState,
+      ~serializedQueries,
       ~state,
       (),
     )

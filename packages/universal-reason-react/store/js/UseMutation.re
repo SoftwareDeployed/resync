@@ -1,10 +1,13 @@
 // UseMutation.re - Universal React hook for mutations
 //
-// API: let {dispatch} = UseMutation.make((module RealtimeSchema.Mutations.AddTodo));
+// API: let {dispatch} = UseMutation.make(
+//   (module RealtimeSchema.Mutations.AddTodo),
+//   ~onDispatch=(params) => TodoStore.dispatch(AddTodo({...params})),
+//   (),
+// );
 // dispatch({id: UUID.make(), list_id: "abc", text: "Hello"})
-//   |> Js.Promise.then_(_ => Js.Promise.resolve(()));
 //
-// On client (JS): Dispatches mutation over WebSocket
+// On client (JS): Dispatches mutation through the store's dispatch function
 // On server (native): No-op for SSR
 
 open QueryRegistryTypes;
@@ -22,49 +25,16 @@ let make =
     (
       type p,
       module M: MutationModule with type params = p,
+      ~onDispatch: p => unit,
       (),
     ) => {
-  // Client: Return dispatch function that sends mutation over WebSocket
-  let (loading, setLoading) = React.useState(() => false);
-  let (error, setError) = React.useState(() => None);
-
+  // Client: Delegate to the store's dispatch function
   let dispatch = (params: p): Js.Promise.t(unit) => {
-    setLoading(_ => true);
-    setError(_ => None);
-
-    let actionId = UUID.make();
-    let actionJson = M.encodeParams(params);
-    let frame =
-      RealtimeClient.mutationFrameString(
-        actionId,
-        StoreJson.stringify(json => json, actionJson),
-      );
-
-    // Get the query cache's WebSocket connection and send the mutation frame
-    let cache = UseQuery.getQueryCache();
-    let handle =
-      RealtimeClient.Socket.subscribeSynced(
-        ~subscription=M.name,
-        ~updatedAt=0.0,
-        ~onPatch=(~payload as _, ~timestamp as _) => (),
-        ~onSnapshot=_payload => (),
-        ~onAck=(_actionId, _status, _error) => {
-          setLoading(_ => false);
-        },
-        ~onOpen=() => (),
-        ~onClose=() => (),
-        ~eventUrl=cache.eventUrl,
-        ~baseUrl=cache.baseUrl,
-        (),
-      );
-
-    let _ = RealtimeClient.Socket.sendFrame(~handle, ~frame);
-    RealtimeClient.Socket.disposeHandle(handle);
-
+    onDispatch(params);
     Js.Promise.resolve(());
   };
 
-  {dispatch, loading, error};
+  {dispatch, loading: false, error: None};
 };
 
 // Main useMutation hook - Native version (server-side)
@@ -73,6 +43,7 @@ let make =
     (
       type p,
       module M: MutationModuleNative with type params = p,
+      ~onDispatch: option(p => unit)=?,
       (),
     ) => {
   // Server: Mutations are not dispatched during SSR

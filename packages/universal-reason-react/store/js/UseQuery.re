@@ -68,6 +68,38 @@ let hydrateCache = (jsonStr: string) => {
 [@platform native]
 let hydrateCache = (_jsonStr: string) => ();
 
+// DOM element helpers for hydration
+[@platform js]
+type element;
+
+[@platform js]
+[@mel.scope "document"]
+external getElementById: string => Js.Nullable.t(element) = "getElementById";
+
+[@platform js]
+[@mel.get]
+external textContent: element => Js.Nullable.t(string) = "textContent";
+
+// Hydrate cache from DOM script tag
+[@platform js]
+let hydrateCacheFromDom = (~cacheId="query-cache", ()) => {
+  let cache = getQueryCache();
+  switch (cacheId->getElementById->Js.Nullable.toOption) {
+  | Some(element) =>
+    switch (element->textContent->Js.Nullable.toOption) {
+    | Some(text) => QueryCache.hydrate(~t=cache, ~jsonStr=text)
+    | None => ()
+    }
+  | None => ()
+  };
+};
+
+[@platform native]
+let hydrateCacheFromDom = (~cacheId as _unused=?, ()) => {
+  let _ = _unused;
+  ();
+};
+
 // Main useQuery hook - JS version (client-side)
 [@platform js]
 let useQuery =

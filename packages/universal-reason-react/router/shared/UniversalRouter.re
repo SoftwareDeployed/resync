@@ -1053,6 +1053,7 @@ let renderDocument = (
    ~pathname="/",
    ~search="",
    ~serializedState="",
+   ~serializedQueries="",
    ~state: option('state)=?,
    (),
 ) => {
@@ -1071,6 +1072,7 @@ let renderDocument = (
     stylesheets=router.document.stylesheets
     scripts=router.document.scripts
     serializedState
+    serializedQueries
     rootId=router.document.rootId
     head=?head
     beforeMain=?router.document.beforeMain

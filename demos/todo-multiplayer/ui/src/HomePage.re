@@ -46,13 +46,27 @@ let make = (~listId: string) => {
       (),
     );
 
-  // Mutations
+  // Mutations - dispatch through the store
   let addTodoMutation =
-    UseMutation.make((module RealtimeSchema.Mutations.AddTodo), ());
+    UseMutation.make(
+      (module RealtimeSchema.Mutations.AddTodo),
+      ~onDispatch=(params) =>
+        TodoStore.dispatch(TodoStore.AddTodo({id: params.id, list_id: params.list_id, text: params.text})),
+      (),
+    );
   let setTodoCompletedMutation =
-    UseMutation.make((module RealtimeSchema.Mutations.SetTodoCompleted), ());
+    UseMutation.make(
+      (module RealtimeSchema.Mutations.SetTodoCompleted),
+      ~onDispatch=(params) =>
+        TodoStore.dispatch(TodoStore.SetTodoCompleted({id: params.id, completed: params.completed})),
+      (),
+    );
   let removeTodoMutation =
-    UseMutation.make((module RealtimeSchema.Mutations.RemoveTodo), ());
+    UseMutation.make(
+      (module RealtimeSchema.Mutations.RemoveTodo),
+      ~onDispatch=(params) => TodoStore.dispatch(TodoStore.RemoveTodo(params.id)),
+      (),
+    );
 
   // Extract data from queries
   let todos =

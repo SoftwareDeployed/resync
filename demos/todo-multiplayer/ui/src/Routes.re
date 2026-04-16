@@ -14,7 +14,13 @@ module HomePageComponent = {
   };
 };
 
-let router: UniversalRouter.t(TodoStore.t) =
+// Server state type from EntryServer
+type serverState = {
+  store: TodoStore.t,
+  serializedQueries: string,
+};
+
+let router: UniversalRouter.t(serverState) =
   UniversalRouter.create(
     ~document = UniversalRouter.document(
       ~title="Todo Multiplayer",

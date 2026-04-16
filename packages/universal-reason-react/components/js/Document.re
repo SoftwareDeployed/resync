@@ -9,6 +9,7 @@ let make = (
   ~stylesheets=[|"/style.css"|],
   ~scripts=[|"/app.js"|],
   ~serializedState="",
+  ~serializedQueries="",
   ~rootId="root",
 ) => {
   <DocumentHtml lang=lang>
@@ -34,6 +35,13 @@ let make = (
       | None => React.null
       }}
       <DocumentNextScript serializedState=serializedState scripts=scripts />
+      {serializedQueries != ""
+        ? <script
+            type_="text/json"
+            id="query-cache"
+            dangerouslySetInnerHTML={"__html": serializedQueries}
+          />
+        : React.null}
     </body>
   </DocumentHtml>;
 };
