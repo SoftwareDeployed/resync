@@ -9,7 +9,7 @@
   Realtime_schema_codegen
   Realtime_schema_pg_query)
  (wrapped false)
- (libraries caqti melange-json-native pg_query str yojson unix))
+ (libraries caqti melange-json-native pg_query str ppxlib yojson unix))
 
 (library
  (name realtime_schema_ppx)
@@ -22,4 +22,4 @@
  (name realtime_schema_codegen_main)
  (public_name realtime-schema-codegen)
  (modules Realtime_schema_codegen_main)
- (libraries realtime_schema yojson unix))
+ (libraries realtime_schema ppxlib yojson unix))
