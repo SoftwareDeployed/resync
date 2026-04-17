@@ -1,11 +1,6 @@
 open Ppxlib
 open Ast_builder.Default
 
-let parse_module_source ~loc source =
-  let lexbuf = Lexing.from_string source in
-  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = loc.Location.loc_start.pos_fname };
-  Parse.implementation lexbuf
-
 let rec find_workspace_root directory =
   let marker = Filename.concat directory "dune-project" in
   if Sys.file_exists marker then
@@ -22,15 +17,14 @@ let expand ~loc ~path:_ raw_path =
       raw_path
   in
   let schema = Realtime_schema_parser.parse_directory sql_dir in
-  let module_source_string = Realtime_schema_codegen.module_source_string schema in
-  let structure_items = parse_module_source ~loc module_source_string in
-  match structure_items with
+  let structure = Realtime_schema_codegen.module_source schema ~loc in
+  match structure with
   | [ item ] -> item
   | _ ->
     Location.raise_errorf ~loc
       "realtime_schema: expected generated code to produce exactly one \
        structure item, got %d"
-      (List.length structure_items)
+      (List.length structure)
 
 let ext =
   Extension.declare "realtime_schema" Extension.Context.structure_item

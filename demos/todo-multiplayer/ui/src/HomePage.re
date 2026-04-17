@@ -51,20 +51,20 @@ let make = (~listId: string) => {
     UseMutation.make(
       (module RealtimeSchema.Mutations.AddTodo),
       ~onDispatch=(params) =>
-        TodoStore.dispatch(TodoStore.AddTodo({id: params.id, list_id: params.list_id, text: params.text})),
+        TodoStore.dispatch(RealtimeSchema.MutationActions.AddTodo({id: params.id, list_id: params.list_id, text: params.text})),
       (),
     );
   let setTodoCompletedMutation =
     UseMutation.make(
       (module RealtimeSchema.Mutations.SetTodoCompleted),
       ~onDispatch=(params) =>
-        TodoStore.dispatch(TodoStore.SetTodoCompleted({id: params.id, completed: params.completed})),
+        TodoStore.dispatch(RealtimeSchema.MutationActions.SetTodoCompleted({id: params.id, completed: params.completed})),
       (),
     );
   let removeTodoMutation =
     UseMutation.make(
       (module RealtimeSchema.Mutations.RemoveTodo),
-      ~onDispatch=(params) => TodoStore.dispatch(TodoStore.RemoveTodo(params.id)),
+      ~onDispatch=(params) => TodoStore.dispatch(RealtimeSchema.MutationActions.RemoveTodo(params.id)),
       (),
     );
 
