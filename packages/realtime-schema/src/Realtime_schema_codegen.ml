@@ -2066,6 +2066,86 @@ let tbool ~loc = ptyp_constr ~loc (Located.mk ~loc (Lident "bool")) []
 let tident ~loc name = ptyp_constr ~loc (Located.mk ~loc (Lident name)) []
 let tpair ~loc = ptyp_tuple ~loc [tstring ~loc; tstring ~loc]
 
+let mutation_payload_type_name (mutation_name : string) : string =
+  let pascal = module_name_of_table mutation_name in
+  let first = String.sub pascal 0 1 |> String.lowercase_ascii in
+  let rest = String.sub pascal 1 (String.length pascal - 1) in
+  first ^ rest ^ "Params"
+
+let mutation_payload_type_declaration_ast ~loc (mutation : mutation) : structure_item option =
+  let payload_params = mutation.params
+    |> List.filter (fun (p : query_param) -> p.payload_key <> None)
+  in
+  match List.length payload_params with
+  | 0 | 1 -> None
+  | _ ->
+    let type_name = mutation_payload_type_name mutation.name in
+    let label_decls = payload_params
+      |> List.map (fun (param : query_param) ->
+        let field_name = match param.payload_key with
+          | Some key -> sanitize_identifier key
+          | None -> Printf.sprintf "param_%d" param.index
+        in
+        label_declaration ~loc
+          ~name:(Located.mk ~loc field_name)
+          ~mutable_:Immutable
+          ~type_:(ptyp_constr ~loc (Located.mk ~loc (Lident param.ocaml_type)) []))
+    in
+    Some (pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc type_name)
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_record label_decls)
+    ])
+
+let mutation_payload_type_declarations_ast ~loc (mutations : mutation list) : structure_item list =
+  mutations
+  |> List.filter_map (mutation_payload_type_declaration_ast ~loc)
+
+let action_variant_declaration_ast ~loc (mutations : mutation list) : structure_item =
+  let constructors = mutations
+    |> List.map (fun (mutation : mutation) ->
+      let constructor_name = module_name_of_table mutation.name in
+      let payload_params = mutation.params
+        |> List.filter (fun (p : query_param) -> p.payload_key <> None)
+      in
+      match List.length payload_params with
+      | 0 -> pcd_simple ~loc constructor_name
+      | 1 ->
+        let param = List.hd payload_params in
+        pcd_with_arg ~loc constructor_name (ptyp_constr ~loc (Located.mk ~loc (Lident param.ocaml_type)) [])
+      | _ ->
+        let type_name = mutation_payload_type_name mutation.name in
+        pcd_with_arg ~loc constructor_name (tident ~loc type_name)
+    )
+  in
+  let custom_constructor =
+    pcd_with_arg ~loc "Custom"
+      (ptyp_var ~loc "custom")
+  in
+  let all_constructors = constructors @ [custom_constructor] in
+  pstr_type ~loc Nonrecursive [
+    type_declaration ~loc
+      ~name:(Located.mk ~loc "action")
+      ~params:[(ptyp_var ~loc "custom", (NoVariance, NoInjectivity))]
+      ~cstrs:[]
+      ~private_:Public
+      ~manifest:None
+      ~kind:(Ptype_variant all_constructors)
+  ]
+
+let mutation_actions_module_ast ~loc (mutations : mutation list) : structure_item =
+  let payload_decls = mutation_payload_type_declarations_ast ~loc mutations in
+  let action_decl = action_variant_declaration_ast ~loc mutations in
+  let items = payload_decls @ [action_decl] in
+  pstr_module ~loc
+    (module_binding ~loc
+       ~name:(Located.mk ~loc (Some "MutationActions"))
+       ~expr:(pmod_structure ~loc items))
+
 let module_source_ast (schema : schema) ~loc : Parsetree.structure =
   (* --- Type declarations --- *)
 
@@ -2473,6 +2553,10 @@ let module_source_ast (schema : schema) ~loc : Parsetree.structure =
          ~expr:(pmod_structure ~loc mutations_module_items))
   in
 
+  let mutation_actions_module =
+    mutation_actions_module_ast ~loc schema.mutations
+  in
+
   (* dispatch_mutation_source *)
   let dispatch_items =
     schema.mutations
@@ -2508,6 +2592,7 @@ let module_source_ast (schema : schema) ~loc : Parsetree.structure =
     tables_module;
     queries_module;
     mutations_module;
+    mutation_actions_module;
   ] @ dispatch_items in
 
   (* include struct ... end *)
