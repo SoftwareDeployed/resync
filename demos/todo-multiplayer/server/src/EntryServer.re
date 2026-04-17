@@ -69,7 +69,7 @@ let getServerState = (context: UniversalRouterDream.serverContext(Routes.serverS
         let todos =
           List.map(
             (row: RealtimeSchema.Queries.GetList.row) =>
-              ({Model.Todo.id: row.id, list_id: row.list_id, text: row.text, completed: row.completed}: Model.Todo.t),
+              ({Model.Todo.id: row.id, list_id: row.list_id, text: row.text, completed: row.completed, created_at: 0.0}: Model.Todo.t),
             todoRows,
           );
         let list =

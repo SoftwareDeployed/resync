@@ -19,7 +19,7 @@ let get_config request list_id =
   let todos_arr =
     Array.map
       (fun (row : RealtimeSchema.Queries.GetList.row) ->
-         ({ Model.Todo.id = row.id; list_id = row.list_id; text = row.text; completed = row.completed }
+         ({ Model.Todo.id = row.id; list_id = row.list_id; text = row.text; completed = row.completed; created_at = 0.0 }
            : Model.Todo.t))
       (Array.of_list todos)
   in
