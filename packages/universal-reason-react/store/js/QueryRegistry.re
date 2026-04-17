@@ -55,6 +55,9 @@ type query_registry = {
 let registry_key: Lwt.key(query_registry) = Lwt.new_key();
 
 [@platform native]
+let sync_registry_ref: ref(option(query_registry)) = ref(None);
+
+[@platform native]
 let with_registry = (~db, ~f, ()) => {
   let f: unit => Lwt.t('a) = f;
   let registry = {
@@ -77,7 +80,12 @@ let register_query =
       ~decode,
     )
     : option(array('a)) => {
-  switch (Lwt.get(registry_key)) {
+  let registry_opt =
+    switch (Lwt.get(registry_key)) {
+    | Some(r) => Some(r)
+    | None => sync_registry_ref^
+    };
+  switch (registry_opt) {
   | None => None
   | Some(registry) =>
     switch (Hashtbl.find_opt(registry.results, key)) {
@@ -187,8 +195,7 @@ let serialize_for_cache = (): string => {
 
 // Create a temporary registry from QueryCache-format JSON and run f inside it
 [@platform native]
-let with_serialized = (~jsonStr: string, ~f, ()) => {
-  let f: unit => Lwt.t('a) = f;
+let with_serialized = (~jsonStr: string, ~f: unit => 'a, ()): 'a => {
   let json = Yojson.Safe.from_string(jsonStr);
   let results = Hashtbl.create(8);
   (switch (json) {
@@ -211,7 +218,10 @@ let with_serialized = (~jsonStr: string, ~f, ()) => {
     results,
     db_connection: None,
   };
-  Lwt.with_value(registry_key, Some(registry), f);
+  sync_registry_ref := Some(registry);
+  let result = f();
+  sync_registry_ref := None;
+  result;
 };
 
 // JS-only: Client stubs (full implementation in QueryCache.re)

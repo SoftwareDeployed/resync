@@ -121,8 +121,7 @@ let getServerState = (context: UniversalRouterDream.serverContext(Routes.serverS
                 // Execute all registered queries
                 let* () = QueryRegistry.execute_queries();
                 // Get and serialize results
-                let snapshot = QueryRegistry.get_results();
-                let serialized = QueryRegistry.serialize_snapshot(snapshot);
+                let serialized = QueryRegistry.serialize_for_cache();
                 Lwt.return(serialized);
               },
               (),
@@ -166,9 +165,15 @@ let render = (~context, ~serverState: Routes.serverState, ()) => {
       ~state=serverState,
       (),
     );
-  <TodoStore.Context.Provider value=store>
-    document
-  </TodoStore.Context.Provider>;
+  QueryRegistry.with_serialized(
+    ~jsonStr=serializedQueries,
+    ~f=() => {
+      <TodoStore.Context.Provider value=store>
+        document
+      </TodoStore.Context.Provider>
+    },
+    (),
+  );
 };
 
 let app =
