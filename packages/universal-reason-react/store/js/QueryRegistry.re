@@ -164,6 +164,56 @@ let serialize_snapshot = (snapshot: registry_snapshot): string => {
   Yojson.Basic.to_string(jsonObj);
 };
 
+// Serialize registry results to QueryCache hydrate format
+// {"channel:hash": {"_tag": "Loaded", "data": [...]}}
+[@platform native]
+let serialize_for_cache = (): string => {
+  switch (Lwt.get(registry_key)) {
+  | None => "{}"
+  | Some(registry) =>
+    let entries =
+      Hashtbl.to_seq_keys(registry.results)
+      |> List.of_seq
+      |> List.map(key => {
+        let value = Hashtbl.find(registry.results, key);
+        (
+          key,
+          `Assoc([("_tag", `String("Loaded")), ("data", Obj.magic(value))]),
+        );
+      });
+    Yojson.Basic.to_string(`Assoc(entries))
+  };
+};
+
+// Create a temporary registry from QueryCache-format JSON and run f inside it
+[@platform native]
+let with_serialized = (~jsonStr: string, ~f, ()) => {
+  let f: unit => Lwt.t('a) = f;
+  let json = Yojson.Safe.from_string(jsonStr);
+  let results = Hashtbl.create(8);
+  (switch (json) {
+  | `Assoc(entries) =>
+    List.iter(((key, value)) => {
+      switch (value) {
+      | `Assoc(fields) =>
+        switch (List.assoc_opt("data", fields)) {
+        | Some(data) => Hashtbl.replace(results, key, data)
+        | None => ()
+        }
+      | _ => ()
+      };
+    }, entries)
+  | _ => ()
+  });
+  let registry = {
+    state: Rendered,
+    queries: Hashtbl.create(8),
+    results,
+    db_connection: None,
+  };
+  Lwt.with_value(registry_key, Some(registry), f);
+};
+
 // JS-only: Client stubs (full implementation in QueryCache.re)
 
 [@platform js]
@@ -194,3 +244,9 @@ let with_registry = (~db as _, ~f, ()) => f();
 let serialize_snapshot = (_snapshot: registry_snapshot): string => "{}";
 
 // Note: registry_key not needed on JS platform
+
+[@platform js]
+let serialize_for_cache = (): string => "{}";
+
+[@platform js]
+let with_serialized = (~jsonStr as _, ~f, ()) => f();
