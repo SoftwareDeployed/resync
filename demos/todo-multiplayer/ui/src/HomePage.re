@@ -9,21 +9,16 @@ module Style = {
 };
 
 open Tilia.React;
+module Hooks = TodoStore.Hooks;
 open Hooks;
-
-module RawTodoStore = TodoStore;
-module TodoStore = (
-  RawTodoStore:
-    StoreBuilder.Runtime.Exports
-      with type state = RawTodoStore.state
-      and type action = RawTodoStore.action
-      and type t = RawTodoStore.t
-);
 
 module FailServerMutationDef = {
   type params = unit;
+  type action = TodoStore.action;
   let name = "fail_server_mutation";
   let encodeParams = (_: unit) => Melange_json.declassify(`Assoc([]));
+  let toAction = (_: unit) =>
+    RealtimeSchema.MutationActions.Custom(TodoStore.FailServerMutation);
 };
 
 let copyUrl = () =>
@@ -50,58 +45,23 @@ let make =
 
     let (newTodoText, setNewTodoText) = React.useState(() => "");
 
-    // Mutations - dispatch through the store
-    let addTodoMutation =
-      useMutation(
-        (module RealtimeSchema.Mutations.AddTodo),
-        ~onDispatch=
-          params =>
-            TodoStore.dispatch(
-              RealtimeSchema.MutationActions.AddTodo({
-                id: params.id,
-                list_id: params.list_id,
-                text: params.text,
-              }),
-            ),
-        (),
-      );
-    let setTodoCompletedMutation =
-      useMutation(
-        (module RealtimeSchema.Mutations.SetTodoCompleted),
-        ~onDispatch=
-          params =>
-            TodoStore.dispatch(
-              RealtimeSchema.MutationActions.SetTodoCompleted({
-                id: params.id,
-                completed: params.completed,
-              }),
-            ),
-        (),
-      );
-    let removeTodoMutation =
-      useMutation(
-        (module RealtimeSchema.Mutations.RemoveTodo),
-        ~onDispatch=
-          params =>
-            TodoStore.dispatch(
-              RealtimeSchema.MutationActions.RemoveTodo(
-                params.id,
-              ),
-            ),
-        (),
-      );
-    let failServerMutation =
-      useMutation(
-        (module FailServerMutationDef),
-        ~onDispatch=
-          _ =>
-            TodoStore.dispatch(
-              RealtimeSchema.MutationActions.Custom(
-                RawTodoStore.FailServerMutation,
-              ),
-            ),
-        (),
-      );
+    // Mutations - auto-dispatched via TodoStore.Hooks
+    module AddTodoMutation = {
+      include RealtimeSchema.Mutations.AddTodo;
+      type action = TodoStore.action;
+    };
+    module SetTodoCompletedMutation = {
+      include RealtimeSchema.Mutations.SetTodoCompleted;
+      type action = TodoStore.action;
+    };
+    module RemoveTodoMutation = {
+      include RealtimeSchema.Mutations.RemoveTodo;
+      type action = TodoStore.action;
+    };
+    let addTodoMutation = useMutation((module AddTodoMutation), ());
+    let setTodoCompletedMutation = useMutation((module SetTodoCompletedMutation), ());
+    let removeTodoMutation = useMutation((module RemoveTodoMutation), ());
+    let failServerMutation = useMutation((module FailServerMutationDef), ());
 
     let todos = store.state.todos;
 

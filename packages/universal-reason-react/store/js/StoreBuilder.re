@@ -557,10 +557,23 @@ module Runtime = {
        'p,
        unit) => t;
     let useMutation:
-      (module QueryRegistryTypes.MutationModule with type params = 'p,
-       ~onDispatch: 'p => unit,
+      (module QueryRegistryTypes.MutationModuleWithAction
+         with type params = 'p and type action = action,
        unit) =>
       UseMutation.mutation_result('p);
+
+    module Hooks: {
+      let useStore: unit => t;
+      let useQuery:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         'p,
+         unit) => t;
+      let useMutation:
+        (module QueryRegistryTypes.MutationModuleWithAction
+           with type params = 'p and type action = action,
+         unit) =>
+        UseMutation.mutation_result('p);
+    };
 
     type status_listener_id = string;
     let subscribeStatus: (status => unit) => status_listener_id;

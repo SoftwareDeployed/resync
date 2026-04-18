@@ -450,10 +450,57 @@ let params_type_declaration_ast ~loc (params : query_param list) : structure_ite
                label_declaration ~loc ~name:(Located.mk ~loc field_name) ~mutable_:Immutable
                  ~type_:(ptyp_constr ~loc (Located.mk ~loc (Lident param.ocaml_type)) []))
       in
-      pstr_type ~loc Nonrecursive [
-        type_declaration ~loc ~name:(Located.mk ~loc "params") ~params:[] ~cstrs:[] ~private_:Public
-          ~manifest:None ~kind:(Ptype_record label_decls)
-      ]
+       pstr_type ~loc Nonrecursive [
+         type_declaration ~loc ~name:(Located.mk ~loc "params") ~params:[] ~cstrs:[] ~private_:Public
+           ~manifest:None ~kind:(Ptype_record label_decls)
+       ]
+
+let mutation_to_action_binding_ast ~loc (mutation : mutation) : structure_item =
+  let constructor_name = module_name_of_table mutation.name in
+  let constructor_lid = lid_of_strings ~loc ["MutationActions"; constructor_name] in
+  let payload_params =
+    mutation.params |> List.filter (fun (p : query_param) -> p.payload_key <> None)
+  in
+  let params_pat =
+    match mutation.params with
+    | [] -> ppat_constraint ~loc (ppat_any ~loc) (ptyp_constr ~loc (Located.mk ~loc (Lident "unit")) [])
+    | _ ->
+        ppat_constraint ~loc (pvar ~loc "params")
+          (ptyp_constr ~loc (Located.mk ~loc (Lident "params")) [])
+  in
+  let action_expr =
+    match payload_params with
+    | [] -> pexp_construct ~loc constructor_lid None
+    | [param] ->
+        let field_name =
+          match param.payload_key with
+          | Some key -> sanitize_identifier key
+          | None -> Printf.sprintf "param_%d" param.index
+        in
+        pexp_construct ~loc constructor_lid
+          (Some
+             (pexp_field ~loc (eident_of_string ~loc "params")
+                (Located.mk ~loc (Lident field_name))))
+    | _ ->
+        let payload_record =
+          pexp_record ~loc
+            (payload_params
+            |> List.map (fun (param : query_param) ->
+                   let field_name =
+                     match param.payload_key with
+                     | Some key -> sanitize_identifier key
+                     | None -> Printf.sprintf "param_%d" param.index
+                   in
+                   ( Located.mk ~loc (Lident field_name),
+                     pexp_field ~loc (eident_of_string ~loc "params")
+                       (Located.mk ~loc (Lident field_name)) )))
+            None
+        in
+        pexp_construct ~loc constructor_lid (Some payload_record)
+  in
+  pstr_value ~loc Nonrecursive
+    [ value_binding ~loc ~pat:(pvar ~loc "toAction")
+        ~expr:(pexp_fun ~loc Nolabel None params_pat action_expr) ]
 
 let caqti_type_constructor_sql_type_ast ~loc = function
   | Uuid | Varchar | Text | Json | Jsonb | Custom _ -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "string")))
@@ -1131,6 +1178,7 @@ let mutation_module_declaration_ast ~loc (mutation : mutation) : structure_item 
   in
   let params_type_binding = params_type_declaration_ast ~loc mutation.params in
   let encode_params_binding = encode_params_code_ast ~loc mutation.params in
+  let to_action_binding = mutation_to_action_binding_ast ~loc mutation in
   let dispatch_items =
     match dispatch_function_for_mutation_ast ~loc mutation with
     | Some item -> [item]
@@ -1146,6 +1194,7 @@ let mutation_module_declaration_ast ~loc (mutation : mutation) : structure_item 
     exec_binding;
     params_type_binding;
     encode_params_binding;
+    to_action_binding;
   ] @ dispatch_items in
   [ pstr_module ~loc
       (module_binding ~loc
@@ -2482,6 +2531,10 @@ let module_source_ast (schema : schema) ~loc : Parsetree.structure =
          ~expr:(pmod_structure ~loc queries_module_items))
   in
 
+  let mutation_actions_module =
+    mutation_actions_module_ast ~loc schema.mutations
+  in
+
   (* module Mutations = struct ... end *)
   let mutations_module_items =
     schema.mutations |> List.map (mutation_module_declaration_ast ~loc) |> List.concat
@@ -2491,10 +2544,6 @@ let module_source_ast (schema : schema) ~loc : Parsetree.structure =
       (module_binding ~loc
          ~name:(Located.mk ~loc (Some "Mutations"))
          ~expr:(pmod_structure ~loc mutations_module_items))
-  in
-
-  let mutation_actions_module =
-    mutation_actions_module_ast ~loc schema.mutations
   in
 
   let dispatch_mutation_binding = dispatch_mutation_ast ~loc schema.mutations in
@@ -2527,8 +2576,8 @@ let module_source_ast (schema : schema) ~loc : Parsetree.structure =
     table_name_fn;
     tables_module;
     queries_module;
-    mutations_module;
     mutation_actions_module;
+    mutations_module;
     dispatch_mutation_binding;
   ] in
 

@@ -345,6 +345,25 @@ module Local = {
       Context.useStore();
     };
 
+    let useMutation = (
+      type p,
+      module M: QueryRegistryTypes.MutationModuleWithAction
+        with type params = p and type action = Schema.action,
+      (),
+    ) => {
+      UseMutation.make(
+        (module M),
+        ~onDispatch=params => dispatch(M.toAction(params)),
+        (),
+      );
+    };
+
+    module Hooks = {
+      let useStore = Context.useStore;
+      let useQuery = useQuery;
+      let useMutation = useMutation;
+    };
+
     let flushCache = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let whenReady = () => StoreRuntimeLifecycle.whenReady(lifecycle);
     let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
@@ -1434,6 +1453,25 @@ module Synced = {
     ) => {
       let _ = UseQuery.useQuery((module Q), params, ());
       Context.useStore();
+    };
+
+    let useMutation = (
+      type p,
+      module M: QueryRegistryTypes.MutationModuleWithAction
+        with type params = p and type action = Schema.action,
+      (),
+    ) => {
+      UseMutation.make(
+        (module M),
+        ~onDispatch=params => dispatch(M.toAction(params)),
+        (),
+      );
+    };
+
+    module Hooks = {
+      let useStore = Context.useStore;
+      let useQuery = useQuery;
+      let useMutation = useMutation;
     };
 
     let flushCache = () => StoreRuntimeLifecycle.whenIdle(lifecycle);

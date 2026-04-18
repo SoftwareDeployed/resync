@@ -94,3 +94,4 @@ module StoreDef = (val StoreBuilder.buildCrud(StoreBuilder.make()
 include (StoreDef: StoreBuilder.Runtime.Exports with type state := state and type action := action and type t := store);
 type t = store;
 module Context = StoreDef.Context;
+module Hooks = StoreDef.Hooks;
