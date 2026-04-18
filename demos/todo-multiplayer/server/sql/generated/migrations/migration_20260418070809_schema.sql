@@ -1,3 +1,40 @@
+CREATE TABLE IF NOT EXISTS _resync_actions_create_list (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS _resync_actions_add_todo (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS _resync_actions_set_todo_completed (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS _resync_actions_remove_todo (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS _resync_actions_rename_list (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS schema_migrations (version varchar PRIMARY KEY, applied_at timestamp NOT NULL DEFAULT NOW());
+
 DROP TRIGGER IF EXISTS realtime_notify_todo_lists ON todo_lists;
 DROP FUNCTION IF EXISTS realtime_notify_todo_lists();
 
@@ -165,3 +202,5 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER realtime_notify_todos_parent
 AFTER INSERT OR UPDATE OR DELETE ON todos
 FOR EACH ROW EXECUTE FUNCTION realtime_notify_todos_parent();
+
+INSERT INTO schema_migrations (version) VALUES ("20260418070809") ON CONFLICT (version) DO NOTHING;

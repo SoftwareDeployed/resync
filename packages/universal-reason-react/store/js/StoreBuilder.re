@@ -233,6 +233,8 @@ type json('state, 'action) = {
   action_to_json: 'action => StoreJson.json,
 };
 
+type queriesConfig('state) = StoreOffline.Local.queriesConfig('state);
+
 type localPersistence('state) = {
   storeName: string,
   scopeKeyOfState: 'state => string,
@@ -317,6 +319,7 @@ type local_input('state, 'action, 'store) = {
   schema: schema('state, 'action, 'store),
   json: json('state, 'action),
   guardTree: option(GuardTree.t('state, 'action)),
+  queries: option(queriesConfig('state)),
   persistence: localPersistence('state),
 };
 
@@ -324,6 +327,7 @@ type synced_input('state, 'action, 'store, 'subscription, 'patch, 'stream_event,
   schema: schema('state, 'action, 'store),
   json: json('state, 'action),
   guardTree: option(GuardTree.t('state, 'action)),
+  queries: option(queriesConfig('state)),
   persistence: syncPersistence('state, 'subscription),
   hooks: Sync.hooks('action),
   strategy: Sync.customStrategy('state, 'patch),
@@ -334,6 +338,7 @@ type synced_crud_input('state, 'action, 'store, 'subscription, 'row) = {
   schema: schema('state, 'action, 'store),
   json: json('state, 'action),
   guardTree: option(GuardTree.t('state, 'action)),
+  queries: option(queriesConfig('state)),
   persistence: syncPersistence('state, 'subscription),
   hooks: Sync.hooks('action),
   crud: Sync.crudConfig('row, 'state),
@@ -352,6 +357,13 @@ type jsonBuilder('state, 'action, 'store) = {
   schema: schema('state, 'action, 'store),
   json: json('state, 'action),
   guardTree: option(GuardTree.t('state, 'action)),
+};
+
+type queriesBuilder('state, 'action, 'store) = {
+  schema: schema('state, 'action, 'store),
+  json: json('state, 'action),
+  guardTree: option(GuardTree.t('state, 'action)),
+  queries: option(queriesConfig('state)),
 };
 
 let make = () => {
@@ -395,10 +407,19 @@ let withJson = (
   ~action_of_json: StoreJson.json => 'action,
   ~action_to_json: 'action => StoreJson.json,
   builder: schemaBuilder('state, 'action, 'store),
-): jsonBuilder('state, 'action, 'store) => {
+): queriesBuilder('state, 'action, 'store) => {
   schema: builder.schema,
   json: {state_of_json, state_to_json, action_of_json, action_to_json},
   guardTree: builder.guardTree,
+  queries: None,
+};
+
+let withQueries = (
+  ~applyQueryResult: (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
+  builder: queriesBuilder('state, 'action, 'store),
+): queriesBuilder('state, 'action, 'store) => {
+  ...builder,
+  queries: Some({applyQueryResult: applyQueryResult}),
 };
 
 let withLocalPersistence = (
@@ -407,11 +428,12 @@ let withLocalPersistence = (
   ~timestampOfState: 'state => float,
   ~stateElementId: option(string)=None,
   _,
-  builder: jsonBuilder('state, 'action, 'store),
+  builder: queriesBuilder('state, 'action, 'store),
 ): local_input('state, 'action, 'store) => {
   schema: builder.schema,
   json: builder.json,
   guardTree: builder.guardTree,
+  queries: builder.queries,
   persistence: {
     storeName,
     scopeKeyOfState,
@@ -432,11 +454,12 @@ let withSync = (
   ~hooks: option(Sync.hooks('action))=?,
   ~stateElementId: option(string)=None,
   _,
-  builder: jsonBuilder('state, 'action, 'store),
+  builder: queriesBuilder('state, 'action, 'store),
 ): synced_input('state, 'action, 'store, 'subscription, 'patch, 'stream_event, 'streaming_state) => {
   schema: builder.schema,
   json: builder.json,
   guardTree: builder.guardTree,
+  queries: builder.queries,
   persistence: {
     storeName,
     scopeKeyOfState,
@@ -468,11 +491,12 @@ let withSyncCrud = (
   ~hooks: option(Sync.hooks('action))=?,
   ~stateElementId: option(string)=None,
   _,
-  builder: jsonBuilder('state, 'action, 'store),
+  builder: queriesBuilder('state, 'action, 'store),
 ): synced_crud_input('state, 'action, 'store, 'subscription, 'row) => {
   schema: builder.schema,
   json: builder.json,
   guardTree: builder.guardTree,
+  queries: builder.queries,
   persistence: {
     storeName,
     scopeKeyOfState,
@@ -557,6 +581,7 @@ module Runtime = {
     let makeStore:
       (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
     let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
+    let queries: option(queriesConfig(state));
     let cache: [ | `IndexedDB | `None ];
   };
 
@@ -599,6 +624,7 @@ module Runtime = {
     let onOpen: option((~dispatch: action => unit) => unit);
     let onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit);
     let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
+    let queries: option(queriesConfig(state));
     let cache: [ | `IndexedDB | `None ];
   };
 
@@ -667,6 +693,7 @@ let buildLocal =
           Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
         | None => None
         };
+      let queries = input.queries;
       let cache = `IndexedDB;
     });
 
@@ -738,6 +765,7 @@ let buildSynced =
           Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
         | None => None
         };
+      let queries = input.queries;
       let cache = `IndexedDB;
     });
 
@@ -812,6 +840,7 @@ let buildCrud =
           Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
         | None => None
         };
+      let queries = input.queries;
       let cache = `IndexedDB;
     });
 

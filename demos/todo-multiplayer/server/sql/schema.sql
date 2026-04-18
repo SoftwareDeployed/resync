@@ -24,7 +24,7 @@ CREATE TABLE todos (
 
 /*
 @query get_list
-SELECT id, list_id, text, completed FROM todos WHERE list_id = $1 ORDER BY created_at;
+SELECT id, list_id, text, completed, EXTRACT(EPOCH FROM created_at) * 1000 AS created_at FROM todos WHERE list_id = $1 ORDER BY created_at;
 */
 
 /*

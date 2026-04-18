@@ -51,45 +51,13 @@ let getServerState = (context: UniversalRouterDream.serverContext(Routes.serverS
       if (!isUuid(listId)) {
         Lwt.return(UniversalRouterDream.NotFound);
       } else {
-      let* listInfo =
-        Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
-          RealtimeSchema.Queries.GetListInfo.find_opt(
-            (module Db),
-            RealtimeSchema.Queries.GetListInfo.caqti_type,
-            listId,
-          )
-        );
-      switch (listInfo) {
-      | None => Lwt.return(UniversalRouterDream.NotFound)
-      | Some(listRow) =>
-        let* todoRows =
-          Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
-            RealtimeSchema.Queries.GetList.collect(
-              (module Db),
-              RealtimeSchema.Queries.GetList.caqti_type,
-              listId,
-            )
-          );
-        let todos =
-          List.map(
-            (row: RealtimeSchema.Queries.GetList.row) =>
-              ({Model.Todo.id: row.id, list_id: row.list_id, text: row.text, completed: row.completed, created_at: 0.0}: Model.Todo.t),
-            todoRows,
-          );
-        let list =
-          Some((
-            {Model.TodoList.id: listRow.id, name: listRow.name, updated_at: listRow.updated_at}: Model.TodoList.t
-          ));
-        let config: Model.t = {
-          todos: Array.of_list(todos),
-          list,
-        };
-        let store = TodoStore.createStore(config);
+        // Create store with emptyState (queries will populate it)
+        let emptyStore = TodoStore.createStore(TodoStore.emptyState);
 
         // Pre-render pass: collect queries using QueryRegistry
-        let serializedState = TodoStore.serializeState(store.state);
+        let serializedState = TodoStore.serializeState(emptyStore.state);
         // Create a dummy serverState for pre-render (queries not yet collected)
-        let prerenderServerState: Routes.serverState = {store, serializedQueries: ""};
+        let prerenderServerState: Routes.serverState = {store: emptyStore, serializedQueries: ""};
         // Pre-render with basePath="/" so router matches :listId correctly
         let prerenderApp =
           <UniversalRouter
@@ -111,12 +79,12 @@ let getServerState = (context: UniversalRouterDream.serverContext(Routes.serverS
             (),
           );
         let prerenderElement =
-          <TodoStore.Context.Provider value=store>
+          <TodoStore.Context.Provider value=emptyStore>
             prerenderDocument
           </TodoStore.Context.Provider>;
 
-        // Run pre-render within QueryRegistry to collect queries
-        let* serializedQueries =
+        // Run pre-render within QueryRegistry to collect and execute queries
+        let* (store, serializedQueries) =
           Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) => {
             QueryRegistry.with_registry(
               ~db=(module Db),
@@ -125,9 +93,34 @@ let getServerState = (context: UniversalRouterDream.serverContext(Routes.serverS
                 let _html = ReactDOM.renderToString(prerenderElement);
                 // Execute all registered queries
                 let* () = QueryRegistry.execute_queries();
-                // Get and serialize results
+                // Apply query results to state
+                let snapshot = QueryRegistry.get_results();
+                let updatedState = snapshot.queries->Js.Array.reduce(
+                  ~f=(state: TodoStore.state, key: QueryRegistry.query_key) => {
+                    switch (snapshot.results->Js.Dict.get(key)) {
+                    | None => state
+                    | Some(jsonRows) =>
+                      // Extract channel from key (format: "channel:paramsHash")
+                      let channel = switch (Js.String.split(~limit=2, key, ~sep=":")) {
+                      | [|ch, _|] => ch
+                      | [|ch|] => ch
+                      | _ => ""
+                      };
+                      // Parse rows: jsonRows is a Yojson list of row objects
+                      let rows = switch (jsonRows) {
+                      | `List(items) => items->Array.of_list
+                      | _ => [|jsonRows|]
+                      };
+                      TodoStore.applyQueryResult(~state, ~channel, ~rows);
+                    };
+                  },
+                  ~init=TodoStore.emptyState,
+                );
+                // Create store with query-populated state
+                let store = TodoStore.createStore(updatedState);
+                // Serialize query cache for client hydration
                 let serialized = QueryRegistry.serialize_for_cache();
-                Lwt.return(serialized);
+                Lwt.return((store, serialized));
               },
               (),
             );
@@ -136,7 +129,6 @@ let getServerState = (context: UniversalRouterDream.serverContext(Routes.serverS
         let serverState: Routes.serverState = {store, serializedQueries};
         Lwt.return(UniversalRouterDream.State(serverState));
       };
-    };
     };
   };
 };

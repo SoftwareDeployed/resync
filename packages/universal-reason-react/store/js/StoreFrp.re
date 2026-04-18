@@ -59,6 +59,7 @@ module Local = {
       let action_to_json = Input.config.schema.action_to_json;
       let makeStore = Input.config.schema.makeStore;
       let validate = None;
+      let queries = None;
       let cache = Input.config.cache;
     };
 
@@ -165,6 +166,7 @@ module Synced = {
       let onOpen = hooks.onOpen;
       let onMultiplexedHandle = hooks.onMultiplexedHandle;
       let validate = None;
+      let queries = None;
       let cache = Input.config.cache;
     };
 
@@ -285,6 +287,7 @@ module Crud = {
       let onOpen = hooks.onOpen;
       let onMultiplexedHandle = hooks.onMultiplexedHandle;
       let validate = None;
+      let queries = None;
       let cache = Input.config.cache;
     };
 

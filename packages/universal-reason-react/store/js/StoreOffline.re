@@ -1,4 +1,8 @@
 module Local = {
+  type queriesConfig('state) = {
+    applyQueryResult: (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
+  };
+
   module type Schema = {
     type state;
     type action;
@@ -17,6 +21,7 @@ module Local = {
     let makeStore:
       (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
     let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
+    let queries: option(queriesConfig(state));
     let cache: [ | `IndexedDB | `None ];
   };
 
@@ -62,7 +67,9 @@ module Local = {
     let setBroadcastHandler = (_channel, _handler) => ();
 
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
+    let confirmedStateRef: ref(state) = ref(Schema.emptyState);
     let channelRef: ref(option(broadcast_channel)) = ref(None);
+    let queryResultListenerIdRef: ref(option(string)) = ref(None);
     let suppressPublishRef: ref(bool) = ref(false);
     let listenersRef: StoreEvents.registry(action) = ref([||]);
 
@@ -135,6 +142,7 @@ module Local = {
     let persistState = (~broadcast: bool=true, state: state) =>
       switch%platform (Runtime.platform) {
       | Client =>
+        confirmedStateRef := state;
         writeStateRecord(state);
         if (broadcast) {
           if (suppressPublishRef.contents) {
@@ -146,6 +154,26 @@ module Local = {
         ()
       | Server => ()
       };
+
+    let refreshOptimisticState = () =>
+      switch (sourceRef.contents) {
+      | Some(actions) => actions.set(confirmedStateRef.contents)
+      | None => ()
+      };
+
+    let handleQueryResult = (~queriesConfig: option(queriesConfig(state)), ~channel: string, ~rows: array(StoreJson.json), ()) => {
+      switch (queriesConfig) {
+      | Some(config) =>
+        let newState = config.applyQueryResult(
+          ~state=confirmedStateRef.contents,
+          ~channel,
+          ~rows,
+        );
+        confirmedStateRef := newState;
+        refreshOptimisticState();
+      | None => ()
+      };
+    };
 
     let reconcilePersistedState = (actions: StoreSource.actions(state)) =>
       switch%platform (Runtime.platform) {
@@ -194,6 +222,8 @@ module Local = {
         | Server => Schema.emptyState
         };
 
+      confirmedStateRef := initialState;
+
       switch%platform (Runtime.platform) {
       | Client =>
         let source =
@@ -202,6 +232,15 @@ module Local = {
             ~mount=
               actions => {
                 sourceRef := Some(actions);
+                switch (queryResultListenerIdRef.contents) {
+                | Some(listenerId) => QueryCache.unlistenLoadedResults(listenerId)
+                | None => ()
+                };
+                queryResultListenerIdRef := Some(
+                  QueryCache.listenLoadedResults((~channel, ~rows) =>
+                    handleQueryResult(~queriesConfig=Schema.queries, ~channel, ~rows, ())
+                  ),
+                );
                 let channel =
                   openBroadcastChannel("resync.store." ++ Schema.storeName);
                 channelRef := Some(channel);
@@ -309,6 +348,8 @@ module Local = {
 };
 
 module Synced = {
+  type queriesConfig('state) = Local.queriesConfig('state);
+
   type broadcast_channel = BroadcastChannel.t;
 
   [@platform js]
@@ -522,6 +563,7 @@ module Synced = {
        raw frames without storing singleton state in RealtimeClient. */
     let onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit);
     let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
+    let queries: option(queriesConfig(state));
     let cache: [ | `IndexedDB | `None ];
   };
 
@@ -621,6 +663,7 @@ module Synced = {
     /* Hydration and source state stay outside the controller */
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
+    let queryResultListenerIdRef: ref(option(string)) = ref(None);
     let streamingRef: ref(Schema.streaming_state) = ref(
       switch (Schema.streams) {
       | Some({emptyStreamingState, _}) => emptyStreamingState
@@ -1142,6 +1185,20 @@ module Synced = {
       };
     };
 
+    let handleQueryResult = (~queriesConfig: option(queriesConfig(state)), ~channel: string, ~rows: array(StoreJson.json), ()) => {
+      switch (queriesConfig) {
+      | Some(config) =>
+        let newState = config.applyQueryResult(
+          ~state=confirmedStateRef.contents,
+          ~channel,
+          ~rows,
+        );
+        confirmedStateRef := newState;
+        refreshOptimisticState();
+      | None => ()
+      };
+    };
+
     let startSubscription = (state): Js.Promise.t(unit) =>
       switch (Schema.subscriptionOfState(state)) {
       | Some(subscription) =>
@@ -1262,6 +1319,15 @@ module Synced = {
             ~mount=
               actions => {
                 sourceRef := Some(actions);
+                switch (queryResultListenerIdRef.contents) {
+                | Some(listenerId) => QueryCache.unlistenLoadedResults(listenerId)
+                | None => ()
+                };
+                queryResultListenerIdRef := Some(
+                  QueryCache.listenLoadedResults((~channel, ~rows) =>
+                    handleQueryResult(~queriesConfig=Schema.queries, ~channel, ~rows, ())
+                  ),
+                );
                 let channel =
                   openBroadcastChannel("resync.store." ++ Schema.storeName);
                 Controller.setBroadcastChannel(Some(channel));

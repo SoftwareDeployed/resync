@@ -3,6 +3,41 @@
 
 open QueryRegistryTypes;
 
+type loaded_result_listener = (~channel: string, ~rows: array(StoreJson.json)) => unit;
+type loaded_result_listener_id = string;
+
+let loadedResultListenersRef: ref(array((loaded_result_listener_id, loaded_result_listener))) = ref([||]);
+
+let channelOfKey = (key: query_key): string => {
+  switch (Js.String.split(~limit=2, key, ~sep=":")) {
+  | [|channel, _|] => channel
+  | [|channel|] => channel
+  | _ => key
+  };
+};
+
+let notifyLoadedResult = (~channel: string, ~rows: array(StoreJson.json)) => {
+  loadedResultListenersRef.contents
+  ->Js.Array.forEach(~f=((_, listener)) => listener(~channel, ~rows));
+};
+
+let listenLoadedResults = (listener: loaded_result_listener): loaded_result_listener_id => {
+  let listenerId = UUID.make();
+  loadedResultListenersRef.contents =
+    Js.Array.concat(
+      ~other=[|(listenerId, listener)|],
+      loadedResultListenersRef.contents,
+    );
+  listenerId;
+};
+
+let unlistenLoadedResults = (listenerId: loaded_result_listener_id) => {
+  loadedResultListenersRef.contents =
+    loadedResultListenersRef.contents->Js.Array.filter(~f=((currentId, _)) =>
+      currentId != listenerId
+    );
+};
+
 // Cache entry stores type-erased JSON data
 // The decoder is provided at access time, not storage time
 type cache_entry = {
@@ -128,6 +163,11 @@ let subscribe =
                 entry.data = result;
                 entry.setSignal(result);
                 entry.lastUpdated = Js.Date.now();
+                switch (result) {
+                | Loaded(jsonRows) => notifyLoadedResult(~channel, ~rows=jsonRows)
+                | Loading
+                | Error(_) => ()
+                };
               },
             ~onAck=
               (_actionId: string, _status: string, _error: option(string)) =>
@@ -255,6 +295,23 @@ let result_of_json = (json: StoreJson.json): query_result(StoreJson.json) => {
   };
 };
 
+let forEachLoadedResult = (~jsonStr: string, ~f: loaded_result_listener): unit => {
+  switch (StoreJson.tryParse(jsonStr)) {
+  | Some(json) =>
+    let dict = StoreJson.Dict.of_json(x => x, json);
+    let entries = Js.Dict.entries(dict);
+    for (i in 0 to Array.length(entries) - 1) {
+      let (key, resultJson) = entries[i];
+      switch (result_of_json(resultJson)) {
+      | Loaded(rows) => f(~channel=channelOfKey(key), ~rows)
+      | Loading
+      | Error(_) => ()
+      };
+    };
+  | None => ()
+  };
+};
+
 // Hydrate cache from SSR-serialized JSON
 [@platform js]
 let hydrate = (~t: t, ~jsonStr: string): unit => {
@@ -277,6 +334,11 @@ let hydrate = (~t: t, ~jsonStr: string): unit => {
         refCount: 0 // Will be incremented when subscribe is called
       };
       t.entries->Js.Dict.set(key, entry);
+      switch (result) {
+      | Loaded(rows) => notifyLoadedResult(~channel=channelOfKey(key), ~rows)
+      | Loading
+      | Error(_) => ()
+      };
     };
   | None => ()
   };

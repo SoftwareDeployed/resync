@@ -48,6 +48,19 @@ let reduce = (~state: state, ~action: action) => {
 let onActionError = message => Sonner.showError(message);
 [@platform native]
 let onActionError = _message => ();
+let applyQueryResult = (~state: state, ~channel: string, ~rows: array(StoreJson.json)) => {
+  switch (channel) {
+  | "get_list_info" =>
+    switch (Belt.Array.get(rows, 0)) {
+    | Some(row) => {...state, list: Some(Model.TodoList.of_json(row))}
+    | None => state
+    }
+  | "get_list" =>
+    let todos = rows->Js.Array.map(~f=Model.Todo.of_json);
+    {...state, todos}
+  | _ => state
+  };
+};
 module StoreDef = (val StoreBuilder.buildCrud(StoreBuilder.make()
   |> StoreBuilder.withSchema({ emptyState, reduce,
        makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
@@ -64,6 +77,7 @@ module StoreDef = (val StoreBuilder.buildCrud(StoreBuilder.make()
        ~action_of_json=RealtimeSchema.MutationActions.action_of_json(~custom_of_json=customAction_of_json),
        ~action_to_json=RealtimeSchema.MutationActions.action_to_json(~custom_to_json=customAction_to_json),
      )
+  |> StoreBuilder.withQueries(~applyQueryResult)
   |> StoreBuilder.withSyncCrud(~storeName="todo-multiplayer", ~scopeKeyOfState, ~timestampOfState, ~setTimestamp,
         ~transport={
           subscriptionOfState: (state: state) => (switch (state.list) {
