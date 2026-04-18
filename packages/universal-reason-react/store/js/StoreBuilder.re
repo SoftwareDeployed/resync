@@ -552,6 +552,15 @@ module Runtime = {
     let whenReady: unit => Js.Promise.t(unit);
     let whenIdle: unit => Js.Promise.t(unit);
     let status: unit => status;
+    let useQuery:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       'p,
+       unit) => t;
+    let useMutation:
+      (module QueryRegistryTypes.MutationModule with type params = 'p,
+       ~onDispatch: 'p => unit,
+       unit) =>
+      UseMutation.mutation_result('p);
 
     type status_listener_id = string;
     let subscribeStatus: (status => unit) => status_listener_id;

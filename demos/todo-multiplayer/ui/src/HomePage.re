@@ -11,6 +11,15 @@ module Style = {
 open Tilia.React;
 open Hooks;
 
+module RawTodoStore = TodoStore;
+module TodoStore = (
+  RawTodoStore:
+    StoreBuilder.Runtime.Exports
+      with type state = RawTodoStore.state
+      and type action = RawTodoStore.action
+      and type t = RawTodoStore.t
+);
+
 module FailServerMutationDef = {
   type params = unit;
   let name = "fail_server_mutation";
@@ -36,11 +45,8 @@ let handleInputChange = (setNewTodoText, _event) => {
 [@react.component]
 let make =
   leaf((~listId: string) => {
-    let store = TodoStore.Context.useStore();
-
-    // Register queries to populate store state during SSR pre-render
-    let _getListQuery = useQuery((module RealtimeSchema.Queries.GetList), {list_id: listId}, ());
-    let _getListInfoQuery = useQuery((module RealtimeSchema.Queries.GetListInfo), {id: listId}, ());
+    let _ = TodoStore.useQuery((module RealtimeSchema.Queries.GetList), {list_id: listId}, ());
+    let store = TodoStore.useQuery((module RealtimeSchema.Queries.GetListInfo), {id: listId}, ());
 
     let (newTodoText, setNewTodoText) = React.useState(() => "");
 
@@ -91,7 +97,7 @@ let make =
           _ =>
             TodoStore.dispatch(
               RealtimeSchema.MutationActions.Custom(
-                TodoStore.FailServerMutation,
+                RawTodoStore.FailServerMutation,
               ),
             ),
         (),

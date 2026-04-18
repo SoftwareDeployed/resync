@@ -334,6 +334,17 @@ module Local = {
       let useStore = () => React.useContext(context);
     };
 
+    let useQuery = (
+      type p,
+      type r,
+      module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+      params: p,
+      (),
+    ) => {
+      let _ = UseQuery.useQuery((module Q), params, ());
+      Context.useStore();
+    };
+
     let flushCache = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let whenReady = () => StoreRuntimeLifecycle.whenReady(lifecycle);
     let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
@@ -1412,6 +1423,17 @@ module Synced = {
       };
 
       let useStore = () => React.useContext(context);
+    };
+
+    let useQuery = (
+      type p,
+      type r,
+      module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+      params: p,
+      (),
+    ) => {
+      let _ = UseQuery.useQuery((module Q), params, ());
+      Context.useStore();
     };
 
     let flushCache = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
