@@ -1,51 +1,57 @@
 # Plan: PPX Codegen Action Types + AST Builder Refactor
 
-## Overview
+## Status: Phase 1-3 COMPLETE | Phase 4 IN PROGRESS
 
-This plan covers two related refactors:
-1. **Prerequisite**: Refactor PPX codegen from `sprintf` to `Ast_builder` (，消除技术债务)
-2. **Goal**: Extend codegen to generate store action types from SQL mutations
-
-## Blockers
-
-- ✅ **NONE** - Ready to proceed
-
-## Task List
-
-### Phase 1: AST Builder Refactor (Prerequisite)
-
-**Goal**: Replace `Printf.sprintf` string generation with direct AST construction using `Ppxlib.Ast_builder`
-
-**Files to modify**:
-- `packages/realtime-schema/src/Realtime_schema_codegen.ml`
-
-**Changes**:
-1. Add `open Ppxlib` and `open Ast_builder.Default`
-2. Replace string-returning functions with AST-building functions
-3. Functions like `query_module_declaration` → return `structure_item list` instead of `string`
-4. Update `packages/realtime-schema/src/Realtime_schema_ppx.ml` to use generated AST directly
-5. Update `packages/realtime-schema/src/Realtime_schema_codegen_main.ml` to use `Pprintast.string_of_structure` if writing files
-
-**Verification**:
-- `dune build packages/realtime-schema/src/Realtime_schema_codegen.exe`
-- `dune build demos/todo-multiplayer/server/src/server.exe`
-- `dune build demos/ecommerce/server/src/server.exe`
+Last updated: 2026-04-17
 
 ---
 
-### Phase 2: Generate Action Types from Mutations
+## Overview
+
+This plan covers three completed refactors and one in-progress fix:
+
+1. **Phase 1 (COMPLETE)**: Refactor PPX codegen from `sprintf` to `Ast_builder`
+2. **Phase 2 (COMPLETE)**: Extend codegen to generate store action types from SQL mutations
+3. **Phase 3 (COMPLETE)**: Eliminate `TodoStore` boilerplate
+4. **Phase 4 (IN PROGRESS)**: Fix SSR hydration error in `todo-multiplayer` browser tests
+
+---
+
+## Completed Work
+
+### Phase 1: AST Builder Refactor (COMPLETE)
+
+**Goal**: Replace `Printf.sprintf` string generation with direct AST construction using `Ppxlib.Ast_builder`
+
+**Status**: ✅ COMPLETE
+
+**Commits**:
+- `28a65fe` - refactor(realtime-schema): convert codegen to Ast_builder and update PPX
+- `65e948b` - feat(realtime-schema): add Ast_builder helpers and fix ppxlib 0.38.0 API
+- `71d72cc` - refactor(realtime-schema): WIP AST builder refactor and generated action types (partial)
+
+**What was done**:
+- Added `open Ppxlib` and `open Ast_builder.Default`
+- Replaced string-returning functions with AST-building functions
+- Functions like `query_module_declaration` now return `structure_item list` instead of `string`
+- Updated `packages/realtime-schema/src/Realtime_schema_ppx.ml` to use generated AST directly
+- Removed dead legacy string codegen path (`module_source_string` + ~33 dead helpers, net -666 lines)
+
+**Verification**: ✅ `dune build @all-apps @all-servers` passes
+
+---
+
+### Phase 2: Generate Action Types from Mutations (COMPLETE)
 
 **Goal**: Codegen generates Reason/OCaml action types + JSON serialization from `@mutation` annotations
 
-**From SQL**:
-```sql
-/*
-@mutation add_todo
-INSERT INTO todos (id, list_id, text) VALUES ($1, $2, $3);
-*/
-```
+**Status**: ✅ COMPLETE
 
-**Generate**:
+**Commits**:
+- `0b7f893` - feat(realtime-schema): generate MutationActions module with action types from @mutation
+- `12ef085` - feat(realtime-schema): generate action JSON codecs and remove dead string path
+
+**What was generated**:
 ```reason
 // Generated from @mutation annotation
 type addTodoParams = {
@@ -60,76 +66,195 @@ type action =
   | RemoveTodo(removeTodoParams)
   | ...;
 
-let action_to_json = (action: action): Js.Json.t => {
-  switch (action) {
-  | AddTodo(params) => ...
-  | SetTodoCompleted(params) => ...
-  | RemoveTodo(id) => ...
-  };
-};
-
-let action_of_json = (json: Js.Json.t): action => {
-  let kind = StoreJson.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
-  let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=Fun.id);
-  switch (kind) {
-  | "add_todo" => AddTodo(...)
-  | ...
-  };
-};
+let action_to_json = (action: action): Js.Json.t => { ... };
+let action_of_json = (json: Js.Json.t): action => { ... };
 ```
 
-**Files to modify**:
-- `packages/realtime-schema/src/Realtime_schema_codegen.ml` - Add `action_type_declaration`, `action_json_code` functions
-- SQL schema annotations may need extension for action naming conventions
+**Files modified**:
+- `packages/realtime-schema/src/Realtime_schema_codegen.ml` - Added `action_type_declaration`, `action_json_code` functions
 
-**Changes**:
-1. Parse `@mutation` blocks from SQL (already done)
-2. Generate action type variant from mutation names
-3. Generate action payload types from mutation params
-4. Generate `action_to_json` / `action_of_json` functions
+**Verification**: ✅ `dune build demos/todo-multiplayer/shared/js/RealtimeSchema.cmi` passes
 
 ---
 
-### Phase 3: Eliminate TodoStore Boilerplate
+### Phase 3: Eliminate TodoStore Boilerplate (COMPLETE)
 
 **Goal**: Reduce `demos/todo-multiplayer/ui/src/TodoStore.re` from ~360 lines to ~80 lines
 
-**Remove** (generated by codegen):
+**Status**: ✅ COMPLETE
+
+**Result**:
+- `TodoStore.re`: **82 lines** (target achieved)
+- `TodoMutations.re`: **DELETED** (zero references)
+
+**Removed** (now generated by codegen):
 - `type action` variant
 - `add_todo_payload`, `set_todo_completed_payload` types
 - `action_to_json` / `action_of_json`
 
-**Keep** (app-specific):
+**Kept** (app-specific):
 - `emptyState`
 - `scopeKeyOfState` / `timestampOfState`
 - `reduce` function (business logic)
 - `StoreDef` (StoreBuilder wiring)
 
-**Remove files**:
-- `demos/todo-multiplayer/ui/src/TodoMutations.re` (obsolete)
+**Verification**: ✅ Builds pass, `TodoStore` imports work correctly
 
 ---
 
-## Implementation Order
+## In Progress
 
-1. **Phase 1** (AST builder refactor) - 2-4 hours
-2. **Phase 2** (generate action types) - 2-3 hours
-3. **Phase 3** (eliminate boilerplate) - 1-2 hours
+### Phase 4: Fix SSR Hydration Error (IN PROGRESS)
 
-## Dependencies
+**Test command**: `pnpm todo-mp:test:browser`
 
-- Phase 1 must complete before Phase 2
-- Phase 2 enables Phase 3
+**Problem**: Browser test fails with hydration mismatch:
+- Server renders: `Loading...`
+- Client expects: actual data (or consistent `Loading...`)
+- Client hydration recovery throws: `Error: ()=>o.value` (Melange `Invalid_argument`)
+
+**Root Cause Analysis** (as of latest session):
+
+The hydration failure has **multiple contributing factors**:
+
+#### Factor 1: Query Cache Empty (PARTIALLY FIXED)
+
+The query cache was empty in SSR output because `prerenderElement` was built outside the `QueryRegistry.with_registry` callback. This has been fixed by moving the pre-render logic inside the callback.
+
+**Fix applied** (commits `8e98073`, `d3b0364`):
+- Added `QueryRegistry.serialize_for_cache` and `QueryRegistry.with_serialized`
+- Updated `EntryServer.re` to use `serialize_for_cache` and wrap `render` with `with_serialized`
+- Made `QueryRegistry.with_serialized` synchronous using a `sync_registry_ref` fallback
+
+#### Factor 2: Native `useQuery` Multi-Row Decode (FIXED)
+
+Native `useQuery` was only decoding single-row results. Database queries return `List([...])` for multi-row results.
+
+**Fix applied**:
+- Updated native `useQuery` in `UseQuery.re` to handle both `List(items)` and single-value JSON
+- Added fallback to check `sync_registry_ref` when no Lwt registry is available
+
+#### Factor 3: Route Matching / `listId` Extraction (ROOT CAUSE - NOT FIXED)
+
+**This is the current blocking issue.**
+
+For a URL like `/27d53ebd-...`:
+
+1. `UniversalRouter.candidateBasePaths` returns paths **most-specific-first**:
+   ```
+   ["/27d53ebd-...", "/"]
+   ```
+
+2. `stripBasePath(~basePath="/27d53ebd-...", ~path="/27d53ebd-")` returns `Some("/")` (remaining path = `/` = empty segments)
+
+3. Route matching against empty segments hits the `index` route (path `""`), **NOT** the `:listId` route (`:listId` doesn't match empty segments)
+
+4. `params` is empty → `listId` defaults to `""` → database query fails with:
+   ```
+   ERROR: invalid input syntax for type uuid: ""
+   ```
+
+5. Server renders `Loading...` (query fails, `useQuery` returns `Loading`)
+
+6. Client renders `Error: ()=>o.value` (from `Invalid_argument` Melange error during hydration mismatch recovery)
+
+**Attempted fix**: Swapped route order in `Routes.re` (`list` before `index`) — this did NOT fix the problem because route matching still sees an empty remaining path after `stripBasePath`, and `:listId` doesn't match empty segments regardless of order.
+
+### Task 4.1: Fix Route/BasePath Issue (PENDING)
+
+**Problem**: `candidateBasePaths` returns paths most-specific-first. For `/27d53ebd-...`, it tries `basePath = "/27d53ebd-..."` first. `stripBasePath(~basePath="/27d53ebd-...", ~path="/27d53ebd-...")` returns `Some("/")` (remaining path = `/` = empty segments). Route matching against empty segments hits the `index` route (path `""`), NOT the `:listId` route (`:listId` doesn't match empty segments). Thus `params` is empty → `listId` defaults to `""` → database query fails with `invalid input syntax for type uuid: ""`.
+
+**Attempted fix**: Swapped route order in `Routes.re` (`list` before `index`) — did NOT work because route matching still sees empty segments after `stripBasePath`, and `:listId` doesn't match empty segments regardless of order.
+
+**Chosen approach: Option A** — Modify `EntryServer.getServerState` to extract `listId` from full `pathname` instead of `basePath`, and return `NotFound` for non-root `basePath` values. This forces `respondCandidateRoots` to try `basePath = "/"` next, where `stripBasePath` leaves `/27d53ebd-...` which correctly matches `:listId`.
+
+**Implementation steps**:
+1. Modify `getServerState` to extract `listId` from `context.pathname` instead of `basePath`
+2. Change `getServerState` to return `NotFound` when `basePath != "/"`
+3. Update pre-render `UniversalRouter` to use `basePath = "/"`
+4. Ensure `render` function produces consistent output with `basePath = "/"`
+
+**Files to modify**:
+- `demos/todo-multiplayer/server/src/EntryServer.re`
+
+**Verification**:
+- `python scripts/run_dune.py build demos/todo-multiplayer/server/src/server.exe`
+- `pnpm todo-mp:test:browser` passes
+
+### Task 4.2: Remove Debug Logging (PENDING)
+
+**Files to clean**:
+- `packages/universal-reason-react/store/js/QueryRegistry.re`
+- `packages/universal-reason-react/store/js/UseQuery.re`
+
+**Verification**:
+- No `print_endline` calls related to debug logging remain
+- `python scripts/run_dune.py build @all-apps @all-servers` passes
+
+### Task 4.3: Run Browser Tests (PENDING)
+
+**Command**: `pnpm todo-mp:test:browser`
+
+**Expected**: Test passes with no hydration errors
+
+### Task 4.4: Commit Hydration Fix (PENDING)
+
+**Commit message**: `fix(todo-mp): resolve SSR hydration by fixing basePath routing and query cache population`
+
+**Files to commit**:
+- `demos/todo-multiplayer/server/src/EntryServer.re`
+- `packages/universal-reason-react/store/js/QueryRegistry.re`
+- `packages/universal-reason-react/store/js/UseQuery.re`
+- `demos/todo-multiplayer/ui/src/Routes.re` (if route order change is kept)
+
+---
+
+## Files Modified (Current Session)
+
+### PPX Refactor (Completed)
+- `packages/realtime-schema/src/Realtime_schema_codegen.ml` - AST builder refactor, action type generation
+- `packages/realtime-schema/src/Realtime_schema_ppx.ml` - Use AST directly
+- `demos/todo-multiplayer/ui/src/TodoStore.re` - Reduced to 82 lines
+- `demos/todo-multiplayer/ui/src/TodoMutations.re` - **DELETED**
+
+### Hydration Fix (In Progress)
+- `packages/universal-reason-react/store/js/QueryRegistry.re` - Added `serialize_for_cache`, `with_serialized`, debug logging
+- `packages/universal-reason-react/store/js/UseQuery.re` - Fixed native multi-row decode, added `sync_registry_ref` fallback, debug logging
+- `demos/todo-multiplayer/server/src/EntryServer.re` - Uses `serialize_for_cache` and `with_serialized`
+- `demos/todo-multiplayer/ui/src/Routes.re` - Route order swapped (list before index) — **did not fix issue**
+
+---
+
+## Cleanup Needed
+
+1. **Remove temporary debug logging** from:
+   - `packages/universal-reason-react/store/js/QueryRegistry.re`
+   - `packages/universal-reason-react/store/js/UseQuery.re`
+
+2. **Fix route/basePath issue** (Phase 4 root cause)
+
+3. **Run browser test** (`pnpm todo-mp:test:browser`) and verify it passes
+
+4. **Commit** the hydration fix
+
+---
 
 ## Verification Commands
 
 ```bash
-# After Phase 1
-dune build @all-servers
+# Build all targets
+python scripts/run_dune.py build @all-apps @all-servers
 
-# After Phase 2
-dune build demos/todo-multiplayer/shared/js/RealtimeSchema.cmi
-
-# After Phase 3
+# Run browser tests
 pnpm todo-mp:test:browser
 ```
+
+---
+
+## References
+
+- `HYDRATION-ERROR.md` - Detailed hydration error analysis
+- `packages/universal-reason-react/store/js/QueryRegistry.re` - SSR query collection
+- `packages/universal-reason-react/store/js/UseQuery.re` - useQuery hook
+- `demos/todo-multiplayer/server/src/EntryServer.re` - SSR entry point
+- `packages/universal-reason-react/router/shared/UniversalRouter.re` - Router internals (`candidateBasePaths`, `stripBasePath`, `matchPattern`)

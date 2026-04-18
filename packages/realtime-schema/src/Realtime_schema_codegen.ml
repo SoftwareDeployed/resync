@@ -569,41 +569,11 @@ let caqti_param_expr_ast ~loc (params : query_param list) =
       pexp_tuple ~loc fields
 
 let channel_function_code_ast ~loc tables (query : query) =
-  let empty_channel arg_pat =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc ~pat:(pvar ~loc "channel")
-          ~expr:(pexp_fun ~loc Nolabel None arg_pat (estring_of_string ~loc "")) ]
-  in
-  match query.return_table with
-  | None -> empty_channel (pvar ~loc "_")
-  | Some table_name ->
-      (match List.find_opt (fun (t : table) -> t.name = table_name) tables with
-      | None -> empty_channel (pvar ~loc "_")
-      | Some table ->
-          (match table.broadcast_channel with
-          | Some (Column column_name) ->
-              (match
-                 List.find_opt
-                   (fun (param : query_param) ->
-                     match param.column_ref with
-                     | Some (t_name, c_name) -> t_name = table_name && c_name = column_name
-                     | None -> false)
-                   query.params
-               with
-              | Some param ->
-                  let field_name =
-                    match param.payload_key with
-                    | Some key -> sanitize_identifier key
-                    | None -> Printf.sprintf "param_%d" param.index
-                  in
-                  pstr_value ~loc Nonrecursive
-                    [ value_binding ~loc ~pat:(pvar ~loc "channel")
-                        ~expr:(pexp_fun ~loc Nolabel None
-                                 (ppat_constraint ~loc (pvar ~loc "p")
-                                    (ptyp_constr ~loc (Located.mk ~loc (Lident "params")) []))
-                                 (pexp_field ~loc (eident_of_string ~loc "p") (Located.mk ~loc (Lident field_name)))) ]
-              | None -> empty_channel (pvar ~loc "_"))
-          | Some _ | None -> empty_channel (pvar ~loc "_")))
+  pstr_value ~loc Nonrecursive
+    [ value_binding ~loc ~pat:(pvar ~loc "channel")
+        ~expr:(pexp_fun ~loc Nolabel None
+                 (pvar ~loc "_")
+                 (estring_of_string ~loc query.name)) ]
 
 let decode_row_code_ast ~loc (columns : (string * sql_type) list) =
   match columns with
@@ -1940,10 +1910,30 @@ let action_to_json_function_ast ~loc (mutations : mutation list) : structure_ite
                 pexp_apply ~loc (epath_of_strings ~loc ["Melange_json"; "declassify"])
                   [ (Nolabel, json_assoc_expr ~loc
                        (elist_of_exprs ~loc [])) ]
-              | 1 ->
-                let param = List.hd payload_params in
-               let json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_to_json_fn param.ocaml_type] in
-               pexp_apply ~loc json_fn [(Nolabel, eident_of_string ~loc "p")]
+               | 1 ->
+                 let param = List.hd payload_params in
+                 let field_name = match param.payload_key with Some key -> key | None -> "param_0" in
+                 let dict_binding =
+                   value_binding ~loc ~pat:(pvar ~loc "dict")
+                     ~expr:(pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "empty"]) [(Nolabel, eunit_ast ~loc)])
+                 in
+                 let json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_to_json_fn param.ocaml_type] in
+                 let set_field =
+                   pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "set"])
+                     [ (Nolabel, eident_of_string ~loc "dict");
+                       (Nolabel, estring_of_string ~loc field_name);
+                       (Nolabel, pexp_apply ~loc json_fn [(Nolabel, eident_of_string ~loc "p")]) ]
+                 in
+                 let result =
+                   pexp_apply ~loc (epath_of_strings ~loc ["Melange_json"; "declassify"])
+                     [ (Nolabel, json_assoc_expr ~loc
+                          (pexp_apply ~loc (epath_of_strings ~loc ["Array"; "to_list"])
+                             [ (Nolabel,
+                                 pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "entries"])
+                                   [(Nolabel, eident_of_string ~loc "dict")] ) ])) ]
+                 in
+                 pexp_let ~loc Nonrecursive [dict_binding]
+                   (pexp_sequence ~loc set_field result)
               | _ ->
                 let type_name = mutation_payload_type_name mutation.name in
                 pexp_apply ~loc (epath_of_strings ~loc [type_name ^ "_to_json"])
@@ -2032,11 +2022,20 @@ let action_of_json_function_ast ~loc (mutations : mutation list) : structure_ite
             let rhs = match num_params with
               | 0 ->
                 pexp_construct ~loc (Located.mk ~loc (Lident constructor_name)) None
-              | 1 ->
-                let param = List.hd payload_params in
-               let of_json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_of_json_fn param.ocaml_type] in
-               pexp_construct ~loc (Located.mk ~loc (Lident constructor_name))
-                 (Some (pexp_apply ~loc of_json_fn [(Nolabel, eident_of_string ~loc "payload")]))
+               | 1 ->
+                 let param = List.hd payload_params in
+                 let field_name = match param.payload_key with Some key -> key | None -> "param_0" in
+                 let of_json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_of_json_fn param.ocaml_type] in
+                 let extract_field =
+                   pexp_apply ~loc (epath_of_strings ~loc ["StoreJson"; "requiredField"])
+                     [ (Labelled "json", eident_of_string ~loc "payload");
+                       (Labelled "fieldName", estring_of_string ~loc field_name);
+                       (Labelled "decode",
+                         pexp_fun ~loc Nolabel None (pvar ~loc "v")
+                           (pexp_apply ~loc of_json_fn [(Nolabel, eident_of_string ~loc "v")])) ]
+                 in
+                 pexp_construct ~loc (Located.mk ~loc (Lident constructor_name))
+                   (Some extract_field)
               | _ ->
                 let type_name = mutation_payload_type_name mutation.name in
                pexp_construct ~loc (Located.mk ~loc (Lident constructor_name))

@@ -8,8 +8,8 @@ open QueryRegistryTypes;
 type cache_entry = {
   key: query_key,
   mutable data: query_result(StoreJson.json),
-  signal: Tilia.Core.signal(query_result(StoreJson.json)),
-  setSignal: query_result(StoreJson.json) => unit,
+  mutable signal: Tilia.Core.signal(query_result(StoreJson.json)),
+  mutable setSignal: query_result(StoreJson.json) => unit,
   mutable subscriptionHandle: option(RealtimeClient.Socket.connection_handle),
   mutable lastUpdated: float,
   mutable refCount: int,
@@ -72,6 +72,11 @@ let subscribe =
     switch (t.entries->Js.Dict.get(key)) {
     | Some(existing) =>
       // Increment ref count and return existing entry
+      if (existing.refCount == 0) {
+        let (signal, setSignal) = Tilia.Core.signal(existing.data);
+        existing.signal = signal;
+        existing.setSignal = setSignal;
+      };
       existing.refCount = existing.refCount + 1;
       existing;
     | None =>

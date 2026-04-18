@@ -42,14 +42,16 @@ let channel = (subscription: t): string =>
 
 let encode = (subscription: t): string =>
   switch (subscription) {
-  | List(list_id) => "list:" ++ list_id
+  | List(list_id) => list_id
   };
 
 let decode = (value: string): option(t) => {
   let prefix = "list:";
   let prefix_length = String.length(prefix);
   let value_length = String.length(value);
-  if (value_length <= prefix_length) {
+  if (is_uuid(value)) {
+    Some(List(value));
+  } else if (value_length <= prefix_length) {
     None;
   } else if (String.equal(String.sub(value, 0, prefix_length), prefix)) {
     let list_id = String.sub(value, prefix_length, value_length - prefix_length);

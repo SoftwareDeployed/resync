@@ -52,9 +52,9 @@ module StoreDef = (val StoreBuilder.buildCrud(StoreBuilder.make()
   |> StoreBuilder.withSchema({ emptyState, reduce,
        makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
           {
-            list_id: switch (state.list) { | Some(list) => list.id | None => "" },
-           state,
-           completed_count: StoreBuilder.Crud.filteredCount(~derive?, ~getItems=(s: store) => s.state.todos, ~predicate=(item: Model.Todo.t) => item.completed, ()),
+            list_id: StoreBuilder.derived(~derive?, ~client=store => switch (store.state.list) { | Some(list) => list.id | None => "" }, ~server=() => switch (state.list) { | Some(list) => list.id | None => "" }, ()),
+            state: StoreBuilder.current(~derive?, ~client=state, ~server=() => state, ()),
+            completed_count: StoreBuilder.Crud.filteredCount(~derive?, ~getItems=(s: store) => s.state.todos, ~predicate=(item: Model.Todo.t) => item.completed, ()),
             total_count: StoreBuilder.Crud.totalCount(~derive?, ~getItems=(s: store) => s.state.todos, ()),
           };
         } })
@@ -69,7 +69,7 @@ module StoreDef = (val StoreBuilder.buildCrud(StoreBuilder.make()
           subscriptionOfState: (state: state) => (switch (state.list) {
             | Some(list) => Some(RealtimeSubscription.list(list.id)) | None => None }: option(subscription)),
          encodeSubscription: RealtimeSubscription.encode,
-         eventUrl: Constants.event_url, baseUrl: Constants.base_url },
+          eventUrl: Constants.event_url, baseUrl: Constants.base_url },
        ~table=RealtimeSchema.table_name("todos"), ~decodeRow=Model.Todo.of_json,
        ~getId=(todo: Model.Todo.t) => todo.id, ~getItems=(state: state) => state.todos,
        ~setItems=(state: state, items) => {...state, todos: items},

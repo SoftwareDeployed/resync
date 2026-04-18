@@ -133,69 +133,39 @@ let useQuery =
       [|key|],
     );
 
-  // Track current result with React state
-  let (result, setResult) =
-    React.useState(() => {
-      let initialSignalValue = Tilia.Core.lift(signal);
-      switch (initialSignalValue) {
-      | Loading => {
-          data: Loading,
-          loading: true,
-          error: None,
-        }
-      | Loaded(jsonRows) =>
-        let decodedRows = jsonRows->Js.Array.map(~f=Q.decodeRow);
-        {
-          data: Loaded(decodedRows),
-          loading: false,
-          error: None,
-        };
-      | Error(msg) => {
-          data: Error(msg),
-          loading: false,
-          error: Some(msg),
-        }
-      };
-    });
+  let _ = signal;
+  let currentResult =
+    switch (QueryCache.getResult(~t=cache, ~key)) {
+    | Some(result) => result
+    | None => Loading
+    };
 
-  // Effect to subscribe to signal changes
   React.useEffect1(
     () => {
-      // Set up subscription to signal changes
-      let currentResult = Tilia.Core.lift(signal);
-      let newResult =
-        switch (currentResult) {
-        | Loading => {
-            data: Loading,
-            loading: true,
-            error: None,
-          }
-        | Loaded(jsonRows) =>
-          let decodedRows = jsonRows->Js.Array.map(~f=Q.decodeRow);
-          {
-            data: Loaded(decodedRows),
-            loading: false,
-            error: None,
-          };
-        | Error(msg) => {
-            data: Error(msg),
-            loading: false,
-            error: Some(msg),
-          }
-        };
-
-      // Only update if different
-      if (newResult.data != result.data) {
-        setResult(_ => newResult);
-      };
-
-      // Cleanup subscription on unmount or key change
       Some(unsubscribe);
     },
     [|key|],
   );
 
-  result;
+  switch (currentResult) {
+  | Loading => {
+      data: Loading,
+      loading: true,
+      error: None,
+    }
+  | Loaded(jsonRows) =>
+    let decodedRows = jsonRows->Js.Array.map(~f=Q.decodeRow);
+    {
+      data: Loaded(decodedRows),
+      loading: false,
+      error: None,
+    };
+  | Error(msg) => {
+      data: Error(msg),
+      loading: false,
+      error: Some(msg),
+    }
+  };
 };
 
 // Main useQuery hook - Native version (server-side SSR)
@@ -246,12 +216,29 @@ let useQuery =
     );
 
   // Get result from registry if available
-  let data =
+  let registry_opt =
     switch (Lwt.get(QueryRegistry.registry_key)) {
+    | Some(r) => Some(r)
+    | None => QueryRegistry.sync_registry_ref^
+    };
+  let data =
+    switch (registry_opt) {
     | Some(registry) =>
       switch (Hashtbl.find_opt(registry.results, key)) {
       | Some(json) =>
-        try(Loaded([|Q.decodeRow(Obj.magic(json))|])) {
+        try(
+          {
+            let rows_ =
+              switch ((json : Yojson.Safe.t)) {
+              | `List(rowJsons) =>
+                rowJsons
+                |> List.map(rowJson => Q.decodeRow(Obj.magic(rowJson)))
+                |> Array.of_list
+              | _ => [|Q.decodeRow(Obj.magic(json))|]
+              };
+            Loaded(rows_)
+          }
+        ) {
         | _ => Loading
         }
       | None => Loading

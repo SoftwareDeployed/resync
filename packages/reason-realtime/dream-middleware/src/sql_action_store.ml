@@ -69,12 +69,12 @@ let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id call
                 | Error err -> Lwt.return (Ack (Error (Caqti_error.show err)))
                 | Ok () -> Lwt.return (Ack (Ok ()))))
           | Ack (Error msg) ->
-            let* record_result = record_status db_module ~mutation_name ~action_id ~status:"failed" ~error_message:(Some (truncate_msg msg)) in
-            (match record_result with
+            let* rollback_result = Db.rollback () in
+            (match rollback_result with
              | Error err -> Lwt.return (Ack (Error (Caqti_error.show err)))
              | Ok () ->
-               let* commit_result = Db.commit () in
-               (match commit_result with
+               let* record_result = record_status db_module ~mutation_name ~action_id ~status:"failed" ~error_message:(Some (truncate_msg msg)) in
+               (match record_result with
                 | Error err -> Lwt.return (Ack (Error (Caqti_error.show err)))
                 | Ok () -> Lwt.return (Ack (Error msg))))
           | NoAck ->

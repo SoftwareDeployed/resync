@@ -266,6 +266,15 @@ Key annotations:
 - `-- @query <name>` — named query in block comments (`/* ... */`)
 - `-- @json_column <col>` — column returned as `::text` that needs JSON normalization in triggers
 
+### NEVER revert or checkout files automatically
+
+Agents must NEVER run `git checkout`, `git revert`, or any command that discards user work without **explicit user approval**. This includes:
+- `git checkout -- <file>` to revert changes
+- `git reset --hard` to discard work
+- Any automatic "cleanup" that removes user-modified files
+
+If you believe changes should be reverted, present the case to the user and wait for their explicit approval before proceeding.
+
 ### Don't modify files the user didn't ask about
 
 Especially `package.json`, watch scripts, or unrelated config files.

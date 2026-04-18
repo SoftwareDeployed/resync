@@ -89,12 +89,16 @@ let run = () => {
          |> then_(text =>
            BrowserTestUtils.assertContains(~label="Optimistic fail-server todo appears", ~expected="Server failure test todo", text)
          )
-         |> then_(_ => BrowserTestUtils.waitForBodyNotContains(page, ~unexpectedText="Server failure test todo"))
-         |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
-         |> then_(text =>
-           BrowserTestUtils.assertNotContains(~label="Optimistic fail-server todo rolled back", ~unexpected="Server failure test todo", text)
-         )
-         |> then_(_ => page->Playwright.reload)
+          |> then_(_ => BrowserTestUtils.waitForBodyNotContains(page, ~unexpectedText="Server failure test todo"))
+          |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+          |> then_(text =>
+            BrowserTestUtils.assertNotContains(~label="Optimistic fail-server todo rolled back", ~unexpected="Server failure test todo", text)
+          )
+          |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+          |> then_(text =>
+            BrowserTestUtils.assertContains(~label="Original todo still visible after rollback", ~expected="Realtime browser test todo", text)
+          )
+          |> then_(_ => page->Playwright.reload)
          |> then_(_ => page->Playwright.waitForSelector(".todo-container"))
          /* Note: IDB cache replay check skipped due to WebSocket timing race condition in test environment */
          |> then_(_ => BrowserTestUtils.sleep(500))

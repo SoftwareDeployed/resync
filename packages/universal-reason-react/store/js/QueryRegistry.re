@@ -123,7 +123,7 @@ let execute_queries = () => {
     switch (registry.state) {
     | Collecting =>
       let queries = Hashtbl.to_seq_values(registry.queries) |> List.of_seq;
-      Lwt_list.iter_p(
+      Lwt_list.iter_s(
         (Query(q)) => {
           switch (registry.db_connection) {
           | None => Lwt.return()
@@ -193,9 +193,9 @@ let serialize_for_cache = (): string => {
   };
 };
 
-// Create a temporary registry from QueryCache-format JSON and run f inside it
+// Setup registry from QueryCache-format JSON without clearing it
 [@platform native]
-let with_serialized = (~jsonStr: string, ~f: unit => 'a, ()): 'a => {
+let setup_registry_from_json = (~jsonStr: string): unit => {
   let json = Yojson.Safe.from_string(jsonStr);
   let results = Hashtbl.create(8);
   (switch (json) {
@@ -219,8 +219,19 @@ let with_serialized = (~jsonStr: string, ~f: unit => 'a, ()): 'a => {
     db_connection: None,
   };
   sync_registry_ref := Some(registry);
-  let result = f();
+};
+
+[@platform native]
+let clear_registry = () => {
   sync_registry_ref := None;
+};
+
+// Create a temporary registry from QueryCache-format JSON and run f inside it
+[@platform native]
+let with_serialized = (~jsonStr: string, ~f: unit => 'a, ()): 'a => {
+  setup_registry_from_json(~jsonStr);
+  let result = f();
+  clear_registry();
   result;
 };
 

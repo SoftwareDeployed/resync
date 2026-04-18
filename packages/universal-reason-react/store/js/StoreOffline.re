@@ -234,7 +234,11 @@ module Local = {
                   }
                 });
                 let _ =
-                  StoreRuntimeLifecycle.trackBoot(lifecycle, reconcilePersistedState(actions),);
+                  StoreRuntimeLifecycle.trackBoot(
+                    lifecycle,
+                    reconcilePersistedState(actions),
+                  )
+                  |> Js.Promise.catch(_ => Js.Promise.resolve());
                 ();
               },
             initialState,
@@ -1016,6 +1020,17 @@ module Synced = {
                 };
               Js.Promise.then_(
                 _ => {
+                  /* Apply acked action to confirmed state so subsequent
+                     optimistic rebuilds include its effect. */
+                  switch (ledgerRecord) {
+                  | Some(r: StoreActionLedger.t) =>
+                    let action = Schema.action_of_json(r.action);
+                    confirmedStateRef := Schema.reduce(
+                      ~state=confirmedStateRef.contents,
+                      ~action,
+                    );
+                  | None => ()
+                  };
                   /* Ack ordering contract: the action ledger status is updated
                      before ActionAcked listeners or legacy callbacks run. */
                   emitEvent(
@@ -1294,7 +1309,8 @@ module Synced = {
                 });
                 let bootPromise = handleScopeChange(~actions, initialState);
                 let _ =
-                  StoreRuntimeLifecycle.trackBoot(lifecycle, bootPromise);
+                  StoreRuntimeLifecycle.trackBoot(lifecycle, bootPromise)
+                  |> Js.Promise.catch(_ => Js.Promise.resolve());
                 ();
               },
             initialState,
