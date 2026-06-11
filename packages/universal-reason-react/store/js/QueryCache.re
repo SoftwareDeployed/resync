@@ -243,7 +243,10 @@ let result_to_json = (result: query_result(StoreJson.json)): StoreJson.json => {
   | Loaded(jsonArray) =>
     `Assoc([
       ("_tag", `String("Loaded")),
-      ("data", `List(Belt.List.fromArray(jsonArray))),
+      (
+        "data",
+        Melange_json.To_json.array(json => json)(jsonArray)->Obj.magic,
+      ),
     ])
   | Error(msg) =>
     `Assoc([("_tag", `String("Error")), ("message", `String(msg))])
@@ -253,7 +256,7 @@ let result_to_json = (result: query_result(StoreJson.json)): StoreJson.json => {
 // JS stub - client only decodes, doesn't encode
 [@platform js]
 let result_to_json = (_result: query_result(StoreJson.json)): StoreJson.json => {
-  Obj.magic(Js.Json.null);
+  StoreJson.parse("null");
 };
 
 // Helper to deserialize a single query result from JSON
@@ -356,13 +359,7 @@ let serialize = (t: t): string => {
     let (key, entry) = entries[i];
     dict->Js.Dict.set(key, result_to_json(entry.data));
   };
-  Yojson.Basic.to_string(
-    `Assoc(
-      Js.Dict.entries(dict)
-      |> Array.to_list
-      |> List.map(((k, v)) => (k, Obj.magic(v))),
-    ),
-  );
+  dict->StoreJson.Dict.to_json(json => json)->StoreJson.stringify(json => json);
 };
 
 [@platform js]
