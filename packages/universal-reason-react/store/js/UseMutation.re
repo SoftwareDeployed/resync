@@ -15,6 +15,7 @@ open QueryRegistryTypes;
 // Mutation result type
 type mutation_result('params) = {
   dispatch: 'params => Js.Promise.t(unit),
+  mutate: 'params => Js.Promise.t(unit),
   loading: bool,
   error: option(string),
 };
@@ -34,7 +35,7 @@ let make =
     Js.Promise.resolve(());
   };
 
-  {dispatch, loading: false, error: None};
+  {dispatch, mutate: dispatch, loading: false, error: None};
 };
 
 // Main useMutation hook - Native version (server-side)
@@ -48,5 +49,5 @@ let make =
     ) => {
   // Server: Mutations are not dispatched during SSR
   let dispatch = (_params: p): Js.Promise.t(unit) => Js.Promise.resolve(());
-  {dispatch, loading: false, error: None};
+  {dispatch, mutate: dispatch, loading: false, error: None};
 };

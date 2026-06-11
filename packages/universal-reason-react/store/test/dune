@@ -8,7 +8,8 @@
     store_crud_test
     store_patch_test
     store_source_test
-    store_cache_test)
+    store_cache_test
+    use_mutation_test)
  (wrapped false)
  (libraries
    alcotest
