@@ -1,5 +1,5 @@
 // QueryCache.re - Client-side query cache with WebSocket subscription
-// Stores type-erased data (query_result(StoreJson.json)) to avoid Obj.magic
+// Stores type-erased data (query_result(StoreJson.json)).
 
 open QueryRegistryTypes;
 
@@ -238,18 +238,20 @@ let getResult =
 // Helper to serialize a single query result to JSON (native only for SSR)
 [@platform native]
 let result_to_json = (result: query_result(StoreJson.json)): StoreJson.json => {
+  let tagJson = tag => StoreJson.stringify(Melange_json.To_json.string, tag);
   switch (result) {
-  | Loading => `Assoc([("_tag", `String("Loading"))])
+  | Loading => StoreJson.parse("{\"_tag\":" ++ tagJson("Loading") ++ "}")
   | Loaded(jsonArray) =>
-    `Assoc([
-      ("_tag", `String("Loaded")),
-      (
-        "data",
-        Melange_json.To_json.array(json => json)(jsonArray)->Obj.magic,
-      ),
-    ])
+    let dataJson =
+      StoreJson.stringify(Melange_json.To_json.array(json => json), jsonArray);
+    StoreJson.parse(
+      "{\"_tag\":" ++ tagJson("Loaded") ++ ",\"data\":" ++ dataJson ++ "}",
+    );
   | Error(msg) =>
-    `Assoc([("_tag", `String("Error")), ("message", `String(msg))])
+    let messageJson = StoreJson.stringify(Melange_json.To_json.string, msg);
+    StoreJson.parse(
+      "{\"_tag\":" ++ tagJson("Error") ++ ",\"message\":" ++ messageJson ++ "}",
+    );
   };
 };
 
