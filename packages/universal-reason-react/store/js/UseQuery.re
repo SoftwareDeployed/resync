@@ -183,9 +183,6 @@ let useQuery =
   let key = makeKey(~channel, ~paramsHash);
 
   // Server: Register with QueryRegistry for SSR collection
-  // Note: On native, QueryRegistry stores Yojson.Safe.t but Q.decodeRow
-  // expects StoreJson.json (which is Yojson.Basic.t on native).
-  // We use Obj.magic for this safe conversion since both are JSON representations.
   let _ =
     QueryRegistry.register_query(
       ~key,
@@ -199,20 +196,16 @@ let useQuery =
             (result: Stdlib.result(array(r), string)) => {
             switch (result) {
             | Ok(rows) =>
-              // Convert array of rows to Yojson.Safe.t
-              // First convert rows to Basic.t, then to string, then parse as Safe.t
               let jsonRows =
-                rows->Js.Array.map(~f=(row: r) => {
-                  let basicJson = Q.row_to_json(row);
-                  let jsonStr = StoreJson.stringify(_x => basicJson, ());
-                  Yojson.Safe.from_string(jsonStr);
-                });
-              Lwt.return(Stdlib.Ok(`List(jsonRows |> Array.to_list)));
+                rows->Js.Array.map(~f=(row: r) =>
+                  row->Q.row_to_json->StoreJson.toSafe
+                );
+              Lwt.return(Stdlib.Ok(StoreJson.safeListOfArray(jsonRows)));
             | Error(msg) => Lwt.return(Stdlib.Error(msg))
             }
           })
         },
-      ~decode=json => Q.decodeRow(Obj.magic(json)),
+      ~decode=json => Q.decodeRow(StoreJson.ofSafe(json)),
     );
 
   // Get result from registry if available
@@ -232,9 +225,9 @@ let useQuery =
               switch ((json : Yojson.Safe.t)) {
               | `List(rowJsons) =>
                 rowJsons
-                |> List.map(rowJson => Q.decodeRow(Obj.magic(rowJson)))
                 |> Array.of_list
-              | _ => [|Q.decodeRow(Obj.magic(json))|]
+                |> Js.Array.map(~f=rowJson => Q.decodeRow(StoreJson.ofSafe(rowJson)))
+              | _ => [|Q.decodeRow(StoreJson.ofSafe(json))|]
               };
             Loaded(rows_)
           }

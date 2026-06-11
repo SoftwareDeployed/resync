@@ -359,7 +359,7 @@ let serialize = (t: t): string => {
     let (key, entry) = entries[i];
     dict->Js.Dict.set(key, result_to_json(entry.data));
   };
-  dict->StoreJson.Dict.to_json(json => json)->StoreJson.stringify(json => json);
+  StoreJson.stringify(json => json, StoreJson.Dict.to_json(json => json, dict));
 };
 
 [@platform js]

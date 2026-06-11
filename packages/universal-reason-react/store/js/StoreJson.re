@@ -72,6 +72,21 @@ let tryDecodeString = (decode, data: string) =>
 
 let stringify = (encode, value) => value->encode->Melange_json.to_string;
 
+[@platform native]
+let toSafe = (json: json): Yojson.Safe.t => {
+  stringify(json => json, json)->Yojson.Safe.from_string;
+};
+
+[@platform native]
+let ofSafe = (json: Yojson.Safe.t): json => {
+  json->Yojson.Safe.to_string->parse;
+};
+
+[@platform native]
+let safeListOfArray = (items: array(Yojson.Safe.t)): Yojson.Safe.t => {
+  `List(items |> Array.to_list);
+};
+
 let field = (json, key) => {
   let rawJson = (Obj.magic(json): Melange_json.t);
   switch (Melange_json.classify(rawJson)) {
