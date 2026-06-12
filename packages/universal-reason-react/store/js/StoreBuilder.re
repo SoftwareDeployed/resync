@@ -214,11 +214,12 @@ module Bootstrap = {
     };
   };
 
-  let withCreatedProvider = (~createStore as _, ~provider as _, ~initialState as _, ~children as _) => {
+  let withCreatedProvider = (~createStore, ~provider, ~initialState, ~children) => {
+    let store = createStore(initialState);
+    let element = provider({"value": store, "children": children});
     {
-      store:
-        Js.Exn.raiseError("StoreBuilder.Bootstrap.withCreatedProvider is client-only"),
-      element: React.null,
+      store,
+      element,
     };
   };
 };

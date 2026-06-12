@@ -28,6 +28,13 @@ let makeStore = (~state, ~derive=?, ()): store => {
   {state: state};
 };
 
+let storeContext = React.createContext(makeStore(~state, ()));
+
+module TestProvider = {
+  type props = Js.t({. value: store, children: React.element});
+  let make = (props: props) => React.Context.provider(storeContext)(props);
+};
+
 let json = _ => Json.parse("{}");
 
 let localSchema: Frp.Local.schema(state, action, store) = {
@@ -185,6 +192,21 @@ let suite =
           Frp.Crud.make(~transport, ~strategy=crudStrategy, crudSchema)
           |> Frp.Crud.withQueries(~applyQueryResult);
         assertAppliesQueryResult(~label="crud withQueries", config.queries);
+      }),
+      Alcotest.test_case("native withCreatedProvider creates provider", `Quick, () => {
+        let result =
+          StoreBuilder.Bootstrap.withCreatedProvider(
+            ~createStore=(initialState: state) => {state: initialState},
+            ~provider=TestProvider.make,
+            ~initialState={count: 3},
+            ~children=React.null,
+          );
+        Alcotest.check(
+          Alcotest.int,
+          "created store count",
+          3,
+          result.store.state.count,
+        );
       }),
       Alcotest.test_case("synced streaming make preserves streams config", `Quick, () => {
         let config =
