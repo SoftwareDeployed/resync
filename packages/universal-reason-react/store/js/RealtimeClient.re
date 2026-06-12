@@ -50,9 +50,20 @@ let pingFrameString = () =>
 let pingFrameString = () => "";
 
 let channelIdOfSubscription = (subscription: string): string =>
-  switch (Js.String.split(~sep=":", subscription)) {
-  | [|_, id|] => id
-  | _ => subscription
+  {
+    let length = String.length(subscription);
+    let rec findColon = index =>
+      if (index >= length) {
+        None;
+      } else if (String.get(subscription, index) == ':') {
+        Some(index);
+      } else {
+        findColon(index + 1);
+      };
+    switch (findColon(0)) {
+    | Some(index) => String.sub(subscription, index + 1, length - index - 1)
+    | None => subscription
+    };
   };
 
 [@platform native]
