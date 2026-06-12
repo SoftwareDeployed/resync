@@ -97,7 +97,6 @@ let make =
     };
 
     let handleRemoveTodo = (id: string) => {
-      Js.Console.log(id);
       let _ = removeTodoMutation.mutate({ id: id });
       ();
     };
