@@ -67,6 +67,18 @@ let patch_json kind payload =
 let fields_with_channel channel fields =
   ("channel", `String channel) :: List.remove_assoc "channel" fields
 
+let patch_fields_with_channel channel fields =
+  let fields =
+    List.filter
+      (fun (key, _) -> key <> "type" && key <> "channel" && key <> "timestamp")
+      fields
+  in
+  [
+    ("type", `String "patch");
+    ("channel", `String channel);
+    ("timestamp", `Float (Unix.gettimeofday () *. 1000.0));
+  ] @ fields
+
 let wrap_message ~channel msg =
   match Yojson.Basic.from_string msg with
   | `Assoc fields ->
@@ -75,12 +87,7 @@ let wrap_message ~channel msg =
       match type_field with
       | `String ("media" | "error" | "patch") ->
         if type_field = `String "patch" && not (List.mem_assoc "payload" fields) then
-          `Assoc [
-            ("type", `String "patch");
-            ("channel", `String channel);
-            ("timestamp", `Float (Unix.gettimeofday () *. 1000.0));
-            ("payload", `Assoc fields);
-          ] |> Yojson.Basic.to_string
+          `Assoc (patch_fields_with_channel channel fields) |> Yojson.Basic.to_string
         else
           `Assoc (fields_with_channel channel fields) |> Yojson.Basic.to_string
       | _ ->

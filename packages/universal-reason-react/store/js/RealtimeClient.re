@@ -333,7 +333,11 @@ module Socket = {
               switch (messageKind) {
               | Some("pong") => updateLastPong(state)
               | Some("patch") =>
-                let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
+                let payload =
+                  switch (StoreJson.field(json, "payload")) {
+                  | Some(payload) => payload
+                  | None => json
+                  };
                 let timestamp =
                   switch (StoreJson.optionalField(~json, ~fieldName="timestamp", ~decode=Melange_json.Primitives.float_of_json)) {
                   | Some(value) => value

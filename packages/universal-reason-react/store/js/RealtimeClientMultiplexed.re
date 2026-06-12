@@ -179,11 +179,10 @@ module Multiplexed = {
               ) {
               | Some("patch") =>
                 let payload =
-                  StoreJson.requiredField(
-                    ~json,
-                    ~fieldName="payload",
-                    ~decode=value => value,
-                  );
+                  switch (StoreJson.field(json, "payload")) {
+                  | Some(payload) => payload
+                  | None => json
+                  };
                 let timestamp =
                   switch (
                     StoreJson.optionalField(
