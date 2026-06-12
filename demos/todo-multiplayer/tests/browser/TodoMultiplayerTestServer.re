@@ -1,6 +1,9 @@
 let defaultPort = 9876;
 
-let baseUrl = "http://127.0.0.1:" ++ Js.Int.toString(defaultPort);
+let serverInterface = "127.0.0.1";
+
+let baseUrl =
+  "http://" ++ serverInterface ++ ":" ++ Js.Int.toString(defaultPort);
 
 let browserBuildDir = "_build_browser_tests/default";
 
@@ -25,7 +28,8 @@ let start = () =>
       ++ browserBuildDir
       ++ "/demos/todo-multiplayer/ui/src",
       "DB_URL=" ++ getDbUrl(),
-      "SERVER_INTERFACE=127.0.0.1",
+      "TODO_MP_BASE_URL=" ++ baseUrl,
+      "SERVER_INTERFACE=" ++ serverInterface,
       "SERVER_PORT=" ++ Js.Int.toString(defaultPort),
       "./"
       ++ browserBuildDir
