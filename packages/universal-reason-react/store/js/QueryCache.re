@@ -3,10 +3,14 @@
 
 open QueryRegistryTypes;
 
-type loaded_result_listener = (~channel: string, ~rows: array(StoreJson.json)) => unit;
-type loaded_result_listener_id = string;
+type loaded_result = {
+  channel: string,
+  rows: array(StoreJson.json),
+};
+type loaded_result_listener = loaded_result => unit;
+type loaded_result_listener_id = StoreEvents.listener_id;
 
-let loadedResultListenersRef: ref(array((loaded_result_listener_id, loaded_result_listener))) = ref([||]);
+let loadedResultListenersRef: StoreEvents.callback_registry(loaded_result) = ref([||]);
 
 let channelOfKey = (key: query_key): string => {
   switch (Js.String.split(~limit=2, key, ~sep=":")) {
@@ -17,24 +21,17 @@ let channelOfKey = (key: query_key): string => {
 };
 
 let notifyLoadedResult = (~channel: string, ~rows: array(StoreJson.json)) => {
-  loadedResultListenersRef.contents
-  ->Js.Array.forEach(~f=((_, listener)) => listener(~channel, ~rows));
+  StoreEvents.Callback.emit(
+    ~registry=loadedResultListenersRef,
+    {channel, rows},
+  );
 };
 
-let listenLoadedResults = (listener: loaded_result_listener): loaded_result_listener_id => {
-  let listenerId = UUID.make();
-  loadedResultListenersRef.contents =
-    loadedResultListenersRef.contents
-    ->Js.Array.concat(~other=[|(listenerId, listener)|]);
-  listenerId;
-};
+let listenLoadedResults = (listener: loaded_result_listener): loaded_result_listener_id =>
+  StoreEvents.Callback.listen(~registry=loadedResultListenersRef, listener);
 
-let unlistenLoadedResults = (listenerId: loaded_result_listener_id) => {
-  loadedResultListenersRef.contents =
-    loadedResultListenersRef.contents->Js.Array.filter(~f=((currentId, _)) =>
-      currentId != listenerId
-    );
-};
+let unlistenLoadedResults = (listenerId: loaded_result_listener_id) =>
+  StoreEvents.Callback.unlisten(~registry=loadedResultListenersRef, listenerId);
 
 // Cache entry stores type-erased JSON data
 // The decoder is provided at access time, not storage time
@@ -353,7 +350,7 @@ let forEachLoadedResult = (~jsonStr: string, ~f: loaded_result_listener): unit =
     ~jsonStr,
     ~f=(~key, ~result) =>
       switch (result) {
-      | Loaded(rows) => f(~channel=channelOfKey(key), ~rows)
+      | Loaded(rows) => f({channel: channelOfKey(key), rows})
       | Loading
       | Error(_) => ()
       },

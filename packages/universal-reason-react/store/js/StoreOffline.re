@@ -124,13 +124,13 @@ module Local = {
     | None => ()
     };
     listenerIdRef := Some(
-      QueryCache.listenLoadedResults((~channel, ~rows) =>
+      QueryCache.listenLoadedResults(loadedResult =>
         applyLoadedQueryResult(
           ~queriesConfig,
           ~confirmedStateRef,
           ~refreshOptimisticState,
-          ~channel,
-          ~rows,
+          ~channel=loadedResult.QueryCache.channel,
+          ~rows=loadedResult.QueryCache.rows,
           (),
         )
       ),
