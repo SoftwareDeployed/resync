@@ -52,20 +52,11 @@ let make =
   let selected_unit = PeriodList.Unit.tToJs(unit);
 
   let items_by_unit =
-    items
-    |> Array.fold_left((matching, item: Model.InventoryItem.t) =>
-         if (
-           Array.exists(
-             (period: Model.Pricing.period) => period.unit == selected_unit,
-             item.period_list,
-           )
-         ) {
-           [item, ...matching];
-         } else {
-           matching;
-         }, [])
-    |> List.rev
-    |> Array.of_list;
+    items->Js.Array.filter(~f=(item: Model.InventoryItem.t) =>
+      item.period_list->Js.Array.some(~f=(period: Model.Pricing.period) =>
+        period.unit == selected_unit
+      )
+    );
 
   <Card
     className="m-0 p-0 bg-white/30 border-2 border-b-4 border-r-4 border-gray-200/60">
