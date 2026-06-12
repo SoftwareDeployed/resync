@@ -200,6 +200,34 @@ let suite =
                 "temporary entries should not leak"
                 false
                 (has_result "thread:one")));
+      Alcotest.test_case "with_serialized_lwt scopes cache to Lwt context" `Quick
+        (fun () ->
+          with_sync_registry_reset (fun () ->
+              setup_previous_registry ();
+              let observed_loaded, observed_previous =
+                Lwt_main.run
+                  (QueryRegistry.with_serialized_lwt
+                     ~jsonStr:
+                       {|{"thread:one":{"_tag":"Loaded","data":["row-one"]}}|}
+                     ~f:(fun () ->
+                       Lwt.return
+                         (has_result "thread:one", has_result "previous"))
+                     ())
+              in
+              Alcotest.(check bool)
+                "scoped registry should be visible inside callback"
+                true observed_loaded;
+              Alcotest.(check bool)
+                "sync registry should be hidden inside Lwt scope"
+                false observed_previous;
+              Alcotest.(check bool)
+                "previous registry restored after Lwt scope"
+                true
+                (has_result "previous");
+              Alcotest.(check bool)
+                "scoped entries should not leak"
+                false
+                (has_result "thread:one")));
       Alcotest.test_case "with_serialized restores previous registry after exception" `Quick
         (fun () ->
           with_sync_registry_reset (fun () ->

@@ -150,10 +150,19 @@ let render = (~context, ~serverState: Routes.serverState, ()) => {
       ~state=serverState,
       (),
     );
-  QueryRegistry.setup_registry_from_json(~jsonStr=serializedQueries);
   <TodoStore.Context.Provider value=store>
     document
   </TodoStore.Context.Provider>;
+};
+
+let withRenderContext = (resolvedServerState, renderResponse) => {
+  let serverState: Routes.serverState =
+    UniversalRouterDream.resolvedState(resolvedServerState);
+  QueryRegistry.with_serialized_lwt(
+    ~jsonStr=serverState.serializedQueries,
+    ~f=renderResponse,
+    (),
+  );
 };
 
 let app =
@@ -161,5 +170,6 @@ let app =
     ~router=Routes.router,
     ~getServerState,
     ~render,
+    ~withRenderContext,
     (),
   );

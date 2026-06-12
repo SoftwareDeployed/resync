@@ -19,6 +19,7 @@
  (libraries
    alcotest
    alcobar
+   lwt.unix
    melange-json-native
    universal_reason_react_store_native
    universal_reason_react_uuid_native)

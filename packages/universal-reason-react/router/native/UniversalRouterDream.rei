@@ -27,6 +27,8 @@ type app('state) = {
   router: UniversalRouter.t('state),
   getServerState: serverContext('state) => Lwt.t(serverStateResult('state)),
   render: (~context: serverContext('state), ~serverState: 'state, unit) => React.element,
+  withRenderContext:
+    (resolvedServerState('state), unit => Lwt.t(unit)) => Lwt.t(unit),
 };
 
 let app:
@@ -34,8 +36,11 @@ let app:
     ~router: UniversalRouter.t('state),
     ~getServerState: serverContext('state) => Lwt.t(serverStateResult('state)),
     ~render: (~context: serverContext('state), ~serverState: 'state, unit) => React.element,
+    ~withRenderContext: (resolvedServerState('state), unit => Lwt.t(unit)) => Lwt.t(unit)=?,
     unit,
   ) =>
   app('state);
+
+let resolvedState: resolvedServerState('state) => 'state;
 
 let handler: (~app: app('state), Dream.request) => Lwt.t(Dream.response);

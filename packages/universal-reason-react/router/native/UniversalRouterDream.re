@@ -35,12 +35,22 @@ type app('state) = {
    router: UniversalRouter.t('state),
    getServerState: serverContext('state) => Lwt.t(serverStateResult('state)),
    render: (~context: serverContext('state), ~serverState: 'state, unit) => React.element,
+   withRenderContext:
+     (resolvedServerState('state), unit => Lwt.t(unit)) => Lwt.t(unit),
   };
 
-let app = (~router, ~getServerState, ~render, ()) => {
-  router,
-  getServerState,
-  render,
+let app = (~router, ~getServerState, ~render, ~withRenderContext=?, ()) => {
+  let withRenderContext =
+    switch (withRenderContext) {
+    | Some(withRenderContext) => withRenderContext
+    | None => (_resolvedServerState, f) => f()
+    };
+  {
+    router,
+    getServerState,
+    render,
+    withRenderContext,
+  };
 };
 
 let resolvedContext = resolvedServerState => resolvedServerState.context;
@@ -136,7 +146,10 @@ let respondResolved = (~app, resolvedServerState) =>
   Dream.stream(
     ~headers=[("Content-Type", "text/html")],
     (responseStream =>
-      streamReactApp(responseStream, renderResolved(~app, resolvedServerState))),
+      app.withRenderContext(
+        resolvedServerState,
+        () => streamReactApp(responseStream, renderResolved(~app, resolvedServerState)),
+      )),
   );
 
 let redirectResponse = (~request, ~location, ~permanent) => {

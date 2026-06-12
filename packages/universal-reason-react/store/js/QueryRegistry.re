@@ -318,9 +318,8 @@ let serialize_for_cache = (): string => {
   };
 };
 
-// Setup registry from QueryCache-format JSON without clearing it
 [@platform native]
-let setup_registry_from_json = (~jsonStr: string): unit => {
+let registryFromSerialized = (~jsonStr: string): query_registry => {
   let json = Yojson.Safe.from_string(jsonStr);
   let results = Hashtbl.create(8);
   let errors = Hashtbl.create(8);
@@ -345,14 +344,29 @@ let setup_registry_from_json = (~jsonStr: string): unit => {
     })
   | _ => ()
   });
-  let registry = {
+  {
     state: Rendered,
     queries: Hashtbl.create(8),
     results,
     errors,
     db_connection: None,
   };
-  sync_registry_ref := Some(registry);
+};
+
+// Setup registry from QueryCache-format JSON without clearing it.
+// Prefer the current Lwt request context when one exists; fall back to the
+// synchronous registry for legacy render paths and native tests.
+[@platform native]
+let setup_registry_from_json = (~jsonStr: string): unit => {
+  let registry = registryFromSerialized(~jsonStr);
+  switch (Lwt.get(registry_key)) {
+  | Some(currentRegistry) =>
+    currentRegistry.state = registry.state;
+    currentRegistry.queries = registry.queries;
+    currentRegistry.results = registry.results;
+    currentRegistry.errors = registry.errors;
+  | None => sync_registry_ref := Some(registry)
+  };
 };
 
 [@platform native]
@@ -374,6 +388,12 @@ let with_serialized = (~jsonStr: string, ~f: unit => 'a, ()): 'a => {
     sync_registry_ref := previousRegistry;
     raise(error);
   };
+};
+
+[@platform native]
+let with_serialized_lwt = (~jsonStr: string, ~f: unit => Lwt.t('a), ()): Lwt.t('a) => {
+  let registry = registryFromSerialized(~jsonStr);
+  Lwt.with_value(registry_key, Some(registry), f);
 };
 
 // JS-only: Client stubs (full implementation in QueryCache.re)
@@ -415,3 +435,6 @@ let serialize_for_cache = (): string => "{}";
 
 [@platform js]
 let with_serialized = (~jsonStr as _, ~f, ()) => f();
+
+[@platform js]
+let with_serialized_lwt = (~jsonStr as _, ~f, ()) => f();
