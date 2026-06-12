@@ -252,27 +252,34 @@ let getResult =
 // Helper to serialize a single query result to JSON (native only for SSR)
 [@platform native]
 let result_to_json = (result: query_result(StoreJson.json)): StoreJson.json => {
-  let tagJson = tag => StoreJson.stringify(Melange_json.To_json.string, tag);
+  let resultObject = fill => {
+    let dict: Js.Dict.t(StoreJson.json) = Js.Dict.empty();
+    fill(dict);
+    StoreJson.Dict.to_json(json => json, dict);
+  };
+  let setJsonField = (dict, key, value) => dict->Js.Dict.set(key, value);
+  let setStringField = (dict, key, value) =>
+    setJsonField(dict, key, Melange_json.Primitives.string_to_json(value));
+
   switch (result) {
-  | Loading => StoreJson.parse("{\"_tag\":" ++ tagJson("Loading") ++ "}")
+  | Loading => resultObject(dict => setStringField(dict, "_tag", "Loading"))
   | Loaded(jsonArray) =>
-    let dataJson =
-      StoreJson.stringify(Melange_json.To_json.array(json => json), jsonArray);
-    StoreJson.parse(
-      "{\"_tag\":" ++ tagJson("Loaded") ++ ",\"data\":" ++ dataJson ++ "}",
-    );
+    resultObject(dict => {
+      setStringField(dict, "_tag", "Loaded");
+      setJsonField(dict, "data", Melange_json.To_json.array(json => json)(jsonArray));
+    })
   | Error(msg) =>
-    let messageJson = StoreJson.stringify(Melange_json.To_json.string, msg);
-    StoreJson.parse(
-      "{\"_tag\":" ++ tagJson("Error") ++ ",\"message\":" ++ messageJson ++ "}",
-    );
+    resultObject(dict => {
+      setStringField(dict, "_tag", "Error");
+      setStringField(dict, "message", msg);
+    })
   };
 };
 
 // JS stub - client only decodes, doesn't encode
 [@platform js]
 let result_to_json = (_result: query_result(StoreJson.json)): StoreJson.json => {
-  StoreJson.parse("null");
+  Melange_json.To_json.unit();
 };
 
 // Helper to deserialize a single query result from JSON
