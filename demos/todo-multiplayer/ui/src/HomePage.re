@@ -15,8 +15,6 @@ open Hooks;
 module FailServerMutationDef = {
   type params = unit;
   type action = TodoStore.action;
-  let name = "fail_server_mutation";
-  let encodeParams = (_: unit) => Melange_json.declassify(`Assoc([]));
   let toAction = (_: unit) =>
     RealtimeSchema.MutationActions.Custom(TodoStore.FailServerMutation);
 };

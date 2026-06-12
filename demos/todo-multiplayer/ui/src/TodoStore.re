@@ -1,4 +1,3 @@
-open Melange_json.Primitives;
 type customAction = | FailServerMutation | FailClientMutation;
 type action = RealtimeSchema.MutationActions.action(customAction);
 type state = Model.t;

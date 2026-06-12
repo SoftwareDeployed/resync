@@ -375,44 +375,30 @@ module Mutations = {
   module JoinRoom = {
     type params = join_room_payload;
     type nonrec action = action;
-    let name = "join_room";
-    let encodeParams = (params: params) =>
-      roomPeerPayloadJson(params.room_id, params.peer_id);
     let toAction = params => JoinRoom(params);
   };
 
   module LeaveRoom = {
     type params = peer_left_payload;
     type nonrec action = action;
-    let name = "leave_room";
-    let encodeParams = (params: params) =>
-      roomPeerPayloadJson(params.room_id, params.peer_id);
     let toAction = params => LeaveRoom(params);
   };
 
   module ToggleVideo = {
     type params = toggle_video_payload;
     type nonrec action = action;
-    let name = "toggle_video";
-    let encodeParams = (params: params) =>
-      togglePayloadJson(params.room_id, params.peer_id, params.enabled);
     let toAction = params => ToggleVideo(params);
   };
 
   module ToggleAudio = {
     type params = toggle_audio_payload;
     type nonrec action = action;
-    let name = "toggle_audio";
-    let encodeParams = (params: params) =>
-      togglePayloadJson(params.room_id, params.peer_id, params.enabled);
     let toAction = params => ToggleAudio(params);
   };
 
   module SendMessage = {
     type params = send_message_payload;
     type nonrec action = action;
-    let name = "send_message";
-    let encodeParams = sendMessagePayloadJson;
     let toAction = params => SendMessage(params);
   };
 };

@@ -44,11 +44,10 @@ module type QueryModule = {
     Lwt.t(Stdlib.result(array(row), string));
 };
 
-// Low-level mutation contract for manual dispatch (UseMutation.make with ~onDispatch)
+// Low-level mutation contract for manual dispatch. `UseMutation.make`
+// only needs the params type; callers provide the actual dispatch callback.
 module type MutationModule = {
   type params;
-  let encodeParams: params => StoreJson.json;
-  let name: string;
 };
 
 // Action-aware mutation contract for store-scoped hooks that auto-dispatch.
@@ -57,8 +56,6 @@ module type MutationModule = {
 module type MutationModuleWithAction = {
   type params;
   type action;
-  let encodeParams: params => StoreJson.json;
-  let name: string;
   let toAction: params => action;
 };
 

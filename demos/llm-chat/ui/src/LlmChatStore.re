@@ -159,32 +159,24 @@ module Mutations = {
   module SendPrompt = {
     type params = send_prompt_payload;
     type nonrec action = action;
-    let name = "send_prompt";
-    let encodeParams = sendPromptPayloadJson;
     let toAction = params => SendPrompt(params);
   };
 
   module CreateNewThread = {
     type params = create_thread_payload;
     type nonrec action = action;
-    let name = "create_new_thread";
-    let encodeParams = createThreadPayloadJson;
     let toAction = params => CreateNewThread(params);
   };
 
   module SelectThread = {
     type params = string;
     type nonrec action = action;
-    let name = "select_thread";
-    let encodeParams = threadIdPayloadJson;
     let toAction = thread_id => SelectThread(thread_id);
   };
 
   module DeleteThread = {
     type params = string;
     type nonrec action = action;
-    let name = "delete_thread";
-    let encodeParams = threadIdPayloadJson;
     let toAction = thread_id => DeleteThread(thread_id);
   };
 };
