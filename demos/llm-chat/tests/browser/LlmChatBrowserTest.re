@@ -142,6 +142,13 @@ let currentThreadIdScript =
 
 let readCurrentThreadId = page => page->Playwright.evaluateString(currentThreadIdScript);
 
+let createThreadScript = (~baseUrl, ~title) =>
+  "fetch('"
+  ++ baseUrl
+  ++ "/api/test/create-thread', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{\"title\": \""
+  ++ title
+  ++ "\"}' }).then(r => r.json()).then(j => j.id)";
+
 type mockRequest;
 type mockResponse;
 type mockServer;
@@ -243,14 +250,30 @@ module MockOllama = {
               Js.Dict.set(headers, "Content-Type", "application/x-ndjson");
               let _ = response->writeHead(200, headers);
               let _ = response->write(mockResponseChunk("Mock assistant saw "));
-              let _ = response->write(mockResponseChunk(prompt));
-              setTimeout(() => {
-                let _ = response->write(mockResponseChunk(" while streaming"));
+              let writeTail = () => {
+                let _ = response->write(mockResponseChunk(prompt));
                 setTimeout(() => {
-                  let _ = response->endString("{\"done\":true}\n");
-                  ();
-                }, 300);
-              }, 250);
+                  let _ = response->write(mockResponseChunk(" while streaming"));
+                  setTimeout(() => {
+                    let _ = response->endString("{\"done\":true}\n");
+                    ();
+                  }, 300);
+                }, 250);
+              };
+              if (prompt->includes("strict streaming regression")) {
+                setTimeout(() => {
+                  let _ = response->write(mockResponseChunk(prompt));
+                  setTimeout(() => {
+                    let _ = response->write(mockResponseChunk(" while streaming"));
+                    setTimeout(() => {
+                      let _ = response->endString("{\"done\":true}\n");
+                      ();
+                    }, 500);
+                  }, 1200);
+                }, 700);
+              } else {
+                writeTail();
+              };
             });
           ();
         });
@@ -373,12 +396,18 @@ let runMessageDisplayScenario = (~browser, ~threadUrl) => {
 let runOllamaStreamingScenario = (~browser, ~baseUrl, ~mock) => {
   Js.log("Running Ollama streaming scenario...");
   installMalformedSendPromptLedger();
-  let prompt = "ping";
+  let prompt = "strict streaming regression " ++ UUID.make();
   browser
   ->Playwright.newPage
   |> then_(page =>
        page
        ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ =>
+            page->Playwright.evaluateString(
+              createThreadScript(~baseUrl, ~title="Strict Streaming Test"),
+            )
+          )
+       |> then_(threadId => page->Playwright.goto(baseUrl ++ "/" ++ threadId))
        |> then_(_ => page->Playwright.waitForSelector("#prompt-input"))
        |> then_(_ => page->Playwright.fill("#prompt-input", prompt))
        |> then_(_ => page->Playwright.click("#send-button"))
@@ -392,12 +421,38 @@ let runOllamaStreamingScenario = (~browser, ~baseUrl, ~mock) => {
             )
           )
        |> then_(_ =>
+            waitForPartialSelectorText(
+              ~page,
+              ~selector="#streaming-message",
+              ~expected="Mock assistant saw",
+              ~notExpected=prompt,
+              ~label="Ollama streaming test: first partial token renders before later API chunks",
+              ~attemptsLeft=80,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression="(() => document.querySelector('#streaming-message') != null && document.querySelectorAll('.message--assistant:not(#streaming-message)').length === 0)().toString()",
+              ~label="Ollama streaming test: partial token is transient, not a confirmed assistant message",
+              ~attemptsLeft=20,
+            )
+          )
+       |> then_(_ =>
             waitForSelectorText(
               ~page,
               ~selector="#message-list",
-              ~expected="Mock assistant saw " ++ prompt,
-              ~label="Ollama streaming test",
-              ~attemptsLeft=80,
+              ~expected="Mock assistant saw " ++ prompt ++ " while streaming",
+              ~label="Ollama streaming test: final assistant message reconciles",
+              ~attemptsLeft=150,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression="(() => document.querySelector('#streaming-message') == null && document.querySelectorAll('.message--assistant').length === 1)().toString()",
+              ~label="Ollama streaming test: transient message is replaced by one confirmed assistant message",
+              ~attemptsLeft=150,
             )
           )
        |> then_(_ => MockOllama.assertSawPrompt(~mock, ~prompt))
@@ -413,13 +468,13 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
   ->Playwright.newPage
   |> then_(pageA => {
        pageARef := Some(pageA);
-       let createThreadScript =
-         "fetch('"
-         ++ baseUrl
-         ++ "/api/test/create-thread', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{\"title\": \"Cross-tab Test\"}' }).then(r => r.json()).then(j => j.id)";
        pageA
        ->Playwright.goto(baseUrl ++ "/")
-       |> then_(_ => pageA->Playwright.evaluateString(createThreadScript))
+       |> then_(_ =>
+            pageA->Playwright.evaluateString(
+              createThreadScript(~baseUrl, ~title="Cross-tab Test"),
+            )
+          )
        |> then_(threadId => {
             let threadUrl = baseUrl ++ "/" ++ threadId;
             pageA
