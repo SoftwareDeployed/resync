@@ -362,11 +362,15 @@ let useIsQueryLoadingOption =
       type r,
       module Q: QueryModule with type params = p and type row = r,
       params: option(p),
-    ) =>
+    ) => {
+  let rawResult = useRawQueryResultOption((module Q), params);
   switch (params) {
   | None => false
-  | Some(params) => useIsQueryLoading((module Q), params)
+  | Some(_) =>
+    let result = hookResultOfData(rawResult);
+    result.loading
   };
+};
 
 [@platform native]
 let useIsQueryLoading =

@@ -134,6 +134,38 @@ let testCrossTabBroadcast = (~browser) => {
      );
 };
 
+let testUseIsQueryLoadingOptionPreservesHookOrder = (~browser) => {
+  let url =
+    "file://"
+    ++ Playwright.cwd()
+    ++ "/packages/universal-reason-react/store/test-browser/generated/StoreHookOrderApp.html";
+
+  browser
+  ->Playwright.newPage
+  |> then_(page => {
+       let pageErrors = ref([||]);
+       let appendError = message =>
+         pageErrors := pageErrors.contents->Js.Array.concat(~other=[|message|]);
+       Playwright.onPageError(page, "pageerror", appendError);
+       Playwright.onConsole(page, "console", message => {
+         if (Playwright.type_(message) == "error") {
+           appendError(Playwright.text(message));
+         };
+       });
+
+       page
+       ->Playwright.goto(url)
+       |> then_(_ => page->Playwright.waitForSelector("text=enabled"))
+       |> then_(_ =>
+            BrowserTestUtils.assertTrue(
+              ~label="useIsQueryLoadingOption preserves hook order when params toggle from None to Some",
+              Array.length(pageErrors.contents) == 0,
+              ~details=Array.length(pageErrors.contents) > 0 ? pageErrors.contents[0] : "page reported no completion",
+            )
+          )
+     });
+};
+
 let loadedSignalContains = (signal, expected) =>
   switch (signal->signalValue) {
   | Loaded(rows) =>
@@ -610,6 +642,7 @@ let run = () => {
                  resolve();
                })
             |> then_(_ => testCrossTabBroadcast(~browser))
+            |> then_(_ => testUseIsQueryLoadingOptionPreservesHookOrder(~browser))
             |> then_(_ => browser->Playwright.close)
           )
      })
