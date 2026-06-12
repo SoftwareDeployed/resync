@@ -393,7 +393,7 @@ module Context = StoreDef.Context;
 - `let useMutation((module Mutation), ())`: Create a store-scoped mutation handle; custom modules provide `type params`, `type action`, and `toAction(params)`; `result.dispatch(params)` and `result.mutate(params)` are aliases that return `Js.Promise.t(unit)`. The handle also exposes `loading` while one or more mutations are in flight and `error` with the latest rejection message. Local stores resolve after local dispatch and reject when validation denies the action or the store is unavailable; synced stores resolve after server acknowledgement and reject on validation or server mutation failure.
 - `let useIsQueryLoading((module Query), params)`: Reactive loading helper backed by the shared query cache signal
 - `module Context`: React context for store access
-- `module Hooks`: Nested `useStreaming`, `useQuery`, `useQueryResult`, `useMutation`, and `useIsQueryLoading` exports for component-local opens
+- `module Hooks`: Nested `useStreaming`, `useQuery`, `useQueryResult`, `useQueryOption`, `useQueryResultOption`, `useMutation`, and `useIsQueryLoading` exports for component-local opens
 - `module Events`: Event listener module
 
 ### StoreBuilder.buildSynced
