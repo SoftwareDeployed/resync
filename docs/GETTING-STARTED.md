@@ -442,6 +442,23 @@ module StoreDef =
     ),
   ));
 
+module Mutations = {
+  module AddTodo = {
+    include RealtimeSchema.Mutations.AddTodo;
+    type nonrec action = action;
+  };
+
+  module SetTodoCompleted = {
+    include RealtimeSchema.Mutations.SetTodoCompleted;
+    type nonrec action = action;
+  };
+
+  module RemoveTodo = {
+    include RealtimeSchema.Mutations.RemoveTodo;
+    type nonrec action = action;
+  };
+};
+
 /* Re-export public interface */
 include (
   StoreDef:
@@ -461,26 +478,13 @@ Use store-scoped mutation hooks in components, so writes follow the same Convex-
 ```reason
 open Store.Hooks;
 
-module AddTodoMutation = {
-  include RealtimeSchema.Mutations.AddTodo;
-  type action = Store.action;
-};
-
-module SetTodoCompletedMutation = {
-  include RealtimeSchema.Mutations.SetTodoCompleted;
-  type action = Store.action;
-};
-
-module RemoveTodoMutation = {
-  include RealtimeSchema.Mutations.RemoveTodo;
-  type action = Store.action;
-};
-
 [@react.component]
 let make = (~list_id: string, ~text: string, ~id: string, ~completed: bool) => {
-  let addTodoMutation = useMutation((module AddTodoMutation), ());
-  let setTodoCompletedMutation = useMutation((module SetTodoCompletedMutation), ());
-  let removeTodoMutation = useMutation((module RemoveTodoMutation), ());
+  let addTodoMutation = useMutation((module Store.Mutations.AddTodo), ());
+  let setTodoCompletedMutation =
+    useMutation((module Store.Mutations.SetTodoCompleted), ());
+  let removeTodoMutation =
+    useMutation((module Store.Mutations.RemoveTodo), ());
 
   let addTodo = () => {
     let _ = addTodoMutation.mutate({id: UUID.make(), list_id, text});

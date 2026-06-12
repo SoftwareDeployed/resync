@@ -1,12 +1,15 @@
 // UseMutation.re - Universal React hook for mutations
 //
 // Store-scoped API:
-//   module AddTodoMutation = {
-//     include RealtimeSchema.Mutations.AddTodo;
-//     type action = TodoStore.action;
+//   module Mutations = {
+//     module AddTodo = {
+//       type params = todo;
+//       type nonrec action = action;
+//       let toAction = params => AddTodo(params);
+//     };
 //   };
-//   let {mutate} = TodoStore.useMutation((module AddTodoMutation), ());
-//   mutate({id: UUID.make(), list_id: "abc", text: "Hello"});
+//   let addTodo = TodoStore.Hooks.useMutation((module TodoStore.Mutations.AddTodo), ());
+//   addTodo.mutate(todo);
 //
 // On client (JS): Calls the provided dispatch callback. Store-scoped synced
 // runtimes resolve this promise after the server acknowledges the mutation.

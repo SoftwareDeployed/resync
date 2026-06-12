@@ -398,14 +398,19 @@ That keeps realtime updates flowing through the same Tilia-backed source that hy
 Typed runtime actions use the same active websocket connection. In component code, use the store-scoped mutation hook:
 
 ```reason
-module AddTodoMutation = {
-  include RealtimeSchema.Mutations.AddTodo;
-  type action = Store.action;
+/* Store.re */
+module Mutations = {
+  module AddTodo = {
+    include RealtimeSchema.Mutations.AddTodo;
+    type nonrec action = action;
+  };
 };
 
+/* Component.re */
 [@react.component]
 let make = (~id: string, ~list_id: string, ~text: string) => {
-  let addTodoMutation = Store.useMutation((module AddTodoMutation), ());
+  let addTodoMutation =
+    Store.useMutation((module Store.Mutations.AddTodo), ());
 
   let addTodo = () => {
     let _ = addTodoMutation.mutate({id, list_id, text});
