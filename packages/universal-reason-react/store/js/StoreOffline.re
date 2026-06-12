@@ -470,7 +470,7 @@ module Local = {
     let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let status = () => StoreRuntimeLifecycle.status(lifecycle);
 
-    type status_listener_id = string;
+    type status_listener_id = StoreEvents.listener_id;
     let subscribeStatus = callback =>
       StoreRuntimeLifecycle.subscribeStatus(lifecycle, callback);
     let unsubscribeStatus = id =>
@@ -1601,7 +1601,7 @@ module Synced = {
     let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let status = () => StoreRuntimeLifecycle.status(lifecycle);
 
-    type status_listener_id = string;
+    type status_listener_id = StoreEvents.listener_id;
     let subscribeStatus = callback =>
       StoreRuntimeLifecycle.subscribeStatus(lifecycle, callback);
     let unsubscribeStatus = id =>

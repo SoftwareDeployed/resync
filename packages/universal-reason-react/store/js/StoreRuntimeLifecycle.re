@@ -211,8 +211,9 @@ let status = (lifecycle: t): StoreRuntimeTypes.status => {
   };
 };
 
-let subscribeStatus = (lifecycle: t, callback: StoreRuntimeTypes.status => unit): string =>
+let subscribeStatus =
+    (lifecycle: t, callback: StoreRuntimeTypes.status => unit): StoreEvents.listener_id =>
   StoreEvents.Callback.listen(~registry=lifecycle.statusListenersRef, callback);
 
-let unsubscribeStatus = (lifecycle: t, listenerId: string) =>
+let unsubscribeStatus = (lifecycle: t, listenerId: StoreEvents.listener_id) =>
   StoreEvents.Callback.unlisten(~registry=lifecycle.statusListenersRef, listenerId);

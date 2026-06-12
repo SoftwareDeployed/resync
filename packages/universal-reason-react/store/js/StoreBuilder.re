@@ -640,7 +640,7 @@ module Runtime = {
         UseMutation.mutation_result('p);
     };
 
-    type status_listener_id = string;
+    type status_listener_id = StoreEvents.listener_id;
     let subscribeStatus: (status => unit) => status_listener_id;
     let unsubscribeStatus: status_listener_id => unit;
 
