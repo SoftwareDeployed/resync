@@ -37,45 +37,55 @@ let emptyState: state = {
 };
 
 let nextTodoId = (todos: array(todo)) => {
-  let next =
-    Array.to_list(todos)
-    |> List.fold_left(
-         (current, item: todo) =>
-           switch (
-             try (Some(int_of_string(item.id))) {
-             | Failure(_) => None
-             }
-           ) {
-           | Some(id) when id >= current => id + 1
-           | _ => current
-           },
-         1,
-       );
-  string_of_int(next);
+  let rec loop = (index, current) =>
+    if (index >= Array.length(todos)) {
+      current;
+    } else {
+      let item = todos[index];
+      let next =
+        switch (
+          try (Some(int_of_string(item.id))) {
+          | Failure(_) => None
+          }
+        ) {
+        | Some(id) when id >= current => id + 1
+        | _ => current
+        };
+      loop(index + 1, next);
+    };
+
+  string_of_int(loop(0, 1));
 };
 
 let completedCount = todos =>
   todos->Js.Array.filter(~f=(item: todo) => item.completed)->Array.length;
 
+let actionJson = (~kind, ~fill) => {
+  let dict = Js.Dict.empty();
+  dict->Js.Dict.set("kind", string_to_json(kind));
+  fill(dict);
+  StoreJson.Dict.to_json(json => json, dict);
+};
+
 let action_to_json = action =>
   switch (action) {
   | AddTodo(todo) =>
-    StoreJson.parse(
-      "{\"kind\":\"add_todo\",\"todo\":" ++ StoreJson.stringify(todo_to_json, todo) ++ "}",
+    actionJson(
+      ~kind="add_todo",
+      ~fill=dict => dict->Js.Dict.set("todo", todo_to_json(todo)),
     )
   | SetTodoCompleted(input) =>
-    StoreJson.parse(
-      "{\"kind\":\"set_todo_completed\",\"id\":"
-      ++ string_to_json(input.id)->Melange_json.to_string
-      ++ ",\"completed\":"
-      ++ bool_to_json(input.completed)->Melange_json.to_string
-      ++ "}",
+    actionJson(
+      ~kind="set_todo_completed",
+      ~fill=dict => {
+        dict->Js.Dict.set("id", string_to_json(input.id));
+        dict->Js.Dict.set("completed", bool_to_json(input.completed));
+      },
     )
   | RemoveTodo(id) =>
-    StoreJson.parse(
-      "{\"kind\":\"remove_todo\",\"id\":"
-      ++ string_to_json(id)->Melange_json.to_string
-      ++ "}",
+    actionJson(
+      ~kind="remove_todo",
+      ~fill=dict => dict->Js.Dict.set("id", string_to_json(id)),
     )
   };
 
