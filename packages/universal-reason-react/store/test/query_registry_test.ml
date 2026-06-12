@@ -41,6 +41,20 @@ let setup_previous_registry () =
 let suite =
   ( "QueryRegistry",
     [
+      Alcotest.test_case "query keys round-trip colon channels and params" `Quick
+        (fun () ->
+          let key =
+            QueryRegistryTypes.makeKey ~channel:"thread:abc"
+              ~paramsHash:"messages:latest"
+          in
+          Alcotest.(check string)
+            "length-prefixed channel"
+            "thread:abc"
+            (QueryRegistryTypes.channelOfKey key);
+          Alcotest.(check string)
+            "legacy channel"
+            "thread:abc"
+            (QueryRegistryTypes.channelOfKey "thread:abc:messages"));
       Alcotest.test_case "setup_registry_from_json hydrates loaded cache data" `Quick
         (fun () ->
           with_sync_registry_reset (fun () ->
@@ -74,17 +88,44 @@ let suite =
       Alcotest.test_case "get_loaded_results returns decoded JSON row arrays" `Quick
         (fun () ->
           with_sync_registry_reset (fun () ->
+              let colon_key =
+                QueryRegistryTypes.makeKey ~channel:"thread:one"
+                  ~paramsHash:"messages:all"
+              in
               QueryRegistry.setup_registry_from_json
                 ~jsonStr:
-                  {|{"thread:one":{"_tag":"Loaded","data":["row-one","row-two"]},"other:two":{"_tag":"Loaded","data":["other-row"]},"thread:error":{"_tag":"Error","message":"bad"}}|};
+                  (Yojson.Safe.to_string
+                     (`Assoc
+                       [
+                         ( colon_key,
+                           `Assoc
+                             [
+                               ("_tag", `String "Loaded");
+                               ( "data",
+                                 `List [ `String "row-one"; `String "row-two" ]
+                               );
+                             ] );
+                         ( "other:two",
+                           `Assoc
+                             [
+                               ("_tag", `String "Loaded");
+                               ("data", `List [ `String "other-row" ]);
+                             ] );
+                         ( "thread:error",
+                           `Assoc
+                             [
+                               ("_tag", `String "Error");
+                               ("message", `String "bad");
+                             ] );
+                       ]));
               let results = QueryRegistry.get_loaded_results () in
               Alcotest.(check int)
                 "loaded result count"
                 2
                 (Array.length results);
-              let result = find_loaded_result "thread:one" results in
-              Alcotest.(check string) "key" "thread:one" result.QueryRegistryTypes.key;
-              Alcotest.(check string) "channel" "thread" result.QueryRegistryTypes.channel;
+              let result = find_loaded_result colon_key results in
+              Alcotest.(check string) "key" colon_key result.QueryRegistryTypes.key;
+              Alcotest.(check string) "channel" "thread:one" result.QueryRegistryTypes.channel;
               Alcotest.(check int)
                 "row count"
                 2

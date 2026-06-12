@@ -26,15 +26,61 @@ type loaded_query_result = {
   rows: array(StoreJson.json),
 };
 
+let keySeparator = ':';
+
 let makeKey = (~channel: string, ~paramsHash: string): query_key => {
-  channel ++ ":" ++ paramsHash;
+  string_of_int(String.length(channel)) ++ ":" ++ channel ++ ":" ++ paramsHash;
+};
+
+let findLastSeparator = (key: query_key): option(int) => {
+  let found = ref(None);
+  for (index in 0 to String.length(key) - 1) {
+    if (String.get(key, index) == keySeparator) {
+      found := Some(index);
+    };
+  };
+  found.contents;
+};
+
+let channelOfLegacyKey = (key: query_key): string => {
+  switch (findLastSeparator(key)) {
+  | Some(index) => String.sub(key, 0, index)
+  | None => key
+  };
+};
+
+let channelOfLengthPrefixedKey = (key: query_key): option(string) => {
+  let keyLength = String.length(key);
+  let firstSeparator =
+    try(Some(String.index(key, keySeparator))) {
+    | Not_found => None
+    };
+  switch (firstSeparator) {
+  | None => None
+  | Some(separator) =>
+    let lengthText = String.sub(key, 0, separator);
+    switch (int_of_string_opt(lengthText)) {
+    | Some(channelLength) =>
+      let channelStart = separator + 1;
+      let separatorAfterChannel = channelStart + channelLength;
+      if (
+        channelLength >= 0
+        && separatorAfterChannel < keyLength
+        && String.get(key, separatorAfterChannel) == keySeparator
+      ) {
+        Some(String.sub(key, channelStart, channelLength));
+      } else {
+        None;
+      }
+    | None => None
+    }
+  };
 };
 
 let channelOfKey = (key: query_key): string => {
-  switch (Js.String.split(~limit=2, key, ~sep=":")) {
-  | [|channel, _|] => channel
-  | [|channel|] => channel
-  | _ => key
+  switch (channelOfLengthPrefixedKey(key)) {
+  | Some(channel) => channel
+  | None => channelOfLegacyKey(key)
   };
 };
 

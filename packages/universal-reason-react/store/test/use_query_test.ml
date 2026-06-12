@@ -20,7 +20,13 @@ module StringQuery = struct
   let execute _db _params = Lwt.return (Ok [||])
 end
 
-let with_sync_registry ?(key = "decode-failing:params") json f =
+let string_query_key =
+  QueryRegistryTypes.makeKey ~channel:"strings" ~paramsHash:"params"
+
+let decode_failing_query_key =
+  QueryRegistryTypes.makeKey ~channel:"decode-failing" ~paramsHash:"params"
+
+let with_sync_registry ?(key = decode_failing_query_key) json f =
   let previous = !(QueryRegistry.sync_registry_ref) in
   let jsonStr =
     Yojson.Safe.to_string
@@ -33,7 +39,7 @@ let with_sync_registry ?(key = "decode-failing:params") json f =
   QueryRegistry.setup_registry_from_json ~jsonStr;
   Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
 
-let with_error_registry ?(key = "strings:params") message f =
+let with_error_registry ?(key = string_query_key) message f =
   let previous = !(QueryRegistry.sync_registry_ref) in
   let jsonStr =
     Yojson.Safe.to_string
@@ -53,7 +59,7 @@ let suite =
       Alcotest.test_case "server cached array rows decode to Loaded" `Quick
         (fun () ->
           with_sync_registry
-            ~key:"strings:params"
+            ~key:string_query_key
             (`List [ `String "first"; `String "second" ])
             (fun () ->
               let result = UseQuery.useQuery (module StringQuery) "params" () in
