@@ -97,6 +97,43 @@ let errorMessageOfResult = fields =>
   };
 
 [@platform native]
+let decodeRows = (~decode, json): option(array('a)) =>
+  try({
+    let decodeList = items => {
+      let rec length = (remaining, count) =>
+        switch (remaining) {
+        | [] => count
+        | [_, ...rest] => length(rest, count + 1)
+        };
+
+      switch (items) {
+      | [] => [||]
+      | [first, ...rest] =>
+        let rows = Array.make(length(items, 0), decode(first));
+        let rec fill = (index, remaining) =>
+          switch (remaining) {
+          | [] => ()
+          | [item, ...tail] =>
+            rows[index] = decode(item);
+            fill(index + 1, tail);
+          };
+
+        fill(1, rest);
+        rows;
+      };
+    };
+
+    let rows =
+      switch (json) {
+      | `List(items) => decodeList(items)
+      | _ => [|decode(json)|]
+      };
+    Some(rows);
+  }) {
+  | _ => None
+  };
+
+[@platform native]
 let with_registry = (~db, ~f, ()) => {
   let f: unit => Lwt.t('a) = f;
   let registry = {
@@ -124,10 +161,7 @@ let register_query =
   | None => None
   | Some(registry) =>
     switch (Hashtbl.find_opt(registry.results, key)) {
-    | Some(json) =>
-      try(Some([|decode(json)|])) {
-      | _ => None
-      }
+    | Some(json) => decodeRows(~decode, json)
     | None =>
       if (Hashtbl.mem(registry.queries, key)) {
         None;

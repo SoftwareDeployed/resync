@@ -15,6 +15,15 @@ let error_message key =
   | Some message -> message
   | None -> Alcotest.fail ("expected error for " ^ key)
 
+let decode_string = function
+  | `String value -> value
+  | _ -> failwith "expected string row"
+
+let register_cached_string_query key =
+  QueryRegistry.register_query ~key ~channel:"thread" ~params:() ~sql:""
+    ~execute:(fun _db -> Lwt.return (Ok (`List [])))
+    ~decode:decode_string
+
 let setup_previous_registry () =
   QueryRegistry.setup_registry_from_json
     ~jsonStr:{|{"previous":{"_tag":"Loaded","data":"ok"}}|}
@@ -52,6 +61,20 @@ let suite =
                 "missing data entry should be ignored"
                 false
                 (has_result "thread:missing")));
+      Alcotest.test_case "register_query returns cached rows as an array" `Quick
+        (fun () ->
+          with_sync_registry_reset (fun () ->
+              QueryRegistry.setup_registry_from_json
+                ~jsonStr:
+                  {|{"thread:one":{"_tag":"Loaded","data":["row-one","row-two"]}}|};
+              match register_cached_string_query "thread:one" with
+              | Some rows ->
+                  Alcotest.(check int) "row count" 2 (Array.length rows);
+                  Alcotest.(check string) "first row" "row-one" rows.(0);
+                  Alcotest.(check string) "second row" "row-two" rows.(1)
+              | None ->
+                  Alcotest.fail
+                    "cached loaded rows should decode through register_query"));
       Alcotest.test_case "setup_registry_from_json ignores non-loaded data payloads" `Quick
         (fun () ->
           with_sync_registry_reset (fun () ->
