@@ -394,11 +394,12 @@ module Context = StoreDef.Context;
 - `let useQueryResult((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the low-level `{data, loading, error}` query result. When skipped, it returns `{data: Loading, loading: false, error: None}` and does not contact the backend.
 - `let useQueryOption((module Query), paramsOpt, ())`: Reason-friendly conditional query helper. `Some(params)` behaves like `useQuery`; `None` behaves like `~skip=true` without requiring placeholder params.
 - `let useQueryResultOption((module Query), paramsOpt, ())`: Low-level result form of `useQueryOption`.
-- `let useMutation((module Mutation), ())`: Create a store-scoped mutation handle; custom modules provide `type params`, `type action`, and `toAction(params)`; `result.dispatch(params)` and `result.mutate(params)` are aliases that return `Js.Promise.t(unit)`. The handle also exposes `loading` while one or more mutations are in flight and `error` with the latest rejection message. Local stores resolve after local dispatch and reject when validation denies the action or the store is unavailable; synced stores resolve after server acknowledgement and reject on validation or server mutation failure.
-- `let useMutationFn((module Mutation), ())`: Create a store-scoped async mutation function directly. This matches Convex's callable mutation style when a component does not need `loading` or `error`.
+- `let useMutation((module Mutation), ())`: Create a store-scoped async mutation function directly. This matches Convex's callable mutation style; custom modules provide `type params`, `type action`, and `toAction(params)`. Local stores resolve after local dispatch and reject when validation denies the action or the store is unavailable; synced stores resolve after server acknowledgement and reject on validation or server mutation failure.
+- `let useMutationFn((module Mutation), ())`: Compatibility alias for `useMutation`.
+- `let useMutationResult((module Mutation), ())`: Create a store-scoped mutation handle; `result.dispatch(params)` and `result.mutate(params)` are aliases that return `Js.Promise.t(unit)`. The handle also exposes `loading` while one or more mutations are in flight and `error` with the latest rejection message.
 - `let useIsQueryLoading((module Query), params)`: Reactive loading helper backed by the shared query cache signal
 - `module Context`: React context for store access
-- `module Hooks`: Nested `useStreaming`, `useQuery`, `useQueryResult`, `useQueryOption`, `useQueryResultOption`, `useMutation`, `useMutationFn`, and `useIsQueryLoading` exports for component-local opens
+- `module Hooks`: Nested `useStreaming`, `useQuery`, `useQueryResult`, `useQueryOption`, `useQueryResultOption`, `useMutation`, `useMutationFn`, `useMutationResult`, and `useIsQueryLoading` exports for component-local opens
 - `module Events`: Event listener module
 
 ### StoreBuilder.buildSynced

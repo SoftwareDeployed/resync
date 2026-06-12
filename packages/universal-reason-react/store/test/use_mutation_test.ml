@@ -37,4 +37,25 @@ let suite =
             "mutation function promise should resolve"
             true
             (promise_resolves (mutate "test")));
+      Alcotest.test_case "low-level useMutation is callable" `Quick
+        (fun () ->
+          let mutate = Hooks.useMutation (module MockMutation) () in
+          Alcotest.(check bool)
+            "useMutation should return a mutation function"
+            true
+            (promise_resolves (mutate "test")));
+      Alcotest.test_case "low-level useMutationFn remains callable alias" `Quick
+        (fun () ->
+          let mutate = Hooks.useMutationFn (module MockMutation) () in
+          Alcotest.(check bool)
+            "useMutationFn should return a mutation function"
+            true
+            (promise_resolves (mutate "test")));
+      Alcotest.test_case "low-level useMutationResult returns handle" `Quick
+        (fun () ->
+          let result = Hooks.useMutationResult (module MockMutation) () in
+          Alcotest.(check bool)
+            "useMutationResult dispatch promise should resolve"
+            true
+            (promise_resolves (result.dispatch "test")));
     ] )

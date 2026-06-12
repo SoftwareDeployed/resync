@@ -36,13 +36,13 @@ let make =
 
     let (newTodoText, setNewTodoText) = React.useState(() => "");
 
-    let addTodo = useMutationFn((module TodoStore.Mutations.AddTodo), ());
+    let addTodo = useMutation((module TodoStore.Mutations.AddTodo), ());
     let setTodoCompleted =
-      useMutationFn((module TodoStore.Mutations.SetTodoCompleted), ());
+      useMutation((module TodoStore.Mutations.SetTodoCompleted), ());
     let removeTodo =
-      useMutationFn((module TodoStore.Mutations.RemoveTodo), ());
+      useMutation((module TodoStore.Mutations.RemoveTodo), ());
     let failServer =
-      useMutationFn((module TodoStore.Mutations.FailServer), ());
+      useMutation((module TodoStore.Mutations.FailServer), ());
 
     let todos = store.state.todos;
 

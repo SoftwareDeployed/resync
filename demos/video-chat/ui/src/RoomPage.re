@@ -78,15 +78,15 @@ module View = {
       let store = VideoChatStore.Context.useStore();
       let router = UniversalRouter.useRouter();
       let joinRoomFn =
-        useMutationFn((module VideoChatStore.Mutations.JoinRoom), ());
+        useMutation((module VideoChatStore.Mutations.JoinRoom), ());
       let leaveRoomFn =
-        useMutationFn((module VideoChatStore.Mutations.LeaveRoom), ());
+        useMutation((module VideoChatStore.Mutations.LeaveRoom), ());
       let toggleVideoFn =
-        useMutationFn((module VideoChatStore.Mutations.ToggleVideo), ());
+        useMutation((module VideoChatStore.Mutations.ToggleVideo), ());
       let toggleAudioFn =
-        useMutationFn((module VideoChatStore.Mutations.ToggleAudio), ());
+        useMutation((module VideoChatStore.Mutations.ToggleAudio), ());
       let sendMessageFn =
-        useMutationFn((module VideoChatStore.Mutations.SendMessage), ());
+        useMutation((module VideoChatStore.Mutations.SendMessage), ());
 
       let localVideoRef = React.useRef(None);
       let remoteCanvasRef = React.useRef(None);

@@ -55,7 +55,7 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
     params: p,
   ) => UseQuery.useIsQueryLoading((module Q), params);
 
-  let mutation = (
+  let mutationResult = (
     type p,
     module M: QueryRegistryTypes.MutationModuleWithAction
       with type params = p and type action = Runtime.action,
@@ -68,7 +68,7 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
     );
   };
 
-  let mutationFn = (
+  let mutation = (
     type p,
     module M: QueryRegistryTypes.MutationModuleWithAction
       with type params = p and type action = Runtime.action,
@@ -80,6 +80,8 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
       (),
     );
   };
+
+  let mutationFn = mutation;
 };
 
 module type StoreContextRuntime = {
@@ -494,6 +496,7 @@ module Local = {
     let useIsQueryLoading = RuntimeHooks.isQueryLoading;
     let useMutation = RuntimeHooks.mutation;
     let useMutationFn = RuntimeHooks.mutationFn;
+    let useMutationResult = RuntimeHooks.mutationResult;
 
     module Hooks = {
       let useStore = Context.useStore;
@@ -505,6 +508,7 @@ module Local = {
       let useIsQueryLoading = useIsQueryLoading;
       let useMutation = useMutation;
       let useMutationFn = useMutationFn;
+      let useMutationResult = useMutationResult;
     };
 
     let flushCache = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
@@ -1670,6 +1674,7 @@ module Synced = {
     let useIsQueryLoading = RuntimeHooks.isQueryLoading;
     let useMutation = RuntimeHooks.mutation;
     let useMutationFn = RuntimeHooks.mutationFn;
+    let useMutationResult = RuntimeHooks.mutationResult;
 
     module Hooks = {
       let useStore = Context.useStore;
@@ -1681,6 +1686,7 @@ module Synced = {
       let useIsQueryLoading = useIsQueryLoading;
       let useMutation = useMutation;
       let useMutationFn = useMutationFn;
+      let useMutationResult = useMutationResult;
     };
 
     let flushCache = () => StoreRuntimeLifecycle.whenIdle(lifecycle);

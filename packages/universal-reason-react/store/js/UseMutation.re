@@ -9,9 +9,9 @@
 //     };
 //   };
 //   let addTodo = TodoStore.Hooks.useMutation((module TodoStore.Mutations.AddTodo), ());
-//   addTodo.mutate(todo);
-//   let addTodo = TodoStore.Hooks.useMutationFn((module TodoStore.Mutations.AddTodo), ());
 //   addTodo(todo);
+//   let addTodoResult = TodoStore.Hooks.useMutationResult((module TodoStore.Mutations.AddTodo), ());
+//   addTodoResult.mutate(todo);
 //
 // On client (JS): Calls the provided dispatch callback. Store-scoped synced
 // runtimes resolve this promise after the server acknowledges the mutation.

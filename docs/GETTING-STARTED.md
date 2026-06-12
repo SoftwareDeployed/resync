@@ -480,10 +480,10 @@ open Store.Hooks;
 
 [@react.component]
 let make = (~list_id: string, ~text: string, ~id: string, ~completed: bool) => {
-  let addTodo = useMutationFn((module Store.Mutations.AddTodo), ());
+  let addTodo = useMutation((module Store.Mutations.AddTodo), ());
   let setTodoCompleted =
-    useMutationFn((module Store.Mutations.SetTodoCompleted), ());
-  let removeTodo = useMutationFn((module Store.Mutations.RemoveTodo), ());
+    useMutation((module Store.Mutations.SetTodoCompleted), ());
+  let removeTodo = useMutation((module Store.Mutations.RemoveTodo), ());
 
   let onAddTodo = () => {
     let _ = addTodo({id: UUID.make(), list_id, text});

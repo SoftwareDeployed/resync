@@ -201,13 +201,13 @@ module View = {
       let pathname = UniversalRouter.usePathname();
       let (draft, setDraft) = React.useState(() => "");
       let sendPromptMutation =
-        useMutation((module LlmChatStore.Mutations.SendPrompt), ());
+        useMutationResult((module LlmChatStore.Mutations.SendPrompt), ());
       let createThread =
-        useMutationFn((module LlmChatStore.Mutations.CreateNewThread), ());
+        useMutation((module LlmChatStore.Mutations.CreateNewThread), ());
       let selectThread =
-        useMutationFn((module LlmChatStore.Mutations.SelectThread), ());
+        useMutation((module LlmChatStore.Mutations.SelectThread), ());
       let deleteThread =
-        useMutationFn((module LlmChatStore.Mutations.DeleteThread), ());
+        useMutation((module LlmChatStore.Mutations.DeleteThread), ());
 
       let messages = store.state.messages;
       let threads = store.state.threads;

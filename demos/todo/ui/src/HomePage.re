@@ -30,10 +30,10 @@ let make =
     open Hooks;
     let store = TodoStore.Context.useStore();
     let (newTodoText, setNewTodoText) = React.useState(() => "");
-    let addTodo = useMutationFn((module TodoStore.Mutations.AddTodo), ());
+    let addTodo = useMutation((module TodoStore.Mutations.AddTodo), ());
     let setTodoCompleted =
-      useMutationFn((module TodoStore.Mutations.SetTodoCompleted), ());
-    let removeTodo = useMutationFn((module TodoStore.Mutations.RemoveTodo), ());
+      useMutation((module TodoStore.Mutations.SetTodoCompleted), ());
+    let removeTodo = useMutation((module TodoStore.Mutations.RemoveTodo), ());
 
     let completed_count =
       store.state.todos
