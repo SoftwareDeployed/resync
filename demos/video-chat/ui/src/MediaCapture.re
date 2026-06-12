@@ -170,7 +170,8 @@ let createReal = () => {
 };
 
 [@platform native]
-let createReal = () => Js.Promise.resolve(Obj.magic());
+let createReal = (): Js.Promise.t(realHandle) =>
+  Js.Promise.reject(Failure("Media capture is not available during SSR"));
 
 [@platform js]
 let create = () =>
@@ -188,7 +189,8 @@ let create = () =>
   };
 
 [@platform native]
-let create = () => Js.Promise.resolve(Obj.magic());
+let create = (): Js.Promise.t(t) =>
+  Js.Promise.reject(Failure("Media capture is not available during SSR"));
 
 [@platform js]
 let attachVideoElement = (capture: t, videoEl: Dom.element) =>
