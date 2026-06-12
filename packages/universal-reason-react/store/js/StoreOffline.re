@@ -2,7 +2,6 @@ module type StoreHookRuntime = {
   type store;
   type action;
   let useStore: unit => store;
-  let dispatch: action => unit;
   let dispatchForMutation: action => Js.Promise.t(unit);
 };
 
@@ -378,12 +377,10 @@ module Local = {
       let empty = empty;
     });
 
-    let runtimeDispatch = dispatch;
     module HookRuntime = {
       type store = t;
       type action = Schema.action;
       let useStore = Context.useStore;
-      let dispatch = runtimeDispatch;
       let dispatchForMutation = action => {
         try({
           switch (sourceRef.contents) {
@@ -1520,13 +1517,11 @@ module Synced = {
       let empty = empty;
     });
 
-    let runtimeDispatch = dispatch;
     let runtimeDispatchForMutation = dispatchForMutation;
     module HookRuntime = {
       type store = t;
       type action = Schema.action;
       let useStore = Context.useStore;
-      let dispatch = runtimeDispatch;
       let dispatchForMutation = runtimeDispatchForMutation;
     };
 
