@@ -8,6 +8,7 @@ let () =
     ; Store_patch_test.suite
     ; Store_source_test.suite
     ; Store_cache_test.suite
+    ; Query_registry_test.suite
     ; Use_query_test.suite
     ; Use_mutation_test.suite
     ]
