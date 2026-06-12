@@ -22,18 +22,8 @@ let action_to_json = _action =>
 
 let action_of_json = _json => Noop;
 
-let hasPeriodUnit = (periods: array(Model.Pricing.period), unit) => {
-  let rec loop = index =>
-    if (index >= Array.length(periods)) {
-      false;
-    } else if (periods[index].unit == unit) {
-      true;
-    } else {
-      loop(index + 1);
-    };
-
-  loop(0);
-};
+let hasPeriodUnit = (periods: array(Model.Pricing.period), unit) =>
+  periods->Js.Array.some(~f=(period: Model.Pricing.period) => period.unit == unit);
 
 let appendUniquePeriod = (periods, period: Model.Pricing.period) =>
   if (hasPeriodUnit(periods, period.unit)) {
@@ -42,16 +32,8 @@ let appendUniquePeriod = (periods, period: Model.Pricing.period) =>
     periods->Js.Array.concat(~other=[|period|]);
   };
 
-let appendUniquePeriods = (periods, periodList) => {
-  let rec loop = (index, nextPeriods) =>
-    if (index >= Array.length(periodList)) {
-      nextPeriods;
-    } else {
-      loop(index + 1, appendUniquePeriod(nextPeriods, periodList[index]));
-    };
-
-  loop(0, periods);
-};
+let appendUniquePeriods = (periods, periodList) =>
+  periodList->Js.Array.reduce(~f=appendUniquePeriod, ~init=periods);
 
 let project = (config: config): projections => {
   premise_id:
