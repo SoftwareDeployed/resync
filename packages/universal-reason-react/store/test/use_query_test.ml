@@ -21,18 +21,16 @@ module StringQuery = struct
 end
 
 let with_sync_registry ?(key = "decode-failing:params") json f =
-  let results = Hashtbl.create 1 in
-  Hashtbl.replace results key json;
-  let registry =
-    {
-      QueryRegistry.state = QueryRegistry.Rendered;
-      queries = Hashtbl.create 1;
-      results;
-      db_connection = None;
-    }
-  in
   let previous = !(QueryRegistry.sync_registry_ref) in
-  QueryRegistry.sync_registry_ref := Some registry;
+  let jsonStr =
+    Yojson.Safe.to_string
+      (`Assoc
+        [
+          ( key,
+            `Assoc [ ("_tag", `String "Loaded"); ("data", json) ] );
+        ])
+  in
+  QueryRegistry.setup_registry_from_json ~jsonStr;
   Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
 
 let suite =
