@@ -154,9 +154,17 @@ let subscribe =
             ~updatedAt=entry.lastUpdated,
             ~onPatch=
               (~payload as _: StoreJson.json, ~timestamp: float) => {
-                // For now, just update lastUpdated timestamp
-                // Patch application will be enhanced later
-                entry.lastUpdated = timestamp
+                entry.lastUpdated = timestamp;
+                let _ =
+                  switch (entry.subscriptionHandle) {
+                  | Some(handle) =>
+                    RealtimeClient.Socket.sendFrame(
+                      ~handle,
+                      ~frame=RealtimeClient.selectFrameString(channel, timestamp),
+                    )
+                  | None => false
+                  };
+                ();
               },
             ~onSnapshot=
               (json: StoreJson.json) => {
