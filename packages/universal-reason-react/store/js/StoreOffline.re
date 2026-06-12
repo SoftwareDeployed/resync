@@ -203,7 +203,8 @@ module Local = {
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
     let channelRef: ref(option(broadcast_channel)) = ref(None);
-    let queryResultListenerIdRef: ref(option(string)) = ref(None);
+    let queryResultListenerIdRef:
+      ref(option(QueryCache.loaded_result_listener_id)) = ref(None);
     let suppressPublishRef: ref(bool) = ref(false);
     let listenersRef: StoreEvents.registry(action) = ref([||]);
 
@@ -767,7 +768,8 @@ module Synced = {
     /* Hydration and source state stay outside the controller */
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
-    let queryResultListenerIdRef: ref(option(string)) = ref(None);
+    let queryResultListenerIdRef:
+      ref(option(QueryCache.loaded_result_listener_id)) = ref(None);
     let streamingRef: ref(Schema.streaming_state) = ref(Schema.emptyStreamingState);
     [@platform js]
     let streamingRevisionRef = ref(0);
