@@ -276,11 +276,6 @@ let reduce = (~state: state, ~action: action) => {
   };
 };
 
-let makeStore = (~state, ~derive=?, ()) => {
-  let _ = derive;
-  {state: state};
-};
-
 [@platform js]
 let onActionError = message => Js.log("Action error: " ++ message);
 
@@ -452,7 +447,10 @@ module StoreDef =
     |> StoreBuilder.withSchema({
          emptyState,
          reduce,
-         makeStore,
+         makeStore: (~state, ~derive=?, ()) => {
+           let _ = derive;
+           {state: state};
+         },
        })
     |> StoreBuilder.withGuardTree(~guardTree)
     |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
