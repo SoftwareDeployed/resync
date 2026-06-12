@@ -4,6 +4,7 @@ let () =
     ; Store_action_ledger_test.suite
     ; Store_events_behavior_test.suite
     ; Store_runtime_behavior_test.suite
+    ; Store_runtime_lifecycle_test.suite
     ; Store_crud_test.suite
     ; Store_patch_test.suite
     ; Store_source_test.suite

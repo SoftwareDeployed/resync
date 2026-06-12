@@ -11,7 +11,7 @@ type t = {
   readyRejectRef: ref(option(unit => unit)),
   persistenceQueueRef: ref(Js.Promise.t(unit)),
   pendingPersistenceRef: ref(int),
-  pendingActionsRef: ref(int),
+  pendingActionIdsRef: ref(array(string)),
   connectionRef: ref(StoreRuntimeTypes.connection_status),
   statusListenersRef: StoreEvents.callback_registry(StoreRuntimeTypes.status),
 };
@@ -37,19 +37,20 @@ let make = (~storeName, ()) => {
     readyRejectRef: rejectRef,
     persistenceQueueRef: ref(Js.Promise.resolve()),
     pendingPersistenceRef: ref(0),
-    pendingActionsRef: ref(0),
+    pendingActionIdsRef: ref([||]),
     connectionRef: ref(StoreRuntimeTypes.NotApplicable),
     statusListenersRef: ref([||]),
   };
 };
 
 let notifySubscribers = (lifecycle: t) => {
+  let pendingActions = Array.length(lifecycle.pendingActionIdsRef^);
   let currentStatus: StoreRuntimeTypes.status = {
     ready: lifecycle.readyResolveRef^ == None,
-    idle: lifecycle.readyResolveRef^ == None && lifecycle.pendingPersistenceRef^ == 0 && lifecycle.pendingActionsRef^ == 0,
+    idle: lifecycle.readyResolveRef^ == None && lifecycle.pendingPersistenceRef^ == 0 && pendingActions == 0,
     connection: lifecycle.connectionRef^,
     pendingPersistence: lifecycle.pendingPersistenceRef^,
-    pendingActions: lifecycle.pendingActionsRef^,
+    pendingActions,
   };
   StoreEvents.Callback.emit(
     ~registry=lifecycle.statusListenersRef,
@@ -110,15 +111,21 @@ let trackPersistence = (lifecycle: t, op: Js.Promise.t('a)): Js.Promise.t('a) =>
 };
 
 
-let markActionPending = (lifecycle: t, _actionId: string) => {
-  lifecycle.pendingActionsRef := lifecycle.pendingActionsRef^ + 1;
-  notifySubscribers(lifecycle);
+let markActionPending = (lifecycle: t, actionId: string) => {
+  if (!(lifecycle.pendingActionIdsRef^)->Js.Array.some(~f=id => id == actionId)) {
+    lifecycle.pendingActionIdsRef :=
+      (lifecycle.pendingActionIdsRef^)->Js.Array.concat(~other=[|actionId|]);
+    notifySubscribers(lifecycle);
+  };
 };
 
-let markActionSettled = (lifecycle: t, _actionId: string) => {
-  lifecycle.pendingActionsRef :=
-    lifecycle.pendingActionsRef^ > 0 ? lifecycle.pendingActionsRef^ - 1 : 0;
-  notifySubscribers(lifecycle);
+let markActionSettled = (lifecycle: t, actionId: string) => {
+  let pending =
+    (lifecycle.pendingActionIdsRef^)->Js.Array.filter(~f=id => id != actionId);
+  if (Array.length(pending) != Array.length(lifecycle.pendingActionIdsRef^)) {
+    lifecycle.pendingActionIdsRef := pending;
+    notifySubscribers(lifecycle);
+  };
 };
 
 let markConnectionWaiting = (lifecycle: t) => {
@@ -167,7 +174,7 @@ let rec whenIdle = (~timeout: int=10000, lifecycle: t): Js.Promise.t(unit) =>
     let settled = ref(false);
     let _ = whenReady(~timeout, lifecycle) |> Js.Promise.then_(() =>
       lifecycle.persistenceQueueRef^ |> Js.Promise.then_(() =>
-        if (lifecycle.pendingActionsRef^ > 0) {
+        if (Array.length(lifecycle.pendingActionIdsRef^) > 0) {
           Js.Promise.resolve() |> Js.Promise.then_(() => {
             if (!settled.contents) {
               let _ =
@@ -201,13 +208,14 @@ let rec whenIdle = (~timeout: int=10000, lifecycle: t): Js.Promise.t(unit) =>
 
 let status = (lifecycle: t): StoreRuntimeTypes.status => {
   let ready = lifecycle.readyResolveRef^ == None;
-  let idle = ready && lifecycle.pendingPersistenceRef^ == 0 && lifecycle.pendingActionsRef^ == 0;
+  let pendingActions = Array.length(lifecycle.pendingActionIdsRef^);
+  let idle = ready && lifecycle.pendingPersistenceRef^ == 0 && pendingActions == 0;
   {
     ready,
     idle,
     connection: lifecycle.connectionRef^,
     pendingPersistence: lifecycle.pendingPersistenceRef^,
-    pendingActions: lifecycle.pendingActionsRef^,
+    pendingActions,
   };
 };
 
