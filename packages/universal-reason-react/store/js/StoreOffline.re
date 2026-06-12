@@ -585,19 +585,11 @@ module Synced = {
     /* Typed listener registry */
     let listenersRef: StoreEvents.registry(Config.action) = ref([||]);
 
-    let subscribe = (listener: listener): listener_id => {
-      let listenerId = UUID.make();
-      listenersRef.contents =
-        listenersRef.contents->Js.Array.concat(~other=[|(listenerId, listener)|]);
-      listenerId;
-    };
+    let subscribe = (listener: listener): listener_id =>
+      StoreEvents.Events.listen(~registry=listenersRef, listener);
 
-    let unsubscribe = (listenerId: listener_id) => {
-      listenersRef.contents =
-        listenersRef.contents->Js.Array.filter(~f=((currentId, _listener)) =>
-          currentId != listenerId
-        );
-    };
+    let unsubscribe = (listenerId: listener_id) =>
+      StoreEvents.Events.unlisten(~registry=listenersRef, listenerId);
 
     /* Queued nested dispatch: when emit is active, dispatches are queued
        and drained after the current listener batch completes. This prevents
