@@ -1,3 +1,13 @@
+let queriesConfigOfApplyQueryResult = (
+  applyQueryResult: option(
+    (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
+  ),
+): option(StoreBuilder.queriesConfig('state)) =>
+  switch (applyQueryResult) {
+  | Some(applyQueryResult) => Some({applyQueryResult: applyQueryResult})
+  | None => None
+  };
+
 module Local = {
   type schema('state, 'action, 'store) = {
     storeName: string,
@@ -16,18 +26,29 @@ module Local = {
   type config('state, 'action, 'store) = {
     schema: schema('state, 'action, 'store),
     guardTree: option(StoreBuilder.GuardTree.t('state, 'action)),
+    queries: option(StoreBuilder.queriesConfig('state)),
     cache: [ | `IndexedDB | `None ],
   };
 
-  let make = (~guardTree=?, schema: schema('state, 'action, 'store)): config('state, 'action, 'store) => {
+  let make = (
+    ~guardTree=?,
+    ~applyQueryResult=?,
+    schema: schema('state, 'action, 'store),
+  ): config('state, 'action, 'store) => {
     schema,
     guardTree,
+    queries: queriesConfigOfApplyQueryResult(applyQueryResult),
     cache: `IndexedDB,
   };
 
   let withGuardTree = (~guardTree, config) => {
     ...config,
     guardTree: Some(guardTree),
+  };
+
+  let withQueries = (~applyQueryResult, config) => {
+    ...config,
+    queries: Some({applyQueryResult: applyQueryResult}),
   };
 
   let withCache = (cache: [ | `IndexedDB | `None ], config: config('state, 'action, 'store)): config('state, 'action, 'store) => {
@@ -63,7 +84,7 @@ module Local = {
       let action_to_json = Input.config.schema.action_to_json;
       let makeStore = Input.config.schema.makeStore;
       let validate = StoreBuilder.validateOfGuardTree(Input.config.guardTree);
-      let queries = None;
+      let queries = Input.config.queries;
       let cache = Input.config.cache;
     };
 
@@ -93,21 +114,35 @@ module Synced = {
     strategy: StoreBuilder.Sync.customStrategy('state, 'patch),
     hooks: option(StoreBuilder.Sync.hooks('action)),
     guardTree: option(StoreBuilder.GuardTree.t('state, 'action)),
+    queries: option(StoreBuilder.queriesConfig('state)),
     cache: [ | `IndexedDB | `None ],
   };
 
-  let make = (~transport, ~strategy, ~hooks=?, ~guardTree=?, schema): config('state, 'action, 'store, 'sub, 'patch) => {
+  let make = (
+    ~transport,
+    ~strategy,
+    ~hooks=?,
+    ~guardTree=?,
+    ~applyQueryResult=?,
+    schema,
+  ): config('state, 'action, 'store, 'sub, 'patch) => {
     schema,
     transport,
     strategy,
     hooks,
     guardTree,
+    queries: queriesConfigOfApplyQueryResult(applyQueryResult),
     cache: `IndexedDB,
   };
 
   let withGuardTree = (~guardTree, config) => {
     ...config,
     guardTree: Some(guardTree),
+  };
+
+  let withQueries = (~applyQueryResult, config) => {
+    ...config,
+    queries: Some({applyQueryResult: applyQueryResult}),
   };
 
   let withCache = (cache, config) => {
@@ -167,7 +202,7 @@ module Synced = {
       let onOpen = hooks.onOpen;
       let onMultiplexedHandle = hooks.onMultiplexedHandle;
       let validate = StoreBuilder.validateOfGuardTree(Input.config.guardTree);
-      let queries = None;
+      let queries = Input.config.queries;
       let cache = Input.config.cache;
     };
 
@@ -197,21 +232,35 @@ module Crud = {
     strategy: StoreBuilder.Sync.crudStrategy('state, 'row),
     hooks: option(StoreBuilder.Sync.hooks('action)),
     guardTree: option(StoreBuilder.GuardTree.t('state, 'action)),
+    queries: option(StoreBuilder.queriesConfig('state)),
     cache: [ | `IndexedDB | `None ],
   };
 
-  let make = (~transport, ~strategy, ~hooks=?, ~guardTree=?, schema): config('state, 'action, 'store, 'sub, 'row) => {
+  let make = (
+    ~transport,
+    ~strategy,
+    ~hooks=?,
+    ~guardTree=?,
+    ~applyQueryResult=?,
+    schema,
+  ): config('state, 'action, 'store, 'sub, 'row) => {
     schema,
     transport,
     strategy,
     hooks,
     guardTree,
+    queries: queriesConfigOfApplyQueryResult(applyQueryResult),
     cache: `IndexedDB,
   };
 
   let withGuardTree = (~guardTree, config) => {
     ...config,
     guardTree: Some(guardTree),
+  };
+
+  let withQueries = (~applyQueryResult, config) => {
+    ...config,
+    queries: Some({applyQueryResult: applyQueryResult}),
   };
 
   let withCache = (cache, config) => {
@@ -285,7 +334,7 @@ module Crud = {
       let onOpen = hooks.onOpen;
       let onMultiplexedHandle = hooks.onMultiplexedHandle;
       let validate = StoreBuilder.validateOfGuardTree(Input.config.guardTree);
-      let queries = None;
+      let queries = Input.config.queries;
       let cache = Input.config.cache;
     };
 

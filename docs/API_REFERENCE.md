@@ -269,7 +269,7 @@ let {UniversalRouterDream.basePath, UniversalRouterDream.request} = context;
 
 The `Store` module re-exports the common store namespaces: `Json`, `Crud`, `Patch`, `Signal`, `Events`, `Source`, `IndexedDB`, `Selectors`, `Bootstrap`, `Runtime`, `Sync`, and `Frp`. Prefer `Store.Frp` for the FRP wrapper API; `StoreFrp` remains the underlying module name.
 
-`Store.Frp.Local.make`, `Store.Frp.Synced.make`, and `Store.Frp.Crud.make` accept optional `~guardTree`, and each wrapper also exposes `withGuardTree(~guardTree)`. Guard trees are passed into the same runtime validation path as `StoreBuilder.withGuardTree`, so FRP-authored stores can reject invalid local or optimistic actions before reducers run.
+`Store.Frp.Local.make`, `Store.Frp.Synced.make`, and `Store.Frp.Crud.make` accept optional `~guardTree` and `~applyQueryResult`, and each wrapper also exposes `withGuardTree(~guardTree)` and `withQueries(~applyQueryResult)`. Guard trees are passed into the same runtime validation path as `StoreBuilder.withGuardTree`; query result handlers are passed into the same loaded-query path as `StoreBuilder.withQueries`, so FRP-authored stores can update state from `useQuery` results without bypassing the store runtime.
 
 ### Types
 

@@ -93,6 +93,10 @@ let crudStrategy: StoreBuilder.Sync.crudStrategy(state, row) =
     ~setItems=(state, _rows) => state,
   );
 
+let applyQueryResult = (~state, ~channel as _, ~rows as _) => {
+  count: state.count + 1,
+};
+
 let assertBlocks = (~label, guardTree) => {
   switch (StoreBuilder.validateOfGuardTree(guardTree)) {
   | Some(validate) =>
@@ -104,6 +108,23 @@ let assertBlocks = (~label, guardTree) => {
       Alcotest.fail(label ++ " allowed a guarded action")
     }
   | None => Alcotest.fail(label ++ " did not preserve a guard tree")
+  };
+};
+
+let assertAppliesQueryResult = (
+  ~label,
+  queries: option(StoreBuilder.queriesConfig(state)),
+) => {
+  switch (queries) {
+  | Some(config) =>
+    let next =
+      config.StoreOffline.Local.applyQueryResult(
+        ~state,
+        ~channel="test",
+        ~rows=[||],
+      );
+    Alcotest.check(Alcotest.int, label ++ " result count", 1, next.count);
+  | None => Alcotest.fail(label ++ " did not preserve queries config")
   };
 };
 
@@ -126,6 +147,22 @@ let suite =
           Frp.Crud.make(~transport, ~strategy=crudStrategy, crudSchema)
           |> Frp.Crud.withGuardTree(~guardTree);
         assertBlocks(~label="crud withGuardTree", config.guardTree);
+      }),
+      Alcotest.test_case("local make preserves queries config", `Quick, () => {
+        let config = Frp.Local.make(~applyQueryResult, localSchema);
+        assertAppliesQueryResult(~label="local make", config.queries);
+      }),
+      Alcotest.test_case("synced withQueries preserves queries config", `Quick, () => {
+        let config =
+          Frp.Synced.make(~transport, ~strategy=customStrategy, syncedSchema)
+          |> Frp.Synced.withQueries(~applyQueryResult);
+        assertAppliesQueryResult(~label="synced withQueries", config.queries);
+      }),
+      Alcotest.test_case("crud withQueries preserves queries config", `Quick, () => {
+        let config =
+          Frp.Crud.make(~transport, ~strategy=crudStrategy, crudSchema)
+          |> Frp.Crud.withQueries(~applyQueryResult);
+        assertAppliesQueryResult(~label="crud withQueries", config.queries);
       }),
     ],
   );
