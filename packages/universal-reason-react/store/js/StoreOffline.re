@@ -91,6 +91,27 @@ module Local = {
     applyQueryResult: (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
   };
 
+  let applyLoadedQueryResult = (
+    ~queriesConfig: option(queriesConfig('state)),
+    ~confirmedStateRef: ref('state),
+    ~refreshOptimisticState: unit => unit,
+    ~channel: string,
+    ~rows: array(StoreJson.json),
+    (),
+  ) => {
+    switch (queriesConfig) {
+    | Some(config) =>
+      let newState = config.applyQueryResult(
+        ~state=confirmedStateRef.contents,
+        ~channel,
+        ~rows,
+      );
+      confirmedStateRef := newState;
+      refreshOptimisticState();
+    | None => ()
+    };
+  };
+
   module type Schema = {
     type state;
     type action;
@@ -219,20 +240,6 @@ module Local = {
       | None => ()
       };
 
-    let handleQueryResult = (~queriesConfig: option(queriesConfig(state)), ~channel: string, ~rows: array(StoreJson.json), ()) => {
-      switch (queriesConfig) {
-      | Some(config) =>
-        let newState = config.applyQueryResult(
-          ~state=confirmedStateRef.contents,
-          ~channel,
-          ~rows,
-        );
-        confirmedStateRef := newState;
-        refreshOptimisticState();
-      | None => ()
-      };
-    };
-
     let reconcilePersistedState = (actions: StoreSource.actions(state)) =>
       switch%platform (Runtime.platform) {
       | Client =>
@@ -296,7 +303,14 @@ module Local = {
                 };
                 queryResultListenerIdRef := Some(
                   QueryCache.listenLoadedResults((~channel, ~rows) =>
-                    handleQueryResult(~queriesConfig=Schema.queries, ~channel, ~rows, ())
+                    applyLoadedQueryResult(
+                      ~queriesConfig=Schema.queries,
+                      ~confirmedStateRef,
+                      ~refreshOptimisticState,
+                      ~channel,
+                      ~rows,
+                      (),
+                    )
                   ),
                 );
                 let channel =
@@ -1310,20 +1324,6 @@ module Synced = {
       };
     };
 
-    let handleQueryResult = (~queriesConfig: option(queriesConfig(state)), ~channel: string, ~rows: array(StoreJson.json), ()) => {
-      switch (queriesConfig) {
-      | Some(config) =>
-        let newState = config.applyQueryResult(
-          ~state=confirmedStateRef.contents,
-          ~channel,
-          ~rows,
-        );
-        confirmedStateRef := newState;
-        refreshOptimisticState();
-      | None => ()
-      };
-    };
-
     let startSubscription = (state): Js.Promise.t(unit) =>
       switch (Schema.subscriptionOfState(state)) {
       | Some(subscription) =>
@@ -1453,7 +1453,14 @@ module Synced = {
                 };
                 queryResultListenerIdRef := Some(
                   QueryCache.listenLoadedResults((~channel, ~rows) =>
-                    handleQueryResult(~queriesConfig=Schema.queries, ~channel, ~rows, ())
+                    Local.applyLoadedQueryResult(
+                      ~queriesConfig=Schema.queries,
+                      ~confirmedStateRef,
+                      ~refreshOptimisticState,
+                      ~channel,
+                      ~rows,
+                      (),
+                    )
                   ),
                 );
                 let channel =
