@@ -1,37 +1,37 @@
 [@platform js]
-let mutationFrameString = (actionId: string, actionString: string) => {
-  let actionJson = Js.Json.parseExn(actionString);
-  let jsonObj =
-    Js.Dict.fromArray([|
-      ("type", Js.Json.string("mutation")),
-      ("actionId", Js.Json.string(actionId)),
-      ("action", actionJson),
-    |]);
-  Js.Json.stringify(Js.Json.object_(jsonObj));
-};
+let mutationFrameString = (actionId: string, action: StoreJson.json) =>
+  StoreJson.stringify(
+    json => json,
+    StoreJson.Object.make(dict => {
+      StoreJson.Object.setString(dict, "type", "mutation");
+      StoreJson.Object.setString(dict, "actionId", actionId);
+      StoreJson.Object.setJson(dict, "action", action);
+    }),
+  );
 
 [@platform native]
-let mutationFrameString = (_actionId, _actionString) => "";
+let mutationFrameString = (_actionId, _action) => "";
 
 [@platform js]
-let selectFrameString = (subscription: string, updatedAt: float) => {
-  let jsonObj =
-    Js.Dict.fromArray([|
-      ("type", Js.Json.string("select")),
-      ("subscription", Js.Json.string(subscription)),
-      ("updatedAt", Js.Json.number(updatedAt)),
-    |]);
-  Js.Json.stringify(Js.Json.object_(jsonObj));
-};
+let selectFrameString = (subscription: string, updatedAt: float) =>
+  StoreJson.stringify(
+    json => json,
+    StoreJson.Object.make(dict => {
+      StoreJson.Object.setString(dict, "type", "select");
+      StoreJson.Object.setString(dict, "subscription", subscription);
+      StoreJson.Object.setFloat(dict, "updatedAt", updatedAt);
+    }),
+  );
 
 [@platform native]
 let selectFrameString = (_subscription, _updatedAt) => "";
 
 [@platform js]
-let pingFrameString = () => {
-  let jsonObj = Js.Dict.fromArray([|("type", Js.Json.string("ping"))|]);
-  Js.Json.stringify(Js.Json.object_(jsonObj));
-};
+let pingFrameString = () =>
+  StoreJson.stringify(
+    json => json,
+    StoreJson.Object.make(dict => StoreJson.Object.setString(dict, "type", "ping")),
+  );
 
 [@platform native]
 let pingFrameString = () => "";
@@ -506,7 +506,7 @@ module Socket = {
   };
 
   let sendAction = (~handle: connection_handle, ~actionId: string, ~action: StoreJson.json) =>
-    handle.send(mutationFrameString(actionId, StoreJson.stringify(json => json, action)));
+    handle.send(mutationFrameString(actionId, action));
 
   let sendFrame = (~handle: connection_handle, ~frame: string) =>
     handle.send(frame);

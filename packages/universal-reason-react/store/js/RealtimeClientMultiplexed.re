@@ -41,14 +41,14 @@ module Multiplexed = {
     pendingMutationsRef: ref([||]),
   };
 
-  let unsubscribeFrameString = (subscription: string) => {
-    let jsonObj =
-      Js.Dict.fromArray([|
-        ("type", Js.Json.string("unsubscribe")),
-        ("subscription", Js.Json.string(subscription)),
-      |]);
-    Js.Json.stringify(Js.Json.object_(jsonObj));
-  };
+  let unsubscribeFrameString = (subscription: string) =>
+    StoreJson.stringify(
+      json => json,
+      StoreJson.Object.make(dict => {
+        StoreJson.Object.setString(dict, "type", "unsubscribe");
+        StoreJson.Object.setString(dict, "subscription", subscription);
+      }),
+    );
 
   let rec connect = (t: t) => {
     if (!t.disposedRef.contents) {
@@ -188,7 +188,7 @@ module Multiplexed = {
       ws->WebSocket.send_string(
         RealtimeClient.mutationFrameString(
           actionId,
-          StoreJson.stringify(json => json, action),
+          action,
         ),
       );
       true;
