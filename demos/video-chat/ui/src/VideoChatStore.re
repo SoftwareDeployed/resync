@@ -97,68 +97,79 @@ let actionJson = (~kind, ~fill) => {
   });
 };
 
+let actionJsonWithPayload = (~kind, ~payload) => {
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    StoreJson.Object.setJson(dict, "payload", payload);
+  });
+};
+
 let noopActionJson = () => actionJson(~kind="noop", ~fill=_dict => ());
+
+let roomPayloadJson = (room_id: string) =>
+  StoreJson.Object.make(dict =>
+    StoreJson.Object.setString(dict, "room_id", room_id)
+  );
+
+let roomPeerPayloadJson = (room_id: string, peer_id: string) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "room_id", room_id);
+    StoreJson.Object.setString(dict, "peer_id", peer_id);
+  });
+
+let togglePayloadJson = (room_id: string, peer_id: string, enabled: bool) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "room_id", room_id);
+    StoreJson.Object.setString(dict, "peer_id", peer_id);
+    StoreJson.Object.setBool(dict, "enabled", enabled);
+  });
+
+let sendMessagePayloadJson = (payload: send_message_payload) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "room_id", payload.room_id);
+    StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
+    StoreJson.Object.setString(dict, "text", payload.text);
+  });
 
 let action_to_json = action =>
   switch (action) {
   | JoinRoom(payload) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="join_room",
-      ~fill=dict => {
-        StoreJson.Object.setString(dict, "room_id", payload.room_id);
-        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
-      },
+      ~payload=roomPeerPayloadJson(payload.room_id, payload.peer_id),
     )
   | LeaveRoom(payload) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="leave_room",
-      ~fill=dict => {
-        StoreJson.Object.setString(dict, "room_id", payload.room_id);
-        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
-      },
+      ~payload=roomPeerPayloadJson(payload.room_id, payload.peer_id),
     )
   | PeerJoined(payload) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="peer_joined",
-      ~fill=dict => StoreJson.Object.setString(dict, "room_id", payload.room_id),
+      ~payload=roomPayloadJson(payload.room_id),
     )
   | PeerLeft(payload) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="peer_left",
-      ~fill=dict => {
-        StoreJson.Object.setString(dict, "room_id", payload.room_id);
-        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
-      },
+      ~payload=roomPeerPayloadJson(payload.room_id, payload.peer_id),
     )
   | ToggleVideo(payload) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="toggle_video",
-      ~fill=dict => {
-        StoreJson.Object.setString(dict, "room_id", payload.room_id);
-        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
-        StoreJson.Object.setBool(dict, "enabled", payload.enabled);
-      },
+      ~payload=togglePayloadJson(payload.room_id, payload.peer_id, payload.enabled),
     )
   | ToggleAudio(payload) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="toggle_audio",
-      ~fill=dict => {
-        StoreJson.Object.setString(dict, "room_id", payload.room_id);
-        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
-        StoreJson.Object.setBool(dict, "enabled", payload.enabled);
-      },
+      ~payload=togglePayloadJson(payload.room_id, payload.peer_id, payload.enabled),
     )
   | RemoteToggleVideo(_)
   | RemoteToggleAudio(_) =>
     noopActionJson()
   | SendMessage(payload) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="send_message",
-      ~fill=dict => {
-        StoreJson.Object.setString(dict, "room_id", payload.room_id);
-        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
-        StoreJson.Object.setString(dict, "text", payload.text);
-      },
+      ~payload=sendMessagePayloadJson(payload),
     )
   | ReceiveMessage(_) =>
     noopActionJson()
@@ -365,27 +376,13 @@ let action_of_json = json => {
   };
 };
 
-let encodeRoomPeerPayload = (room_id: string, peer_id: string) =>
-  StoreJson.Object.make(dict => {
-    StoreJson.Object.setString(dict, "room_id", room_id);
-    StoreJson.Object.setString(dict, "peer_id", peer_id);
-  });
-
-let encodeTogglePayload =
-    (room_id: string, peer_id: string, enabled: bool) =>
-  StoreJson.Object.make(dict => {
-    StoreJson.Object.setString(dict, "room_id", room_id);
-    StoreJson.Object.setString(dict, "peer_id", peer_id);
-    StoreJson.Object.setBool(dict, "enabled", enabled);
-  });
-
 module Mutations = {
   module JoinRoom = {
     type params = join_room_payload;
     type nonrec action = action;
     let name = "join_room";
     let encodeParams = (params: params) =>
-      encodeRoomPeerPayload(params.room_id, params.peer_id);
+      roomPeerPayloadJson(params.room_id, params.peer_id);
     let toAction = params => JoinRoom(params);
   };
 
@@ -394,7 +391,7 @@ module Mutations = {
     type nonrec action = action;
     let name = "leave_room";
     let encodeParams = (params: params) =>
-      encodeRoomPeerPayload(params.room_id, params.peer_id);
+      roomPeerPayloadJson(params.room_id, params.peer_id);
     let toAction = params => LeaveRoom(params);
   };
 
@@ -403,7 +400,7 @@ module Mutations = {
     type nonrec action = action;
     let name = "toggle_video";
     let encodeParams = (params: params) =>
-      encodeTogglePayload(params.room_id, params.peer_id, params.enabled);
+      togglePayloadJson(params.room_id, params.peer_id, params.enabled);
     let toAction = params => ToggleVideo(params);
   };
 
@@ -412,7 +409,7 @@ module Mutations = {
     type nonrec action = action;
     let name = "toggle_audio";
     let encodeParams = (params: params) =>
-      encodeTogglePayload(params.room_id, params.peer_id, params.enabled);
+      togglePayloadJson(params.room_id, params.peer_id, params.enabled);
     let toAction = params => ToggleAudio(params);
   };
 
@@ -420,12 +417,7 @@ module Mutations = {
     type params = send_message_payload;
     type nonrec action = action;
     let name = "send_message";
-    let encodeParams = (params: params) =>
-      StoreJson.Object.make(dict => {
-        StoreJson.Object.setString(dict, "room_id", params.room_id);
-        StoreJson.Object.setString(dict, "peer_id", params.peer_id);
-        StoreJson.Object.setString(dict, "text", params.text);
-      });
+    let encodeParams = sendMessagePayloadJson;
     let toAction = params => SendMessage(params);
   };
 };
