@@ -1,6 +1,17 @@
 open Melange_json.Primitives;
 open Store;
 
+let jsonObject = fill => {
+  let dict: Js.Dict.t(Json.json) = Js.Dict.empty();
+  fill(dict);
+  Json.Dict.to_json(json => json, dict);
+};
+
+let setJsonField = (dict, key, value) => dict->Js.Dict.set(key, value);
+let setStringField = (dict, key, value) => setJsonField(dict, key, string_to_json(value));
+let setIntField = (dict, key, value) => setJsonField(dict, key, int_to_json(value));
+let setFloatField = (dict, key, value) => setJsonField(dict, key, float_to_json(value));
+
 module LocalFixture = {
   type state = {
     count: int,
@@ -34,13 +45,10 @@ module LocalFixture = {
   };
 
   let state_to_json = state =>
-    Json.parse(
-      "{\"count\":"
-      ++ int_to_json(state.count)->Melange_json.to_string
-      ++ ",\"updated_at\":"
-      ++ float_to_json(state.updated_at)->Melange_json.to_string
-      ++ "}",
-    );
+    jsonObject(dict => {
+      setIntField(dict, "count", state.count);
+      setFloatField(dict, "updated_at", state.updated_at);
+    });
 
   let action_of_json = json => {
     let kind =
@@ -53,8 +61,8 @@ module LocalFixture = {
 
   let action_to_json = action => {
     switch (action) {
-    | Increment => Json.parse("{\"kind\":\"increment\"}")
-    | Decrement => Json.parse("{\"kind\":\"decrement\"}")
+    | Increment => jsonObject(dict => setStringField(dict, "kind", "increment"))
+    | Decrement => jsonObject(dict => setStringField(dict, "kind", "decrement"))
     };
   };
 
@@ -116,13 +124,10 @@ module CrudFixture = {
   };
 
   let row_to_json = row =>
-    Json.parse(
-      "{\"id\":"
-      ++ string_to_json(row.id)->Melange_json.to_string
-      ++ ",\"name\":"
-      ++ string_to_json(row.name)->Melange_json.to_string
-      ++ "}",
-    );
+    jsonObject(dict => {
+      setStringField(dict, "id", row.id);
+      setStringField(dict, "name", row.name);
+    });
 
   type state = {
     items: array(row),
@@ -174,13 +179,10 @@ module CrudFixture = {
   };
 
   let state_to_json = state =>
-    Json.parse(
-      "{\"items\":"
-      ++ Melange_json.To_json.array(row_to_json)(state.items)->Melange_json.to_string
-      ++ ",\"updated_at\":"
-      ++ float_to_json(state.updated_at)->Melange_json.to_string
-      ++ "}",
-    );
+    jsonObject(dict => {
+      setJsonField(dict, "items", Melange_json.To_json.array(row_to_json)(state.items));
+      setFloatField(dict, "updated_at", state.updated_at);
+    });
 
   let action_of_json = json => {
     let kind =
@@ -200,19 +202,16 @@ module CrudFixture = {
   let action_to_json = action => {
     switch (action) {
     | AddRow(row) =>
-      Json.parse(
-        "{\"kind\":\"add_row\",\"id\":"
-        ++ string_to_json(row.id)->Melange_json.to_string
-        ++ ",\"name\":"
-        ++ string_to_json(row.name)->Melange_json.to_string
-        ++ "}",
-      )
+      jsonObject(dict => {
+        setStringField(dict, "kind", "add_row");
+        setStringField(dict, "id", row.id);
+        setStringField(dict, "name", row.name);
+      })
     | RemoveRow(id) =>
-      Json.parse(
-        "{\"kind\":\"remove_row\",\"id\":"
-        ++ string_to_json(id)->Melange_json.to_string
-        ++ "}",
-      )
+      jsonObject(dict => {
+        setStringField(dict, "kind", "remove_row");
+        setStringField(dict, "id", id);
+      })
     };
   };
 
@@ -332,13 +331,14 @@ module CustomSyncedFixture = {
   };
 
   let state_to_json = state =>
-    Json.parse(
-      "{\"messages\":"
-      ++ Melange_json.To_json.array(string_to_json)(state.messages)->Melange_json.to_string
-      ++ ",\"updated_at\":"
-      ++ float_to_json(state.updated_at)->Melange_json.to_string
-      ++ "}",
-    );
+    jsonObject(dict => {
+      setJsonField(
+        dict,
+        "messages",
+        Melange_json.To_json.array(string_to_json)(state.messages),
+      );
+      setFloatField(dict, "updated_at", state.updated_at);
+    });
 
   let action_of_json = json => {
     let kind =
@@ -355,11 +355,10 @@ module CustomSyncedFixture = {
   let action_to_json = action => {
     switch (action) {
     | SendMessage(msg) =>
-      Json.parse(
-        "{\"kind\":\"send_message\",\"message\":"
-        ++ string_to_json(msg)->Melange_json.to_string
-        ++ "}",
-      )
+      jsonObject(dict => {
+        setStringField(dict, "kind", "send_message");
+        setStringField(dict, "message", msg);
+      })
     };
   };
 
