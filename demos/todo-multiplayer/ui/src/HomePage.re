@@ -28,6 +28,9 @@ let handleInputChange = (setNewTodoText, _event) => {
   setNewTodoText(_ => "");
 };
 
+let ignoreMutationError = promise =>
+  promise |> Js.Promise.catch(_error => Js.Promise.resolve());
+
 [@react.component]
 let make =
   leaf((~listId: string) => {
@@ -67,7 +70,8 @@ let make =
             id: UUID.make(),
             list_id: listId,
             text,
-          });
+          })
+          |> ignoreMutationError;
         setNewTodoText(_ => "");
       };
     };
@@ -77,12 +81,13 @@ let make =
         setTodoCompleted({
           id,
           completed: !completed,
-        });
+        })
+        |> ignoreMutationError;
       ();
     };
 
     let handleRemoveTodo = (id: string) => {
-      let _ = removeTodo({id: id});
+      let _ = removeTodo({id: id}) |> ignoreMutationError;
       ();
     };
 
@@ -98,9 +103,7 @@ let make =
             className="share-button"
             type_="button"
             onClick={_ => {
-              let _ =
-                failServer()
-                |> Js.Promise.catch(_error => Js.Promise.resolve());
+              let _ = failServer() |> ignoreMutationError;
               ();
             }}>
             {React.string("Fail Query")}
