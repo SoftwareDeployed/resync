@@ -23,6 +23,26 @@ type action =
   | SetTodoCompleted(set_completed)
   | RemoveTodo(string);
 
+module Mutations = {
+  module AddTodo = {
+    type params = todo;
+    type nonrec action = action;
+    let toAction = params => AddTodo(params);
+  };
+
+  module SetTodoCompleted = {
+    type params = set_completed;
+    type nonrec action = action;
+    let toAction = params => SetTodoCompleted(params);
+  };
+
+  module RemoveTodo = {
+    type params = string;
+    type nonrec action = action;
+    let toAction = id => RemoveTodo(id);
+  };
+};
+
 type store = {
   state: state,
   completed_count: int,

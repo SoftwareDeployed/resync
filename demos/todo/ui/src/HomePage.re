@@ -26,8 +26,14 @@ let preventDefault = _event => ();
 let make =
   leaf(() => {
     useTilia();
+    module Hooks = TodoStore.Hooks;
+    open Hooks;
     let store = TodoStore.Context.useStore();
     let (newTodoText, setNewTodoText) = React.useState(() => "");
+    let addTodoMutation = useMutation((module TodoStore.Mutations.AddTodo), ());
+    let setTodoCompletedMutation =
+      useMutation((module TodoStore.Mutations.SetTodoCompleted), ());
+    let removeTodoMutation = useMutation((module TodoStore.Mutations.RemoveTodo), ());
 
     let completed_count =
       store.state.todos
@@ -40,7 +46,12 @@ let make =
       preventDefault(event);
       let text = String.trim(newTodoText);
       if (text != "") {
-        TodoStore.addTodo(store, text);
+        let todo: TodoStore.todo = {
+          id: TodoStore.nextTodoId(store.state.todos),
+          text,
+          completed: false,
+        };
+        let _ = addTodoMutation.mutate(todo);
         setNewTodoText(_ => "");
       };
     };
@@ -51,10 +62,18 @@ let make =
     };
 
     let handleToggleTodo = id =>
-      TodoStore.toggleTodo(store, id);
+      switch (Js.Array.find(~f=(item: TodoStore.todo) => item.id == id, store.state.todos)) {
+      | Some(todo) =>
+        let input: TodoStore.set_completed = {id, completed: !todo.completed};
+        let _ = setTodoCompletedMutation.mutate(input);
+        ()
+      | None => ()
+      };
 
-    let handleRemoveTodo = id =>
-      TodoStore.removeTodo(store, id);
+    let handleRemoveTodo = id => {
+      let _ = removeTodoMutation.mutate(id);
+      ();
+    };
 
     <div className="todo-container">
       <div className="todo-header">
