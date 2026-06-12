@@ -33,12 +33,13 @@ let handleSend =
     | Some(id) => id
     | None => ""
   };
-  if (String.length(prompt) > 0 && String.length(threadId) > 0) {
+  let trimmedPrompt = String.trim(prompt);
+  if (String.length(trimmedPrompt) > 0 && String.length(threadId) > 0) {
     let _ =
       sendPromptMutation.mutate({
         message_id: UUID.make(),
         thread_id: threadId,
-        prompt,
+        prompt: trimmedPrompt,
       });
     setDraft(_ => "");
   };

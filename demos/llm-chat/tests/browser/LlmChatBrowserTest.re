@@ -1055,6 +1055,21 @@ let runEmptyStateScenario = (~browser, ~baseUrl) => {
                    ~attemptsLeft=50,
                  )
                )
+            |> then_(_ => page->Playwright.fill("#prompt-input", "   "))
+            |> then_(_ => page->Playwright.click("#send-button"))
+            |> then_(_ => BrowserTestUtils.sleep(300))
+            |> then_(_ =>
+                 page->Playwright.evaluateString(
+                   "document.querySelectorAll('.message--user').length.toString()"
+                 )
+               )
+            |> then_(userMessageCount =>
+                 BrowserTestUtils.assertTrue(
+                   ~label="Empty state: whitespace-only prompt is ignored",
+                   userMessageCount == "0",
+                   ~details="Expected no user messages after submitting whitespace-only input",
+                 )
+               )
             |> then_(_ => page->Playwright.fill("#prompt-input", "First message"))
             |> then_(_ => page->Playwright.click("#send-button"))
             |> then_(_ =>
