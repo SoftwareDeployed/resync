@@ -208,6 +208,120 @@ module Synced = {
 
     include StoreOffline.Synced.Make(Schema);
   };
+
+  module Streaming = {
+    type config('state, 'action, 'store, 'sub, 'patch, 'stream_event, 'streaming_state) = {
+      schema: schema('state, 'action, 'store),
+      transport: StoreBuilder.Sync.transportConfig('state, 'sub),
+      strategy: StoreBuilder.Sync.customStrategy('state, 'patch),
+      streams: StoreRuntimeTypes.streamsConfig('patch, 'stream_event, 'streaming_state),
+      hooks: option(StoreBuilder.Sync.hooks('action)),
+      guardTree: option(StoreBuilder.GuardTree.t('state, 'action)),
+      queries: option(StoreBuilder.queriesConfig('state)),
+      cache: [ | `IndexedDB | `None ],
+    };
+
+    let make = (
+      ~transport,
+      ~strategy,
+      ~streams,
+      ~hooks=?,
+      ~guardTree=?,
+      ~applyQueryResult=?,
+      schema,
+    ): config('state, 'action, 'store, 'sub, 'patch, 'stream_event, 'streaming_state) => {
+      schema,
+      transport,
+      strategy,
+      streams,
+      hooks,
+      guardTree,
+      queries: queriesConfigOfApplyQueryResult(applyQueryResult),
+      cache: `IndexedDB,
+    };
+
+    let withGuardTree = (~guardTree, config) => {
+      ...config,
+      guardTree: Some(guardTree),
+    };
+
+    let withQueries = (~applyQueryResult, config) => {
+      ...config,
+      queries: Some({applyQueryResult: applyQueryResult}),
+    };
+
+    let withStreams = (~streams, config) => {
+      ...config,
+      streams,
+    };
+
+    let withCache = (cache, config) => {
+      ...config,
+      cache,
+    };
+
+    module type BuildInput = {
+      type state;
+      type action;
+      type store;
+      type subscription;
+      type patch;
+      type stream_event;
+      type streaming_state;
+      let config: config(state, action, store, subscription, patch, stream_event, streaming_state);
+    };
+
+    module Build = (Input: BuildInput) => {
+      let stateElementId =
+        StoreBuilder.stateElementIdOrDefault(Input.config.schema.stateElementId);
+
+      let hooks = StoreBuilder.hooksOrDefault(Input.config.hooks);
+
+      module Schema = {
+        type state = Input.state;
+        type action = Input.action;
+        type store = Input.store;
+        type subscription = Input.subscription;
+        type patch = Input.patch;
+        type stream_event = Input.stream_event;
+        type streaming_state = Input.streaming_state;
+
+        let reduce = Input.config.schema.reduce;
+        let emptyState = Input.config.schema.emptyState;
+        let storeName = Input.config.schema.storeName;
+        let stateElementId = stateElementId;
+        let scopeKeyOfState = Input.config.schema.scopeKeyOfState;
+        let timestampOfState = Input.config.schema.timestampOfState;
+        let setTimestamp = Input.config.schema.setTimestamp;
+        let state_of_json = Input.config.schema.state_of_json;
+        let state_to_json = Input.config.schema.state_to_json;
+        let action_of_json = Input.config.schema.action_of_json;
+        let action_to_json = Input.config.schema.action_to_json;
+        let makeStore = Input.config.schema.makeStore;
+        let subscriptionOfState = Input.config.transport.subscriptionOfState;
+        let encodeSubscription = Input.config.transport.encodeSubscription;
+        let eventUrl = Input.config.transport.eventUrl;
+        let baseUrl = Input.config.transport.baseUrl;
+        let decodePatch = Input.config.strategy.decodePatch;
+        let updateOfPatch = Input.config.strategy.updateOfPatch;
+        let streams = Some(Input.config.streams);
+        let emptyStreamingState =
+          Input.config.streams.StoreRuntimeTypes.emptyStreamingState;
+        let onActionError = StoreBuilder.onActionErrorOrDefault(hooks);
+        let onActionAck = hooks.onActionAck;
+        let onCustom = hooks.onCustom;
+        let onMedia = hooks.onMedia;
+        let onError = hooks.onError;
+        let onOpen = hooks.onOpen;
+        let onMultiplexedHandle = hooks.onMultiplexedHandle;
+        let validate = StoreBuilder.validateOfGuardTree(Input.config.guardTree);
+        let queries = Input.config.queries;
+        let cache = Input.config.cache;
+      };
+
+      include StoreOffline.Synced.Make(Schema);
+    };
+  };
 };
 
 module Crud = {

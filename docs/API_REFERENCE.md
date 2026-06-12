@@ -271,6 +271,8 @@ The `Store` module re-exports the common store namespaces: `Json`, `Crud`, `Patc
 
 `Store.Frp.Local.make`, `Store.Frp.Synced.make`, and `Store.Frp.Crud.make` accept optional `~guardTree` and `~applyQueryResult`, and each wrapper also exposes `withGuardTree(~guardTree)` and `withQueries(~applyQueryResult)`. Guard trees are passed into the same runtime validation path as `StoreBuilder.withGuardTree`; query result handlers are passed into the same loaded-query path as `StoreBuilder.withQueries`, so FRP-authored stores can update state from `useQuery` results without bypassing the store runtime.
 
+For custom synced stores with typed stream events, use `Store.Frp.Synced.Streaming.make(~streams, ...)`. The nested streaming wrapper keeps `Store.Frp.Synced.make` backward-compatible for non-streaming stores while passing `streams.emptyStreamingState`, `reduceStream`, and `reconcilePatch` through to the same runtime path as `StoreBuilder.withSync(~streams=Some(...))`.
+
 ### Types
 
 #### `store`

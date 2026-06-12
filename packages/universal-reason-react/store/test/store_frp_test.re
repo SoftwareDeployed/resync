@@ -6,8 +6,11 @@ type action =
   | Blocked;
 type store = {state: state};
 type row = {id: string};
+type stream_event = Append(string);
+type streaming_state = {text: string};
 
 let state = {count: 0};
+let emptyStreamingState = {text: ""};
 
 let guardTree =
   StoreBuilder.GuardTree.denyIf(
@@ -93,6 +96,19 @@ let crudStrategy: StoreBuilder.Sync.crudStrategy(state, row) =
     ~setItems=(state, _rows) => state,
   );
 
+let streamsWithPrefix = (prefix): StoreRuntimeTypes.streamsConfig(string, stream_event, streaming_state) => {
+  decodeStreamEvent: _ => None,
+  emptyStreamingState,
+  reduceStream: (streaming, event) =>
+    switch (event) {
+    | Append(value) => {text: streaming.text ++ prefix ++ value}
+    },
+  reconcilePatch: (_patch, streaming) => streaming,
+};
+
+let streams = streamsWithPrefix("");
+let prefixedStreams = streamsWithPrefix("prefix:");
+
 let applyQueryResult = (~state, ~channel as _, ~rows as _) => {
   count: state.count + 1,
 };
@@ -126,6 +142,12 @@ let assertAppliesQueryResult = (
     Alcotest.check(Alcotest.int, label ++ " result count", 1, next.count);
   | None => Alcotest.fail(label ++ " did not preserve queries config")
   };
+};
+
+let assertAppliesStream = (~label, streams, expected) => {
+  let next =
+    streams.StoreRuntimeTypes.reduceStream(emptyStreamingState, Append("token"));
+  Alcotest.check(Alcotest.string, label ++ " text", expected, next.text);
 };
 
 let suite =
@@ -163,6 +185,31 @@ let suite =
           Frp.Crud.make(~transport, ~strategy=crudStrategy, crudSchema)
           |> Frp.Crud.withQueries(~applyQueryResult);
         assertAppliesQueryResult(~label="crud withQueries", config.queries);
+      }),
+      Alcotest.test_case("synced streaming make preserves streams config", `Quick, () => {
+        let config =
+          Frp.Synced.Streaming.make(
+            ~transport,
+            ~strategy=customStrategy,
+            ~streams,
+            syncedSchema,
+          );
+        assertAppliesStream(~label="synced streaming make", config.streams, "token");
+      }),
+      Alcotest.test_case("synced streaming withStreams replaces streams config", `Quick, () => {
+        let config =
+          Frp.Synced.Streaming.make(
+            ~transport,
+            ~strategy=customStrategy,
+            ~streams,
+            syncedSchema,
+          )
+          |> Frp.Synced.Streaming.withStreams(~streams=prefixedStreams);
+        assertAppliesStream(
+          ~label="synced streaming withStreams",
+          config.streams,
+          "prefix:token",
+        );
       }),
     ],
   );
