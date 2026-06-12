@@ -421,7 +421,7 @@ let make = (~id: string, ~list_id: string, ~text: string) => {
 };
 ```
 
-That converts params into a typed store action, reduces optimistically, writes the queued action to IndexedDB, sends a JSON mutation frame over the socket, and waits for an `ack`, patch, or snapshot to advance confirmed state.
+That converts params into a typed store action, reduces optimistically, writes the queued action to IndexedDB, sends a JSON mutation frame over the socket, and waits for an `ack`. A successful ack advances and persists confirmed state by applying the acknowledged action; later patches or snapshots can further reconcile server-delivered data.
 
 For the ecommerce demo, the relevant wiring lives in:
 

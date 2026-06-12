@@ -304,6 +304,7 @@ Behavior:
 - queues optimistic actions in IndexedDB
 - sends JSON mutation envelopes over the websocket
 - retries with the same `actionId` until ack or retry exhaustion
+- persists the ack-confirmed state when the server acknowledges a mutation
 - rebuilds optimistic state from confirmed state plus remaining pending actions
 
 The synced runtime is the right choice when actions are optimistic and the server can later confirm or patch them.
@@ -493,7 +494,8 @@ This means SSR stays server-first and there is no promise-gated boot path.
 - the typed action is serialized and stored in the IndexedDB action ledger
 - the runtime sends `{type: "mutation", actionId, action}` over the websocket
 - server responds with `{type: "ack", actionId, status, error?}`
-- snapshots and patches advance confirmed state
+- successful acks advance and persist confirmed state by applying the acknowledged action
+- snapshots and patches can further reconcile confirmed state from server-delivered data
 - optimistic state is rebuilt from confirmed state plus remaining pending actions
 
 ## Realtime Patch Helpers
