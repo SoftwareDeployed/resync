@@ -25,7 +25,12 @@ let collect_active_thread_view_ids =
   let query =
     Caqti_request.Infix.(
       Caqti_type.unit ->* Caqti_type.string
-    ) "SELECT DISTINCT thread_id::text FROM active_thread_views"
+    )
+      {|
+      SELECT DISTINCT active_thread_views.thread_id::text
+      FROM active_thread_views
+      INNER JOIN threads ON threads.id = active_thread_views.thread_id
+      |}
   in
   fun (module Db : Caqti_lwt.CONNECTION) ->
     let* result = Db.collect_list query () in
@@ -33,11 +38,11 @@ let collect_active_thread_view_ids =
 
 let notify_query =
   Caqti_request.Infix.(
-    Caqti_type.(t2 string string) ->. Caqti_type.unit
+    Caqti_type.(t2 string string) ->! Caqti_type.unit
   ) "SELECT pg_notify($1, $2)"
 
 let notify_patch (module Db : Caqti_lwt.CONNECTION) ~channel ~payload =
-  let* result = Db.exec notify_query (channel, payload) in
+  let* result = Db.find notify_query (channel, payload) in
   Caqti_lwt.or_fail result
 
 let thread_delete_patch thread_id =
@@ -57,6 +62,15 @@ let notify_deleted_threads db ~channels ~thread_ids =
             notify_patch db ~channel ~payload:(thread_delete_patch thread_id))
          thread_ids)
     channels
+
+let delete_thread_and_notify db thread_id =
+  let* thread_ids = collect_thread_ids db in
+  let* active_thread_ids = collect_active_thread_view_ids db in
+  let* () = RealtimeSchema.Mutations.DeleteThread.exec db thread_id in
+  notify_deleted_threads
+    db
+    ~channels:(thread_ids @ active_thread_ids)
+    ~thread_ids:[thread_id]
 
 let get_config request thread_id =
   let* thread_info_row =
@@ -632,7 +646,7 @@ let handle_mutation with_background_db broadcast_fn request ~db ~action_id ~muta
               | Ok thread_id ->
                   Lwt.catch
                     (fun () ->
-                       let* () = RealtimeSchema.Mutations.DeleteThread.exec db thread_id in
+                       let* () = delete_thread_and_notify db thread_id in
                        Lwt.return (Ack (Ok ())))
                     (function
                       | Caqti_error.Exn error ->
@@ -712,7 +726,7 @@ let () =
     Dream.post "/api/test/delete-thread/:thread_id" (fun request ->
       let thread_id = Dream.param request "thread_id" in
       let* _ = Dream.sql request (fun db ->
-        RealtimeSchema.Mutations.DeleteThread.exec db thread_id) in
+        delete_thread_and_notify db thread_id) in
       Dream.json "{\"status\":\"deleted\"}");
     Dream.post "/api/test/create-thread" (fun request ->
       let* body = Dream.body request in
