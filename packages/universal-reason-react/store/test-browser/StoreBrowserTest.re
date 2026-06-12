@@ -1,4 +1,8 @@
 open Js.Promise;
+open QueryRegistryTypes;
+
+[@mel.get]
+external signalValue: Tilia.Core.signal('a) => 'a = "value";
 
 /* Cleanup helper for browser and server resources */
 let cleanup = (~browser, ~server) => {
@@ -119,12 +123,45 @@ let testCrossTabBroadcast = (~browser) => {
      );
 };
 
+let loadedSignalContains = (signal, expected) =>
+  switch (signal->signalValue) {
+  | Loaded(rows) =>
+    Array.length(rows) == 1
+    && switch (
+         StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rows[0])
+       ) {
+       | Some(value) => value == expected
+       | None => false
+       }
+  | Loading
+  | Error(_) => false
+  };
+
+let testQueryCacheHydrateUpdatesExistingSignal = () => {
+  let cache = QueryCache.make();
+  let key = makeKey(~channel="hydrate-channel", ~paramsHash="first");
+  let signal = QueryCache.getSignal(~t=cache, ~key);
+
+  QueryCache.hydrate(
+    ~t=cache,
+    ~jsonStr="{\"hydrate-channel:first\":{\"_tag\":\"Loaded\",\"data\":[\"hydrated\"]}}",
+  );
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache hydrate updates existing signal",
+    loadedSignalContains(signal, "hydrated")
+    && loadedSignalContains(QueryCache.getSignal(~t=cache, ~key), "hydrated"),
+    ~details="hydration replaced the signal instead of updating it",
+  );
+};
+
 let run = () => {
   let launchOptions = Playwright.makeLaunchOptions(~headless=true, ());
   let browserRef = ref(None);
   let serverRef = ref(None);
 
-  StoreTestServer.start()
+  testQueryCacheHydrateUpdatesExistingSignal()
+  |> then_(_ => StoreTestServer.start())
   |> then_(server => {
        serverRef := Some(server);
        Playwright.chromium->Playwright.launch(launchOptions);

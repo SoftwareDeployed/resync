@@ -2,7 +2,7 @@
  (name store_browser_test)
  (modules StoreBrowserTest StoreTestServer)
  (wrapped false)
- (libraries melange.js playwright_js)
+ (libraries melange.js playwright_js universal_reason_react_store_js)
  (modes melange)
  (preprocess (pps server-reason-react.ppx -melange server-reason-react.browser_ppx -js melange.ppx)))
 

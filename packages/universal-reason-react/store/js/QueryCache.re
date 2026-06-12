@@ -114,6 +114,23 @@ let getSignal = (~t: t, ~key: query_key): Tilia.Core.signal(query_result(StoreJs
   entry.signal;
 };
 
+let setEntryResult =
+    (
+      ~entry: cache_entry,
+      ~channel: string,
+      ~result: query_result(StoreJson.json),
+      ~lastUpdated: float,
+    ) => {
+  entry.data = result;
+  entry.setSignal(result);
+  entry.lastUpdated = lastUpdated;
+  switch (result) {
+  | Loaded(rows) => notifyLoadedResult(~channel, ~rows)
+  | Loading
+  | Error(_) => ()
+  };
+};
+
 // Configure WebSocket URLs at initialization
 [@platform js]
 let init = (~eventUrl: string, ~baseUrl: string, t: t) => {
@@ -173,18 +190,16 @@ let subscribe =
                       Melange_json.Primitives.array_of_json(x => x),
                       json,
                     )
-                  ) {
-                  | Some(jsonRows) => Loaded(jsonRows)
-                  | None => Error("Failed to decode snapshot data")
-                  };
-                entry.data = result;
-                entry.setSignal(result);
-                entry.lastUpdated = Js.Date.now();
-                switch (result) {
-                | Loaded(jsonRows) => notifyLoadedResult(~channel, ~rows=jsonRows)
-                | Loading
-                | Error(_) => ()
+                ) {
+                | Some(jsonRows) => Loaded(jsonRows)
+                | None => Error("Failed to decode snapshot data")
                 };
+                setEntryResult(
+                  ~entry,
+                  ~channel,
+                  ~result,
+                  ~lastUpdated=Js.Date.now(),
+                );
               },
             ~onAck=
               (_actionId: string, _status: string, _error: option(string)) =>
@@ -362,22 +377,13 @@ let hydrate = (~t: t, ~jsonStr: string): unit => {
   forEachSerializedResult(
     ~jsonStr,
     ~f=(~key, ~result) => {
-      let (signal, setSignal) = Tilia.Core.signal(result);
-      let entry = {
-        key,
-        data: result,
-        signal,
-        setSignal,
-        subscriptionHandle: None,
-        lastUpdated: 0.0,
-        refCount: 0 // Will be incremented when subscribe is called
-      };
-      t.entries->Js.Dict.set(key, entry);
-      switch (result) {
-      | Loaded(rows) => notifyLoadedResult(~channel=channelOfKey(key), ~rows)
-      | Loading
-      | Error(_) => ()
-      };
+      let entry = getOrCreateEntry(~t, ~key, ());
+      setEntryResult(
+        ~entry,
+        ~channel=channelOfKey(key),
+        ~result,
+        ~lastUpdated=entry.lastUpdated,
+      );
     },
   );
 };
