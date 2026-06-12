@@ -823,20 +823,16 @@ module StoreDef =
            reduceStream,
            reconcilePatch,
          }),
-  ~hooks={
-    StoreBuilder.Sync.onActionError: Some(onActionError),
-    onActionAck: None,
-    onCustom: None,
-    onMedia: None,
-    onError:
-    Some((~dispatch) => (message) => {
-      Js.Console.error("[VideoChatStore] Server error: " ++ message);
-      dispatch(ResetJoinStatus);
-    }),
-    onOpen: Some((~dispatch) => dispatch(ResetJoinStatus)),
-    onMultiplexedHandle:
-    Some((handle) => MediaTransport.setHandle(Some(handle))),
-  },
+         ~hooks=StoreBuilder.Sync.hooks(
+           ~onActionError=onActionError,
+           ~onError=(~dispatch) => message => {
+             Js.Console.error("[VideoChatStore] Server error: " ++ message);
+             dispatch(ResetJoinStatus);
+           },
+           ~onOpen=(~dispatch) => dispatch(ResetJoinStatus),
+           ~onMultiplexedHandle=handle => MediaTransport.setHandle(Some(handle)),
+           (),
+         ),
          ~stateElementId=Some("initial-store"),
          (),
        ),

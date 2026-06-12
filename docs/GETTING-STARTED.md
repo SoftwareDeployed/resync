@@ -433,15 +433,10 @@ module StoreDef =
       ~getId=(todo: Model.Todo.t) => todo.id,
       ~getItems=(state: state) => state.todos,
       ~setItems=(state, items) => {...state, todos: items},
-      ~hooks={
-        StoreBuilder.Sync.onActionError: Some(message => Js.log("Action error: " ++ message)),
-        onActionAck: None,
-        onCustom: None,
-        onMedia: None,
-        onError: None,
-        onOpen: None,
-        onConnectionHandle: None,
-      },
+      ~hooks=StoreBuilder.Sync.hooks(
+        ~onActionError=message => Js.log("Action error: " ++ message),
+        (),
+      ),
       ~stateElementId=Some("initial-store"),
       ()
     ),

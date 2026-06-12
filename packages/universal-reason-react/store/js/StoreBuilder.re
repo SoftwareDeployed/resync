@@ -302,6 +302,27 @@ module Sync = {
 
   let defaultOnActionError = (_message: string) => ();
 
+  let hooks =
+      (
+        ~onActionError: option(string => unit)=?,
+        ~onActionAck:
+          option((~dispatch: 'action => unit, ~action: 'action, ~actionId: string) => unit)=?,
+        ~onCustom: option(StoreJson.json => unit)=?,
+        ~onMedia: option(StoreJson.json => unit)=?,
+        ~onError: option((~dispatch: 'action => unit) => string => unit)=?,
+        ~onOpen: option((~dispatch: 'action => unit) => unit)=?,
+        ~onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit)=?,
+        (),
+      ): hooks('action) => {
+    onActionError,
+    onActionAck,
+    onCustom,
+    onMedia,
+    onError,
+    onOpen,
+    onMultiplexedHandle,
+  };
+
   let custom = (~decodePatch, ~updateOfPatch): customStrategy('state, 'patch) => {
     decodePatch,
     updateOfPatch,

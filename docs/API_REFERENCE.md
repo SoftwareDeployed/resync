@@ -424,8 +424,17 @@ type hooks('action) = {
   onMedia: option(StoreJson.json => unit),
   onError: option((~dispatch: 'action => unit) => string => unit),
   onOpen: option((~dispatch: 'action => unit) => unit),
-  onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit),
+  onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit),
 };
+```
+
+Use `StoreBuilder.Sync.hooks(...)` to construct this record without spelling unused callbacks:
+
+```reason
+~hooks=StoreBuilder.Sync.hooks(
+  ~onActionError=message => Js.log("Action error: " ++ message),
+  (),
+)
 ```
 
 `withSync` derives `emptyStreamingState` from `~streams=Some(...)`. For custom synced stores that do not use streams, pass an explicit `~emptyStreamingState`, usually `()`.

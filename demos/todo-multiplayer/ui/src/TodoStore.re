@@ -93,8 +93,7 @@ module StoreDef = (val StoreBuilder.buildCrud(StoreBuilder.make()
        ~table=RealtimeSchema.table_name("todos"), ~decodeRow=Model.Todo.of_json,
        ~getId=(todo: Model.Todo.t) => todo.id, ~getItems=(state: state) => state.todos,
        ~setItems=(state: state, items) => {...state, todos: items},
-        ~hooks={ StoreBuilder.Sync.onActionError: Some(onActionError),
-          onActionAck: None, onCustom: None, onMedia: None, onError: None, onOpen: None, onMultiplexedHandle: None },
+        ~hooks=StoreBuilder.Sync.hooks(~onActionError=onActionError, ()),
         ~stateElementId=Some("initial-store"), ())
 ));
 include (StoreDef: StoreBuilder.Runtime.Exports with type state := state and type action := action and type t := store);
