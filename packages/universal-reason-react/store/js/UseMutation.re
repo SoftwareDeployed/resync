@@ -31,16 +31,61 @@ let make =
       ~onDispatch: p => Js.Promise.t(unit),
       (),
     ) => {
-  // Client: Delegate to the dispatch callback supplied by the runtime.
-  let dispatch = (params: p): Js.Promise.t(unit) => {
-    try({
-      onDispatch(params)
-    }) {
-    | error => Js.Promise.reject(error)
+  let (loading, setLoading) = React.useState(() => false);
+  let (error, setError) = React.useState(() => None);
+  let pendingCountRef = React.useRef(0);
+
+  let errorMessage = (error: Js.Promise.error) => {
+    let exn = Js.Exn.anyToExnInternal(error);
+    switch (Js.Exn.asJsExn(exn)) {
+    | Some(jsError) =>
+      switch (Js.Exn.message(jsError)) {
+      | Some(message) => message
+      | None => "Mutation failed"
+      }
+    | None =>
+      switch (exn) {
+      | Failure(message) => message
+      | _ => "Mutation failed"
+      }
     };
   };
 
-  {dispatch, mutate: dispatch, loading: false, error: None};
+  let beginMutation = () => {
+    pendingCountRef.current = pendingCountRef.current + 1;
+    setLoading(_ => true);
+    setError(_ => None);
+  };
+
+  let finishMutation = () => {
+    let nextCount = pendingCountRef.current - 1;
+    pendingCountRef.current = if (nextCount < 0) {0} else {nextCount};
+    setLoading(_ => pendingCountRef.current > 0);
+  };
+
+  // Client: Delegate to the dispatch callback supplied by the runtime.
+  let dispatch = (params: p): Js.Promise.t(unit) => {
+    beginMutation();
+    let promise =
+      try({
+        onDispatch(params)
+      }) {
+      | error => Js.Promise.reject(error)
+      };
+
+    promise
+    |> Js.Promise.then_(_ => {
+         finishMutation();
+         Js.Promise.resolve();
+       })
+    |> Js.Promise.catch(error => {
+         finishMutation();
+         setError(_ => Some(errorMessage(error)));
+         Js.Promise.reject(Js.Exn.anyToExnInternal(error));
+       });
+  };
+
+  {dispatch, mutate: dispatch, loading, error};
 };
 
 // Main useMutation hook - Native version (server-side)
