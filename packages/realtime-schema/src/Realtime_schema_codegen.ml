@@ -69,6 +69,13 @@ let concat_with_separator_ast ~loc separator exprs =
 
 let json_assoc_expr ~loc fields_expr = pexp_variant ~loc "Assoc" (Some fields_expr)
 
+let json_identity_fun_ast ~loc =
+  pexp_fun ~loc Nolabel None (pvar ~loc "json") (eident_of_string ~loc "json")
+
+let store_json_dict_to_json_ast ~loc dict_expr =
+  pexp_apply ~loc (epath_of_strings ~loc ["StoreJson"; "Dict"; "to_json"])
+    [(Nolabel, json_identity_fun_ast ~loc); (Nolabel, dict_expr)]
+
 let caqti_type_expr_for_columns_ast ~loc ~type_name (columns : (string * sql_type) list) =
   match columns with
   | [] -> epath_of_strings ~loc ["Caqti_type"; "unit"]
@@ -269,13 +276,7 @@ let encode_params_code_ast ~loc (params : query_param list) =
         List.fold_right
           (fun call acc -> pexp_sequence ~loc call acc)
           set_calls
-          (pexp_apply ~loc (epath_of_strings ~loc ["Melange_json"; "declassify"])
-             [ ( Nolabel,
-                 json_assoc_expr ~loc
-                   (pexp_apply ~loc (epath_of_strings ~loc ["Array"; "to_list"])
-                      [ ( Nolabel,
-                          pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "entries"])
-                            [(Nolabel, eident_of_string ~loc "dict")] ) ]) ) ])
+          (store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict"))
       in
       pstr_value ~loc Nonrecursive
         [ value_binding ~loc ~pat:(pvar ~loc "encodeParams")
@@ -673,13 +674,7 @@ let row_to_json_code_ast ~loc (columns : (string * sql_type) list) =
         List.fold_right
           (fun call acc -> pexp_sequence ~loc call acc)
           set_calls
-          (pexp_apply ~loc (epath_of_strings ~loc ["Melange_json"; "declassify"])
-             [ ( Nolabel,
-                 json_assoc_expr ~loc
-                   (pexp_apply ~loc (epath_of_strings ~loc ["Array"; "to_list"])
-                      [ ( Nolabel,
-                          pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "entries"])
-                            [(Nolabel, eident_of_string ~loc "dict")] ) ]) ) ])
+          (store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict"))
       in
       pstr_value ~loc Nonrecursive
         [ value_binding ~loc ~pat:(pvar ~loc "row_to_json")
@@ -1890,13 +1885,7 @@ let payload_to_json_function_ast ~loc (mutation : mutation) : structure_item opt
       List.fold_right
         (fun call acc -> pexp_sequence ~loc call acc)
         set_calls
-        (pexp_apply ~loc (epath_of_strings ~loc ["Melange_json"; "declassify"])
-           [ ( Nolabel,
-               json_assoc_expr ~loc
-                 (pexp_apply ~loc (epath_of_strings ~loc ["Array"; "to_list"])
-                    [ ( Nolabel,
-                        pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "entries"])
-                          [(Nolabel, eident_of_string ~loc "dict")] ) ]) ) ])
+        (store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict"))
     in
     let param_pat =
       ppat_constraint ~loc (pvar ~loc "p")
@@ -1933,14 +1922,10 @@ let payload_of_json_function_ast ~loc (mutation : mutation) : structure_item opt
                   (Labelled "fieldName", estring_of_string ~loc field_name);
                   (Labelled "decode", decode_arg) ]))
     in
-    let param_pat =
-      ppat_constraint ~loc (pvar ~loc "p")
-        (ptyp_constr ~loc (Located.mk ~loc (Lident type_name)) [])
-    in
     let record_expr = pexp_record ~loc fields None in
     Some (pstr_value ~loc Nonrecursive
       [ value_binding ~loc ~pat:(pvar ~loc fn_name)
-          ~expr:(pexp_fun ~loc Nolabel None param_pat record_expr) ])
+          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "p") record_expr) ])
 
 let mutation_payload_params (mutation : mutation) : query_param list =
   mutation.params |> List.filter (fun (p : query_param) -> p.payload_key <> None)
@@ -1974,12 +1959,7 @@ let action_to_json_function_ast ~loc (mutations : mutation list) : structure_ite
                        (Nolabel, pexp_apply ~loc json_fn [(Nolabel, eident_of_string ~loc "p")]) ]
                  in
                  let result =
-                   pexp_apply ~loc (epath_of_strings ~loc ["Melange_json"; "declassify"])
-                     [ (Nolabel, json_assoc_expr ~loc
-                          (pexp_apply ~loc (epath_of_strings ~loc ["Array"; "to_list"])
-                             [ (Nolabel,
-                                 pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "entries"])
-                                   [(Nolabel, eident_of_string ~loc "dict")] ) ])) ]
+                   store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict")
                  in
                  pexp_let ~loc Nonrecursive [dict_binding]
                    (pexp_sequence ~loc set_field result)
@@ -2006,12 +1986,7 @@ let action_to_json_function_ast ~loc (mutations : mutation list) : structure_ite
                  (Nolabel, payload_expr) ]
            in
            let result_expr =
-             pexp_apply ~loc (epath_of_strings ~loc ["Melange_json"; "declassify"])
-               [ (Nolabel, json_assoc_expr ~loc
-                    (pexp_apply ~loc (epath_of_strings ~loc ["Array"; "to_list"])
-                       [ (Nolabel,
-                           pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "entries"])
-                             [(Nolabel, eident_of_string ~loc "dict")] ) ])) ]
+             store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict")
            in
            let body =
              pexp_let ~loc Nonrecursive [dict_binding]
