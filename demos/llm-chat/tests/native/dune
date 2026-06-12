@@ -1,0 +1,29 @@
+(executable
+ (name llm_chat_store_streaming_test)
+ (modules llm_chat_store_streaming_test LlmChatStore RealtimeSubscription)
+ (libraries
+  alcotest
+  llm_chat_native
+  universal_reason_react_store_native
+  universal_reason_react_uuid_native
+  melange-json-native
+  server-reason-react.js
+  server-reason-react.belt
+  server-reason-react.react)
+ (modes native)
+ (preprocess
+  (pps
+   server-reason-react.browser_ppx
+   server-reason-react.ppx
+   server-reason-react.melange_ppx
+   melange-json-native.ppx)))
+
+(copy_files
+ (files ../../ui/src/LlmChatStore.re))
+
+(copy_files
+ (files ../../ui/src/RealtimeSubscription.re))
+
+(alias
+ (name llm-chat-native-tests)
+ (deps llm_chat_store_streaming_test.exe))

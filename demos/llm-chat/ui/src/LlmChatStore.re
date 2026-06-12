@@ -296,6 +296,12 @@ let decodeStreamEvent = (json) =>
   | _ => None
   };
 
+let isCurrentStream = (~streaming, ~id) =>
+  switch (streaming.currentStreamId) {
+  | Some(currentId) => currentId == id
+  | None => false
+  };
+
 let reduceStream = (streaming, event) =>
   switch (event) {
   | StreamStarted(threadId, id) =>
@@ -316,19 +322,21 @@ let reduceStream = (streaming, event) =>
       streamError: None,
     }
   | StreamComplete(threadId, id) =>
+    let isCurrent = isCurrentStream(~streaming, ~id);
     {
       ...streaming,
-      currentStreamId: Some(id),
-      currentThreadId: Some(threadId),
-      isStreaming: false,
+      currentStreamId: isCurrent ? Some(id) : streaming.currentStreamId,
+      currentThreadId: isCurrent ? Some(threadId) : streaming.currentThreadId,
+      isStreaming: isCurrent ? false : streaming.isStreaming,
       streamError: None,
     }
   | StreamError(threadId, id, message) =>
+    let isCurrent = isCurrentStream(~streaming, ~id);
     {
       activeStreams: streaming.activeStreams->Belt.Map.String.remove(id),
-      currentStreamId: None,
-      currentThreadId: Some(threadId),
-      isStreaming: false,
+      currentStreamId: isCurrent ? None : streaming.currentStreamId,
+      currentThreadId: isCurrent ? Some(threadId) : streaming.currentThreadId,
+      isStreaming: isCurrent ? false : streaming.isStreaming,
       streamError: Some({thread_id: threadId, message}),
     }
   };
