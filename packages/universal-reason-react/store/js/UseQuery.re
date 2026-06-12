@@ -355,6 +355,19 @@ let useIsQueryLoading =
   result.loading;
 };
 
+[@platform js]
+let useIsQueryLoadingOption =
+    (
+      type p,
+      type r,
+      module Q: QueryModule with type params = p and type row = r,
+      params: option(p),
+    ) =>
+  switch (params) {
+  | None => false
+  | Some(params) => useIsQueryLoading((module Q), params)
+  };
+
 [@platform native]
 let useIsQueryLoading =
     (
@@ -366,3 +379,16 @@ let useIsQueryLoading =
   let result = useQuery((module Q), params, ());
   result.loading;
 };
+
+[@platform native]
+let useIsQueryLoadingOption =
+    (
+      type p,
+      type r,
+      module Q: QueryModule with type params = p and type row = r,
+      params: option(p),
+    ) =>
+  switch (params) {
+  | None => false
+  | Some(params) => useIsQueryLoading((module Q), params)
+  };

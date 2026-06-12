@@ -55,6 +55,13 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
     params: p,
   ) => UseQuery.useIsQueryLoading((module Q), params);
 
+  let isQueryLoadingOption = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: option(p),
+  ) => UseQuery.useIsQueryLoadingOption((module Q), params);
+
   let mutationResult = (
     type p,
     module M: QueryRegistryTypes.MutationModuleWithAction
@@ -496,6 +503,7 @@ module Local = {
     let useQueryOption = RuntimeHooks.queryOption;
     let useQueryResultOption = RuntimeHooks.queryResultOption;
     let useIsQueryLoading = RuntimeHooks.isQueryLoading;
+    let useIsQueryLoadingOption = RuntimeHooks.isQueryLoadingOption;
     let useMutation = RuntimeHooks.mutation;
     let useMutationFn = RuntimeHooks.mutationFn;
     let useMutationResult = RuntimeHooks.mutationResult;
@@ -508,6 +516,7 @@ module Local = {
       let useQueryOption = useQueryOption;
       let useQueryResultOption = useQueryResultOption;
       let useIsQueryLoading = useIsQueryLoading;
+      let useIsQueryLoadingOption = useIsQueryLoadingOption;
       let useMutation = useMutation;
       let useMutationFn = useMutationFn;
       let useMutationResult = useMutationResult;
@@ -1738,6 +1747,7 @@ module Synced = {
     let useQueryOption = RuntimeHooks.queryOption;
     let useQueryResultOption = RuntimeHooks.queryResultOption;
     let useIsQueryLoading = RuntimeHooks.isQueryLoading;
+    let useIsQueryLoadingOption = RuntimeHooks.isQueryLoadingOption;
     let useMutation = RuntimeHooks.mutation;
     let useMutationFn = RuntimeHooks.mutationFn;
     let useMutationResult = RuntimeHooks.mutationResult;
@@ -1750,6 +1760,7 @@ module Synced = {
       let useQueryOption = useQueryOption;
       let useQueryResultOption = useQueryResultOption;
       let useIsQueryLoading = useIsQueryLoading;
+      let useIsQueryLoadingOption = useIsQueryLoadingOption;
       let useMutation = useMutation;
       let useMutationFn = useMutationFn;
       let useMutationResult = useMutationResult;

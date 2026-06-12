@@ -11,6 +11,7 @@
  *  - `useMutationFn` - Compatibility alias for `useMutation`
  *  - `useMutationResult` - Build a typed mutation handle with loading/error state and an explicit dispatch callback
  *  - `useIsQueryLoading` - Check if a query is in loading state
+ *  - `useIsQueryLoadingOption` - Check loading only when params are `Some(params)`, treating `None` like a skipped query
  */
 let useQuery = UseQuery.useQuery;
 let useQueryResult = UseQuery.useQuery;
@@ -20,3 +21,4 @@ let useMutation = UseMutation.makeFn;
 let useMutationFn = UseMutation.makeFn;
 let useMutationResult = UseMutation.make;
 let useIsQueryLoading = UseQuery.useIsQueryLoading;
+let useIsQueryLoadingOption = UseQuery.useIsQueryLoadingOption;

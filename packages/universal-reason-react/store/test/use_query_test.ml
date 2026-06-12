@@ -226,4 +226,41 @@ let suite =
                 "Some query should register"
                 1
                 (QueryRegistry.registered_query_count ())));
+      Alcotest.test_case
+        "server optional loading helper skips without query derivation"
+        `Quick
+        (fun () ->
+          with_empty_registry (fun () ->
+              let loading =
+                UseQuery.useIsQueryLoadingOption
+                  (module ExplodingQuery)
+                  None
+              in
+              Alcotest.(check bool) "skipped query is not loading" false loading;
+              Alcotest.(check int)
+                "skipped loading check should not register"
+                0
+                (QueryRegistry.registered_query_count ());
+              let hooks_loading =
+                Hooks.useIsQueryLoadingOption
+                  (module StringQuery)
+                  (Some "params")
+              in
+              Alcotest.(check bool)
+                "uncached hook loading check is loading"
+                true hooks_loading;
+              Alcotest.(check int)
+                "unskipped loading check should register"
+                1
+                (QueryRegistry.registered_query_count ())));
+      Alcotest.test_case "server loading helper reads cached loaded result" `Quick
+        (fun () ->
+          with_sync_registry
+            ~key:string_query_key
+            (`List [ `String "ready" ])
+            (fun () ->
+              Alcotest.(check bool)
+                "cached loaded result is not loading"
+                false
+                (UseQuery.useIsQueryLoading (module StringQuery) "params")));
     ] )
