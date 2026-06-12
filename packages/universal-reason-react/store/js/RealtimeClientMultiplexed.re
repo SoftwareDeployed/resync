@@ -19,7 +19,7 @@ module Multiplexed = {
     disposedRef: ref(bool),
     pingIntervalRef: ref(option(int)),
     reconnectTimeoutRef: ref(option(int)),
-    pendingMutationsRef: ref(list((string, StoreJson.json))),
+    pendingMutationsRef: ref(array((string, StoreJson.json))),
   };
 
   type subscription_handle = { channel: string, id: int };
@@ -38,7 +38,7 @@ module Multiplexed = {
     disposedRef: ref(false),
     pingIntervalRef: ref(None),
     reconnectTimeoutRef: ref(None),
-    pendingMutationsRef: ref([]),
+    pendingMutationsRef: ref([||]),
   };
 
   let unsubscribeFrameString = (subscription: string) => {
@@ -75,8 +75,8 @@ module Multiplexed = {
 
         /* Send pending mutations */
         let pending = t.pendingMutationsRef.contents;
-        t.pendingMutationsRef := [];
-        pending |> List.iter(((actionId, action)) => {
+        t.pendingMutationsRef := [||];
+        pending->Js.Array.forEach(~f=((actionId, action)) => {
           let _ = sendAction(~actionId, ~action, t);
         });
       });
@@ -195,7 +195,10 @@ module Multiplexed = {
     | _ =>
       /* Queue for after reconnect */
       t.pendingMutationsRef :=
-        [(actionId, action), ...t.pendingMutationsRef.contents];
+        Js.Array.concat(
+          ~other=[|(actionId, action)|],
+          t.pendingMutationsRef.contents,
+        );
       false;
     };
   };
