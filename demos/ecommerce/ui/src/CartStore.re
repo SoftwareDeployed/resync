@@ -60,16 +60,17 @@ let emptyState: state = {
 };
 
 let itemCountOfItems = items =>
-  Array.fold_left(
-    (count, inventoryId) =>
+  items
+  ->Js.Dict.keys
+  ->Js.Array.reduce(
+      ~init=0,
+      ~f=(count, inventoryId) =>
       count
       + switch (items->Js.Dict.get(inventoryId)) {
         | Some((cartItem: CartItem.t)) => cartItem.quantity
         | None => 0
         },
-    0,
-    items->Js.Dict.keys,
-  );
+    );
 
 let itemCount = (state: state) => itemCountOfItems(state.items);
 
