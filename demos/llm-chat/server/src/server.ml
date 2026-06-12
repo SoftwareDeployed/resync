@@ -1,6 +1,16 @@
 open Lwt.Syntax
 open Mutation_result
 
+let touch_thread_updated_at =
+  let query =
+    Caqti_request.Infix.(
+      Caqti_type.string ->. Caqti_type.unit
+    ) "UPDATE threads SET updated_at = NOW() WHERE id = $1::uuid"
+  in
+  fun (module Db : Caqti_lwt.CONNECTION) thread_id ->
+    let* result = Db.exec query thread_id in
+    Caqti_lwt.or_fail result
+
 let get_config request thread_id =
   let* thread_info_row =
     Dream.sql request (fun db ->
@@ -22,6 +32,13 @@ let get_config request thread_id =
         RealtimeSchema.Queries.GetMessages.caqti_type
         thread_id)
   in
+  let latest_message_at =
+    List.fold_left
+      (fun latest (row : RealtimeSchema.Queries.GetMessages.row) ->
+        max latest row.created_at)
+      0.0
+      message_rows
+  in
   let messages =
     Array.map
       (fun (row : RealtimeSchema.Queries.GetMessages.row) ->
@@ -39,18 +56,23 @@ let get_config request thread_id =
   let threads =
     Array.map
       (fun (row : RealtimeSchema.Queries.GetThreads.row) ->
-         ({ Model.Thread.id = row.id; title = row.title; updated_at = row.updated_at } : Model.Thread.t))
+         let updated_at =
+           if row.id = thread_id then max row.updated_at latest_message_at else row.updated_at
+         in
+         ({ Model.Thread.id = row.id; title = row.title; updated_at } : Model.Thread.t))
       (Array.of_list thread_rows)
+  in
+  let latest_thread_at =
+    match thread_info with
+    | Some thread -> thread.updated_at
+    | None -> 0.0
   in
   let state : Model.t = {
     threads;
     current_thread_id = Some thread_id;
     messages;
     input = "";
-    updated_at =
-      (match thread_info with
-       | Some thread -> thread.updated_at
-       | None -> 0.0);
+    updated_at = max latest_thread_at latest_message_at;
   } in
   Lwt.return state
 
@@ -92,9 +114,12 @@ let broadcast_stream_event ~broadcast_fn ~thread_id ~event fields =
 let finalize_assistant_message ~request ~thread_id ~assistant_message_id ~full_response =
   if String.length full_response > 0 then
     Dream.sql request (fun db ->
-      RealtimeSchema.Mutations.AddMessage.exec
-        db
-        (assistant_message_id, thread_id, "assistant", full_response))
+      let* () =
+        RealtimeSchema.Mutations.AddMessage.exec
+          db
+          (assistant_message_id, thread_id, "assistant", full_response)
+      in
+      touch_thread_updated_at db thread_id)
   else Lwt.return_unit
 
 let stream_ollama ~broadcast_fn ~request ~thread_id ~assistant_message_id () =
@@ -293,6 +318,7 @@ let handle_mutation broadcast_fn request ~db ~action_id ~mutation_name:_ action 
                                    db
                                    (message_id, thread_id, "user", prompt)
                                in
+                               let* () = touch_thread_updated_at db thread_id in
                                let () =
                                  Lwt.async (fun () ->
                                    Lwt.catch
@@ -363,6 +389,11 @@ let handle_mutation broadcast_fn request ~db ~action_id ~mutation_name:_ action 
       Lwt.return (Ack (Ok ()))
   | Ok _ -> Lwt.return (Ack (Error "Unknown action kind"))
 
+let dispatch_mutation db ~mutation_name action =
+  match mutation_name with
+  | "delete_thread" -> None
+  | _ -> RealtimeSchema.dispatch_mutation db ~mutation_name action
+
 let () =
   let builder =
     Server_builder.make
@@ -384,7 +415,7 @@ let () =
   |> Server_builder.with_middleware
     ~resolve_subscription
     ~load_snapshot:get_config_json
-    ~dispatch_mutation:RealtimeSchema.dispatch_mutation
+    ~dispatch_mutation
     ~handle_mutation
     ~validate_mutation
   |> Server_builder.with_routes [
@@ -428,7 +459,10 @@ let () =
       let content = try Yojson.Safe.Util.(to_string (member "content" json)) with _ -> "test message" in
       let message_id = UUID.make () in
       let* _ = Dream.sql request (fun db ->
-        RealtimeSchema.Mutations.AddMessage.exec db (message_id, thread_id, role, content)) in
+        let* () =
+          RealtimeSchema.Mutations.AddMessage.exec db (message_id, thread_id, role, content)
+        in
+        touch_thread_updated_at db thread_id) in
       Dream.respond (Yojson.Safe.to_string (`Assoc [("id", `String message_id); ("thread_id", `String thread_id)])));
     Dream.post "/api/test/delete-all-threads" (fun request ->
       let* _ = Dream.sql request (fun db ->

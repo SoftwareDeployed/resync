@@ -174,6 +174,7 @@ let runThreadListAndInputScenario = (~browser, ~baseUrl) => {
               ~attemptsLeft=50,
             )
           )
+       |> then_(_ => BrowserTestUtils.sleep(500))
        |> then_(_ => page->Playwright.evaluateString("window.location.href"))
      );
 };
@@ -476,10 +477,10 @@ let runThreadDeletionScenario = (~browser, ~baseUrl) => {
        |> then_(_ => page->Playwright.waitForSelector(".thread-delete-button"))
        |> then_(_ =>
             page->Playwright.evaluateString(
-              "document.querySelector('.thread-item')?.querySelector('.thread-item-title')?.textContent || ''"
+              "(document.querySelector('.thread-item')?.id || '').replace('thread-item-', '')"
             )
           )
-       |> then_(firstThreadTitle =>
+       |> then_(firstThreadId =>
             page->Playwright.evaluateString(
               "document.querySelectorAll('.thread-item').length.toString()"
             )
@@ -508,16 +509,16 @@ let runThreadDeletionScenario = (~browser, ~baseUrl) => {
                       |> then_(_ => BrowserTestUtils.sleep(800))
                       |> then_(_ =>
                            page->Playwright.evaluateString(
-                             "Array.from(document.querySelectorAll('.thread-item-title')).map(el => el.textContent).join(', ')"
+                             "Array.from(document.querySelectorAll('.thread-item')).map(el => (el.id || '').replace('thread-item-', '')).join(', ')"
                            )
                          )
-                      |> then_(titlesAfterRefresh => {
-                           let stillPresent = titlesAfterRefresh->includes(firstThreadTitle);
+                      |> then_(threadIdsAfterRefresh => {
+                           let stillPresent = threadIdsAfterRefresh->includes(firstThreadId);
                            BrowserTestUtils.assertTrue(
-                             ~label="Deleted thread title absent after refresh",
+                             ~label="Deleted thread id absent after refresh",
                              !stillPresent,
                              ~details=
-                               "Deleted thread title: " ++ firstThreadTitle ++ ", Found titles: " ++ titlesAfterRefresh,
+                               "Deleted thread id: " ++ firstThreadId ++ ", Found ids: " ++ threadIdsAfterRefresh,
                            );
                          })
                       |> then_(_ => {
