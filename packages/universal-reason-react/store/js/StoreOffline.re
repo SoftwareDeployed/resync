@@ -1049,9 +1049,25 @@ module Synced = {
       persistPromise
     }
 
+    and failTimedOutAction = (~actionId, ~action) => {
+      let message = "Timed out waiting for acknowledgement";
+      refreshOptimisticState();
+      StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
+      emitEvent(
+        StoreEvents.ActionFailed({
+          actionId,
+          action,
+          message,
+        }),
+      );
+      Schema.onActionError(message);
+      Js.Promise.resolve();
+    }
+
     and handleAckTimeout = actionId =>
       switch%platform (Runtime.platform) {
       | Client =>
+        Controller.clearAckTimeout(actionId);
         let _ =
           Js.Promise.then_(
             cacheRecord =>
@@ -1063,29 +1079,19 @@ module Synced = {
                 | Pending
                 | Syncing =>
                   if (record.retryCount >= StoreActionLedger.maxRetries) {
-                    let message = "Timed out waiting for acknowledgement";
                     let ledgerRecord = ledgerRecordOfCache(record);
                     Js.Promise.then_(
-                      _ => {
-                        refreshOptimisticState();
-                        StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
-                        /* Failure ordering contract: the action ledger status is
-                           updated before the public ActionFailed event and any
-                           legacy callback fire. */
-                        emitEvent(
-                          StoreEvents.ActionFailed({
-                            actionId,
-                            action: Some(ledgerRecord.action |> Schema.action_of_json),
-                            message,
-                          }),
-                        );
-                        Schema.onActionError(message);
-                        Js.Promise.resolve();
-                      },
+                      _ =>
+                        failTimedOutAction(
+                          ~actionId,
+                          ~action=Some(
+                            ledgerRecord.action |> Schema.action_of_json,
+                          ),
+                        ),
                       cachePutAction({
                         ...record,
                         status: StoreActionLedger.statusToString(Failed),
-                        error: Some(message),
+                        error: Some("Timed out waiting for acknowledgement"),
                       }),
                     );
                   } else {
@@ -1100,7 +1106,7 @@ module Synced = {
                     );
                   }
                 }
-              | None => Js.Promise.resolve()
+              | None => failTimedOutAction(~actionId, ~action=None)
               },
             cacheGetAction(~id=actionId, ()),
           );

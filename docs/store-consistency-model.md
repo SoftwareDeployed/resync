@@ -86,6 +86,8 @@ When the server returns `status: "error"` in `handleAck` (`StoreOffline.re:1005-
 2. Calls `refreshOptimisticState` to rebuild state from confirmed plus the remaining pending actions, effectively rolling back the failed action.
 3. Marks the action settled and emits `ActionFailed` only after the ledger has been updated and rollback replay has been requested.
 
+Ack timeouts follow the same terminal behavior. If the timed-out ledger record is missing, the runtime still requests optimistic rollback, marks the action settled, and emits `ActionFailed` with no action payload so mutation promises and `whenIdle` cannot remain pending forever.
+
 ### Promise rejection hygiene
 
 Catch blocks in the runtime no longer use `Obj.magic`. Rejections are explicit: `Js.Promise.reject(Failure("..."))`. This is visible in `StoreRuntimeLifecycle.re` (e.g., lines 77-79, 101-103, 148-153) and in `StoreOffline.re` (e.g., line 749-756).
