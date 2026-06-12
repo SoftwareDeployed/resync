@@ -194,7 +194,11 @@ module Bootstrap = {
   };
 
   let withHydratedProvider = (~hydrateStore as _, ~provider as _, ~children as _) => {
-    {store: Obj.magic(), element: React.null};
+    {
+      store:
+        Js.Exn.raiseError("StoreBuilder.Bootstrap.withHydratedProvider is client-only"),
+      element: React.null,
+    };
   };
 
   let withHydratedProviders = (~stores as _, ~children as _) => {
@@ -202,7 +206,11 @@ module Bootstrap = {
   };
 
   let withCreatedProvider = (~createStore as _, ~provider as _, ~initialState as _, ~children as _) => {
-    {store: Obj.magic(), element: React.null};
+    {
+      store:
+        Js.Exn.raiseError("StoreBuilder.Bootstrap.withCreatedProvider is client-only"),
+      element: React.null,
+    };
   };
 };
 
