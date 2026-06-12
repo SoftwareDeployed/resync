@@ -222,7 +222,7 @@ let useQuery =
             Loaded(rows_)
           }
         ) {
-        | _ => Loading
+        | _ => Error("Failed to decode query result")
         }
       | None => Loading
       }
