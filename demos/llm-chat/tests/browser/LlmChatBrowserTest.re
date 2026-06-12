@@ -202,6 +202,14 @@ let execSql = (sql: string) => {
   };
 };
 
+let installMalformedSendPromptLedger = () => {
+  execSql("DROP TABLE IF EXISTS _resync_actions_send_prompt");
+  execSql("CREATE TABLE _resync_actions_send_prompt (action_id text PRIMARY KEY)");
+};
+
+let removeMalformedSendPromptLedger = () =>
+  execSql("DROP TABLE IF EXISTS _resync_actions_send_prompt");
+
 module MockOllama = {
   type t = {
     server: mockServer,
@@ -266,6 +274,7 @@ module MockOllama = {
 };
 
 let cleanup = (~browser, ~server, ~mock) => {
+  removeMalformedSendPromptLedger();
   let closeBrowser =
     switch (browser) {
     | Some(activeBrowser) => activeBrowser->Playwright.close |> catch(_ => resolve())
@@ -355,6 +364,7 @@ let runMessageDisplayScenario = (~browser, ~threadUrl) => {
 
 let runOllamaStreamingScenario = (~browser, ~baseUrl, ~mock) => {
   Js.log("Running Ollama streaming scenario...");
+  installMalformedSendPromptLedger();
   let prompt = "ping";
   browser
   ->Playwright.newPage
@@ -1264,6 +1274,7 @@ let run = () => {
   let serverRef = ref(None);
   let mockRef = ref(None);
 
+  removeMalformedSendPromptLedger();
   MockOllama.start()
   |> then_(mock => {
        mockRef := Some(mock);

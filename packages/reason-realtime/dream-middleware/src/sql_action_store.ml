@@ -66,28 +66,28 @@ let resolve_storage db ~mutation_name =
   let per_mutation_table =
     if is_safe_identifier_suffix mutation_name then Some (table_name mutation_name) else None
   in
-  let* per_mutation_exists =
-    match per_mutation_table with
-    | None -> Lwt.return (Ok false)
-    | Some table -> table_exists db table
-  in
-  match per_mutation_table, per_mutation_exists with
-  | Some table, Ok true -> Lwt.return (Ok (Per_mutation_table table))
-  | None, Ok true -> Lwt.return (Ok Generic_table)
-  | _, Ok false ->
-    let* generic_exists = table_exists db "_resync_actions" in
-    (match generic_exists with
-     | Ok true -> Lwt.return (Ok Generic_table)
-     | Ok false ->
-       Lwt.return
-         (Error
-            (`Msg
-               (Printf.sprintf
-                  "No action ledger table found for mutation %S. Expected %s or _resync_actions."
-                  mutation_name
-                  (match per_mutation_table with Some table -> table | None -> "<invalid mutation table name>"))))
-     | Error err -> Lwt.return (Error (`Caqti err)))
-  | _, Error err -> Lwt.return (Error (`Caqti err))
+  let* generic_exists = table_exists db "_resync_actions" in
+  match generic_exists with
+  | Ok true -> Lwt.return (Ok Generic_table)
+  | Error err -> Lwt.return (Error (`Caqti err))
+  | Ok false ->
+    let* per_mutation_exists =
+      match per_mutation_table with
+      | None -> Lwt.return (Ok false)
+      | Some table -> table_exists db table
+    in
+    match per_mutation_table, per_mutation_exists with
+    | Some table, Ok true -> Lwt.return (Ok (Per_mutation_table table))
+    | (None, Ok true)
+    | (_, Ok false) ->
+      Lwt.return
+        (Error
+           (`Msg
+              (Printf.sprintf
+                 "No action ledger table found for mutation %S. Expected _resync_actions or %s."
+                 mutation_name
+                 (match per_mutation_table with Some table -> table | None -> "<invalid mutation table name>"))))
+    | _, Error err -> Lwt.return (Error (`Caqti err))
 
 let check (module Db : Caqti_lwt.CONNECTION) storage ~mutation_name ~action_id =
   let* result =
@@ -184,6 +184,8 @@ let record_failed (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id ~
   let truncated = truncate_msg msg in
   Printf.eprintf "[sql_action_store] record_failed for %s.%s: %s\n%!" mutation_name action_id msg;
   let db_module = (module Db : Caqti_lwt.CONNECTION) in
+  (* Clear any leaked aborted transaction before touching the action ledger. *)
+  let* () = best_effort_rollback db_module in
   let* storage = resolve_storage db_module ~mutation_name in
   match storage with
   | Ok storage ->
@@ -203,6 +205,8 @@ let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id call
     let* () = best_effort_rollback db_module in
     ack_error (Caqti_error.show err)
   in
+  (* Clear any leaked aborted transaction before touching the action ledger. *)
+  let* () = best_effort_rollback db_module in
   let* storage = resolve_storage db_module ~mutation_name in
   match storage with
   | Error (`Caqti err) -> ack_caqti_error err
