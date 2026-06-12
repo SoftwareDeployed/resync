@@ -1,3 +1,36 @@
+module type StoreHookRuntime = {
+  type store;
+  type action;
+  let useStore: unit => store;
+  let dispatch: action => unit;
+};
+
+module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
+  let query = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: p,
+    (),
+  ) => {
+    let _ = UseQuery.useQuery((module Q), params, ());
+    Runtime.useStore();
+  };
+
+  let mutation = (
+    type p,
+    module M: QueryRegistryTypes.MutationModuleWithAction
+      with type params = p and type action = Runtime.action,
+    (),
+  ) => {
+    UseMutation.make(
+      (module M),
+      ~onDispatch=params => Runtime.dispatch(M.toAction(params)),
+      (),
+    );
+  };
+};
+
 module Local = {
   type queriesConfig('state) = {
     applyQueryResult: (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
@@ -334,29 +367,18 @@ module Local = {
       let useStore = () => React.useContext(context);
     };
 
-    let useQuery = (
-      type p,
-      type r,
-      module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
-      params: p,
-      (),
-    ) => {
-      let _ = UseQuery.useQuery((module Q), params, ());
-      Context.useStore();
+    let runtimeDispatch = dispatch;
+    module HookRuntime = {
+      type store = t;
+      type action = Schema.action;
+      let useStore = Context.useStore;
+      let dispatch = runtimeDispatch;
     };
 
-    let useMutation = (
-      type p,
-      module M: QueryRegistryTypes.MutationModuleWithAction
-        with type params = p and type action = Schema.action,
-      (),
-    ) => {
-      UseMutation.make(
-        (module M),
-        ~onDispatch=params => dispatch(M.toAction(params)),
-        (),
-      );
-    };
+    module RuntimeHooks = MakeStoreHooks(HookRuntime);
+
+    let useQuery = RuntimeHooks.query;
+    let useMutation = RuntimeHooks.mutation;
 
     module Hooks = {
       let useStore = Context.useStore;
@@ -1444,29 +1466,18 @@ module Synced = {
       let useStore = () => React.useContext(context);
     };
 
-    let useQuery = (
-      type p,
-      type r,
-      module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
-      params: p,
-      (),
-    ) => {
-      let _ = UseQuery.useQuery((module Q), params, ());
-      Context.useStore();
+    let runtimeDispatch = dispatch;
+    module HookRuntime = {
+      type store = t;
+      type action = Schema.action;
+      let useStore = Context.useStore;
+      let dispatch = runtimeDispatch;
     };
 
-    let useMutation = (
-      type p,
-      module M: QueryRegistryTypes.MutationModuleWithAction
-        with type params = p and type action = Schema.action,
-      (),
-    ) => {
-      UseMutation.make(
-        (module M),
-        ~onDispatch=params => dispatch(M.toAction(params)),
-        (),
-      );
-    };
+    module RuntimeHooks = MakeStoreHooks(HookRuntime);
+
+    let useQuery = RuntimeHooks.query;
+    let useMutation = RuntimeHooks.mutation;
 
     module Hooks = {
       let useStore = Context.useStore;
