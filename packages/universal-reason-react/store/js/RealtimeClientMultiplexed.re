@@ -18,6 +18,7 @@ module Multiplexed = {
     eventUrl: string,
     baseUrl: string,
     disposedRef: ref(bool),
+    idleCloseRef: ref(bool),
     pingIntervalRef: ref(option(int)),
     reconnectTimeoutRef: ref(option(int)),
     pendingMutationsRef: ref(array((string, StoreJson.json))),
@@ -37,6 +38,7 @@ module Multiplexed = {
     eventUrl,
     baseUrl,
     disposedRef: ref(false),
+    idleCloseRef: ref(false),
     pingIntervalRef: ref(None),
     reconnectTimeoutRef: ref(None),
     pendingMutationsRef: ref([||]),
@@ -53,6 +55,7 @@ module Multiplexed = {
 
   let rec connect = (t: t) => {
     if (!t.disposedRef.contents) {
+      t.idleCloseRef := false;
       let url = Webapi.Url.makeWith(t.eventUrl, ~base=t.baseUrl);
       let isSecure = Webapi.Url.protocol(url) == "https:";
       url->Webapi.Url.setProtocol(isSecure ? "wss" : "ws");
@@ -83,8 +86,17 @@ module Multiplexed = {
       });
 
       WebSocket.onClose(ws, () => {
-        t.websocketRef := None;
-        if (!t.disposedRef.contents) {
+        let wasIdleClose = t.idleCloseRef.contents;
+        t.idleCloseRef := false;
+        let isCurrentSocket =
+          switch (t.websocketRef.contents) {
+          | Some(currentWs) => currentWs == ws
+          | None => false
+          };
+        if (isCurrentSocket) {
+          t.websocketRef := None;
+        };
+        if (isCurrentSocket && !t.disposedRef.contents && !wasIdleClose) {
           t.reconnectTimeoutRef :=
             Some(
               setTimeout(
@@ -269,9 +281,9 @@ module Multiplexed = {
             }
           });
       if (removed && !hasActive()) {
-        t.disposedRef := true;
         switch (t.websocketRef.contents) {
         | Some(ws) =>
+          t.idleCloseRef := true;
           t.websocketRef := None;
           ws->WebSocket.close;
         | None => ()
