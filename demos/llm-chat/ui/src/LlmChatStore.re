@@ -202,7 +202,7 @@ let reduce = (~state: state, ~action: action) => {
         updated_at: updatedAt,
       };
       let newThreads =
-        Js.Array.concat(~other=state.threads, [|newThread|]);
+        [|newThread|]->Js.Array.concat(~other=state.threads);
       withTimestamp({
         ...state,
         threads: newThreads,
@@ -215,7 +215,7 @@ let reduce = (~state: state, ~action: action) => {
     withTimestamp({
       ...state,
       messages:
-        Js.Array.concat(
+        state.messages->Js.Array.concat(
           ~other=[|
             {
               Model.Message.id: "local-" ++ string_of_float(updatedAt),
@@ -224,7 +224,6 @@ let reduce = (~state: state, ~action: action) => {
               content: payload.prompt,
             },
           |],
-          state.messages,
         ),
       input: "",
     })
@@ -234,7 +233,7 @@ let reduce = (~state: state, ~action: action) => {
     withTimestamp({
       ...state,
       messages:
-        Js.Array.concat(
+        state.messages->Js.Array.concat(
           ~other=[|
             {
               Model.Message.id: "local-error-" ++ string_of_float(updatedAt),
@@ -247,7 +246,6 @@ let reduce = (~state: state, ~action: action) => {
               content: "Error: " ++ message,
             },
           |],
-          state.messages,
         ),
     })
   | SelectThread(thread_id) =>
@@ -363,8 +361,8 @@ let insertThreadByUpdatedAt = (threads: array(Model.Thread.t), thread: Model.Thr
   let index = insertionIndex(0);
   let before = Js.Array.slice(~start=0, ~end_=index, threads);
   let after = Js.Array.slice(~start=index, ~end_=Array.length(threads), threads);
-  let withThread = Js.Array.concat(~other=[|thread|], before);
-  Js.Array.concat(~other=after, withThread);
+  let withThread = before->Js.Array.concat(~other=[|thread|]);
+  withThread->Js.Array.concat(~other=after);
 };
 
 let sortThreadsByUpdatedAt = (threads: array(Model.Thread.t)) => {

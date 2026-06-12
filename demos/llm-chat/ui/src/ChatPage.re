@@ -322,7 +322,34 @@ module View = {
                   {React.string("Send a message to start the conversation.")}
                 </div>;
               } else {
-                Js.Array.concat(
+                messages->Js.Array.map(~f=(message: Model.Message.t) => {
+                  let roleClass =
+                    message.role == "user"
+                      ? "message--user" : "message--assistant";
+                  let isLastMessage = {
+                    let len = Array.length(messages);
+                    len > 0 && messages[len - 1].id == message.id;
+                  };
+                  let children =
+                    if (message.role == "assistant") {
+                      [|
+                        Streamdown.make(
+                          ~isAnimating=isStreaming && isLastMessage,
+                          ~children=message.content,
+                          (),
+                        ),
+                      |];
+                    } else {
+                      [|React.string(message.content)|];
+                    };
+                  <div
+                    key={message.id}
+                    className={"message " ++ roleClass}
+                    role={message.role}>
+                    {React.array(children)}
+                  </div>;
+                })
+                ->Js.Array.concat(
                   ~other=[|
                     if (
                       String.length(streamingText) > 0
@@ -345,33 +372,6 @@ module View = {
                       React.null
                     },
                   |],
-                  messages->Js.Array.map(~f=(message: Model.Message.t) => {
-                    let roleClass =
-                      message.role == "user"
-                        ? "message--user" : "message--assistant";
-                    let isLastMessage = {
-                      let len = Array.length(messages);
-                      len > 0 && messages[len - 1].id == message.id;
-                    };
-                    let children =
-                      if (message.role == "assistant") {
-                        [|
-                          Streamdown.make(
-                            ~isAnimating=isStreaming && isLastMessage,
-                            ~children=message.content,
-                            (),
-                          ),
-                        |];
-                      } else {
-                        [|React.string(message.content)|];
-                      };
-                    <div
-                      key={message.id}
-                      className={"message " ++ roleClass}
-                      role={message.role}>
-                      {React.array(children)}
-                    </div>;
-                  }),
                 )
                 ->React.array;
               }
