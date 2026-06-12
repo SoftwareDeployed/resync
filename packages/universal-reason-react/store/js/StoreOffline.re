@@ -1532,6 +1532,7 @@ module Synced = {
               },
               ~onClose=() =>
                 if (isCurrentScopeGeneration(scopeGeneration)) {
+                  StoreRuntimeLifecycle.markConnectionWaiting(lifecycle);
                   emitEvent(StoreEvents.Close);
                 },
               ~onPatch=(~payload, ~timestamp) =>
