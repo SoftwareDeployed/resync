@@ -38,8 +38,8 @@ let shouldAcceptAck = status => !isTerminalStatus(status);
 
 let shouldSendOnOpen = status =>
   switch (status) {
-  | Pending => true
-  | Syncing
+  | Pending
+  | Syncing => true
   | Acked
   | Failed => false
   };

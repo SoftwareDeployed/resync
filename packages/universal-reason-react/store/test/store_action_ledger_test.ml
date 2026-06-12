@@ -88,14 +88,14 @@ let suite =
             "failed rejects ack"
             false
             (StoreActionLedger.shouldAcceptAck StoreActionLedger.Failed));
-      Alcotest.test_case "only pending actions send on open" `Quick (fun () ->
+      Alcotest.test_case "resumable actions send on open" `Quick (fun () ->
           Alcotest.(check bool)
             "pending sends"
             true
             (StoreActionLedger.shouldSendOnOpen StoreActionLedger.Pending);
           Alcotest.(check bool)
-            "syncing is already in flight"
-            false
+            "syncing sends after reload or reconnect"
+            true
             (StoreActionLedger.shouldSendOnOpen StoreActionLedger.Syncing);
           Alcotest.(check bool)
             "acked does not send"
