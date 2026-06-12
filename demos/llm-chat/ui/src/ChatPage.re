@@ -190,9 +190,10 @@ let appendCurrentStreamMessage =
       ~currentStreamId,
       ~hasCurrentStreamRow,
       ~streamingText,
+      ~streamError: option(LlmChatStore.stream_error),
     ) =>
-  switch (currentStreamId) {
-  | Some(streamId)
+  switch (currentStreamId, streamError) {
+  | (Some(streamId), _)
       when String.length(streamingText) > 0 && !hasCurrentStreamRow =>
     messages->Js.Array.concat(
       ~other=[|
@@ -201,6 +202,19 @@ let appendCurrentStreamMessage =
           thread_id: currentThreadId,
           role: "assistant",
           content: "",
+        },
+      |],
+    )
+  | (None, Some({thread_id, message}))
+      when thread_id == currentThreadId && String.length(streamingText) > 0 =>
+    messages->Js.Array.concat(
+      ~other=[|
+        {
+          Model.Message.id: "stream-error-" ++ thread_id,
+          thread_id: currentThreadId,
+          role: "assistant",
+          content:
+            String.length(streamingText) > 0 ? streamingText : "Error: " ++ message,
         },
       |],
     )
@@ -364,6 +378,7 @@ module View = {
           ~currentStreamId,
           ~hasCurrentStreamRow,
           ~streamingText,
+          ~streamError=streaming.streamError,
         );
 
       React.useEffect1(

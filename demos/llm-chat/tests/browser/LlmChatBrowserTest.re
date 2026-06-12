@@ -619,6 +619,15 @@ module MockOllama = {
                     }, 250);
                   }, 250);
                 }, 250);
+              } else if (prompt->includes("stream error regression")) {
+                Js.Dict.set(headers, "Content-Type", "application/x-ndjson");
+                let _ = response->writeHead(200, headers);
+                let _ = response->write("{\"error\":\"Mock stream failure\"}\n");
+                setTimeout(() => {
+                  Js.Dict.set(endedByPrompt, prompt, true);
+                  let _ = response->endString("");
+                  ();
+                }, 100);
               } else {
                 Js.Dict.set(headers, "Content-Type", "application/x-ndjson");
                 let _ = response->writeHead(200, headers);
@@ -943,6 +952,41 @@ let runSseStreamingScenario = (~browser, ~baseUrl, ~mock) => {
           )
        |> then_(_ => MockOllama.assertSawPrompt(~mock, ~prompt))
       );
+};
+
+let runStreamErrorScenario = (~browser, ~baseUrl, ~mock) => {
+  Js.log("Running stream error scenario...");
+  removeMalformedSendPromptLedger();
+  let prompt = "stream error regression " ++ UUID.make();
+  browser
+  ->Playwright.newPage
+  |> then_(page =>
+       page
+       ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ =>
+            page->Playwright.evaluateString(
+              createThreadScript(~baseUrl, ~title="Stream Error Test"),
+            )
+          )
+       |> then_(threadId => page->Playwright.goto(baseUrl ++ "/" ++ threadId))
+       |> then_(_ => page->Playwright.waitForSelector("#prompt-input"))
+       |> then_(_ => page->Playwright.fill("#prompt-input", prompt))
+       |> then_(_ => page->Playwright.click("#send-button"))
+       |> then_(_ =>
+            waitForSelectorText(
+              ~page,
+              ~selector="#message-list",
+              ~expected="Error: Mock stream failure",
+              ~label="Stream error test: error text renders in message list",
+              ~attemptsLeft=80,
+            )
+          )
+       |> then_(_ => MockOllama.assertSawPrompt(~mock, ~prompt))
+     )
+  |> catch(error => {
+       Js.log2("[FAIL] Stream error test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
+     });
 };
 
 let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
@@ -2017,6 +2061,13 @@ let run = () => {
                               )
                               |> then_(_ =>
                                    runOllamaStreamingScenario(
+                                     ~browser,
+                                     ~baseUrl=server.baseUrl,
+                                     ~mock,
+                                   )
+                                 )
+                              |> then_(_ =>
+                                   runStreamErrorScenario(
                                      ~browser,
                                      ~baseUrl=server.baseUrl,
                                      ~mock,
