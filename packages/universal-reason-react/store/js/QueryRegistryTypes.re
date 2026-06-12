@@ -59,7 +59,5 @@ module type MutationModuleWithAction = {
   let toAction: params => action;
 };
 
-// Module type for mutation modules on native (server-side SSR)
-module type MutationModuleNative = {
-  type params;
-};
+// Native SSR uses the same marker contract.
+module type MutationModuleNative = MutationModule;
