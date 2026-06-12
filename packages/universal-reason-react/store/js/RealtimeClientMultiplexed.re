@@ -3,6 +3,7 @@ module Multiplexed = {
   type websocket = WebSocket.t;
 
   type callbacks = {
+    id: int,
     onOpen: unit => unit,
     onClose: unit => unit,
     onPatch: (~payload: StoreJson.json, ~timestamp: float) => unit,
@@ -211,19 +212,26 @@ module Multiplexed = {
     let id = t.nextIdRef.contents;
     t.nextIdRef := id + 1;
 
-    let callbacks = {onOpen, onClose, onPatch, onSnapshot, onAck};
+    let callbacks = {id, onOpen, onClose, onPatch, onSnapshot, onAck};
 
-    /* Add/replace subscription */
     let subs = t.subscriptionsRef.contents;
-    subs->Js.Dict.set(channel, [|callbacks|]);
+    let existing =
+      switch (subs->Js.Dict.get(channel)) {
+      | Some(callbacks) => callbacks
+      | None => [||]
+      };
+    let wasEmpty = Js.Array.length(existing) == 0;
+    subs->Js.Dict.set(channel, existing->Js.Array.concat(~other=[|callbacks|]));
     t.subscriptionsRef := subs;
 
     /* Ensure connection is open */
     switch (t.websocketRef.contents) {
     | Some(ws) when ws->WebSocket.readyState == 1 =>
-      ws->WebSocket.send_string(
-        RealtimeClient.selectFrameString(channel, updatedAt),
-      )
+      if (wasEmpty) {
+        ws->WebSocket.send_string(
+          RealtimeClient.selectFrameString(channel, updatedAt),
+        );
+      }
     | _ => connect(t)
     };
 
@@ -232,21 +240,25 @@ module Multiplexed = {
 
   let unsubscribe = (t: t, handle: subscription_handle) => {
     switch (Js.Dict.get(t.subscriptionsRef.contents, handle.channel)) {
-    | Some(_) =>
-      /* Send unsubscribe frame */
-      let _ =
-        t.websocketRef.contents
-        |> Option.map(ws => {
-            ws->WebSocket.send_string(unsubscribeFrameString(handle.channel))
-          });
-
-      /* Remove from subscriptions */
+    | Some(callbacks) =>
+      let remaining =
+        callbacks->Js.Array.filter(~f=callback => callback.id != handle.id);
+      let removed = Js.Array.length(remaining) < Js.Array.length(callbacks);
       let subs = t.subscriptionsRef.contents;
-      subs->Js.Dict.set(handle.channel, [||]);
+      subs->Js.Dict.set(handle.channel, remaining);
       t.subscriptionsRef := subs;
 
+      if (removed && Js.Array.length(remaining) == 0) {
+        let _ =
+          t.websocketRef.contents
+          |> Option.map(ws => {
+              ws->WebSocket.send_string(unsubscribeFrameString(handle.channel))
+            });
+        ();
+      };
+
       /* If no more subscriptions, close connection */
-      let hasActive =
+      let hasActive = () =>
         subs
         ->Js.Dict.keys
         ->Js.Array.some(~f=key => {
@@ -255,7 +267,7 @@ module Multiplexed = {
             | _ => false
             }
           });
-      if (!hasActive) {
+      if (removed && !hasActive()) {
         t.disposedRef := true;
         switch (t.websocketRef.contents) {
         | Some(ws) =>
