@@ -27,6 +27,19 @@ let selectFrameString = (subscription: string, updatedAt: float) =>
 let selectFrameString = (_subscription, _updatedAt) => "";
 
 [@platform js]
+let unsubscribeFrameString = (channel: string) =>
+  StoreJson.stringify(
+    json => json,
+    StoreJson.Object.make(dict => {
+      StoreJson.Object.setString(dict, "type", "unsubscribe");
+      StoreJson.Object.setString(dict, "channel", channel);
+    }),
+  );
+
+[@platform native]
+let unsubscribeFrameString = (_channel: string) => "";
+
+[@platform js]
 let pingFrameString = () =>
   StoreJson.stringify(
     json => json,
@@ -136,6 +149,7 @@ module Socket = {
 
   /* Subscription callbacks for a single channel */
   type subscription_callbacks = {
+    id: string,
     onOpen: unit => unit,
     onClose: unit => unit,
     onPatch: (~payload: StoreJson.json, ~timestamp: float) => unit,
@@ -161,7 +175,7 @@ module Socket = {
     mutable websocket: option(websocket),
     mutable pingIntervalId: option(int),
     mutable reconnectTimeoutId: option(int),
-    subscriptions: Js.Dict.t(subscription_callbacks),
+    subscriptions: Js.Dict.t(array(subscription_callbacks)),
     mutable connectionState: connection_state,
     mutable eventUrl: string,
     mutable baseUrl: string,
@@ -242,22 +256,29 @@ module Socket = {
     };
   };
 
+  let activeCallbacks = callbacks =>
+    callbacks->Js.Array.filter(~f=callbacks => !callbacks.disposed.contents);
+
   /* Route message to the correct subscription based on channel */
   let routeMessage = (state, json: StoreJson.json) => {
-    Js.Console.log("[RealtimeClient] routeMessage called");
-    switch (StoreJson.field(json, "channel")) {
-    | Some(rawChannel) =>
-      switch (StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rawChannel)) {
-      | Some(channel) =>
-        Js.Console.log2("[RealtimeClient] Routing message for channel:", channel);
-        switch (Js.Dict.get(state.subscriptions, channel)) {
-        | Some(callbacks) =>
-          Js.Console.log("[RealtimeClient] Found callbacks for channel");
-          if (!callbacks.disposed.contents) {
-            Js.Console.log("[RealtimeClient] Callbacks not disposed, processing message");
-            switch (StoreJson.field(json, "type")) {
-            | Some(rawType) =>
-              switch (StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rawType)) {
+    let messageKind =
+      switch (StoreJson.field(json, "type")) {
+      | Some(rawType) =>
+        StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rawType)
+      | None => None
+      };
+    switch (messageKind) {
+    | Some("pong") => updateLastPong(state)
+    | _ =>
+      switch (StoreJson.field(json, "channel")) {
+      | Some(rawChannel) =>
+        switch (StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rawChannel)) {
+        | Some(channel) =>
+          switch (Js.Dict.get(state.subscriptions, channel)) {
+          | Some(callbacks) =>
+            let callbacks = activeCallbacks(callbacks);
+            callbacks->Js.Array.forEach(~f=callbacks =>
+              switch (messageKind) {
               | Some("pong") => updateLastPong(state)
               | Some("patch") =>
                 let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
@@ -271,11 +292,9 @@ module Socket = {
                 let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
                 callbacks.onSnapshot(payload);
               | Some("ack") =>
-                Js.Console.log("RealtimeClient: Received ack, invoking callback");
                 let actionId = StoreJson.requiredField(~json, ~fieldName="actionId", ~decode=Melange_json.Primitives.string_of_json);
                 let status = StoreJson.requiredField(~json, ~fieldName="status", ~decode=Melange_json.Primitives.string_of_json);
                 let error = StoreJson.optionalField(~json, ~fieldName="error", ~decode=Melange_json.Primitives.string_of_json);
-                Js.Console.log3("[RealtimeClient] Invoking onAck with:", actionId, status);
                 callbacks.onAck(actionId, status, error);
               | Some("custom") =>
                 let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
@@ -297,14 +316,13 @@ module Socket = {
                 }
               | _ => ()
               }
-            | None => ()
-            }
+            )
+          | None => ()
           }
         | None => ()
         }
       | None => ()
-      }
-    | None => ()
+      };
     };
   };
 
@@ -314,7 +332,7 @@ module Socket = {
     let subs = Js.Dict.entries(state.subscriptions);
     for (i in 0 to Array.length(subs) - 1) {
       let (_, callbacks) = subs[i];
-      if (!callbacks.disposed.contents) {
+      if (Array.length(activeCallbacks(callbacks)) > 0) {
         hasActive := true;
       };
     };
@@ -379,9 +397,11 @@ module Socket = {
           let subs = Js.Dict.entries(state.subscriptions);
           for (i in 0 to Array.length(subs) - 1) {
             let (_, callbacks) = subs[i];
-            if (!callbacks.disposed.contents) {
-              let _ = sendFrame(state, selectFrameString(callbacks.subscription, callbacks.updatedAt));
-              callbacks.onOpen();
+            let callbacks = activeCallbacks(callbacks);
+            if (Array.length(callbacks) > 0) {
+              let first = callbacks[0];
+              let _ = sendFrame(state, selectFrameString(first.subscription, first.updatedAt));
+              callbacks->Js.Array.forEach(~f=callbacks => callbacks.onOpen());
             };
           };
         });
@@ -395,9 +415,8 @@ module Socket = {
             let subs = Js.Dict.entries(state.subscriptions);
             for (i in 0 to Array.length(subs) - 1) {
               let (_, callbacks) = subs[i];
-              if (!callbacks.disposed.contents) {
-                callbacks.onClose();
-              };
+              activeCallbacks(callbacks)
+              ->Js.Array.forEach(~f=callbacks => callbacks.onClose());
             };
             /* Reconnect after delay */
             clearReconnectTimeout(state);
@@ -429,6 +448,8 @@ module Socket = {
   /* Per-subscription connection handle */
   type connection_handle = {
     channel: string,
+    channelId: string,
+    callbackId: string,
     send: string => bool,
     dispose: unit => unit,
     disposedRef: ref(bool),
@@ -448,8 +469,8 @@ module Socket = {
        ~eventUrl: string,
        ~baseUrl: string,
        ()) => {
-    Js.Console.log2("[RealtimeClient] subscribeSynced called for channel:", subscription);
     let state = getOrCreateState(~eventUrl, ~baseUrl);
+    let callbackId = UUID.make();
     let disposedRef = ref(false);
 
     /* Extract channel ID from subscription (format: "type:id", e.g., "list:uuid") */
@@ -460,6 +481,7 @@ module Socket = {
       };
 
     let callbacks = {
+      id: callbackId,
       onOpen,
       onClose,
       onPatch,
@@ -474,8 +496,18 @@ module Socket = {
       disposed: disposedRef,
     };
 
-    /* Register subscription with channel ID as key */
-    Js.Dict.set(state.subscriptions, channelId, callbacks);
+    /* Register subscription with channel ID as key. Multiple query entries can
+       share a broadcast channel and all must receive snapshots/patches. */
+    let existing =
+      switch (Js.Dict.get(state.subscriptions, channelId)) {
+      | Some(callbacks) => callbacks
+      | None => [||]
+      };
+    Js.Dict.set(
+      state.subscriptions,
+      channelId,
+      existing->Js.Array.concat(~other=[|callbacks|]),
+    );
 
     /* Ensure connection is established */
     connect(state);
@@ -490,14 +522,26 @@ module Socket = {
     | None => ()
     };
 
-    Js.Console.log2("[RealtimeClient] Subscription registered with channelId:", channelId);
-
     {
       channel: subscription,
+      channelId,
+      callbackId,
       send: frame => sendFrame(state, frame),
       dispose: () => {
         if (!disposedRef.contents) {
           disposedRef := true;
+          let remaining =
+            switch (Js.Dict.get(state.subscriptions, channelId)) {
+            | Some(callbacks) =>
+              callbacks->Js.Array.filter(~f=callbacks =>
+                callbacks.id != callbackId && !callbacks.disposed.contents
+              )
+            | None => [||]
+            };
+          Js.Dict.set(state.subscriptions, channelId, remaining);
+          if (Array.length(remaining) == 0) {
+            let _ = sendFrame(state, unsubscribeFrameString(channelId));
+          };
           maybeClose(state);
         };
       },

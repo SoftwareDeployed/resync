@@ -46,7 +46,7 @@ module Multiplexed = {
       json => json,
       StoreJson.Object.make(dict => {
         StoreJson.Object.setString(dict, "type", "unsubscribe");
-        StoreJson.Object.setString(dict, "subscription", subscription);
+        StoreJson.Object.setString(dict, "channel", subscription);
       }),
     );
 
