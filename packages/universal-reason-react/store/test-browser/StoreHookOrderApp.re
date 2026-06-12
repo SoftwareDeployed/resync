@@ -24,8 +24,10 @@ let make = () => {
     None;
   });
 
+  let _queryResult =
+    Hooks.useQueryResultOption((module ToggleQuery), params, ());
   let loading =
-    UseQuery.useIsQueryLoadingOption((module ToggleQuery), params);
+    Hooks.useIsQueryLoadingOption((module ToggleQuery), params);
   let paramsLabel =
     switch (params) {
     | None => "disabled"

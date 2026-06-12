@@ -134,7 +134,7 @@ let testCrossTabBroadcast = (~browser) => {
      );
 };
 
-let testUseIsQueryLoadingOptionPreservesHookOrder = (~browser) => {
+let testOptionalQueryHooksPreserveHookOrder = (~browser) => {
   let url =
     "file://"
     ++ Playwright.cwd()
@@ -158,12 +158,295 @@ let testUseIsQueryLoadingOptionPreservesHookOrder = (~browser) => {
        |> then_(_ => page->Playwright.waitForSelector("text=enabled"))
        |> then_(_ =>
             BrowserTestUtils.assertTrue(
-              ~label="useIsQueryLoadingOption preserves hook order when params toggle from None to Some",
+              ~label="Optional query hooks preserve hook order when params toggle from None to Some",
               Array.length(pageErrors.contents) == 0,
               ~details=Array.length(pageErrors.contents) > 0 ? pageErrors.contents[0] : "page reported no completion",
             )
           )
      });
+};
+
+let rec waitForExactText = (~page, ~selector, ~expected, ~label, ~attemptsLeft) =>
+  BrowserTestUtils.textOrEmpty(page, selector)
+  |> then_(text =>
+       if (text == expected) {
+         BrowserTestUtils.assertTrue(
+           ~label,
+           true,
+           ~details="expected text observed",
+         );
+       } else if (attemptsLeft <= 0) {
+         BrowserTestUtils.assertTrue(
+           ~label,
+           false,
+           ~details=
+             "expected "
+             ++ expected
+             ++ " in "
+             ++ selector
+             ++ ", got "
+             ++ text,
+         );
+       } else {
+         BrowserTestUtils.sleep(20)
+         |> then_(_ =>
+              waitForExactText(
+                ~page,
+                ~selector,
+                ~expected,
+                ~label,
+                ~attemptsLeft=attemptsLeft - 1,
+              )
+            );
+       }
+     );
+
+let testUseMutationResultBrowserState = (~browser) => {
+  let url =
+    "file://"
+    ++ Playwright.cwd()
+    ++ "/packages/universal-reason-react/store/test-browser/generated/StoreMutationHookApp.html";
+
+  browser
+  ->Playwright.newPage
+  |> then_(page =>
+       page
+       ->Playwright.goto(url)
+       |> then_(_ => page->Playwright.waitForSelector("#mutation-hook-app"))
+       |> then_(_ => page->Playwright.click("#mutation-rerender"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-stable",
+              ~expected="yes",
+              ~label="useMutationResult keeps mutate identity stable across rerender",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-fn-stable",
+              ~expected="yes",
+              ~label="useMutation keeps mutation function identity stable across rerender",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#mutation-success"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-loading",
+              ~expected="loading",
+              ~label="useMutationResult exposes loading while mutation is pending",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-completed",
+              ~expected="1",
+              ~label="useMutationResult resolves successful mutation promise",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-loading",
+              ~expected="idle",
+              ~label="useMutationResult clears loading after mutation settles",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#mutation-failure"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-error",
+              ~expected="none",
+              ~label="useMutationResult clears stale error before a new mutation",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-loading",
+              ~expected="loading",
+              ~label="useMutationResult tracks loading for rejected mutation",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-error",
+              ~expected="boom",
+              ~label="useMutationResult exposes rejected mutation error",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-loading",
+              ~expected="idle",
+              ~label="useMutationResult clears loading after rejected mutation settles",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-calls",
+              ~expected="2",
+              ~label="useMutationResult dispatches each mutation once",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#mutation-fn-success"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-fn-completed",
+              ~expected="1",
+              ~label="useMutation function resolves successful mutation promise",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-fn-calls",
+              ~expected="1",
+              ~label="useMutation function dispatches mutation once",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-fn-last-param",
+              ~expected="fn-ok",
+              ~label="useMutation function forwards typed params",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-count",
+              ~expected="0",
+              ~label="store-scoped mutation fixture starts from empty local state",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-query-loading",
+              ~expected="not-loading",
+              ~label="store-scoped useQuery returns a skipped query result",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-query-store-count",
+              ~expected="0",
+              ~label="store-scoped useQueryStore returns the reactive store",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#scoped-mutation-rerender"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-fn-stable",
+              ~expected="yes",
+              ~label="store-scoped useMutation keeps function identity stable",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-result-stable",
+              ~expected="yes",
+              ~label="store-scoped useMutationResult keeps mutate identity stable",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#scoped-mutation-fn-success"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-fn-completed",
+              ~expected="1",
+              ~label="store-scoped useMutation resolves successful dispatch",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-count",
+              ~expected="2",
+              ~label="store-scoped useMutation dispatch updates local FRP state",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#scoped-mutation-result-success"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-result-completed",
+              ~expected="1",
+              ~label="store-scoped useMutationResult resolves successful dispatch",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-count",
+              ~expected="5",
+              ~label="store-scoped useMutationResult dispatch updates local FRP state",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-query-store-count",
+              ~expected="5",
+              ~label="store-scoped useQueryStore stays reactive after mutations",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#scoped-mutation-blocked"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-error",
+              ~expected="blocked",
+              ~label="store-scoped useMutationResult exposes guard-denied dispatch error",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-count",
+              ~expected="5",
+              ~label="store-scoped guard-denied dispatch does not mutate local state",
+              ~attemptsLeft=25,
+            )
+          )
+     );
 };
 
 let loadedSignalContains = (signal, expected) =>
@@ -642,7 +925,8 @@ let run = () => {
                  resolve();
                })
             |> then_(_ => testCrossTabBroadcast(~browser))
-            |> then_(_ => testUseIsQueryLoadingOptionPreservesHookOrder(~browser))
+            |> then_(_ => testOptionalQueryHooksPreserveHookOrder(~browser))
+            |> then_(_ => testUseMutationResultBrowserState(~browser))
             |> then_(_ => browser->Playwright.close)
           )
      })

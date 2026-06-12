@@ -34,46 +34,6 @@ let rec waitForSelectorText = (~page, ~selector, ~expected, ~label, ~attemptsLef
         );
   };
 
-let rec waitForPartialSelectorText = (~page, ~selector, ~expected, ~notExpected, ~label, ~attemptsLeft) =>
-  if (attemptsLeft <= 0) {
-    BrowserTestUtils.textOrEmpty(page, selector)
-    |> then_(text =>
-         reject(
-           BrowserTestUtils.makeError(
-             label
-             ++ " timed out waiting for selector "
-             ++ selector
-             ++ " to contain partial text: "
-             ++ expected
-             ++ " without containing: "
-             ++ notExpected
-             ++ ". Last value: "
-             ++ text,
-           ),
-         )
-       );
-  } else {
-    BrowserTestUtils.textOrEmpty(page, selector)
-    |> then_(text =>
-         if (text->includes(expected) && text->includes(notExpected) == false) {
-           Js.log("[PASS] " ++ label);
-           resolve();
-         } else {
-           BrowserTestUtils.sleep(100)
-           |> then_(_ =>
-                waitForPartialSelectorText(
-                  ~page,
-                  ~selector,
-                  ~expected,
-                  ~notExpected,
-                  ~label,
-                  ~attemptsLeft=attemptsLeft - 1,
-                )
-              );
-         }
-       );
-  };
-
 let rec waitForExpressionTrue = (~page, ~expression, ~label, ~attemptsLeft) =>
   if (attemptsLeft <= 0) {
     page->Playwright.evaluateString(expression)
@@ -133,16 +93,377 @@ function llmChatMockResponseChunk(content) {
   }) + "\n";
 }
 
+function llmChatMockLongResponseChunk(prefix, start, count) {
+  const lines = [];
+  for (let i = 0; i < count; i++) {
+    const n = start + i;
+    lines.push(`${prefix} ${n}: streaming content keeps growing across multiple layout passes.`);
+  }
+  return llmChatMockResponseChunk(lines.join("\n") + "\n");
+}
+
 function llmChatMockSseResponseChunk(content) {
   return "data: " + JSON.stringify({
     choices: [{ delta: { content } }]
   }) + "\n\n";
 }
+
+function llmChatStreamingProbeInstallScript(expected, notExpected, timeoutMs) {
+  return `(() => {
+    const expected = ${JSON.stringify(expected)};
+    const notExpected = ${JSON.stringify(notExpected)};
+    const timeoutMs = ${timeoutMs};
+    const target = document.getElementById("message-list");
+    const readAssistantText = () =>
+      Array.from(document.querySelectorAll(".message--assistant"))
+        .map(el => el.textContent || "")
+        .join("\\n");
+
+    if (!target) {
+      window.__llmChatStreamingProbe = Promise.resolve("missing-message-list");
+      return "missing-message-list";
+    }
+    if (typeof MutationObserver !== "function") {
+      window.__llmChatStreamingProbe = Promise.resolve("missing-mutation-observer");
+      return "missing-mutation-observer";
+    }
+
+    window.__llmChatStreamingProbe = new Promise(resolve => {
+      let settled = false;
+      let timer = null;
+      let observer = null;
+      const finish = value => {
+        if (settled) return;
+        settled = true;
+        if (observer) observer.disconnect();
+        if (timer !== null) clearTimeout(timer);
+        resolve(value);
+      };
+      const check = () => {
+        const text = readAssistantText();
+        if (text.includes(expected) && !text.includes(notExpected)) {
+          finish("true");
+        }
+      };
+
+      observer = new MutationObserver(check);
+      observer.observe(target, { childList: true, subtree: true, characterData: true });
+      timer = setTimeout(() => {
+        finish("timeout:" + readAssistantText());
+      }, timeoutMs);
+      check();
+    });
+    return "installed";
+  })()`;
+}
+
+function llmChatStreamingProbeAwaitScript() {
+  return `(() => window.__llmChatStreamingProbe || Promise.resolve("missing-probe"))()`;
+}
+
+function llmChatNoGhostingProbeInstallScript(expected, tailFragment) {
+  return `(() => {
+    const expected = ${JSON.stringify(expected)};
+    const fragments = [expected, ${JSON.stringify(tailFragment)}].filter(Boolean);
+    const target = document.getElementById("message-list");
+    if (!target) {
+      window.__llmChatNoGhostingProbe = { stop: () => "missing-message-list" };
+      return "missing-message-list";
+    }
+
+    const state = { firstResponseNode: null, violations: [], stopped: false };
+    const describeNode = el =>
+      (el.id || "no-id") + ":" + (el.textContent || "").trim().slice(0, 80);
+    const assistantNodes = () =>
+      Array.from(document.querySelectorAll(".message--assistant"));
+    const directTextBlocks = el => {
+      const root = el.firstElementChild || el;
+      return Array.from(root.children || [])
+        .map(child => (child.textContent || "").trim())
+        .filter(Boolean);
+    };
+    const check = () => {
+      if (state.stopped) return;
+      const legacyStreaming = document.querySelector("#streaming-message");
+      const legacyStreamingText = (legacyStreaming?.textContent || "").trim();
+      if (legacyStreamingText.length > 0) {
+        state.violations.push("legacy-streaming-message:" + legacyStreamingText.slice(0, 80));
+      }
+
+      const responseChildren = Array.from(target.children || [])
+        .filter(el => fragments.some(fragment => (el.textContent || "").includes(fragment)));
+      const invalidResponseChildren = responseChildren
+        .filter(el => !el.classList.contains("message--assistant"));
+      if (invalidResponseChildren.length > 0) {
+        state.violations.push(
+          "response-outside-assistant-message:" + invalidResponseChildren.map(describeNode).join(" | ")
+        );
+      }
+      if (responseChildren.length > 1) {
+        state.violations.push(
+          "response-in-multiple-message-list-children:" + responseChildren.map(describeNode).join(" | ")
+        );
+      }
+
+      const assistants = assistantNodes();
+      const assistantText = assistants
+        .map(el => (el.textContent || "").trim())
+        .filter(Boolean);
+      if (assistantText.length > 1) {
+        state.violations.push(
+          "multiple-assistant-bubbles:" + assistants.map(describeNode).join(" | ")
+        );
+      }
+
+      const matching = assistants
+        .filter(el => (el.textContent || "").includes(expected));
+      if (matching.length > 1) {
+        state.violations.push(
+          "duplicate-response-nodes:" + matching.map(describeNode).join(" | ")
+        );
+      }
+      matching.forEach(el => {
+        const blocks = directTextBlocks(el);
+        if (blocks.length > 1) {
+          state.violations.push(
+            "split-response-blocks:" + blocks.map(text => text.slice(0, 60)).join(" | ")
+          );
+        }
+      });
+      if (matching.length > 0) {
+        if (state.firstResponseNode === null) {
+          state.firstResponseNode = matching[0];
+        } else if (!matching.includes(state.firstResponseNode)) {
+          state.violations.push(
+            "assistant-node-replaced:" + matching.map(describeNode).join(" | ")
+          );
+        }
+      }
+    };
+
+    const observer = new MutationObserver(check);
+    observer.observe(target, { childList: true, subtree: true, characterData: true });
+    window.__llmChatNoGhostingProbe = {
+      stop: () => {
+        check();
+        state.stopped = true;
+        observer.disconnect();
+        return state.violations.length === 0
+          ? "true"
+          : "ghosting:" + state.violations.slice(0, 5).join(" | ");
+      }
+    };
+    check();
+    return "installed";
+  })()`;
+}
+
+function llmChatNoGhostingProbeResultScript() {
+  return `(() => {
+    const probe = window.__llmChatNoGhostingProbe;
+    return probe && typeof probe.stop === "function" ? probe.stop() : "missing-probe";
+  })()`;
+}
+
+function llmChatAssistantHasTextExpression(expected) {
+  return `(() => Array.from(document.querySelectorAll(".message--assistant"))
+    .some(el => (el.textContent || "").includes(${JSON.stringify(expected)})))().toString()`;
+}
+
+function llmChatSeedMessagesScript(baseUrl, threadId, count) {
+  const url = `${baseUrl}/api/test/add-message`;
+  return `(() => {
+    const url = ${JSON.stringify(url)};
+    const threadId = ${JSON.stringify(threadId)};
+    const makeContent = i =>
+      "History message " + i + "\\n" +
+      "This seeded paragraph creates enough vertical space for deterministic scroll testing. ".repeat(4);
+    return Array.from({ length: ${count} }, (_, i) => i)
+      .reduce((promise, i) => promise.then(() =>
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            thread_id: threadId,
+            role: i % 2 === 0 ? "user" : "assistant",
+            content: makeContent(i)
+          })
+        })
+      ), Promise.resolve())
+      .then(() => "seeded");
+  })()`;
+}
+
+function llmChatScrollToBottomScript() {
+  return `(() => {
+    const el = document.getElementById("message-list");
+    if (!el) return "missing-message-list";
+    el.scrollTop = el.scrollHeight;
+    el.dispatchEvent(new Event("scroll"));
+    return JSON.stringify({
+      top: el.scrollTop,
+      bottomDistance: Math.max(0, el.scrollHeight - el.clientHeight - el.scrollTop)
+    });
+  })()`;
+}
+
+function llmChatScrollUpFromBottomScript(offset) {
+  return `(() => {
+    const el = document.getElementById("message-list");
+    if (!el) return "missing-message-list";
+    const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
+    el.scrollTop = Math.max(0, maxTop - ${offset});
+    el.dispatchEvent(new Event("scroll"));
+    return JSON.stringify({
+      top: el.scrollTop,
+      bottomDistance: Math.max(0, el.scrollHeight - el.clientHeight - el.scrollTop)
+    });
+  })()`;
+}
+
+function llmChatNearBottomExpression() {
+  return `(() => {
+    const el = document.getElementById("message-list");
+    if (!el) return false;
+    return el.scrollTop + el.clientHeight >= el.scrollHeight - 12;
+  })().toString()`;
+}
+
+function llmChatBottomDistanceAtLeastExpression(distance) {
+  return `(() => {
+    const el = document.getElementById("message-list");
+    if (!el) return false;
+    return Math.max(0, el.scrollHeight - el.clientHeight - el.scrollTop) >= ${distance};
+  })().toString()`;
+}
+
+function llmChatScrollStabilityInstallScript() {
+  return `(() => {
+    const el = document.getElementById("message-list");
+    if (!el) return "missing-message-list";
+
+    const state = { samples: [], violations: [], stopped: false, pending: false };
+    const assistantText = () =>
+      Array.from(document.querySelectorAll(".message--assistant"))
+        .map(node => node.textContent || "")
+        .join("\\n");
+    const sample = () => {
+      if (state.stopped) return;
+      const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
+      if (maxTop <= 0 || !assistantText().includes("Mock assistant saw")) return;
+      const top = el.scrollTop;
+      const bottomDistance = maxTop - top;
+      const previous = state.samples[state.samples.length - 1];
+      if (bottomDistance > 12) {
+        state.violations.push("not-pinned:" + JSON.stringify({ top, maxTop, bottomDistance }));
+      }
+      if (previous && top < previous.top - 4) {
+        state.violations.push("scroll-top-decreased:" + JSON.stringify({ previous: previous.top, top }));
+      }
+      state.samples.push({ top, maxTop, bottomDistance });
+    };
+    const scheduleSample = () => {
+      if (state.pending || state.stopped) return;
+      state.pending = true;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          state.pending = false;
+          sample();
+        });
+      });
+    };
+
+    const observer = new MutationObserver(scheduleSample);
+    observer.observe(el, { childList: true, subtree: true, characterData: true });
+    const interval = setInterval(sample, 75);
+    window.__llmChatScrollStability = {
+      stop: () => {
+        sample();
+        state.stopped = true;
+        observer.disconnect();
+        clearInterval(interval);
+        if (state.violations.length > 0) {
+          return "violations:" + state.violations.slice(0, 5).join(" | ");
+        }
+        if (state.samples.length < 2) {
+          return "insufficient-samples:" + JSON.stringify(state.samples);
+        }
+        return "true";
+      }
+    };
+    sample();
+    return "installed";
+  })()`;
+}
+
+function llmChatScrollStabilityResultScript() {
+  return `(() => {
+    const probe = window.__llmChatScrollStability;
+    return probe && typeof probe.stop === "function" ? probe.stop() : "missing-probe";
+  })()`;
+}
 |}];
 
 external mockLastUserContent: string => string = "llmChatMockLastUserContent";
 external mockResponseChunk: string => string = "llmChatMockResponseChunk";
+external mockLongResponseChunk: (string, int, int) => string = "llmChatMockLongResponseChunk";
 external mockSseResponseChunk: string => string = "llmChatMockSseResponseChunk";
+external streamingProbeInstallScript: (string, string, int) => string = "llmChatStreamingProbeInstallScript";
+external streamingProbeAwaitScript: unit => string = "llmChatStreamingProbeAwaitScript";
+external noGhostingProbeInstallScript: (string, string) => string = "llmChatNoGhostingProbeInstallScript";
+external noGhostingProbeResultScript: unit => string = "llmChatNoGhostingProbeResultScript";
+external assistantHasTextExpression: string => string = "llmChatAssistantHasTextExpression";
+external seedMessagesScript: (string, string, int) => string = "llmChatSeedMessagesScript";
+external scrollToBottomScript: unit => string = "llmChatScrollToBottomScript";
+external scrollUpFromBottomScript: int => string = "llmChatScrollUpFromBottomScript";
+external nearBottomExpression: unit => string = "llmChatNearBottomExpression";
+external bottomDistanceAtLeastExpression: int => string = "llmChatBottomDistanceAtLeastExpression";
+external scrollStabilityInstallScript: unit => string = "llmChatScrollStabilityInstallScript";
+external scrollStabilityResultScript: unit => string = "llmChatScrollStabilityResultScript";
+
+let installStreamingProbe = (~page, ~expected, ~notExpected, ~label) =>
+  page
+  ->Playwright.evaluateString(streamingProbeInstallScript(expected, notExpected, 6000))
+  |> then_(result =>
+       BrowserTestUtils.assertTrue(
+         ~label=label ++ ": MutationObserver probe installed",
+         result == "installed",
+         ~details="Expected probe installation to return installed, got: " ++ result,
+       )
+     );
+
+let awaitStreamingProbe = (~page, ~label) =>
+  page
+  ->Playwright.evaluateString(streamingProbeAwaitScript())
+  |> then_(result =>
+       BrowserTestUtils.assertTrue(
+         ~label,
+         result == "true",
+         ~details="Expected MutationObserver to see a partial assistant DOM mutation, got: " ++ result,
+       )
+     );
+
+let installNoGhostingProbe = (~page, ~expected, ~tailFragment, ~label) =>
+  page
+  ->Playwright.evaluateString(noGhostingProbeInstallScript(expected, tailFragment))
+  |> then_(result =>
+       BrowserTestUtils.assertTrue(
+         ~label=label ++ ": no-ghosting probe installed",
+         result == "installed",
+         ~details="Expected no-ghosting probe to install, got: " ++ result,
+       )
+     );
+
+let assertNoGhosting = (~page, ~label) =>
+  page
+  ->Playwright.evaluateString(noGhostingProbeResultScript())
+  |> then_(result =>
+       BrowserTestUtils.assertTrue(
+         ~label,
+         result == "true",
+         ~details="Expected no transient streaming bubble beside confirmed assistant message, got: " ++ result,
+       )
+     );
 
 let currentThreadIdScript =
   "(() => window.location.pathname.split('/').filter(Boolean).slice(-1)[0] || '')()";
@@ -236,11 +557,13 @@ module MockOllama = {
   type t = {
     server: mockServer,
     lastRequestBody: ref(string),
+    endedByPrompt: Js.Dict.t(bool),
   };
 
   let start = () =>
     Js.Promise.make((~resolve, ~reject as _) => {
       let lastRequestBody = ref("");
+      let endedByPrompt = Js.Dict.empty();
       let server =
         createServer((request, response) => {
           let requestBody = ref("");
@@ -253,6 +576,7 @@ module MockOllama = {
             request->requestOnUnit("end", () => {
               lastRequestBody := requestBody.contents;
               let prompt = mockLastUserContent(requestBody.contents);
+              Js.Dict.set(endedByPrompt, prompt, false);
               let headers = Js.Dict.empty();
               if (prompt->includes("sse streaming regression")) {
                 Js.Dict.set(headers, "Content-Type", "text/event-stream");
@@ -263,11 +587,38 @@ module MockOllama = {
                   setTimeout(() => {
                     let _ = response->write(mockSseResponseChunk(" while streaming"));
                     setTimeout(() => {
+                      Js.Dict.set(endedByPrompt, prompt, true);
                       let _ = response->endString("data: [DONE]\n\n");
                       ();
                     }, 500);
                   }, 1200);
                 }, 700);
+              } else if (
+                prompt->includes("scroll stability regression")
+                || prompt->includes("scroll opt-out regression")
+              ) {
+                Js.Dict.set(headers, "Content-Type", "application/x-ndjson");
+                let _ = response->writeHead(200, headers);
+                let _ = response->write(mockResponseChunk("Mock assistant saw\n"));
+                setTimeout(() => {
+                  let _ = response->write(mockLongResponseChunk("scroll stream line", 1, 10));
+                  setTimeout(() => {
+                    let _ = response->write(mockLongResponseChunk("scroll stream line", 11, 10));
+                    setTimeout(() => {
+                      let _ = response->write(mockLongResponseChunk("scroll stream line", 21, 10));
+                      setTimeout(() => {
+                        let _ = response->write(
+                          mockResponseChunk("scroll final marker\n"),
+                        );
+                        setTimeout(() => {
+                          Js.Dict.set(endedByPrompt, prompt, true);
+                          let _ = response->endString("{\"done\":true}\n");
+                          ();
+                        }, 250);
+                      }, 250);
+                    }, 250);
+                  }, 250);
+                }, 250);
               } else {
                 Js.Dict.set(headers, "Content-Type", "application/x-ndjson");
                 let _ = response->writeHead(200, headers);
@@ -277,6 +628,7 @@ module MockOllama = {
                   setTimeout(() => {
                     let _ = response->write(mockResponseChunk(" while streaming"));
                     setTimeout(() => {
+                      Js.Dict.set(endedByPrompt, prompt, true);
                       let _ = response->endString("{\"done\":true}\n");
                       ();
                     }, 300);
@@ -288,6 +640,7 @@ module MockOllama = {
                     setTimeout(() => {
                       let _ = response->write(mockResponseChunk(" while streaming"));
                       setTimeout(() => {
+                        Js.Dict.set(endedByPrompt, prompt, true);
                         let _ = response->endString("{\"done\":true}\n");
                         ();
                       }, 500);
@@ -305,7 +658,7 @@ module MockOllama = {
         let url =
           "http://127.0.0.1:" ++ Js.Int.toString(selectedPort) ++ "/api/chat";
         Js.Dict.set(env, "LLM_CHAT_OLLAMA_URL", url);
-        resolve(. {server, lastRequestBody});
+        resolve(. {server, lastRequestBody, endedByPrompt});
       });
     });
 
@@ -325,6 +678,12 @@ module MockOllama = {
         ++ ". Last body: "
         ++ mock.lastRequestBody.contents,
     );
+
+  let hasEndedPrompt = (~mock, ~prompt) =>
+    switch (Js.Dict.get(mock.endedByPrompt, prompt)) {
+    | Some(true) => true
+    | _ => false
+    };
 };
 
 let cleanup = (~browser, ~server, ~mock) => {
@@ -432,6 +791,22 @@ let runOllamaStreamingScenario = (~browser, ~baseUrl, ~mock) => {
           )
        |> then_(threadId => page->Playwright.goto(baseUrl ++ "/" ++ threadId))
        |> then_(_ => page->Playwright.waitForSelector("#prompt-input"))
+       |> then_(_ =>
+            installStreamingProbe(
+              ~page,
+              ~expected="Mock assistant saw",
+              ~notExpected=prompt,
+              ~label="Ollama streaming test",
+            )
+          )
+       |> then_(_ =>
+            installNoGhostingProbe(
+              ~page,
+              ~expected="Mock assistant saw",
+              ~tailFragment="while streaming",
+              ~label="Ollama streaming test",
+            )
+          )
        |> then_(_ => page->Playwright.fill("#prompt-input", prompt))
        |> then_(_ => page->Playwright.click("#send-button"))
        |> then_(_ =>
@@ -444,21 +819,16 @@ let runOllamaStreamingScenario = (~browser, ~baseUrl, ~mock) => {
             )
           )
        |> then_(_ =>
-            waitForPartialSelectorText(
+            awaitStreamingProbe(
               ~page,
-              ~selector="#streaming-message",
-              ~expected="Mock assistant saw",
-              ~notExpected=prompt,
-              ~label="Ollama streaming test: first partial token renders before later API chunks",
-              ~attemptsLeft=80,
+              ~label="Ollama streaming test: MutationObserver saw first partial token before later API chunks",
             )
           )
        |> then_(_ =>
-            waitForExpressionTrue(
-              ~page,
-              ~expression="(() => document.querySelector('#streaming-message') != null && document.querySelectorAll('.message--assistant:not(#streaming-message)').length === 0)().toString()",
-              ~label="Ollama streaming test: partial token is transient, not a confirmed assistant message",
-              ~attemptsLeft=20,
+            BrowserTestUtils.assertTrue(
+              ~label="Ollama streaming test: upstream response is still open when partial DOM renders",
+              !MockOllama.hasEndedPrompt(~mock, ~prompt),
+              ~details="Expected partial assistant DOM update before mock endpoint ended",
             )
           )
        |> then_(_ =>
@@ -474,8 +844,14 @@ let runOllamaStreamingScenario = (~browser, ~baseUrl, ~mock) => {
             waitForExpressionTrue(
               ~page,
               ~expression="(() => document.querySelector('#streaming-message') == null && document.querySelectorAll('.message--assistant').length === 1)().toString()",
-              ~label="Ollama streaming test: transient message is replaced by one confirmed assistant message",
+              ~label="Ollama streaming test: one confirmed assistant message remains after completion",
               ~attemptsLeft=150,
+            )
+          )
+       |> then_(_ =>
+            assertNoGhosting(
+              ~page,
+              ~label="Ollama streaming test: tokens never render in a second ghost bubble",
             )
           )
        |> then_(_ => MockOllama.assertSawPrompt(~mock, ~prompt))
@@ -502,6 +878,22 @@ let runSseStreamingScenario = (~browser, ~baseUrl, ~mock) => {
           )
        |> then_(threadId => page->Playwright.goto(baseUrl ++ "/" ++ threadId))
        |> then_(_ => page->Playwright.waitForSelector("#prompt-input"))
+       |> then_(_ =>
+            installStreamingProbe(
+              ~page,
+              ~expected="SSE assistant saw",
+              ~notExpected=prompt,
+              ~label="SSE streaming test",
+            )
+          )
+       |> then_(_ =>
+            installNoGhostingProbe(
+              ~page,
+              ~expected="SSE assistant saw",
+              ~tailFragment="while streaming",
+              ~label="SSE streaming test",
+            )
+          )
        |> then_(_ => page->Playwright.fill("#prompt-input", prompt))
        |> then_(_ => page->Playwright.click("#send-button"))
        |> then_(_ =>
@@ -514,21 +906,16 @@ let runSseStreamingScenario = (~browser, ~baseUrl, ~mock) => {
             )
           )
        |> then_(_ =>
-            waitForPartialSelectorText(
+            awaitStreamingProbe(
               ~page,
-              ~selector="#streaming-message",
-              ~expected="SSE assistant saw",
-              ~notExpected=prompt,
-              ~label="SSE streaming test: first delta renders before later API chunks",
-              ~attemptsLeft=80,
+              ~label="SSE streaming test: MutationObserver saw first delta before later API chunks",
             )
           )
        |> then_(_ =>
-            waitForExpressionTrue(
-              ~page,
-              ~expression="(() => document.querySelector('#streaming-message') != null && document.querySelectorAll('.message--assistant:not(#streaming-message)').length === 0)().toString()",
-              ~label="SSE streaming test: partial delta is transient, not a confirmed assistant message",
-              ~attemptsLeft=20,
+            BrowserTestUtils.assertTrue(
+              ~label="SSE streaming test: upstream response is still open when partial DOM renders",
+              !MockOllama.hasEndedPrompt(~mock, ~prompt),
+              ~details="Expected partial assistant DOM update before mock endpoint ended",
             )
           )
        |> then_(_ =>
@@ -544,8 +931,14 @@ let runSseStreamingScenario = (~browser, ~baseUrl, ~mock) => {
             waitForExpressionTrue(
               ~page,
               ~expression="(() => document.querySelector('#streaming-message') == null && document.querySelectorAll('.message--assistant').length === 1)().toString()",
-              ~label="SSE streaming test: transient message is replaced by one confirmed assistant message",
+              ~label="SSE streaming test: one confirmed assistant message remains after completion",
               ~attemptsLeft=150,
+            )
+          )
+       |> then_(_ =>
+            assertNoGhosting(
+              ~page,
+              ~label="SSE streaming test: tokens never render in a second ghost bubble",
             )
           )
        |> then_(_ => MockOllama.assertSawPrompt(~mock, ~prompt))
@@ -580,6 +973,22 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
                       pageB
                       ->Playwright.goto(threadUrl)
                       |> then_(_ => pageB->Playwright.waitForSelector("#prompt-input"))
+                      |> then_(_ =>
+                           installNoGhostingProbe(
+                             ~page=pageA,
+                             ~expected="Mock assistant saw",
+                             ~tailFragment="while streaming",
+                             ~label="Cross-tab sync sender",
+                           )
+                         )
+                      |> then_(_ =>
+                           installNoGhostingProbe(
+                             ~page=pageB,
+                             ~expected="Mock assistant saw",
+                             ~tailFragment="while streaming",
+                             ~label="Cross-tab sync viewer",
+                           )
+                         )
                       |> then_(_ => pageA->Playwright.fill("#prompt-input", prompt))
                       |> then_(_ => pageA->Playwright.click("#send-button"))
                       |> then_(_ =>
@@ -603,8 +1012,8 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
                       |> then_(_ =>
                            waitForExpressionTrue(
                              ~page=pageB,
-                             ~expression="(() => { const el = document.querySelector('#streaming-message'); return !!el && ((el.textContent || '').length > 0); })().toString()",
-                             ~label="Cross-tab sync: viewer sees non-empty transient streaming message",
+                             ~expression=assistantHasTextExpression("Mock assistant saw"),
+                             ~label="Cross-tab sync: viewer sees partial assistant response",
                              ~attemptsLeft=150,
                            )
                          )
@@ -622,6 +1031,18 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
                              ~expression="(() => document.querySelector('#streaming-message') == null && document.querySelectorAll('.message--assistant').length === 1)().toString()",
                              ~label="Cross-tab sync: sender receives end-of-stream and reconciles to one confirmed assistant message",
                              ~attemptsLeft=250,
+                           )
+                         )
+                      |> then_(_ =>
+                           assertNoGhosting(
+                             ~page=pageB,
+                             ~label="Cross-tab sync: viewer tokens never render in a second ghost bubble",
+                           )
+                         )
+                      |> then_(_ =>
+                           assertNoGhosting(
+                             ~page=pageA,
+                             ~label="Cross-tab sync: sender tokens never render in a second ghost bubble",
                            )
                          )
                       |> then_(_ =>
@@ -680,14 +1101,43 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
 let runStreamingScrollScenario = (~browser, ~baseUrl) => {
   Js.log("Running streaming scroll scenario...");
   let prompt =
-    "Please respond with many short lines about scrolling behavior so the reply is long enough to overflow the chat area.";
+    "scroll stability regression " ++ UUID.make();
 
   browser
   ->Playwright.newPage
   |> then_(page =>
        page
        ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ =>
+            page->Playwright.evaluateString(
+              createThreadScript(~baseUrl, ~title="Streaming Scroll Stability Test"),
+            )
+          )
+       |> then_(threadId =>
+            page->Playwright.evaluateString(seedMessagesScript(baseUrl, threadId, 18))
+            |> then_(_ => page->Playwright.goto(baseUrl ++ "/" ++ threadId))
+          )
        |> then_(_ => page->Playwright.waitForSelector("#prompt-input"))
+       |> then_(_ =>
+            waitForSelectorText(
+              ~page,
+              ~selector="#message-list",
+              ~expected="History message 17",
+              ~label="Streaming scroll: seeded history renders",
+              ~attemptsLeft=80,
+            )
+          )
+       |> then_(_ => page->Playwright.evaluateString(scrollToBottomScript()))
+       |> then_(_ =>
+            page->Playwright.evaluateString(scrollStabilityInstallScript())
+          )
+       |> then_(result =>
+            BrowserTestUtils.assertTrue(
+              ~label="Streaming scroll: stability probe installed",
+              result == "installed",
+              ~details="Expected scroll stability probe to install, got: " ++ result,
+            )
+          )
        |> then_(_ => page->Playwright.fill("#prompt-input", prompt))
        |> then_(_ => page->Playwright.click("#send-button"))
        |> then_(_ =>
@@ -702,8 +1152,8 @@ let runStreamingScrollScenario = (~browser, ~baseUrl) => {
        |> then_(_ =>
             waitForExpressionTrue(
               ~page,
-              ~expression="(() => { const el = document.querySelector('#streaming-message'); return !!el && ((el.textContent || '').length > 0); })().toString()",
-              ~label="Streaming scroll: transient streaming message appears",
+              ~expression=assistantHasTextExpression("Mock assistant saw"),
+              ~label="Streaming scroll: partial assistant response appears",
               ~attemptsLeft=150,
             )
           )
@@ -716,17 +1166,28 @@ let runStreamingScrollScenario = (~browser, ~baseUrl) => {
             )
           )
        |> then_(_ =>
-            waitForExpressionTrue(
+            waitForSelectorText(
               ~page,
-              ~expression="(() => document.querySelector('#streaming-message') == null && document.querySelectorAll('.message--assistant').length >= 1)().toString()",
-              ~label="Streaming scroll: stream completes and final assistant message is present",
+              ~selector="#message-list",
+              ~expected="scroll final marker",
+              ~label="Streaming scroll: stream completes with final marker",
               ~attemptsLeft=250,
+            )
+          )
+       |> then_(_ =>
+            page->Playwright.evaluateString(scrollStabilityResultScript())
+          )
+       |> then_(result =>
+            BrowserTestUtils.assertTrue(
+              ~label="Streaming scroll: pinned scroll does not jump during stream",
+              result == "true",
+              ~details="Expected stable pinned scrolling, got: " ++ result,
             )
           )
        |> then_(_ =>
             waitForExpressionTrue(
               ~page,
-              ~expression="(() => { const el = document.getElementById('message-list'); if (!el) return false; return el.scrollTop + el.clientHeight >= el.scrollHeight - 12; })().toString()",
+              ~expression=nearBottomExpression(),
               ~label="Streaming scroll: message list remains pinned near bottom after completion",
               ~attemptsLeft=80,
             )
@@ -734,6 +1195,86 @@ let runStreamingScrollScenario = (~browser, ~baseUrl) => {
      )
   |> catch(error => {
        Js.log2("[FAIL] Streaming scroll test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
+     });
+};
+
+let runStreamingScrollOptOutScenario = (~browser, ~baseUrl) => {
+  Js.log("Running streaming scroll opt-out scenario...");
+  let prompt = "scroll opt-out regression " ++ UUID.make();
+
+  browser
+  ->Playwright.newPage
+  |> then_(page =>
+       page
+       ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ =>
+            page->Playwright.evaluateString(
+              createThreadScript(~baseUrl, ~title="Streaming Scroll Opt Out Test"),
+            )
+          )
+       |> then_(threadId =>
+            page->Playwright.evaluateString(seedMessagesScript(baseUrl, threadId, 22))
+            |> then_(_ => page->Playwright.goto(baseUrl ++ "/" ++ threadId))
+          )
+       |> then_(_ => page->Playwright.waitForSelector("#prompt-input"))
+       |> then_(_ =>
+            waitForSelectorText(
+              ~page,
+              ~selector="#message-list",
+              ~expected="History message 21",
+              ~label="Streaming scroll opt-out: seeded history renders",
+              ~attemptsLeft=80,
+            )
+          )
+       |> then_(_ => page->Playwright.evaluateString(scrollToBottomScript()))
+       |> then_(_ => page->Playwright.evaluateString(scrollUpFromBottomScript(260)))
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression=bottomDistanceAtLeastExpression(120),
+              ~label="Streaming scroll opt-out: user is scrolled away from bottom before sending",
+              ~attemptsLeft=30,
+            )
+          )
+       |> then_(_ => page->Playwright.fill("#prompt-input", prompt))
+       |> then_(_ => page->Playwright.click("#send-button"))
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression=assistantHasTextExpression("Mock assistant saw"),
+              ~label="Streaming scroll opt-out: partial assistant response appears",
+              ~attemptsLeft=150,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression=bottomDistanceAtLeastExpression(80),
+              ~label="Streaming scroll opt-out: partial stream does not yank user to bottom",
+              ~attemptsLeft=60,
+            )
+          )
+       |> then_(_ =>
+            waitForSelectorText(
+              ~page,
+              ~selector="#message-list",
+              ~expected="scroll final marker",
+              ~label="Streaming scroll opt-out: stream completes with final marker",
+              ~attemptsLeft=250,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression=bottomDistanceAtLeastExpression(80),
+              ~label="Streaming scroll opt-out: completion does not yank user to bottom",
+              ~attemptsLeft=60,
+            )
+          )
+     )
+  |> catch(error => {
+       Js.log2("[FAIL] Streaming scroll opt-out test failed:", error);
        BrowserTestUtils.rejectPromiseError(error);
      });
 };
@@ -1486,6 +2027,12 @@ let run = () => {
                           }
                         )
                      |> then_(_ => runStreamingScrollScenario(~browser, ~baseUrl=server.baseUrl))
+                     |> then_(_ =>
+                          runStreamingScrollOptOutScenario(
+                            ~browser,
+                            ~baseUrl=server.baseUrl,
+                          )
+                        )
                      |> then_(_ => runThreadDeletionScenario(~browser, ~baseUrl=server.baseUrl))
                      |> then_(_ =>
                           runDeleteInactiveThreadKeepsActiveScenario(

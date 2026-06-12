@@ -35,9 +35,12 @@ let handleSend =
   };
   let trimmedPrompt = String.trim(prompt);
   if (String.length(trimmedPrompt) > 0 && String.length(threadId) > 0) {
+    let messageId = UUID.make();
+    let assistantMessageId = UUID.make();
     let _ =
       sendPromptMutation.mutate({
-        message_id: UUID.make(),
+        message_id: messageId,
+        assistant_message_id: assistantMessageId,
         thread_id: threadId,
         prompt: trimmedPrompt,
       });
@@ -110,10 +113,14 @@ let handleKeyDown =
 let handleKeyDown = (_store, _sendPromptMutation, _draft, _setDraft, _event) =>
   ();
 
-let hasConfirmedAssistantMessage = (~messages, ~content) =>
-  messages->Js.Array.some(~f=(message: Model.Message.t) =>
-    message.role == "assistant" && message.content == content
-  );
+let hasCurrentStreamAssistantMessage = (~messages, streaming: LlmChatStore.streaming_state) =>
+  switch (streaming.currentStreamId) {
+  | Some(streamId) =>
+    messages->Js.Array.some(~f=(message: Model.Message.t) =>
+      message.role == "assistant" && message.id == streamId
+    )
+  | None => false
+  };
 
 let isStreamingForThread = (~currentThreadId, streaming: LlmChatStore.streaming_state) =>
   switch (streaming.currentThreadId) {
@@ -141,51 +148,171 @@ let streamingTextForThread = (~currentThreadId, streaming: LlmChatStore.streamin
   };
 };
 
+let currentStreamIdForThread = (~currentThreadId, streaming: LlmChatStore.streaming_state) =>
+  switch (streaming.currentThreadId, streaming.currentStreamId) {
+  | (Some(threadId), Some(streamId)) when threadId == currentThreadId =>
+    Some(streamId)
+  | _ => None
+  };
+
+let startsWith = (~prefix, value) => {
+  let prefixLength = String.length(prefix);
+  String.length(value) >= prefixLength
+  && String.sub(value, 0, prefixLength) == prefix;
+};
+
+let activeStreamTextForMessage = (~streaming: LlmChatStore.streaming_state, ~messageId) =>
+  switch (streaming.currentStreamId) {
+  | Some(streamId) when streamId == messageId =>
+    streaming.activeStreams
+    ->Belt.Map.String.get(streamId)
+    ->Belt.Option.getWithDefault("")
+  | _ => ""
+  };
+
+let displayAssistantContent = (~message: Model.Message.t, ~streaming) => {
+  let activeText = activeStreamTextForMessage(~streaming, ~messageId=message.id);
+  if (String.length(activeText) == 0) {
+    message.content;
+  } else if (startsWith(~prefix=message.content, activeText)) {
+    activeText;
+  } else if (startsWith(~prefix=activeText, message.content)) {
+    message.content;
+  } else {
+    message.content ++ activeText;
+  };
+};
+
+let appendCurrentStreamMessage =
+    (
+      ~messages,
+      ~currentThreadId,
+      ~currentStreamId,
+      ~hasCurrentStreamRow,
+      ~streamingText,
+    ) =>
+  switch (currentStreamId) {
+  | Some(streamId)
+      when String.length(streamingText) > 0 && !hasCurrentStreamRow =>
+    messages->Js.Array.concat(
+      ~other=[|
+        {
+          Model.Message.id: streamId,
+          thread_id: currentThreadId,
+          role: "assistant",
+          content: "",
+        },
+      |],
+    )
+  | _ => messages
+  };
+
+[@platform js]
+let messageListElement = () =>
+  Webapi.Dom.document
+  |> Webapi.Dom.Document.getElementById("message-list");
+
+[@platform js]
+let scrollToBottomElement = el =>
+  Webapi.Dom.Element.setScrollTop(
+    el,
+    float_of_int(Webapi.Dom.Element.scrollHeight(el)),
+  );
+
 [@platform js]
 let scrollToBottom = () => {
-  switch (
-    Webapi.Dom.document
-    |> Webapi.Dom.Document.getElementById("message-list")
-  ) {
-  | Some(el) =>
-    Webapi.Dom.Element.setScrollTop(
-      el,
-      float_of_int(Webapi.Dom.Element.scrollHeight(el)),
-    );
+  switch (messageListElement()) {
+  | Some(el) => scrollToBottomElement(el)
   | None => ()
   };
 };
 
 [@platform js]
+let isNearBottomElement = el => {
+  let scrollTop = Webapi.Dom.Element.scrollTop(el);
+  let scrollHeight = Webapi.Dom.Element.scrollHeight(el);
+  let clientHeight = Webapi.Dom.Element.clientHeight(el);
+  scrollTop +. float_of_int(clientHeight) > float_of_int(scrollHeight) -. 80.0;
+};
+
+[@platform js]
 let isNearBottom = () => {
-  switch (
-    Webapi.Dom.document
-    |> Webapi.Dom.Document.getElementById("message-list")
-  ) {
-  | Some(el) =>
-    let scrollTop = Webapi.Dom.Element.scrollTop(el);
-    let scrollHeight = Webapi.Dom.Element.scrollHeight(el);
-    let clientHeight = Webapi.Dom.Element.clientHeight(el);
-    scrollTop +. float_of_int(clientHeight) > float_of_int(scrollHeight) -. 80.0;
+  switch (messageListElement()) {
+  | Some(el) => isNearBottomElement(el)
   | None => true
   };
 };
 
+[@platform native]
+let messageListElement = () => None;
+
+[@platform native]
+let scrollToBottomElement = _el => ();
+
+[@platform native]
+let scrollToBottom = () => ();
+
+[@platform native]
+let isNearBottomElement = _el => true;
+
+[@platform native]
+let isNearBottom = () => true;
+
+[@platform js]
+let cancelScheduledScroll = scrollRafId => {
+  switch (scrollRafId^) {
+  | Some(rafId) =>
+    Webapi.cancelAnimationFrame(rafId);
+    scrollRafId := None;
+  | None => ()
+  };
+};
+
+[@platform js]
+let scheduleScrollToBottom = (scrollRafId, shouldStickToBottomRef) => {
+  let scrollIfSticky = () =>
+    if (shouldStickToBottomRef^) {
+      scrollToBottom();
+    };
+  cancelScheduledScroll(scrollRafId);
+  scrollIfSticky();
+  scrollRafId := Some(Webapi.requestCancellableAnimationFrame(_ => {
+    scrollIfSticky();
+    scrollRafId := Some(Webapi.requestCancellableAnimationFrame(_ => {
+      scrollIfSticky();
+      scrollRafId := None;
+    }));
+  }));
+};
+
 [@platform js]
 let useAutoScroll = (messages, isStreaming, streamingText) => {
-  let isNearBottomRef = React.useMemo1(() => ref(true), [||]);
+  let shouldStickToBottomRef = React.useMemo1(() => ref(true), [||]);
   let scrollRafId = React.useMemo1(() => ref(None), [||]);
+
+  React.useEffect0(() => {
+    switch (messageListElement()) {
+    | Some(el) =>
+      shouldStickToBottomRef := isNearBottomElement(el);
+      let onScroll = _event => {
+        let shouldStick = isNearBottomElement(el);
+        shouldStickToBottomRef := shouldStick;
+        if (!shouldStick) {
+          cancelScheduledScroll(scrollRafId);
+        };
+      };
+      Webapi.Dom.Element.addEventListener("scroll", onScroll, el);
+      Some(() => {
+        Webapi.Dom.Element.removeEventListener("scroll", onScroll, el);
+      });
+    | None => None
+    };
+  });
+
   React.useEffect3(
     () => {
-      isNearBottomRef := isNearBottom();
-      if (isNearBottomRef^) {
-        switch (scrollRafId^) {
-        | Some(rafId) => Webapi.cancelAnimationFrame(rafId)
-        | None => ()
-        };
-        scrollRafId := Some(Webapi.requestCancellableAnimationFrame(_ => {
-          scrollToBottom();
-        }));
+      if (shouldStickToBottomRef^) {
+        scheduleScrollToBottom(scrollRafId, shouldStickToBottomRef);
       };
       None;
     },
@@ -225,7 +352,19 @@ module View = {
       };
       let streaming = useStreaming();
       let streamingText = streamingTextForThread(~currentThreadId, streaming);
+      let currentStreamId =
+        currentStreamIdForThread(~currentThreadId, streaming);
+      let hasCurrentStreamRow =
+        hasCurrentStreamAssistantMessage(~messages, streaming);
       let isStreaming = isStreamingForThread(~currentThreadId, streaming);
+      let renderedMessages =
+        appendCurrentStreamMessage(
+          ~messages,
+          ~currentThreadId,
+          ~currentStreamId,
+          ~hasCurrentStreamRow,
+          ~streamingText,
+        );
 
       React.useEffect1(
         () => {
@@ -307,20 +446,22 @@ module View = {
                   {React.string("Send a message to start the conversation.")}
                 </div>;
               } else {
-                messages->Js.Array.map(~f=(message: Model.Message.t) => {
+                renderedMessages->Js.Array.map(~f=(message: Model.Message.t) => {
                   let roleClass =
                     message.role == "user"
                       ? "message--user" : "message--assistant";
                   let isLastMessage = {
-                    let len = Array.length(messages);
-                    len > 0 && messages[len - 1].id == message.id;
+                    let len = Array.length(renderedMessages);
+                    len > 0 && renderedMessages[len - 1].id == message.id;
                   };
                   let children =
                     if (message.role == "assistant") {
+                      let content =
+                        displayAssistantContent(~message, ~streaming);
                       [|
                         Streamdown.make(
                           ~isAnimating=isStreaming && isLastMessage,
-                          ~children=message.content,
+                          ~children=content,
                           (),
                         ),
                       |];
@@ -334,30 +475,6 @@ module View = {
                     {React.array(children)}
                   </div>;
                 })
-                ->Js.Array.concat(
-                  ~other=[|
-                    if (
-                      String.length(streamingText) > 0
-                      && !hasConfirmedAssistantMessage(~messages, ~content=streamingText)
-                    ) {
-                      <div
-                        key="streaming-message"
-                        id="streaming-message"
-                        className="message message--assistant"
-                        role="assistant">
-                        {
-                          Streamdown.make(
-                            ~isAnimating=true,
-                            ~children=streamingText,
-                            (),
-                          )
-                        }
-                      </div>;
-                    } else {
-                      React.null
-                    },
-                  |],
-                )
                 ->React.array;
               }
             }

@@ -394,10 +394,12 @@ module Context = StoreDef.Context;
 - `let serializeSnapshot: state => string`: Serialize for snapshot
 - `let dispatch: action => unit`: Dispatch a typed action
 - `let useStreaming(): streaming_state`: Read the store's typed streaming state reactively; local stores return `unit`, synced stores update after typed stream events and confirmed-state reconciliation
-- `let useQuery((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the store after applying loaded rows. Pass `~skip=true` to preserve React hook order while avoiding SSR registration and client subscription.
-- `let useQueryResult((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the low-level `{data, loading, error}` query result. When skipped, it returns `{data: Loading, loading: false, error: None}` and does not contact the backend.
-- `let useQueryOption((module Query), paramsOpt, ())`: Reason-friendly conditional query helper. `Some(params)` behaves like `useQuery`; `None` behaves like `~skip=true` without requiring placeholder params.
-- `let useQueryResultOption((module Query), paramsOpt, ())`: Low-level result form of `useQueryOption`.
+- `let useQuery((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the Convex-style `{data, loading, error}` query result. Pass `~skip=true` to preserve React hook order while avoiding SSR registration and client subscription.
+- `let useQueryResult((module Query), params, ~skip=false, ())`: Explicit alias for `useQuery`. When skipped, it returns `{data: Loading, loading: false, error: None}` and does not contact the backend.
+- `let useQueryStore((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the store after applying loaded rows.
+- `let useQueryOption((module Query), paramsOpt, ())`: Reason-friendly conditional result helper. `Some(params)` behaves like `useQuery`; `None` behaves like `~skip=true` without requiring placeholder params.
+- `let useQueryResultOption((module Query), paramsOpt, ())`: Explicit alias for `useQueryOption`.
+- `let useQueryStoreOption((module Query), paramsOpt, ())`: Conditional store-returning form of `useQueryStore`.
 - Standalone low-level `UseQuery`/`Hooks.useQuery` calls share the same query cache but do not infer transport from a store runtime. Call `UseQuery.initCache(~eventUrl, ~baseUrl)` during client startup before subscribing to uncached queries. Same-origin transports can use `~eventUrl="/_events"` with `~baseUrl=""`. Without initialized transport, uncached client queries return an error instead of remaining in `Loading`; SSR-hydrated rows are preserved.
 - `let useMutation((module Mutation), ())`: Create a store-scoped async mutation function directly. This matches Convex's callable mutation style; custom modules provide `type params`, `type action`, and `toAction(params)`. Local stores resolve after local dispatch and reject when validation denies the action or the store is unavailable; synced stores resolve after server acknowledgement and reject on validation or server mutation failure.
 - `let useMutationFn((module Mutation), ())`: Compatibility alias for `useMutation`.
@@ -405,7 +407,7 @@ module Context = StoreDef.Context;
 - `let useIsQueryLoading((module Query), params)`: Reactive loading helper backed by the shared query cache signal.
 - `let useIsQueryLoadingOption((module Query), paramsOpt)`: Conditional loading helper that returns `false` for `None` without subscribing.
 - `module Context`: React context for store access
-- `module Hooks`: Nested `useStreaming`, `useQuery`, `useQueryResult`, `useQueryOption`, `useQueryResultOption`, `useMutation`, `useMutationFn`, `useMutationResult`, `useIsQueryLoading`, and `useIsQueryLoadingOption` exports for component-local opens
+- `module Hooks`: Nested `useStreaming`, `useQuery`, `useQueryResult`, `useQueryStore`, `useQueryOption`, `useQueryResultOption`, `useQueryStoreOption`, `useMutation`, `useMutationFn`, `useMutationResult`, `useIsQueryLoading`, and `useIsQueryLoadingOption` exports for component-local opens
 - `module Events`: Event listener module
 
 ### StoreBuilder.buildSynced

@@ -70,15 +70,17 @@ let with_empty_registry f =
   Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
 
 let loaded_data json key =
-  match Yojson.Safe.from_string json with
-  | `Assoc entries -> (
-      match List.assoc_opt key entries with
-      | Some (`Assoc fields) -> (
-          match List.assoc_opt "data" fields with
-          | Some data -> data
-          | None -> Alcotest.fail ("missing data for " ^ key))
-      | Some _ -> Alcotest.fail ("expected loaded object for " ^ key)
-      | None -> Alcotest.fail ("missing cache key " ^ key))
+  let open Yojson.Safe.Util in
+  let root = Yojson.Safe.from_string json in
+  match root with
+  | `Assoc _ -> (
+      match member key root with
+      | `Null -> Alcotest.fail ("missing cache key " ^ key)
+      | `Assoc _ as loaded -> (
+          match member "data" loaded with
+          | `Null -> Alcotest.fail ("missing data for " ^ key)
+          | data -> data)
+      | _ -> Alcotest.fail ("expected loaded object for " ^ key))
   | _ -> Alcotest.fail "serialized cache should be a JSON object"
 
 let with_active_registry_result key json f =

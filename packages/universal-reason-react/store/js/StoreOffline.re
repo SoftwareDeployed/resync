@@ -25,7 +25,7 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
   ) =>
     UseQuery.useQueryOption((module Q), params, ());
 
-  let query = (
+  let queryStore = (
     type p,
     type r,
     module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
@@ -37,7 +37,7 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
     Runtime.useStore();
   };
 
-  let queryOption = (
+  let queryStoreOption = (
     type p,
     type r,
     module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
@@ -47,6 +47,9 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
     let _ = queryResultOption((module Q), params, ());
     Runtime.useStore();
   };
+
+  let query = queryResult;
+  let queryOption = queryResultOption;
 
   let isQueryLoading = (
     type p,
@@ -500,8 +503,10 @@ module Local = {
 
     let useQuery = RuntimeHooks.query;
     let useQueryResult = RuntimeHooks.queryResult;
+    let useQueryStore = RuntimeHooks.queryStore;
     let useQueryOption = RuntimeHooks.queryOption;
     let useQueryResultOption = RuntimeHooks.queryResultOption;
+    let useQueryStoreOption = RuntimeHooks.queryStoreOption;
     let useIsQueryLoading = RuntimeHooks.isQueryLoading;
     let useIsQueryLoadingOption = RuntimeHooks.isQueryLoadingOption;
     let useMutation = RuntimeHooks.mutation;
@@ -513,8 +518,10 @@ module Local = {
       let useStreaming = useStreaming;
       let useQuery = useQuery;
       let useQueryResult = useQueryResult;
+      let useQueryStore = useQueryStore;
       let useQueryOption = useQueryOption;
       let useQueryResultOption = useQueryResultOption;
+      let useQueryStoreOption = useQueryStoreOption;
       let useIsQueryLoading = useIsQueryLoading;
       let useIsQueryLoadingOption = useIsQueryLoadingOption;
       let useMutation = useMutation;
@@ -1744,8 +1751,10 @@ module Synced = {
 
     let useQuery = RuntimeHooks.query;
     let useQueryResult = RuntimeHooks.queryResult;
+    let useQueryStore = RuntimeHooks.queryStore;
     let useQueryOption = RuntimeHooks.queryOption;
     let useQueryResultOption = RuntimeHooks.queryResultOption;
+    let useQueryStoreOption = RuntimeHooks.queryStoreOption;
     let useIsQueryLoading = RuntimeHooks.isQueryLoading;
     let useIsQueryLoadingOption = RuntimeHooks.isQueryLoadingOption;
     let useMutation = RuntimeHooks.mutation;
@@ -1757,8 +1766,10 @@ module Synced = {
       let useStreaming = useStreaming;
       let useQuery = useQuery;
       let useQueryResult = useQueryResult;
+      let useQueryStore = useQueryStore;
       let useQueryOption = useQueryOption;
       let useQueryResultOption = useQueryResultOption;
+      let useQueryStoreOption = useQueryStoreOption;
       let useIsQueryLoading = useIsQueryLoading;
       let useIsQueryLoadingOption = useIsQueryLoadingOption;
       let useMutation = useMutation;

@@ -174,14 +174,25 @@ let broadcast_stream_error ~broadcast_fn ~thread_id ~assistant_message_id error 
       ("message_id", `String assistant_message_id);
       ("error", `String error) ]
 
-let finalize_assistant_message ~with_background_db ~thread_id ~assistant_message_id ~full_response =
-  if String.length full_response > 0 then
+let persist_assistant_message_content
+    ~with_background_db
+    ~assistant_persisted
+    ~thread_id
+    ~assistant_message_id
+    ~content =
+  if String.length content > 0 then
     with_background_db (fun db ->
       let* () =
-        RealtimeSchema.Mutations.AddMessage.exec
-          db
-          (assistant_message_id, thread_id, "assistant", full_response)
+        if !assistant_persisted then
+          RealtimeSchema.Mutations.UpdateMessageContent.exec
+            db
+            (assistant_message_id, content)
+        else
+          RealtimeSchema.Mutations.AddMessage.exec
+            db
+            (assistant_message_id, thread_id, "assistant", content)
       in
+      assistant_persisted := true;
       touch_thread_updated_at db thread_id)
   else Lwt.return_unit
 
@@ -242,14 +253,43 @@ let token_of_choice = function
           | None -> string_field "text" fields))
   | _ -> None
 
+let tokens_of_content_parts fields =
+  match assoc_field "content" fields with
+  | Some content_fields ->
+      list_field "parts" content_fields
+      |> List.filter_map (function
+        | `Assoc part_fields -> string_field "text" part_fields
+        | _ -> None)
+  | None -> []
+
+let tokens_of_candidate = function
+  | `Assoc fields ->
+      let tokens = ref [] in
+      push_nonempty (string_field "text" fields) tokens;
+      List.iter
+        (fun text -> push_nonempty (Some text) tokens)
+        (tokens_of_content_parts fields);
+      List.rev !tokens
+  | _ -> []
+
 let tokens_of_json = function
   | `Assoc fields ->
       let tokens = ref [] in
+      push_nonempty (string_field "response" fields) tokens;
+      push_nonempty (string_field "content" fields) tokens;
+      push_nonempty (string_field "text" fields) tokens;
+      push_nonempty (string_field "token" fields) tokens;
       push_nonempty (token_of_message fields) tokens;
       push_nonempty (token_of_delta fields) tokens;
       List.iter
         (fun choice -> push_nonempty (token_of_choice choice) tokens)
         (list_field "choices" fields);
+      List.iter
+        (fun candidate ->
+           List.iter
+             (fun text -> push_nonempty (Some text) tokens)
+             (tokens_of_candidate candidate))
+        (list_field "candidates" fields);
       List.rev !tokens
   | _ -> []
 
@@ -352,6 +392,7 @@ let stream_ollama ~broadcast_fn ~with_background_db ~thread_id ~assistant_messag
   let sse_buffer = ref "" in
   let format_ref = ref (if content_type_is_sse resp then Sse else Unknown) in
   let all_tokens = ref [] in
+  let assistant_persisted = ref false in
   let rec read_loop () =
     let* chunk = Lwt_stream.get body_stream in
     match chunk with
@@ -362,7 +403,12 @@ let stream_ollama ~broadcast_fn ~with_background_db ~thread_id ~assistant_messag
             "Ollama stream completed without any response tokens"
         else
           let* () =
-            finalize_assistant_message ~with_background_db ~thread_id ~assistant_message_id ~full_response
+            persist_assistant_message_content
+              ~with_background_db
+              ~assistant_persisted
+              ~thread_id
+              ~assistant_message_id
+              ~content:full_response
           in
           broadcast_stream_event ~broadcast_fn ~thread_id ~event:"stream_complete"
             [ ("thread_id", `String thread_id);
@@ -400,6 +446,15 @@ let stream_ollama ~broadcast_fn ~with_background_db ~thread_id ~assistant_messag
                           ("token", `String text) ])
                    (List.rev !tokens)
                in
+               let current_response = String.concat "" (List.rev !all_tokens) in
+               let* () =
+                 persist_assistant_message_content
+                   ~with_background_db
+                   ~assistant_persisted
+                   ~thread_id
+                   ~assistant_message_id
+                   ~content:current_response
+               in
                read_loop ()
          with exn ->
            broadcast_stream_error ~broadcast_fn ~thread_id ~assistant_message_id
@@ -431,7 +486,7 @@ let validate_mutation request action_json =
          | "send_prompt" ->
              Some
                (LlmChatStore.SendPrompt
-                  { LlmChatStore.message_id = ""; thread_id = ""; prompt = "" })
+                  { LlmChatStore.message_id = ""; assistant_message_id = ""; thread_id = ""; prompt = "" })
          | "delete_thread" -> Some (LlmChatStore.DeleteThread "")
          | "select_thread" -> Some (LlmChatStore.SelectThread "")
          | "create_new_thread" ->
@@ -505,7 +560,11 @@ let handle_mutation with_background_db broadcast_fn request ~db ~action_id ~muta
                             | Ok id -> id
                             | Error _ -> UUID.make ()
                           in
-                          let assistant_message_id = UUID.make () in
+                          let assistant_message_id =
+                            match required_string "assistant_message_id" payload with
+                            | Ok id -> id
+                            | Error _ -> UUID.make ()
+                          in
                           Lwt.catch
                             (fun () ->
                                let* () =

@@ -179,6 +179,14 @@ let useQuerySignal = (~cache, ~key, ~channel, ~skip) => {
 };
 
 [@platform js]
+let useRawQueryResultForIdentity = (~channel, ~paramsHash, ~skip) => {
+  let key = makeKey(~channel, ~paramsHash);
+  let cache = getQueryCache();
+  let signal = useQuerySignal(~cache, ~key, ~channel, ~skip);
+  skip ? Loading : signal->Tilia.Core.lift;
+};
+
+[@platform js]
 let useRawQueryResult =
     (
       type p,
@@ -191,11 +199,7 @@ let useRawQueryResult =
     skip
       ? (skippedChannel, skippedParamsHash)
       : (Q.channel(params), Q.paramsHash(params));
-  let key = makeKey(~channel, ~paramsHash);
-
-  let cache = getQueryCache();
-  let signal = useQuerySignal(~cache, ~key, ~channel, ~skip);
-  skip ? Loading : signal->Tilia.Core.lift;
+  useRawQueryResultForIdentity(~channel, ~paramsHash, ~skip);
 };
 
 [@platform js]
@@ -211,11 +215,7 @@ let useRawQueryResultOption =
     | Some(params) => (Q.channel(params), Q.paramsHash(params), false)
     | None => (skippedChannel, skippedParamsHash, true)
     };
-  let key = makeKey(~channel, ~paramsHash);
-
-  let cache = getQueryCache();
-  let signal = useQuerySignal(~cache, ~key, ~channel, ~skip);
-  skip ? Loading : signal->Tilia.Core.lift;
+  useRawQueryResultForIdentity(~channel, ~paramsHash, ~skip);
 };
 
 // Main useQuery hook - JS version (client-side)

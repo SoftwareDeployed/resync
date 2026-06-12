@@ -7,6 +7,7 @@ type subscription = RealtimeSubscription.t;
 
 type send_prompt_payload = {
   message_id: string,
+  assistant_message_id: string,
   thread_id: string,
   prompt: string,
 };
@@ -65,6 +66,7 @@ let actionJson = (~kind, ~fill) =>
 let sendPromptPayloadJson = (payload: send_prompt_payload) =>
   StoreJson.Object.make(dict => {
     StoreJson.Object.setString(dict, "message_id", payload.message_id);
+    StoreJson.Object.setString(dict, "assistant_message_id", payload.assistant_message_id);
     StoreJson.Object.setString(dict, "thread_id", payload.thread_id);
     StoreJson.Object.setString(dict, "prompt", payload.prompt);
   });
@@ -115,6 +117,13 @@ let action_of_json = json => {
       message_id:
         switch (
           StoreJson.optionalField(~json=payload, ~fieldName="message_id", ~decode=string_of_json)
+        ) {
+        | Some(id) => id
+        | None => UUID.make()
+        },
+      assistant_message_id:
+        switch (
+          StoreJson.optionalField(~json=payload, ~fieldName="assistant_message_id", ~decode=string_of_json)
         ) {
         | Some(id) => id
         | None => UUID.make()
@@ -225,12 +234,12 @@ let reduceStream = (streaming, event) =>
       isStreaming: true,
       streamError: None,
     }
-  | StreamComplete(threadId, id) =>
+  | StreamComplete(_threadId, id) =>
     let isCurrent = isCurrentStream(~streaming, ~id);
     {
-      ...streaming,
-      currentStreamId: isCurrent ? Some(id) : streaming.currentStreamId,
-      currentThreadId: isCurrent ? Some(threadId) : streaming.currentThreadId,
+      activeStreams: streaming.activeStreams->Belt.Map.String.remove(id),
+      currentStreamId: isCurrent ? None : streaming.currentStreamId,
+      currentThreadId: isCurrent ? None : streaming.currentThreadId,
       isStreaming: isCurrent ? false : streaming.isStreaming,
       streamError: None,
     }
@@ -353,16 +362,11 @@ let updateOfPatch = (patch: patch, state: state): state =>
 let reconcilePatch = (patch, streaming) =>
   switch (patch) {
   | MessagesPatch(StoreCrud.Upsert(msg)) =>
-    let isCurrent =
-      switch (streaming.currentStreamId) {
-      | Some(id) => id == msg.id
-      | None => false
-      };
     {
       activeStreams: streaming.activeStreams->Belt.Map.String.remove(msg.id),
-      currentStreamId: isCurrent ? None : streaming.currentStreamId,
-      currentThreadId: isCurrent ? None : streaming.currentThreadId,
-      isStreaming: isCurrent ? false : streaming.isStreaming,
+      currentStreamId: streaming.currentStreamId,
+      currentThreadId: streaming.currentThreadId,
+      isStreaming: streaming.isStreaming,
       streamError: None,
     }
   | _ => streaming
@@ -463,19 +467,34 @@ module StoreDef = Store.Frp.Synced.Streaming.Build({
           | SendPrompt(payload) =>
             switch (state.current_thread_id) {
             | Some(current_thread_id) when current_thread_id == payload.thread_id =>
+              let userMessage: Model.Message.t = {
+                id: payload.message_id,
+                thread_id: payload.thread_id,
+                role: "user",
+                content: payload.prompt,
+              };
+              let assistantMessage: Model.Message.t = {
+                id: payload.assistant_message_id,
+                thread_id: payload.thread_id,
+                role: "assistant",
+                content: "",
+              };
+              let withUser =
+                StoreCrud.upsert(
+                  ~getId=(message: Model.Message.t) => message.id,
+                  state.messages,
+                  userMessage,
+                );
+              let hasAssistantMessage =
+                withUser->Js.Array.some(~f=(message: Model.Message.t) =>
+                  message.id == payload.assistant_message_id
+                );
               withTimestamp({
                 ...state,
                 messages:
-                  state.messages->Js.Array.concat(
-                    ~other=[|
-                      {
-                        Model.Message.id: payload.message_id,
-                        thread_id: payload.thread_id,
-                        role: "user",
-                        content: payload.prompt,
-                      },
-                    |],
-                  ),
+                  hasAssistantMessage
+                    ? withUser
+                    : withUser->Js.Array.concat(~other=[|assistantMessage|]),
               })
             | _ => state
             }

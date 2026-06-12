@@ -52,8 +52,8 @@ let suite =
         assertCurrentStream(~label="current stream id", ~streaming, ~expected="stream-2");
         Alcotest.check(
           Alcotest.string,
-          "first text retained",
-          "first",
+          "completed stream removed",
+          "",
           streamText(streaming, "stream-1"),
         );
         Alcotest.check(

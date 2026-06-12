@@ -618,20 +618,29 @@ module Runtime = {
       (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
        'p,
        ~skip: bool=?,
-       unit) => t;
+       unit) => UseQuery.result('r);
     let useQueryResult:
       (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
        'p,
        ~skip: bool=?,
        unit) => UseQuery.result('r);
+    let useQueryStore:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       'p,
+       ~skip: bool=?,
+       unit) => t;
     let useQueryOption:
       (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
        option('p),
-       unit) => t;
+       unit) => UseQuery.result('r);
     let useQueryResultOption:
       (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
        option('p),
        unit) => UseQuery.result('r);
+    let useQueryStoreOption:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       option('p),
+       unit) => t;
     let useIsQueryLoading:
       (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
        'p) => bool;
@@ -661,20 +670,29 @@ module Runtime = {
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          'p,
          ~skip: bool=?,
-         unit) => t;
+         unit) => UseQuery.result('r);
       let useQueryResult:
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          'p,
          ~skip: bool=?,
          unit) => UseQuery.result('r);
+      let useQueryStore:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         'p,
+         ~skip: bool=?,
+         unit) => t;
       let useQueryOption:
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          option('p),
-         unit) => t;
+         unit) => UseQuery.result('r);
       let useQueryResultOption:
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          option('p),
          unit) => UseQuery.result('r);
+      let useQueryStoreOption:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         option('p),
+         unit) => t;
       let useIsQueryLoading:
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          'p) => bool;

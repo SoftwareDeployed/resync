@@ -171,66 +171,68 @@ let action_of_json = json => {
 };
 
 /* ============================================================================
-   Pipeline Builder API
+   FRP Local Store API
    ============================================================================ */
 
-module StoreDef =
-  (val StoreBuilder.buildLocal(
-    StoreBuilder.make()
-    |> StoreBuilder.withSchema({
-         emptyState: {
-           items: defaultItems,
-           updated_at: 0.0,
-         },
-         reduce: (~state: state, ~action: action) => {
-           let updated_at = Js.Date.now();
-           switch (action) {
-           | SetItemQuantity(input) => {
-               items:
-                 setItemQuantity(
-                   copyItems(state.items),
-                   ~inventoryId=input.inventory_id,
-                   ~quantity=input.quantity,
-                 ),
-               updated_at,
-             }
-           | RemoveItem(inventoryId) => {
-               items: removeItemById(state.items, inventoryId),
-               updated_at,
-             }
-           | ClearCart => {
-               items: defaultItems,
-               updated_at,
-             }
-           };
-         },
-         makeStore:
-           (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-           state:
-             StoreBuilder.current(
-               ~derive?,
-               ~client=state,
-               ~server=() => state,
-               (),
-             ),
-           item_count:
-             StoreBuilder.derived(
-               ~derive?,
-               ~client=store => itemCount(store.state),
-               ~server=() => itemCount(state),
-               (),
-             ),
-         },
-       })
-    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-    |> StoreBuilder.withLocalPersistence(
-         ~storeName,
-         ~scopeKeyOfState = (_state: state) => "default",
-         ~timestampOfState = (state: state) => state.updated_at,
-         ~stateElementId=Some(stateElementId),
-         (),
-       ),
-  ));
+module StoreDef = StoreFrp.Local.Build({
+  type nonrec state = state;
+  type nonrec action = action;
+  type nonrec store = store;
+
+  let config =
+    StoreFrp.Local.make({
+      storeName,
+      emptyState: {
+        items: defaultItems,
+        updated_at: 0.0,
+      },
+      reduce: (~state: state, ~action: action) => {
+        let updated_at = Js.Date.now();
+        switch (action) {
+        | SetItemQuantity(input) => {
+            items:
+              setItemQuantity(
+                copyItems(state.items),
+                ~inventoryId=input.inventory_id,
+                ~quantity=input.quantity,
+              ),
+            updated_at,
+          }
+        | RemoveItem(inventoryId) => {
+            items: removeItemById(state.items, inventoryId),
+            updated_at,
+          }
+        | ClearCart => {
+            items: defaultItems,
+            updated_at,
+          }
+        };
+      },
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+        state:
+          StoreBuilder.current(
+            ~derive?,
+            ~client=state,
+            ~server=() => state,
+            (),
+          ),
+        item_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => itemCount(store.state),
+            ~server=() => itemCount(state),
+            (),
+          ),
+      },
+      scopeKeyOfState: (_state: state) => "default",
+      timestampOfState: (state: state) => state.updated_at,
+      stateElementId: Some(stateElementId),
+    });
+});
 
 include (
   StoreDef:

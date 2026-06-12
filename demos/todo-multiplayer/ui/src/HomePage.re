@@ -31,8 +31,10 @@ let handleInputChange = (setNewTodoText, _event) => {
 [@react.component]
 let make =
   leaf((~listId: string) => {
-    let _ = useQuery((module RealtimeSchema.Queries.GetList), {list_id: listId}, ());
-    let store = useQuery((module RealtimeSchema.Queries.GetListInfo), {id: listId}, ());
+    let _ =
+      useQueryStore((module RealtimeSchema.Queries.GetList), {list_id: listId}, ());
+    let store =
+      useQueryStore((module RealtimeSchema.Queries.GetListInfo), {id: listId}, ());
 
     let (newTodoText, setNewTodoText) = React.useState(() => "");
 
