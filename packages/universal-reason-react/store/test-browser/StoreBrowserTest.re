@@ -66,15 +66,18 @@ let testHydrationConflict = (~page) => {
   )
   |> then_(_ => page->Playwright.goto("http://127.0.0.1:8090/"))
   |> then_(_ => page->Playwright.waitForSelector(".todo-container"))
-  |> then_(_ => BrowserTestUtils.bodyText(page))
-  |> then_(text =>
+  |> then_(_ => BrowserTestUtils.textOrEmpty(page, ".todo-list"))
+  |> then_(listText =>
        /* IDB state should win because timestamp 5000.0 > SSR's 0.0 */
-       BrowserTestUtils.assertContains(~label="Hydration conflict: IDB state wins", ~expected="IDB wins over SSR", text)
-       |> then_(_ => BrowserTestUtils.assertContains(~label="Hydration conflict: IDB stats correct", ~expected="1 of 1 completed", text))
-       /* SSR todos should NOT be present — this proves wholesale swap, not merge */
-       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Learn ReasonML", text))
-       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Build an app", text))
-       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Deploy to production", text))
+    BrowserTestUtils.assertContains(~label="Hydration conflict: IDB state wins", ~expected="IDB wins over SSR", listText)
+       /* SSR todos should NOT be present in the rendered list — this proves wholesale swap, not merge */
+       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Learn ReasonML", listText))
+       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Build an app", listText))
+       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Deploy to production", listText))
+     )
+  |> then_(_ => BrowserTestUtils.textOrEmpty(page, ".todo-stats"))
+  |> then_(statsText =>
+       BrowserTestUtils.assertContains(~label="Hydration conflict: IDB stats correct", ~expected="1 of 1 completed", statsText)
      );
 };
 
@@ -139,7 +142,6 @@ let run = () => {
             |> then_(_ => browser->Playwright.newPage)
             |> then_(page2 =>
                  testHydrationConflict(~page=page2)
-                 |> then_(_ => page2->Playwright.close)
                )
             |> then_(_ => {
                  Js.log("Hydration conflict test passed. Starting cross-tab broadcast test...");
