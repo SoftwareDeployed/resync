@@ -154,6 +154,26 @@ module Local = {
 
     /* Cache adapter instantiation based on Schema.cache selection */
     module IDBCache = StoreCache.IndexedDB(Schema);
+    module NoOpCache = StoreCache.NoCache(Schema);
+    module Cache =
+      (val (
+        switch (Schema.cache) {
+        | `IndexedDB =>
+          (
+            module IDBCache:
+              StoreCache.Adapter
+                with type state = state
+                and type action = action
+          )
+        | `None =>
+          (
+            module NoOpCache:
+              StoreCache.Adapter
+                with type state = state
+                and type action = action
+          )
+        }
+      ));
 
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
@@ -174,20 +194,16 @@ module Local = {
     let writeStateRecord = (state: state) =>
       switch%platform (Runtime.platform) {
       | Client =>
-        switch (Schema.cache) {
-        | `IndexedDB =>
-          let _ =
-            StoreRuntimeLifecycle.trackPersistence(lifecycle, IDBCache.setState(
-                ~storeName=Schema.storeName,
-                {
-                  scopeKey: Schema.scopeKeyOfState(state),
-                  state,
-                  timestamp: Schema.timestampOfState(state),
-                },
-              ),);
-          ()
-        | `None => ()
-        }
+        let _ =
+          StoreRuntimeLifecycle.trackPersistence(lifecycle, Cache.setState(
+              ~storeName=Schema.storeName,
+              {
+                scopeKey: Schema.scopeKeyOfState(state),
+                state,
+                timestamp: Schema.timestampOfState(state),
+              },
+            ),);
+        ()
       | Server => ()
       };
 
@@ -244,30 +260,26 @@ module Local = {
       switch%platform (Runtime.platform) {
       | Client =>
         let currentState = actions.get();
-        switch (Schema.cache) {
-        | `IndexedDB =>
-          Js.Promise.then_(
-            (persistedState: option(StoreCache.state_record(state))) => {
-              switch (persistedState) {
-              | Some(record) =>
-                if (record.timestamp
-                    > Schema.timestampOfState(actions.get())) {
-                  setExternalState(~actions, record.state);
-                } else {
-                  writeStateRecord(actions.get());
-                }
-              | None => writeStateRecord(actions.get())
-              };
-              Js.Promise.resolve();
-            },
-            IDBCache.getState(
-              ~storeName=Schema.storeName,
-              ~scopeKey=Schema.scopeKeyOfState(currentState),
-              (),
-            ),
-          )
-        | `None => Js.Promise.resolve()
-        }
+        Js.Promise.then_(
+          (persistedState: option(StoreCache.state_record(state))) => {
+            switch (persistedState) {
+            | Some(record) =>
+              if (record.timestamp
+                  > Schema.timestampOfState(actions.get())) {
+                setExternalState(~actions, record.state);
+              } else {
+                writeStateRecord(actions.get());
+              }
+            | None => writeStateRecord(actions.get())
+            };
+            Js.Promise.resolve();
+          },
+          Cache.getState(
+            ~storeName=Schema.storeName,
+            ~scopeKey=Schema.scopeKeyOfState(currentState),
+            (),
+          ),
+        )
       | Server => Js.Promise.resolve()
       };
 
