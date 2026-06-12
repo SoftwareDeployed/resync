@@ -13,6 +13,10 @@ let make_record ~id ~status ~enqueued_at : StoreActionLedger.t =
     error = None;
   }
 
+let uuid_v7_at_1000ms = "00000000-03e8-7000-8000-000000000000"
+let uuid_v7_at_2000ms = "00000000-07d0-7000-8000-000000000000"
+let uuid_v7_at_3000ms = "00000000-0bb8-7000-8000-000000000000"
+
 let int_float_pair = Alcotest.pair Alcotest.int (Alcotest.float 0.0)
 
 let suite =
@@ -240,11 +244,13 @@ let suite =
           in
           let result = StoreRuntimeHelpers.filterResumableRecords records in
           Alcotest.(check int) "Should not include failed" 0 (Array.length result));
-      Alcotest.test_case "getPrunableAckedActionIds returns acked ids" `Quick (fun () ->
+      Alcotest.test_case "getPrunableAckedActionIds returns only acked ids at or before confirmed timestamp" `Quick (fun () ->
           let records =
             [|
-              make_record ~id:"acked-1" ~status:"acked" ~enqueued_at:1000.0;
-              make_record ~id:"pending-1" ~status:"pending" ~enqueued_at:2000.0;
+              make_record ~id:uuid_v7_at_1000ms ~status:"acked" ~enqueued_at:1000.0;
+              make_record ~id:uuid_v7_at_2000ms ~status:"acked" ~enqueued_at:2000.0;
+              make_record ~id:uuid_v7_at_3000ms ~status:"acked" ~enqueued_at:3000.0;
+              make_record ~id:"pending-legacy-id" ~status:"pending" ~enqueued_at:1000.0;
             |]
           in
           let result =
@@ -252,7 +258,27 @@ let suite =
               ~confirmedTimestamp:2000.0
               ~records
           in
-          Alcotest.(check bool) "Should return array" true (Array.length result >= 0));
+          Alcotest.(check (array string))
+            "Should prune acked actions whose UUID timestamp is covered by confirmed state"
+            [| uuid_v7_at_1000ms; uuid_v7_at_2000ms |]
+            result);
+      Alcotest.test_case "getPrunableAckedActionIds treats malformed acked ids as oldest" `Quick
+        (fun () ->
+          let records =
+            [|
+              make_record ~id:"legacy-action-id" ~status:"acked" ~enqueued_at:1000.0;
+              make_record ~id:uuid_v7_at_3000ms ~status:"acked" ~enqueued_at:3000.0;
+            |]
+          in
+          let result =
+            StoreRuntimeHelpers.getPrunableAckedActionIds
+              ~confirmedTimestamp:2000.0
+              ~records
+          in
+          Alcotest.(check (array string))
+            "Malformed acked action ids should not block pruning"
+            [| "legacy-action-id" |]
+            result);
       Alcotest.test_case "rejectStaleCacheResult returns true when cached is older" `Quick
         (fun () ->
           let current = (100, 2000.0) in

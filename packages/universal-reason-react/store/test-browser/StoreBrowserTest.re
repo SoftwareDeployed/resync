@@ -316,6 +316,31 @@ let testWhenIdleWaitsForPendingActionSettlement = () => {
      );
 };
 
+let testPrunableAckedActionIdsHandleMalformedUuid = () => {
+  let records: array(StoreActionLedger.t) = [|
+    {
+      id: "legacy-action-id",
+      scopeKey: "default",
+      action: StoreJson.parse("\"noop\""),
+      status: "acked",
+      enqueuedAt: 1000.0,
+      retryCount: 0,
+      error: None,
+    },
+  |];
+  let result =
+    StoreRuntimeHelpers.getPrunableAckedActionIds(
+      ~confirmedTimestamp=2000.0,
+      ~records,
+    );
+
+  BrowserTestUtils.assertTrue(
+    ~label="StoreRuntimeHelpers prunes malformed acked action ids without throwing",
+    Array.length(result) == 1 && result[0] == "legacy-action-id",
+    ~details="malformed UUIDv7 action ids broke the browser action-ledger pruning path",
+  );
+};
+
 let run = () => {
   let launchOptions = Playwright.makeLaunchOptions(~headless=true, ());
   let browserRef = ref(None);
@@ -327,6 +352,7 @@ let run = () => {
   |> then_(_ => testLoadedResultListenersAreCacheScoped())
   |> then_(_ => testHydratedProvidersPreserveOuterToInnerOrder())
   |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
+  |> then_(_ => testPrunableAckedActionIdsHandleMalformedUuid())
   |> then_(_ => StoreTestServer.start())
   |> then_(server => {
        serverRef := Some(server);
