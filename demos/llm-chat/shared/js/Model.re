@@ -24,6 +24,5 @@ type t = {
   threads: array(Thread.t),
   current_thread_id: option(string),
   messages: array(Message.t),
-  input: string,
   updated_at: float,
 };

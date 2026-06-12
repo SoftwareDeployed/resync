@@ -118,7 +118,6 @@ let get_config request thread_id =
     threads;
     current_thread_id = Option.map (fun (_thread : Model.Thread.t) -> thread_id) thread_info;
     messages;
-    input = "";
     updated_at = max latest_thread_at latest_message_at;
   } in
   Lwt.return state
@@ -323,8 +322,6 @@ let validate_mutation request action_json =
          | "select_thread" -> Some (LlmChatStore.SelectThread "")
          | "create_new_thread" ->
              Some (LlmChatStore.CreateNewThread { LlmChatStore.id = ""; LlmChatStore.title = "" })
-         | "set_input" -> Some (LlmChatStore.SetInput "")
-         | "set_error" -> Some (LlmChatStore.SetError "")
          | _ -> None
        in
        match action_opt with
@@ -355,7 +352,6 @@ let validate_mutation request action_json =
              threads = [||];
              current_thread_id;
              messages = [||];
-             input = "";
              updated_at = 0.0;
            } in
            (match
@@ -472,9 +468,7 @@ let handle_mutation with_background_db broadcast_fn request ~db ~action_id ~muta
                           Lwt.return (Ack (Error (Printexc.to_string exn))))
             end
       end
-  | Ok "set_error"
-  | Ok "select_thread"
-  | Ok "set_input" ->
+  | Ok "select_thread" ->
       Lwt.return (Ack (Ok ()))
   | Ok _ -> Lwt.return (Ack (Error "Unknown action kind"))
 

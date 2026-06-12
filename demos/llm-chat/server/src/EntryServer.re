@@ -99,7 +99,6 @@ let getServerState = (context: UniversalRouterDream.serverContext(LlmChatStore.t
             threads,
             current_thread_id: Some(threadId),
             messages,
-            input: "",
             updated_at: thread.updated_at,
           };
           let store = LlmChatStore.createStore(config);

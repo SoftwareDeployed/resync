@@ -46,8 +46,6 @@ type create_thread_payload = {
 type action =
   | SendPrompt(send_prompt_payload)
   | CreateNewThread(create_thread_payload)
-  | SetInput(string)
-  | SetError(string)
   | SelectThread(string)
   | DeleteThread(string);
 
@@ -59,7 +57,6 @@ let emptyState: state = {
   threads: [||],
   current_thread_id: None,
   messages: [||],
-  input: "",
   updated_at: 0.0,
 };
 
@@ -113,16 +110,6 @@ let action_to_json = action =>
       ~kind="create_new_thread",
       ~payload=createThreadPayloadJson(payload),
     )
-  | SetInput(text) =>
-    actionJson(
-      ~kind="set_input",
-      ~fill=dict => StoreJson.Object.setString(dict, "text", text),
-    )
-  | SetError(message) =>
-    actionJson(
-      ~kind="set_error",
-      ~fill=dict => StoreJson.Object.setString(dict, "message", message),
-    )
   | SelectThread(thread_id) =>
     actionJsonWithPayload(
       ~kind="select_thread",
@@ -155,14 +142,6 @@ let action_of_json = json => {
       prompt:
         StoreJson.requiredField(~json=payload, ~fieldName="prompt", ~decode=string_of_json),
     })
-  | "set_input" =>
-    SetInput(
-      StoreJson.requiredField(~json=payload, ~fieldName="text", ~decode=string_of_json),
-    )
-  | "set_error" =>
-    SetError(
-      StoreJson.requiredField(~json=payload, ~fieldName="message", ~decode=string_of_json),
-    )
   | "create_new_thread" =>
     CreateNewThread({
       id: StoreJson.requiredField(~json=payload, ~fieldName="id", ~decode=string_of_json),
@@ -176,7 +155,7 @@ let action_of_json = json => {
     DeleteThread(
       StoreJson.requiredField(~json=payload, ~fieldName="thread_id", ~decode=string_of_json),
     )
-  | _ => SetInput("")
+  | _ => failwith("Unknown LLM chat action kind: " ++ kind)
   };
 };
 
@@ -218,7 +197,6 @@ let reduce = (~state: state, ~action: action) => {
         ...state,
         current_thread_id: Some(payload.id),
         messages: [||],
-        input: "",
       });
     } else {
       let newThread: Model.Thread.t = {
@@ -233,7 +211,6 @@ let reduce = (~state: state, ~action: action) => {
         threads: newThreads,
         current_thread_id: Some(payload.id),
         messages: [||],
-        input: "",
       });
     };
   | SendPrompt(payload) =>
@@ -250,33 +227,11 @@ let reduce = (~state: state, ~action: action) => {
             },
           |],
         ),
-      input: "",
-    })
-  | SetInput(text) =>
-    {...state, input: text}
-  | SetError(message) =>
-    withTimestamp({
-      ...state,
-      messages:
-        state.messages->Js.Array.concat(
-          ~other=[|
-            {
-              Model.Message.id: "local-error-" ++ string_of_float(updatedAt),
-              thread_id:
-                switch (state.current_thread_id) {
-                | Some(id) => id
-                | None => ""
-                },
-              role: "assistant",
-              content: "Error: " ++ message,
-            },
-          |],
-        ),
     })
   | SelectThread(thread_id) =>
     switch (state.current_thread_id) {
     | Some(id) when id == thread_id => state
-    | _ => withTimestamp({...state, current_thread_id: Some(thread_id), messages: [||], input: ""})
+    | _ => withTimestamp({...state, current_thread_id: Some(thread_id), messages: [||]})
     }
   | DeleteThread(thread_id) =>
     let remainingThreads =
@@ -300,7 +255,6 @@ let reduce = (~state: state, ~action: action) => {
         | Some(current) when current == thread_id => [||]
         | _ => state.messages
         },
-      input: "",
     })
   };
 };
@@ -458,7 +412,6 @@ let updateOfPatch = (patch: patch, state: state): state =>
         | Some(current) when current == threadId => [||]
         | _ => state.messages
         },
-      input: "",
     };
   | ThreadsPatch(StoreCrud.Upsert(thread)) =>
     let threads =
