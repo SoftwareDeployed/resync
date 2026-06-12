@@ -32,8 +32,7 @@ let make_runtime
     Lwt.return (Printf.sprintf "{\"channel\":\"%s\"}" channel))
   ?handle_mutation ?handle_media ?(action_store = (module In_memory_action_store : Action_store.S))
   ?(use_db = fun _request callback ->
-    let m = (Obj.magic () : (module Caqti_lwt.CONNECTION)) in
-    callback m)
+    callback Test_db.unused)
   adapter_state =
   let packed = Adapter.pack (module Fake_adapter) adapter_state in
   Middleware.create ~adapter:packed ~resolve_subscription ~load_snapshot
