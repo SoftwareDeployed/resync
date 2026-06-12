@@ -17,17 +17,10 @@ type store = {
   unit: PeriodList.Unit.t,
 };
 
-let emptyConfig: config = Model.SSR.empty;
-
 let action_to_json = _action =>
   StoreJson.Object.make(dict => StoreJson.Object.setString(dict, "kind", "noop"));
 
 let action_of_json = _json => Noop;
-
-let reduce = (~state: config, ~action: action) => {
-  let _ = action;
-  state;
-};
 
 let hasPeriodUnit = (periods: array(Model.Pricing.period), unit) => {
   let rec loop = index =>
@@ -96,8 +89,11 @@ module StoreDef =
   (val StoreBuilder.buildCrud(
     StoreBuilder.make()
     |> StoreBuilder.withSchema({
-         emptyState: emptyConfig,
-         reduce,
+         emptyState: Model.SSR.empty,
+         reduce: (~state: config, ~action: action) => {
+           let _ = action;
+           state;
+         },
          makeStore:
            (~state: config, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
            {
