@@ -25,7 +25,16 @@ type scrollElement;
 let canvasRenderingContext2dOfDom = (_ctx: 'ctx) => Obj.magic();
 
 [@platform native]
+let canvasElementOfDom = (_element: 'element) => Obj.magic();
+
+[@platform native]
+let videoElementOfDom = (_element: 'element) => Obj.magic();
+
+[@platform native]
 let imageOfHtmlImage = (_image: 'image) => Obj.magic();
+
+[@platform native]
+let navigatorOfDom = (_navigator: 'navigator) => Obj.magic();
 
 [@platform native]
 let scrollElementOfDom = (_element: 'element) => Obj.magic();
@@ -201,7 +210,13 @@ let clearInterval = (_intervalId: int) => ();
 [@platform js]
 external canvasRenderingContext2dOfDom: 'ctx => canvasRenderingContext2d = "%identity";
 [@platform js]
+external canvasElementOfDom: 'element => canvasElement = "%identity";
+[@platform js]
+external videoElementOfDom: 'element => videoElement = "%identity";
+[@platform js]
 external imageOfHtmlImage: 'image => image = "%identity";
+[@platform js]
+external navigatorOfDom: 'navigator => navigator = "%identity";
 [@platform js]
 external scrollElementOfDom: 'element => scrollElement = "%identity";
 [@platform js]

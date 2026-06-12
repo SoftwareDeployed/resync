@@ -90,10 +90,16 @@ let createReal = () => {
       let canvasEl = Webapi.Dom.Document.createElement("canvas", Webapi.Dom.document);
       Webapi.Canvas.CanvasElement.setWidth(canvasEl, width);
       Webapi.Canvas.CanvasElement.setHeight(canvasEl, height);
-      let ctx = Obj.magic(Webapi.Canvas.CanvasElement.getContext2d(canvasEl));
-      let canvas = Obj.magic(canvasEl);
+      let ctx =
+        MediaBindings.canvasRenderingContext2dOfDom(
+          Webapi.Canvas.CanvasElement.getContext2d(canvasEl),
+        );
+      let canvas = MediaBindings.canvasElementOfDom(canvasEl);
 
-      let captureVideo = Obj.magic(Webapi.Dom.Document.createElement("video", Webapi.Dom.document));
+      let captureVideo =
+        MediaBindings.videoElementOfDom(
+          Webapi.Dom.Document.createElement("video", Webapi.Dom.document),
+        );
       MediaBindings.setAutoplay(captureVideo, true);
       MediaBindings.setMuted(captureVideo, true);
       MediaBindings.setPlaysInline(captureVideo, true);
@@ -153,7 +159,11 @@ let createReal = () => {
       });
     },
     MediaBindings.getUserMedia(
-      MediaBindings.mediaDevices(Obj.magic(Webapi.Dom.Window.navigator(Webapi.Dom.window))),
+      MediaBindings.mediaDevices(
+        MediaBindings.navigatorOfDom(
+          Webapi.Dom.Window.navigator(Webapi.Dom.window),
+        ),
+      ),
       constraints,
     ),
   );
