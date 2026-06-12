@@ -195,10 +195,8 @@ module Multiplexed = {
     | _ =>
       /* Queue for after reconnect */
       t.pendingMutationsRef :=
-        Js.Array.concat(
-          ~other=[|(actionId, action)|],
-          t.pendingMutationsRef.contents,
-        );
+        t.pendingMutationsRef.contents
+        ->Js.Array.concat(~other=[|(actionId, action)|]);
       false;
     };
   };

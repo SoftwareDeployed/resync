@@ -213,7 +213,8 @@ let status = (lifecycle: t): StoreRuntimeTypes.status => {
 let subscribeStatus = (lifecycle: t, callback: StoreRuntimeTypes.status => unit): string => {
   let listenerId = UUID.make();
   lifecycle.statusListenersRef :=
-    Js.Array.concat(~other=[|(listenerId, callback)|], lifecycle.statusListenersRef^);
+    (lifecycle.statusListenersRef^)
+    ->Js.Array.concat(~other=[|(listenerId, callback)|]);
   listenerId;
 };
 

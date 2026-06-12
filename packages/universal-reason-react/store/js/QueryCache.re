@@ -24,10 +24,8 @@ let notifyLoadedResult = (~channel: string, ~rows: array(StoreJson.json)) => {
 let listenLoadedResults = (listener: loaded_result_listener): loaded_result_listener_id => {
   let listenerId = UUID.make();
   loadedResultListenersRef.contents =
-    Js.Array.concat(
-      ~other=[|(listenerId, listener)|],
-      loadedResultListenersRef.contents,
-    );
+    loadedResultListenersRef.contents
+    ->Js.Array.concat(~other=[|(listenerId, listener)|]);
   listenerId;
 };
 

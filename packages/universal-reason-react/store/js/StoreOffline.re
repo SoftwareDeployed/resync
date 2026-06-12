@@ -514,7 +514,7 @@ module Synced = {
     let subscribe = (listener: listener): listener_id => {
       let listenerId = UUID.make();
       listenersRef.contents =
-        Js.Array.concat(~other=[|(listenerId, listener)|], listenersRef.contents);
+        listenersRef.contents->Js.Array.concat(~other=[|(listenerId, listener)|]);
       listenerId;
     };
 
@@ -535,7 +535,7 @@ module Synced = {
 
     let queueDispatch = (dispatchFn: unit => unit) => {
       pendingDispatchesRef.contents =
-        Js.Array.concat(~other=[|dispatchFn|], pendingDispatchesRef.contents);
+        pendingDispatchesRef.contents->Js.Array.concat(~other=[|dispatchFn|]);
     };
 
     let drainPendingDispatches = () => {

@@ -4,17 +4,17 @@ type patch('row) =
 
 let upsert = (~getId: 'row => string, items: array('row), newItem: 'row): array('row) => {
   let exists =
-    items |> Js.Array.some(~f=(i: 'row) => getId(i) === getId(newItem));
+    items->Js.Array.some(~f=(i: 'row) => getId(i) === getId(newItem));
   if (exists) {
     items
-    |> Js.Array.map(~f=(i: 'row) => getId(i) === getId(newItem) ? newItem : i);
+    ->Js.Array.map(~f=(i: 'row) => getId(i) === getId(newItem) ? newItem : i);
   } else {
-    Js.Array.concat(~other=[|newItem|], items);
+    items->Js.Array.concat(~other=[|newItem|]);
   };
 };
 
 let remove = (~getId: 'row => string, items: array('row), id: string): array('row) =>
-  items |> Js.Array.filter(~f=(i: 'row) => getId(i) !== id);
+  items->Js.Array.filter(~f=(i: 'row) => getId(i) !== id);
 
 let decodePatch =
     (~table: string, ~decodeRow: StoreJson.json => 'row, ()): StorePatch.decoder(patch('row)) =>

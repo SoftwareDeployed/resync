@@ -31,7 +31,7 @@ module Events = {
   let listen = (~registry: registry('action), listener: listener('action)): listener_id => {
     let listenerId = UUID.make();
     registry.contents =
-      Js.Array.concat(~other=[|(listenerId, listener)|], registry.contents);
+      registry.contents->Js.Array.concat(~other=[|(listenerId, listener)|]);
     listenerId;
   };
 
