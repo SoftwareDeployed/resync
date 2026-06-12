@@ -337,6 +337,26 @@ let handle_mutation broadcast_fn request ~db ~action_id ~mutation_name:_ action 
                   Lwt.return (Ack (Error error))
             end
       end
+  | Ok "delete_thread" ->
+      begin
+        match assoc "payload" action with
+        | None -> Lwt.return (Ack (Error "Missing delete_thread payload"))
+        | Some payload ->
+            begin
+              match required_string "thread_id" payload with
+              | Error error -> Lwt.return (Ack (Error error))
+              | Ok thread_id ->
+                  Lwt.catch
+                    (fun () ->
+                       let* () = RealtimeSchema.Mutations.DeleteThread.exec db thread_id in
+                       Lwt.return (Ack (Ok ())))
+                    (function
+                      | Caqti_error.Exn error ->
+                          Lwt.return (Ack (Error (Caqti_error.show error)))
+                      | exn ->
+                          Lwt.return (Ack (Error (Printexc.to_string exn))))
+            end
+      end
   | Ok "set_error"
   | Ok "select_thread"
   | Ok "set_input" ->
