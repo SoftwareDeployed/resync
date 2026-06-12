@@ -137,6 +137,11 @@ function llmChatMockResponseChunk(content) {
 external mockLastUserContent: string => string = "llmChatMockLastUserContent";
 external mockResponseChunk: string => string = "llmChatMockResponseChunk";
 
+let currentThreadIdScript =
+  "(() => window.location.pathname.split('/').filter(Boolean).slice(-1)[0] || '')()";
+
+let readCurrentThreadId = page => page->Playwright.evaluateString(currentThreadIdScript);
+
 type mockRequest;
 type mockResponse;
 type mockServer;
@@ -680,6 +685,69 @@ let runThreadDeletionScenario = (~browser, ~baseUrl) => {
      })
 };
 
+let runDeleteInactiveThreadKeepsActiveScenario = (~browser, ~baseUrl) => {
+  Js.log("Running inactive thread deletion scenario...");
+  browser
+  ->Playwright.newPage
+  |> then_(page =>
+       page
+       ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ => page->Playwright.waitForSelector("#thread-list"))
+       |> then_(_ => page->Playwright.click("#new-thread-button"))
+       |> then_(_ => BrowserTestUtils.sleep(800))
+       |> then_(_ => readCurrentThreadId(page))
+       |> then_(inactiveThreadId =>
+            page->Playwright.click("#new-thread-button")
+            |> then_(_ => BrowserTestUtils.sleep(800))
+            |> then_(_ => readCurrentThreadId(page))
+            |> then_(activeThreadId =>
+                 page->Playwright.click("#delete-thread-" ++ inactiveThreadId)
+                 |> then_(_ => BrowserTestUtils.sleep(1000))
+                 |> then_(_ => readCurrentThreadId(page))
+                 |> then_(afterDeleteThreadId =>
+                      BrowserTestUtils.assertTrue(
+                        ~label="Inactive delete: active route is preserved",
+                        afterDeleteThreadId == activeThreadId,
+                        ~details=
+                          "Expected active thread "
+                          ++ activeThreadId
+                          ++ " after deleting inactive thread "
+                          ++ inactiveThreadId
+                          ++ ", got "
+                          ++ afterDeleteThreadId,
+                      )
+                    )
+                 |> then_(_ =>
+                      waitForExpressionTrue(
+                        ~page,
+                        ~expression=
+                          "document.querySelector('.thread-item--active')?.id === 'thread-item-"
+                          ++ activeThreadId
+                          ++ "' ? 'true' : 'false'",
+                        ~label="Inactive delete: active indicator remains on current thread",
+                        ~attemptsLeft=50,
+                      )
+                    )
+                 |> then_(_ =>
+                      waitForExpressionTrue(
+                        ~page,
+                        ~expression=
+                          "document.querySelector('#thread-item-"
+                          ++ inactiveThreadId
+                          ++ "') === null ? 'true' : 'false'",
+                        ~label="Inactive delete: deleted thread removed from list",
+                        ~attemptsLeft=50,
+                      )
+                    )
+               )
+          )
+     )
+  |> catch(error => {
+       Js.log2("[FAIL] Inactive thread deletion test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
+     });
+};
+
 let runDbSyncScenario = (~browser, ~baseUrl) => {
   Js.log("Running DB sync scenario (delete thread via server endpoint)...");
   browser
@@ -705,10 +773,7 @@ let runDbSyncScenario = (~browser, ~baseUrl) => {
           )
        |> then_(countBefore => {
             /* Delete the thread directly via the test endpoint (simulates DB deletion) */
-            page
-            ->Playwright.evaluateString(
-              "window.location.pathname.replace('/', '')"
-            )
+            readCurrentThreadId(page)
             |> then_(threadId => {
                  Js.log2("DB sync: deleting thread", threadId);
                  page
@@ -907,11 +972,7 @@ let runMessageSyncScenario = (~browser, ~baseUrl) => {
               ~attemptsLeft=50,
             )
           )
-       |> then_(_ =>
-            page->Playwright.evaluateString(
-              "window.location.pathname.replace('/', '')"
-            )
-          )
+       |> then_(_ => readCurrentThreadId(page))
        |> then_(threadId => {
             let url = baseUrl ++ "/api/test/add-message";
             let body =
@@ -1067,11 +1128,7 @@ let runCrossTabDeleteActiveThreadScenario = (~browser, ~baseUrl) => {
                  pageB
                  ->Playwright.goto(threadUrl)
                  |> then_(_ => pageB->Playwright.waitForSelector("#thread-list"))
-                 |> then_(_ =>
-                      pageB->Playwright.evaluateString(
-                        "window.location.pathname.replace('/', '')"
-                      )
-                    )
+                 |> then_(_ => readCurrentThreadId(pageB))
                  |> then_(threadId => {
                       pageB
                       ->Playwright.click("#delete-thread-" ++ threadId ++ "")
@@ -1151,11 +1208,7 @@ let runReconnectionScenario = (~browser, ~baseUrl, ~serverRef) => {
               ~attemptsLeft=50,
             )
           )
-       |> then_(_ =>
-            page->Playwright.evaluateString(
-              "window.location.pathname.replace('/', '')"
-            )
-          )
+       |> then_(_ => readCurrentThreadId(page))
        |> then_(threadId => {
             Js.log2("Reconnection: threadId", threadId);
             /* Stop server */
@@ -1243,6 +1296,12 @@ let run = () => {
                         )
                      |> then_(_ => runStreamingScrollScenario(~browser, ~baseUrl=server.baseUrl))
                      |> then_(_ => runThreadDeletionScenario(~browser, ~baseUrl=server.baseUrl))
+                     |> then_(_ =>
+                          runDeleteInactiveThreadKeepsActiveScenario(
+                            ~browser,
+                            ~baseUrl=server.baseUrl,
+                          )
+                        )
                      |> then_(_ => runDbSyncScenario(~browser, ~baseUrl=server.baseUrl))
                      |> then_(_ => runDbCreateSyncScenario(~browser, ~baseUrl=server.baseUrl))
                      |> then_(_ => runUiCreateSyncScenario(~browser, ~baseUrl=server.baseUrl))

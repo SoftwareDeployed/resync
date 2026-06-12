@@ -283,9 +283,13 @@ let reduce = (~state: state, ~action: action) => {
       state.threads
       ->Js.Array.filter(~f=(t: Model.Thread.t) => t.id != thread_id);
     let nextThreadId =
-      switch (Array.length(remainingThreads) > 0) {
-      | true => Some(remainingThreads[0].id)
-      | false => None
+      switch (state.current_thread_id) {
+      | Some(current) when current == thread_id =>
+        switch (Array.length(remainingThreads) > 0) {
+        | true => Some(remainingThreads[0].id)
+        | false => None
+        }
+      | current => current
       };
     withTimestamp({
       ...state,
@@ -437,9 +441,13 @@ let updateOfPatch = (patch: patch, state: state): state =>
     let remainingThreads =
       StoreCrud.remove(~getId=(t: Model.Thread.t) => t.id, state.threads, threadId);
     let nextThreadId =
-      switch (Array.length(remainingThreads) > 0) {
-      | true => Some(remainingThreads[0].id)
-      | false => None
+      switch (state.current_thread_id) {
+      | Some(current) when current == threadId =>
+        switch (Array.length(remainingThreads) > 0) {
+        | true => Some(remainingThreads[0].id)
+        | false => None
+        }
+      | current => current
       };
     {
       ...state,
