@@ -3,6 +3,10 @@
 external uuidv7: unit => string = "uuidv7";
 
 [@platform js]
+[@mel.scope "Number"]
+external parseIntBase: (string, int) => float = "parseInt";
+
+[@platform js]
 let makeJs = () => uuidv7();
 
 [@platform js]
@@ -15,12 +19,9 @@ let timestampJs = (uuid: string) => {
   } else {
     let hexPart1 = String.sub(uuid, 0, 8);   // First 8 hex chars
     let hexPart2 = String.sub(uuid, 9, 4);   // Next 4 hex chars (after first dash)
-    let hexTimestamp = "0x" ++ hexPart1 ++ hexPart2;
+    let timestamp = parseIntBase(hexPart1 ++ hexPart2, 16);
 
-    switch (int_of_string_opt(hexTimestamp)) {
-    | Some(ts) => float_of_int(ts)
-    | None => 0.0
-    };
+    timestamp == timestamp ? timestamp : 0.0;
   };
 };
 

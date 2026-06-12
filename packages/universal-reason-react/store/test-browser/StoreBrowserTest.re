@@ -341,6 +341,39 @@ let testPrunableAckedActionIdsHandleMalformedUuid = () => {
   );
 };
 
+let testPrunableAckedActionIdsHandleCurrentUuidTimestamp = () => {
+  let actionId = "019ebb8d-9185-74d6-a7b7-ed347907b650";
+  let records: array(StoreActionLedger.t) = [|
+    {
+      id: actionId,
+      scopeKey: "default",
+      action: StoreJson.parse("\"noop\""),
+      status: "acked",
+      enqueuedAt: 1781263077765.0,
+      retryCount: 0,
+      error: None,
+    },
+  |];
+  let before =
+    StoreRuntimeHelpers.getPrunableAckedActionIds(
+      ~confirmedTimestamp=1781263077000.0,
+      ~records,
+    );
+  let after =
+    StoreRuntimeHelpers.getPrunableAckedActionIds(
+      ~confirmedTimestamp=1781263078000.0,
+      ~records,
+    );
+
+  BrowserTestUtils.assertTrue(
+    ~label="StoreRuntimeHelpers parses current UUIDv7 timestamps for pruning",
+    Array.length(before) == 0
+    && Array.length(after) == 1
+    && after[0] == actionId,
+    ~details="current UUIDv7 timestamps collapsed to zero in the browser pruning path",
+  );
+};
+
 let run = () => {
   let launchOptions = Playwright.makeLaunchOptions(~headless=true, ());
   let browserRef = ref(None);
@@ -353,6 +386,7 @@ let run = () => {
   |> then_(_ => testHydratedProvidersPreserveOuterToInnerOrder())
   |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
   |> then_(_ => testPrunableAckedActionIdsHandleMalformedUuid())
+  |> then_(_ => testPrunableAckedActionIdsHandleCurrentUuidTimestamp())
   |> then_(_ => StoreTestServer.start())
   |> then_(server => {
        serverRef := Some(server);

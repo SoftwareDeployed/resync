@@ -16,6 +16,7 @@ let make_record ~id ~status ~enqueued_at : StoreActionLedger.t =
 let uuid_v7_at_1000ms = "00000000-03e8-7000-8000-000000000000"
 let uuid_v7_at_2000ms = "00000000-07d0-7000-8000-000000000000"
 let uuid_v7_at_3000ms = "00000000-0bb8-7000-8000-000000000000"
+let uuid_v7_current_time = "019ebb8d-9185-74d6-a7b7-ed347907b650"
 
 let int_float_pair = Alcotest.pair Alcotest.int (Alcotest.float 0.0)
 
@@ -262,6 +263,32 @@ let suite =
             "Should prune acked actions whose UUID timestamp is covered by confirmed state"
             [| uuid_v7_at_1000ms; uuid_v7_at_2000ms |]
             result);
+      Alcotest.test_case "getPrunableAckedActionIds handles current UUIDv7 timestamps" `Quick
+        (fun () ->
+          let records =
+            [|
+              make_record ~id:uuid_v7_current_time ~status:"acked"
+                ~enqueued_at:1781263077765.0;
+            |]
+          in
+          let before =
+            StoreRuntimeHelpers.getPrunableAckedActionIds
+              ~confirmedTimestamp:1781263077000.0
+              ~records
+          in
+          let after =
+            StoreRuntimeHelpers.getPrunableAckedActionIds
+              ~confirmedTimestamp:1781263078000.0
+              ~records
+          in
+          Alcotest.(check (array string))
+            "Current UUIDv7 timestamps should not collapse below confirmed state"
+            [||]
+            before;
+          Alcotest.(check (array string))
+            "Current UUIDv7 timestamps should prune after confirmed state catches up"
+            [| uuid_v7_current_time |]
+            after);
       Alcotest.test_case "getPrunableAckedActionIds treats malformed acked ids as oldest" `Quick
         (fun () ->
           let records =
