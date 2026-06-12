@@ -53,24 +53,6 @@ type store = {
   state: state,
 };
 
-let emptyState: state = {
-  threads: [||],
-  current_thread_id: None,
-  messages: [||],
-  updated_at: 0.0,
-};
-
-let scopeKeyOfState = (state: state) =>
-  switch (state.current_thread_id) {
-  | Some(id) => id
-  | None => "default"
-  };
-
-let timestampOfState = (state: state) => state.updated_at;
-
-let setTimestamp = (~state: state, ~timestamp: float) =>
-  {...state, updated_at: timestamp};
-
 let actionJsonWithPayload = (~kind, ~payload) =>
   StoreJson.Object.make(dict => {
     StoreJson.Object.setString(dict, "kind", kind);
@@ -182,84 +164,6 @@ module Mutations = {
     type params = string;
     type nonrec action = action;
     let toAction = thread_id => DeleteThread(thread_id);
-  };
-};
-
-let reduce = (~state: state, ~action: action) => {
-  let updatedAt = Js.Date.now();
-  let withTimestamp = nextState => setTimestamp(~state=nextState, ~timestamp=updatedAt);
-  switch (action) {
-  | CreateNewThread(payload) =>
-    let alreadyExists =
-      state.threads->Js.Array.some(~f=(t: Model.Thread.t) => t.id == payload.id);
-    if (alreadyExists) {
-      withTimestamp({
-        ...state,
-        current_thread_id: Some(payload.id),
-        messages: [||],
-      });
-    } else {
-      let newThread: Model.Thread.t = {
-        id: payload.id,
-        title: payload.title,
-        updated_at: updatedAt,
-      };
-      let newThreads =
-        [|newThread|]->Js.Array.concat(~other=state.threads);
-      withTimestamp({
-        ...state,
-        threads: newThreads,
-        current_thread_id: Some(payload.id),
-        messages: [||],
-      });
-    };
-  | SendPrompt(payload) =>
-    switch (state.current_thread_id) {
-    | Some(current_thread_id) when current_thread_id == payload.thread_id =>
-      withTimestamp({
-        ...state,
-        messages:
-          state.messages->Js.Array.concat(
-            ~other=[|
-              {
-                Model.Message.id: payload.message_id,
-                thread_id: payload.thread_id,
-                role: "user",
-                content: payload.prompt,
-              },
-            |],
-          ),
-      })
-    | _ => state
-    }
-  | SelectThread(thread_id) =>
-    switch (state.current_thread_id) {
-    | Some(id) when id == thread_id => state
-    | _ => withTimestamp({...state, current_thread_id: Some(thread_id), messages: [||]})
-    }
-  | DeleteThread(thread_id) =>
-    let remainingThreads =
-      state.threads
-      ->Js.Array.filter(~f=(t: Model.Thread.t) => t.id != thread_id);
-    let nextThreadId =
-      switch (state.current_thread_id) {
-      | Some(current) when current == thread_id =>
-        switch (Array.length(remainingThreads) > 0) {
-        | true => Some(remainingThreads[0].id)
-        | false => None
-        }
-      | current => current
-      };
-    withTimestamp({
-      ...state,
-      threads: remainingThreads,
-      current_thread_id: nextThreadId,
-      messages:
-        switch (state.current_thread_id) {
-        | Some(current) when current == thread_id => [||]
-        | _ => state.messages
-        },
-    })
   };
 };
 
@@ -485,47 +389,154 @@ let guardTree =
     (),
   );
 
-module StoreDef =
-  (val StoreBuilder.buildSynced(
-    StoreBuilder.make()
-    |> StoreBuilder.withSchema({
-         emptyState,
-         reduce,
-         makeStore: (~state, ~derive=?, ()) => {
-           let _ = derive;
-           {state: state};
-         },
-       })
-    |> StoreBuilder.withGuardTree(~guardTree)
-    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-    |> StoreBuilder.withSync(
-         ~storeName = "llm-chat",
-         ~scopeKeyOfState = state => scopeKeyOfState(state),
-         ~timestampOfState = state => timestampOfState(state),
-         ~setTimestamp,
-         ~decodePatch,
-         ~updateOfPatch,
-         ~transport = {
-           subscriptionOfState: (state: state): option(subscription) =>
-             switch (state.current_thread_id) {
-             | Some(id) => Some(RealtimeSubscription.thread(id))
-             | None => None
-             },
-           encodeSubscription: RealtimeSubscription.encode,
-           eventUrl: Constants.event_url,
-           baseUrl: Constants.base_url,
-         },
-         ~streams=Some({
-           decodeStreamEvent,
-           emptyStreamingState,
-           reduceStream,
-           reconcilePatch,
-         }),
-         ~hooks=StoreBuilder.Sync.hooks(~onActionError=onActionError, ()),
-         ~stateElementId=Some("initial-store"),
-         (),
-       ),
-  ));
+module StoreDef = Store.Frp.Synced.Streaming.Build({
+  type nonrec state = state;
+  type nonrec action = action;
+  type nonrec store = store;
+  type nonrec subscription = subscription;
+  type nonrec patch = patch;
+  type nonrec stream_event = stream_event;
+  type nonrec streaming_state = streaming_state;
+
+  let config =
+    Store.Frp.Synced.Streaming.make(
+      ~transport={
+        subscriptionOfState: (state: state): option(subscription) =>
+          switch (state.current_thread_id) {
+          | Some(id) => Some(RealtimeSubscription.thread(id))
+          | None => None
+          },
+        encodeSubscription: RealtimeSubscription.encode,
+        eventUrl: Constants.event_url,
+        baseUrl: Constants.base_url,
+      },
+      ~strategy=Store.Sync.custom(~decodePatch, ~updateOfPatch),
+      ~streams={
+        decodeStreamEvent,
+        emptyStreamingState,
+        reduceStream,
+        reconcilePatch,
+      },
+      ~hooks=Store.Sync.hooks(~onActionError=onActionError, ()),
+      ~guardTree,
+      {
+        storeName: "llm-chat",
+        emptyState: {
+          threads: [||],
+          current_thread_id: None,
+          messages: [||],
+          updated_at: 0.0,
+        },
+        reduce: (~state: state, ~action: action) => {
+          let updatedAt = Js.Date.now();
+          let withTimestamp = (nextState: state): state => {
+            ...nextState,
+            updated_at: updatedAt,
+          };
+          switch (action) {
+          | CreateNewThread(payload) =>
+            let alreadyExists =
+              state.threads->Js.Array.some(~f=(t: Model.Thread.t) =>
+                t.id == payload.id
+              );
+            if (alreadyExists) {
+              withTimestamp({
+                ...state,
+                current_thread_id: Some(payload.id),
+                messages: [||],
+              });
+            } else {
+              let newThread: Model.Thread.t = {
+                id: payload.id,
+                title: payload.title,
+                updated_at: updatedAt,
+              };
+              let newThreads =
+                [|newThread|]->Js.Array.concat(~other=state.threads);
+              withTimestamp({
+                ...state,
+                threads: newThreads,
+                current_thread_id: Some(payload.id),
+                messages: [||],
+              });
+            };
+          | SendPrompt(payload) =>
+            switch (state.current_thread_id) {
+            | Some(current_thread_id) when current_thread_id == payload.thread_id =>
+              withTimestamp({
+                ...state,
+                messages:
+                  state.messages->Js.Array.concat(
+                    ~other=[|
+                      {
+                        Model.Message.id: payload.message_id,
+                        thread_id: payload.thread_id,
+                        role: "user",
+                        content: payload.prompt,
+                      },
+                    |],
+                  ),
+              })
+            | _ => state
+            }
+          | SelectThread(thread_id) =>
+            switch (state.current_thread_id) {
+            | Some(id) when id == thread_id => state
+            | _ =>
+              withTimestamp({
+                ...state,
+                current_thread_id: Some(thread_id),
+                messages: [||],
+              })
+            }
+          | DeleteThread(thread_id) =>
+            let remainingThreads =
+              state.threads
+              ->Js.Array.filter(~f=(t: Model.Thread.t) => t.id != thread_id);
+            let nextThreadId =
+              switch (state.current_thread_id) {
+              | Some(current) when current == thread_id =>
+                switch (Array.length(remainingThreads) > 0) {
+                | true => Some(remainingThreads[0].id)
+                | false => None
+                }
+              | current => current
+              };
+            withTimestamp({
+              ...state,
+              threads: remainingThreads,
+              current_thread_id: nextThreadId,
+              messages:
+                switch (state.current_thread_id) {
+                | Some(current) when current == thread_id => [||]
+                | _ => state.messages
+                },
+            })
+          };
+        },
+        state_of_json,
+        state_to_json,
+        action_of_json,
+        action_to_json,
+        makeStore: (~state, ~derive=?, ()) => {
+          let _ = derive;
+          {state: state};
+        },
+        scopeKeyOfState:
+          (state: state) =>
+            switch (state.current_thread_id) {
+            | Some(id) => id
+            | None => "default"
+            },
+        timestampOfState: (state: state) => state.updated_at,
+        setTimestamp: (~state: state, ~timestamp: float) => {
+          ...state,
+          updated_at: timestamp,
+        },
+        stateElementId: Some("initial-store"),
+      },
+    );
+});
 
 include (
   StoreDef:
