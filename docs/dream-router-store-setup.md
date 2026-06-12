@@ -219,6 +219,7 @@ module StoreDef =
            eventUrl: Constants.event_url,
            baseUrl: Constants.base_url,
          },
+         ~emptyStreamingState=(),
          ~stateElementId=Some("initial-store"),
          (),
        )

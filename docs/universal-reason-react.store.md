@@ -283,7 +283,7 @@ Use this for realtime state such as `todo-multiplayer`, ecommerce inventory, or 
 Additional pipeline steps (after `withJson`):
 
 1. `StoreBuilder.withGuardTree(~guardTree)` — optional validation before sync wiring
-2. `StoreBuilder.withSync(...)` — wire transport, patches, hooks, and optional streams
+2. `StoreBuilder.withSync(...)` — wire transport, patches, hooks, and optional streams. If the store has no streams, pass `~emptyStreamingState=()`.
 
 Behavior:
 
@@ -331,6 +331,7 @@ module StoreDef =
            eventUrl: Constants.event_url,
            baseUrl: Constants.base_url,
          },
+         ~emptyStreamingState=(),
          ~stateElementId=None,
          (),
        )

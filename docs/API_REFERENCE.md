@@ -397,7 +397,7 @@ Terminal builder for creating custom synced runtime stores via the pipeline API.
 2. `StoreBuilder.withSchema({emptyState, reduce, makeStore})`
 3. `StoreBuilder.withGuardTree(~guardTree)` *(optional)*
 4. `StoreBuilder.withJson(...)`
-5. `StoreBuilder.withSync(~transport, ~decodePatch, ~updateOfPatch, ~storeName, ~scopeKeyOfState, ~timestampOfState, ~setTimestamp, ~stateElementId, ())`
+5. `StoreBuilder.withSync(~transport, ~decodePatch, ~updateOfPatch, ~storeName, ~scopeKeyOfState, ~timestampOfState, ~setTimestamp, ~streams=?, ~emptyStreamingState=?, ~stateElementId, ())`
 
 **Transport Configuration:**
 ```reason
@@ -421,6 +421,8 @@ type hooks('action) = {
   onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit),
 };
 ```
+
+`withSync` derives `emptyStreamingState` from `~streams=Some(...)`. For custom synced stores that do not use streams, pass an explicit `~emptyStreamingState`, usually `()`.
 
 **Example:**
 ```reason
@@ -473,6 +475,7 @@ module StoreDef =
            eventUrl: Constants.event_url,
            baseUrl: Constants.base_url,
          },
+         ~emptyStreamingState=(),
          ~stateElementId=Some("initial-store"),
          (),
        )
@@ -578,6 +581,8 @@ In the pipeline API, patch handling is provided directly to `withSync` or `withS
 ```reason
 ~decodePatch: StoreJson.json => option('patch),
 ~updateOfPatch: ('patch, 'state) => 'state,
+~streams: option(StoreRuntimeTypes.streamsConfig('patch, 'stream_event, 'streaming_state))=?,
+~emptyStreamingState: option('streaming_state)=?,
 ```
 
 Use these when you need full control over patch decoding and application. The `decodePatch` function returns `None` for actions that should be handled by the reducer instead of as patches.
