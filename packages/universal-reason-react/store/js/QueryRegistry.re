@@ -251,10 +251,17 @@ let clear_registry = () => {
 // Create a temporary registry from QueryCache-format JSON and run f inside it
 [@platform native]
 let with_serialized = (~jsonStr: string, ~f: unit => 'a, ()): 'a => {
+  let previousRegistry = sync_registry_ref^;
   setup_registry_from_json(~jsonStr);
-  let result = f();
-  clear_registry();
-  result;
+  try({
+    let result = f();
+    sync_registry_ref := previousRegistry;
+    result;
+  }) {
+  | error =>
+    sync_registry_ref := previousRegistry;
+    raise(error);
+  };
 };
 
 // JS-only: Client stubs (full implementation in QueryCache.re)
