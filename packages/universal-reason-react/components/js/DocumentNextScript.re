@@ -7,7 +7,7 @@ let make = (~serializedState="", ~stateId="initial-store", ~scripts=[||]) => {
     <script
       type_="text/json"
       id=stateId
-      dangerouslySetInnerHTML={"__html": serializedState}
+      dangerouslySetInnerHTML={"__html": ScriptJsonEscape.escape(serializedState)}
     />
     {scriptNodes}
   </>;

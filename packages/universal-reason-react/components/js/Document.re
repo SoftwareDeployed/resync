@@ -39,7 +39,7 @@ let make = (
         ? <script
             type_="text/json"
             id="query-cache"
-            dangerouslySetInnerHTML={"__html": serializedQueries}
+            dangerouslySetInnerHTML={"__html": ScriptJsonEscape.escape(serializedQueries)}
           />
         : React.null}
     </body>

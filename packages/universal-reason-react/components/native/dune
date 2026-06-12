@@ -10,6 +10,7 @@
    DocumentMain
    DocumentNextScript
    ServerOrClientRender
+   ScriptJsonEscape
    Spread
    UseMounted)
  (wrapped false)

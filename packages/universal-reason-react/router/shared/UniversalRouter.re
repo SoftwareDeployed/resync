@@ -1043,7 +1043,7 @@ let renderHydrationScript = state =>
   <script
     id=hydrationScriptId
     type_="text/plain"
-    dangerouslySetInnerHTML={"__html": serializeHydrationState(state)}
+    dangerouslySetInnerHTML={"__html": ScriptJsonEscape.escape(serializeHydrationState(state))}
   />;
 
 let renderDocument = (

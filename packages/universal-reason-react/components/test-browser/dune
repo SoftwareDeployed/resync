@@ -2,7 +2,7 @@
  (name components_browser_test)
  (modules ComponentsBrowserTest)
  (wrapped false)
- (libraries melange.js playwright_js)
+ (libraries melange.js playwright_js universal_reason_react_components_js)
  (modes melange)
  (preprocess (pps server-reason-react.ppx -melange server-reason-react.browser_ppx -js melange.ppx)))
 
