@@ -1064,10 +1064,10 @@ module Synced = {
                   if (record.retryCount >= StoreActionLedger.maxRetries) {
                     let message = "Timed out waiting for acknowledgement";
                     let ledgerRecord = ledgerRecordOfCache(record);
-                    StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
                     Js.Promise.then_(
                       _ => {
                         refreshOptimisticState();
+                        StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
                         /* Failure ordering contract: the action ledger status is
                            updated before the public ActionFailed event and any
                            legacy callback fire. */
@@ -1254,7 +1254,6 @@ module Synced = {
           Js.Promise.then_(
             cacheRecord => {
               if (shouldAcceptAckForCacheRecord(cacheRecord)) {
-                StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
                 let ledgerRecord =
                   Option.map(ledgerRecordOfCache, cacheRecord);
                 let persistPromise =
@@ -1281,6 +1280,7 @@ module Synced = {
                       persistConfirmedState(~broadcast=true, nextConfirmedState);
                     | None => ()
                     };
+                    StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
                     /* Ack ordering contract: the action ledger status is updated
                        before ActionAcked listeners or legacy callbacks run. */
                     emitEvent(
@@ -1323,7 +1323,6 @@ module Synced = {
           Js.Promise.then_(
             cacheRecord => {
               if (shouldAcceptAckForCacheRecord(cacheRecord)) {
-                StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
                 let ledgerRecord =
                   Option.map(ledgerRecordOfCache, cacheRecord);
                 let persistPromise =
@@ -1339,6 +1338,7 @@ module Synced = {
                 Js.Promise.then_(
                   _ => {
                     refreshOptimisticState();
+                    StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
                     /* Failure ordering contract: emit ActionFailed only after the
                        ledger status reflects the failed action. */
                     emitEvent(
