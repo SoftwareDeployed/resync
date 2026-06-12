@@ -3,6 +3,7 @@
  *  Runtime stores expose `StoreDef.Hooks` with store-scoped `useQuery`
  *  and auto-dispatched `useMutation`. This module is for manual wiring:
  *  - `useQuery` - Subscribe to query results with SSR support; pass `~skip=true` to keep hook order stable without subscribing
+ *    Call `UseQuery.initCache(~eventUrl, ~baseUrl)` during client startup before uncached low-level query subscriptions.
  *  - `useQueryResult` - Explicit alias for `useQuery` when mirroring store-scoped hook names
  *  - `useQueryOption` - Subscribe only when params are `Some(params)`, treating `None` like a skipped query
  *  - `useQueryResultOption` - Explicit alias for `useQueryOption` when mirroring store-scoped hook names
