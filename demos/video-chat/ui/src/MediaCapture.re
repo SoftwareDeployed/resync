@@ -345,7 +345,7 @@ let setVideoEnabled = (capture, enabled) =>
   switch (capture) {
   | Real(realCapture) => {
       let tracks = MediaBindings.getVideoTracks(realCapture.stream);
-      Js.Array.forEach(~f=track => MediaBindings.setEnabled(track, enabled), tracks);
+      tracks->Js.Array.forEach(~f=track => MediaBindings.setEnabled(track, enabled));
     }
   | Override(implementation, overrideHandle) =>
     MediaCaptureOverride.setVideoEnabled(implementation, overrideHandle, enabled)
@@ -360,7 +360,7 @@ let setAudioEnabled = (capture, enabled) =>
   | Real(realCapture) => {
       setAudioCaptureEnabled(capture, enabled);
       let tracks = MediaBindings.getAudioTracks(realCapture.stream);
-      Js.Array.forEach(~f=track => MediaBindings.setEnabled(track, enabled), tracks);
+      tracks->Js.Array.forEach(~f=track => MediaBindings.setEnabled(track, enabled));
     }
   | Override(implementation, overrideHandle) =>
     MediaCaptureOverride.setAudioEnabled(implementation, overrideHandle, enabled)

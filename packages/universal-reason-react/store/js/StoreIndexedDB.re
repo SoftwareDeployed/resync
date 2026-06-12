@@ -150,12 +150,11 @@ let deleteActionsJs = (db: database, ids: array(string)) => {
     Js.Promise.make((~resolve, ~reject) => {
       let tx = IndexedDB.transaction(db, [|"actions"|], "readwrite");
       let store = IndexedDB.objectStore(tx, "actions");
-      Js.Array.forEach(
+      ids->Js.Array.forEach(
         ~f=id => {
           let _ = IndexedDB.deleteRaw(store, id);
           ()
         },
-        ids,
       );
       IndexedDB.setTxOncomplete(tx, () => resolve(. true));
       IndexedDB.setTxOnerror(tx, () =>
