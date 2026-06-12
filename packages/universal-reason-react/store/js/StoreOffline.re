@@ -124,6 +124,7 @@ module Local = {
     type listener = StoreEvents.listener(action);
 
     let streaming = ();
+    let useStreaming = () => streaming;
 
     let lifecycle = StoreRuntimeLifecycle.make(~storeName=Schema.storeName, ());
     StoreRuntimeLifecycle.markConnectionNotApplicable(lifecycle);
@@ -414,6 +415,7 @@ module Local = {
 
     module Hooks = {
       let useStore = Context.useStore;
+      let useStreaming = useStreaming;
       let useQuery = useQuery;
       let useQueryResult = useQueryResult;
       let useIsQueryLoading = useIsQueryLoading;
@@ -1522,6 +1524,20 @@ module Synced = {
       let unlisten = (listenerId: listener_id) => Controller.unsubscribe(listenerId);
     };
 
+    [@platform js]
+    let useStreaming = () => {
+      let (_, setRevision) = React.useState(() => 0);
+      React.useEffect0(() => {
+        let listenerId =
+          Events.listen(_event => setRevision(revision => revision + 1));
+        Some(() => Events.unlisten(listenerId));
+      });
+      streamingRef.contents;
+    };
+
+    [@platform native]
+    let useStreaming = () => streamingRef.contents;
+
     module Context = MakeStoreContext({
       type nonrec t = t;
       let empty = empty;
@@ -1544,6 +1560,7 @@ module Synced = {
 
     module Hooks = {
       let useStore = Context.useStore;
+      let useStreaming = useStreaming;
       let useQuery = useQuery;
       let useQueryResult = useQueryResult;
       let useIsQueryLoading = useIsQueryLoading;

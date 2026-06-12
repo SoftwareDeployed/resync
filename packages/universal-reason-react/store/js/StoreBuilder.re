@@ -584,6 +584,7 @@ module Runtime = {
     let serializeSnapshot: state => string;
     let dispatch: action => unit;
     let streaming: streaming_state;
+    let useStreaming: unit => streaming_state;
     let flushCache: unit => Js.Promise.t(unit);
     let whenReady: unit => Js.Promise.t(unit);
     let whenIdle: unit => Js.Promise.t(unit);
@@ -607,6 +608,7 @@ module Runtime = {
 
     module Hooks: {
       let useStore: unit => t;
+      let useStreaming: unit => streaming_state;
       let useQuery:
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          'p,

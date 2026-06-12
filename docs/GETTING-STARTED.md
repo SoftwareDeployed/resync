@@ -511,7 +511,7 @@ let make = (~list_id: string, ~text: string, ~id: string, ~completed: bool) => {
 1. **`buildCrud`** creates a synced store with automatic patch handling
 2. **`StoreCrud.upsert`/`remove`** update arrays optimistically
 3. **`withSyncCrud`** configures websocket transport and table mapping
-4. **`StoreDef.Hooks.useQuery`/`useMutation`** provide the component API
+4. **`StoreDef.Hooks.useStreaming`/`useQuery`/`useMutation`** provide the component API
 5. **`StoreBuilder.Crud.totalCount`/`filteredCount`** compute derived state
 
 ---

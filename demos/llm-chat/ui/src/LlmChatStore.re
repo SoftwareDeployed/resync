@@ -12,15 +12,31 @@ type send_prompt_payload = {
 };
 
 type stream_event =
-  | StreamStarted(string)
-  | TokenReceived(string, string)
-  | StreamComplete(string);
+  | StreamStarted(string, string)
+  | TokenReceived(string, string, string)
+  | StreamComplete(string, string)
+  | StreamError(string, string, string);
+
+type stream_error = {
+  thread_id: string,
+  message: string,
+};
 
 type streaming_state = {
   activeStreams: Belt.Map.String.t(string),
+  currentStreamId: option(string),
+  currentThreadId: option(string),
+  isStreaming: bool,
+  streamError: option(stream_error),
 };
 
-let emptyStreamingState = {activeStreams: Belt.Map.String.empty};
+let emptyStreamingState = {
+  activeStreams: Belt.Map.String.empty,
+  currentStreamId: None,
+  currentThreadId: None,
+  isStreaming: false,
+  streamError: None,
+};
 
 type create_thread_payload = {
   id: string,
@@ -295,29 +311,64 @@ let decodeStreamEvent = (json) =>
   switch (StoreJson.optionalField(~json, ~fieldName="event", ~decode=Melange_json.Primitives.string_of_json)) {
   | Some("stream_started") =>
     Some(StreamStarted(
+      StoreJson.requiredField(~json, ~fieldName="thread_id", ~decode=Melange_json.Primitives.string_of_json),
       StoreJson.requiredField(~json, ~fieldName="message_id", ~decode=Melange_json.Primitives.string_of_json),
     ))
   | Some("token_received") =>
     Some(TokenReceived(
+      StoreJson.requiredField(~json, ~fieldName="thread_id", ~decode=Melange_json.Primitives.string_of_json),
       StoreJson.requiredField(~json, ~fieldName="message_id", ~decode=Melange_json.Primitives.string_of_json),
       StoreJson.requiredField(~json, ~fieldName="token", ~decode=Melange_json.Primitives.string_of_json),
     ))
   | Some("stream_complete") =>
     Some(StreamComplete(
+      StoreJson.requiredField(~json, ~fieldName="thread_id", ~decode=Melange_json.Primitives.string_of_json),
       StoreJson.requiredField(~json, ~fieldName="message_id", ~decode=Melange_json.Primitives.string_of_json),
+    ))
+  | Some("stream_error") =>
+    Some(StreamError(
+      StoreJson.requiredField(~json, ~fieldName="thread_id", ~decode=Melange_json.Primitives.string_of_json),
+      StoreJson.requiredField(~json, ~fieldName="message_id", ~decode=Melange_json.Primitives.string_of_json),
+      StoreJson.requiredField(~json, ~fieldName="error", ~decode=Melange_json.Primitives.string_of_json),
     ))
   | _ => None
   };
 
 let reduceStream = (streaming, event) =>
   switch (event) {
-  | StreamStarted(id) =>
-    {activeStreams: streaming.activeStreams->Belt.Map.String.set(id, "")}
-  | TokenReceived(id, token) =>
+  | StreamStarted(threadId, id) =>
+    {
+      activeStreams: streaming.activeStreams->Belt.Map.String.set(id, ""),
+      currentStreamId: Some(id),
+      currentThreadId: Some(threadId),
+      isStreaming: true,
+      streamError: None,
+    }
+  | TokenReceived(threadId, id, token) =>
     let current = streaming.activeStreams->Belt.Map.String.get(id)->Belt.Option.getWithDefault("");
-    {activeStreams: streaming.activeStreams->Belt.Map.String.set(id, current ++ token)}
-  | StreamComplete(id) =>
-    {activeStreams: streaming.activeStreams->Belt.Map.String.remove(id)}
+    {
+      activeStreams: streaming.activeStreams->Belt.Map.String.set(id, current ++ token),
+      currentStreamId: Some(id),
+      currentThreadId: Some(threadId),
+      isStreaming: true,
+      streamError: None,
+    }
+  | StreamComplete(threadId, id) =>
+    {
+      ...streaming,
+      currentStreamId: Some(id),
+      currentThreadId: Some(threadId),
+      isStreaming: false,
+      streamError: None,
+    }
+  | StreamError(threadId, id, message) =>
+    {
+      activeStreams: streaming.activeStreams->Belt.Map.String.remove(id),
+      currentStreamId: None,
+      currentThreadId: Some(threadId),
+      isStreaming: false,
+      streamError: Some({thread_id: threadId, message}),
+    }
   };
 
 type patch =
@@ -425,7 +476,18 @@ let updateOfPatch = (patch: patch, state: state): state =>
 let reconcilePatch = (patch, streaming) =>
   switch (patch) {
   | MessagesPatch(StoreCrud.Upsert(msg)) =>
-    {activeStreams: streaming.activeStreams->Belt.Map.String.remove(msg.id)}
+    let isCurrent =
+      switch (streaming.currentStreamId) {
+      | Some(id) => id == msg.id
+      | None => false
+      };
+    {
+      activeStreams: streaming.activeStreams->Belt.Map.String.remove(msg.id),
+      currentStreamId: isCurrent ? None : streaming.currentStreamId,
+      currentThreadId: isCurrent ? None : streaming.currentThreadId,
+      isStreaming: isCurrent ? false : streaming.isStreaming,
+      streamError: None,
+    }
   | _ => streaming
   };
 

@@ -27,7 +27,6 @@ let handleSend =
       sendPromptMutation: UseMutation.mutation_result(LlmChatStore.send_prompt_payload),
       prompt,
       setDraft,
-      _setIsStreaming,
     ) => {
   let threadId =
     switch (store.state.current_thread_id) {
@@ -46,7 +45,7 @@ let handleSend =
 };
 
 [@platform native]
-let handleSend = (_store, _sendPromptMutation, _prompt, _setDraft, _setIsStreaming) =>
+let handleSend = (_store, _sendPromptMutation, _prompt, _setDraft) =>
   ();
 
 let onThreadClick =
@@ -90,25 +89,50 @@ let handleKeyDown =
       sendPromptMutation: UseMutation.mutation_result(LlmChatStore.send_prompt_payload),
       draft,
       setDraft,
-      setIsStreaming,
       event,
     ) => {
   let key = React.Event.Keyboard.key(event);
   let shift = React.Event.Keyboard.shiftKey(event);
   if (key == "Enter" && !shift) {
     React.Event.Keyboard.preventDefault(event);
-    handleSend(store, sendPromptMutation, draft, setDraft, setIsStreaming);
+    handleSend(store, sendPromptMutation, draft, setDraft);
   };
 };
 
 [@platform native]
-let handleKeyDown = (_store, _sendPromptMutation, _draft, _setDraft, _setIsStreaming, _event) =>
+let handleKeyDown = (_store, _sendPromptMutation, _draft, _setDraft, _event) =>
   ();
 
 let hasConfirmedAssistantMessage = (~messages, ~content) =>
   messages->Js.Array.some(~f=(message: Model.Message.t) =>
     message.role == "assistant" && message.content == content
   );
+
+let isStreamingForThread = (~currentThreadId, streaming: LlmChatStore.streaming_state) =>
+  switch (streaming.currentThreadId) {
+  | Some(threadId) => threadId == currentThreadId && streaming.isStreaming
+  | None => false
+  };
+
+let streamingTextForThread = (~currentThreadId, streaming: LlmChatStore.streaming_state) => {
+  let activeText =
+    switch (streaming.currentThreadId, streaming.currentStreamId) {
+    | (Some(threadId), Some(streamId)) when threadId == currentThreadId =>
+      streaming.activeStreams
+      ->Belt.Map.String.get(streamId)
+      ->Belt.Option.getWithDefault("")
+    | _ => ""
+    };
+  if (String.length(activeText) > 0) {
+    activeText;
+  } else {
+    switch (streaming.streamError) {
+    | Some({thread_id, message}) when thread_id == currentThreadId =>
+      "Error: " ++ message
+    | _ => ""
+    };
+  };
+};
 
 [@platform js]
 let scrollToBottom = () => {
@@ -175,9 +199,7 @@ module View = {
       let store = LlmChatStore.Context.useStore();
       let router = UniversalRouter.useRouter();
       let pathname = UniversalRouter.usePathname();
-      let (isStreaming, setIsStreaming) = React.useState(() => false);
       let (draft, setDraft) = React.useState(() => "");
-      let (streamingText, setStreamingText) = React.useState(() => "");
       let sendPromptMutation =
         useMutation((module LlmChatStore.Mutations.SendPrompt), ());
       let createThreadMutation =
@@ -193,76 +215,14 @@ module View = {
         switch (store.state.current_thread_id) {
         | Some(threadId) => threadId
         | None => ""
-        };
-
-      React.useEffect0(() => {
-        let listenerId =
-          LlmChatStore.Events.listen(event => {
-            switch (event) {
-            | CustomEvent(json) =>
-              let eventKind =
-                StoreJson.optionalField(
-                  ~json,
-                  ~fieldName="event",
-                  ~decode=Melange_json.Primitives.string_of_json,
-                );
-              switch (eventKind) {
-              | Some("stream_started") =>
-                setStreamingText(_ => "");
-                setIsStreaming(_ => true);
-              | Some("token_received") =>
-                let token =
-                  StoreJson.optionalField(
-                    ~json,
-                    ~fieldName="token",
-                    ~decode=Melange_json.Primitives.string_of_json,
-                );
-                switch (token) {
-                | Some(t) =>
-                  setIsStreaming(_ => true);
-                  setStreamingText(prev => prev ++ t)
-                | None => ()
-                };
-              | Some("stream_complete") =>
-                setIsStreaming(_ => false);
-              | Some("stream_error") =>
-                let error =
-                  StoreJson.optionalField(
-                    ~json,
-                    ~fieldName="error",
-                    ~decode=Melange_json.Primitives.string_of_json,
-                  );
-                setIsStreaming(_ => false);
-                switch (error) {
-                | Some(message) => setStreamingText(_ => "Error: " ++ message)
-                | None => setStreamingText(_ => "Error: stream failed")
-                };
-              | _ => ()
-              }
-            | _ => ()
-            }
-          });
-        Some(() => LlmChatStore.Events.unlisten(listenerId));
-      });
-
-      React.useEffect2(
-        () => {
-          if (
-            String.length(streamingText) > 0
-            && hasConfirmedAssistantMessage(~messages, ~content=streamingText)
-          ) {
-            setStreamingText(_ => "");
-          };
-          None;
-        },
-        (messages, streamingText),
-      );
+      };
+      let streaming = useStreaming();
+      let streamingText = streamingTextForThread(~currentThreadId, streaming);
+      let isStreaming = isStreamingForThread(~currentThreadId, streaming);
 
       React.useEffect1(
         () => {
           setDraft(_ => "");
-          setStreamingText(_ => "");
-          setIsStreaming(_ => false);
           let expectedPath =
             switch (store.state.current_thread_id) {
             | Some(id) => "/" ++ id
@@ -409,7 +369,6 @@ module View = {
                           sendPromptMutation,
                           draft,
                           setDraft,
-                          setIsStreaming,
                           event,
                         )
                     }
@@ -424,7 +383,6 @@ module View = {
                         sendPromptMutation,
                         draft,
                         setDraft,
-                        setIsStreaming,
                       )
                     }>
                     {React.string("Send")}
