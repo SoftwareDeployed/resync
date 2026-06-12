@@ -42,21 +42,30 @@ let emptyState: state = {todos: [||], updated_at: 0.0};
 
 let completedCount = todos => todos->Js.Array.filter(~f=(item: todo) => item.completed)->Array.length;
 
+let actionJson = (~kind, ~fill) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    fill(dict);
+  });
+
 let action_to_json = action => switch (action) {
-| AddTodo(todo) => StoreJson.parse("{\"kind\":\"add_todo\",\"todo\":" ++ StoreJson.stringify(todo_to_json, todo) ++ "}")
+| AddTodo(todo) =>
+  actionJson(
+    ~kind="add_todo",
+    ~fill=dict => StoreJson.Object.setJson(dict, "todo", todo_to_json(todo)),
+  )
 | SetTodoCompleted(input) =>
-  StoreJson.parse(
-    "{\"kind\":\"set_todo_completed\",\"id\":"
-    ++ string_to_json(input.id)->Melange_json.to_string
-    ++ ",\"completed\":"
-    ++ bool_to_json(input.completed)->Melange_json.to_string
-    ++ "}",
+  actionJson(
+    ~kind="set_todo_completed",
+    ~fill=dict => {
+      StoreJson.Object.setString(dict, "id", input.id);
+      StoreJson.Object.setBool(dict, "completed", input.completed);
+    },
   )
 | RemoveTodo(id) =>
-  StoreJson.parse(
-    "{\"kind\":\"remove_todo\",\"id\":"
-    ++ string_to_json(id)->Melange_json.to_string
-    ++ "}",
+  actionJson(
+    ~kind="remove_todo",
+    ~fill=dict => StoreJson.Object.setString(dict, "id", id),
   )
 };
 

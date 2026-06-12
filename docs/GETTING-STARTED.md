@@ -302,29 +302,37 @@ let setTimestamp = (~state, ~timestamp) =>
   | None => state
   };
 
+let actionJson = (~kind, ~fill) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    StoreJson.Object.setJson(dict, "payload", StoreJson.Object.make(fill));
+  });
+
 /* Action serialization for websocket transport */
 let action_to_json = action =>
   switch (action) {
   | AddTodo(payload) =>
-    StoreJson.parse(
-      {j|{"kind":"add_todo","payload":{"id":"|j}
-      ++ payload.id
-      ++ {j|","list_id":"|j}
-      ++ payload.list_id
-      ++ {j|","text":"|j}
-      ++ payload.text
-      ++ {j|"}}|j}
+    actionJson(
+      ~kind="add_todo",
+      ~fill=dict => {
+        StoreJson.Object.setString(dict, "id", payload.id);
+        StoreJson.Object.setString(dict, "list_id", payload.list_id);
+        StoreJson.Object.setString(dict, "text", payload.text);
+      },
     )
   | SetTodoCompleted(payload) =>
-    StoreJson.parse(
-      {j|{"kind":"set_todo_completed","payload":{"id":"|j}
-      ++ payload.id
-      ++ {j|","completed":|j}
-      ++ string_of_bool(payload.completed)
-      ++ {j|}}|j}
+    actionJson(
+      ~kind="set_todo_completed",
+      ~fill=dict => {
+        StoreJson.Object.setString(dict, "id", payload.id);
+        StoreJson.Object.setBool(dict, "completed", payload.completed);
+      },
     )
   | RemoveTodo(id) =>
-    StoreJson.parse({j|{"kind":"remove_todo","payload":{"id":"|j} ++ id ++ {j|"}}|j})
+    actionJson(
+      ~kind="remove_todo",
+      ~fill=dict => StoreJson.Object.setString(dict, "id", id),
+    )
   };
 
 let action_of_json = json => {

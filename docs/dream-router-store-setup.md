@@ -173,7 +173,10 @@ module StoreDef =
          ~state_of_json,
          ~state_to_json,
          ~action_of_json: _json => Noop,
-         ~action_to_json: _action => StoreJson.parse("{\"kind\":\"noop\"}"),
+         ~action_to_json: _action =>
+           StoreJson.Object.make(dict =>
+             StoreJson.Object.setString(dict, "kind", "noop")
+           ),
        )
     |> StoreBuilder.withSync(
          ~storeName="ecommerce.inventory",
