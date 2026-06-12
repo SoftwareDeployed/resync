@@ -14,6 +14,17 @@ let local_error msg =
     ~query:"resync action ledger"
     (Caqti_error.Msg msg)
 
+let best_effort_rollback (module Db : Caqti_lwt.CONNECTION) =
+  Lwt.catch
+    (fun () ->
+       let* _ = Db.rollback () in
+       Lwt.return_unit)
+    (fun _ -> Lwt.return_unit)
+
+let return_error_after_rollback db error =
+  let* () = best_effort_rollback db in
+  Lwt.return (Error error)
+
 let is_safe_identifier_suffix value =
   String.length value > 0
   &&
@@ -120,27 +131,36 @@ let record_failed (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id ~
   let* storage = resolve_storage db_module ~mutation_name in
   match storage with
   | Ok storage ->
-    record_status db_module storage ~mutation_name ~action_id ~status:"failed" ~error_message:(Some truncated)
-  | Error (`Caqti err) -> Lwt.return (Error err)
+    let* result =
+      record_status db_module storage ~mutation_name ~action_id ~status:"failed" ~error_message:(Some truncated)
+    in
+    (match result with
+     | Ok () -> Lwt.return (Ok ())
+     | Error err -> return_error_after_rollback db_module err)
+  | Error (`Caqti err) -> return_error_after_rollback db_module err
   | Error (`Msg msg) -> Lwt.return (Error (local_error msg))
 
 let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id callback =
   let db_module = (module Db : Caqti_lwt.CONNECTION) in
   let ack_error message = Lwt.return (Ack (Error message)) in
+  let ack_caqti_error err =
+    let* () = best_effort_rollback db_module in
+    ack_error (Caqti_error.show err)
+  in
   let* storage = resolve_storage db_module ~mutation_name in
   match storage with
-  | Error (`Caqti err) -> ack_error (Caqti_error.show err)
+  | Error (`Caqti err) -> ack_caqti_error err
   | Error (`Msg msg) -> ack_error msg
   | Ok storage ->
     let* check_result = check db_module storage ~mutation_name ~action_id in
     match check_result with
-    | Error err -> ack_error (Caqti_error.show err)
+    | Error err -> ack_caqti_error err
     | Ok `Already_ok -> Lwt.return (Ack (Ok ()))
     | Ok (`Already_failed msg) -> Lwt.return (Ack (Error msg))
     | Ok `New ->
       let* start_result = Db.start () in
       match start_result with
-      | Error err -> Lwt.return (Ack (Error (Caqti_error.show err)))
+      | Error err -> ack_caqti_error err
       | Ok () ->
         Lwt.catch
           (fun () ->
@@ -155,7 +175,7 @@ let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id call
                | Ok () ->
                  let* commit_result = Db.commit () in
                  (match commit_result with
-                  | Error err -> Lwt.return (Ack (Error (Caqti_error.show err)))
+                  | Error err -> ack_caqti_error err
                   | Ok () -> Lwt.return (Ack (Ok ()))))
             | Ack (Error msg) ->
               let* rollback_result = Db.rollback () in
@@ -164,7 +184,7 @@ let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id call
                | Ok () ->
                  let* record_result = record_status db_module storage ~mutation_name ~action_id ~status:"failed" ~error_message:(Some (truncate_msg msg)) in
                  (match record_result with
-                  | Error err -> Lwt.return (Ack (Error (Caqti_error.show err)))
+                  | Error err -> ack_caqti_error err
                   | Ok () -> Lwt.return (Ack (Error msg))))
             | NoAck ->
               let* rollback_result = Db.rollback () in
