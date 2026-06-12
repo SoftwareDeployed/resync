@@ -458,23 +458,52 @@ include (
 
 type t = store;
 module Context = StoreDef.Context;
+module Hooks = StoreDef.Hooks;
+```
 
-/* Action dispatchers */
-let addTodo = (store: t, text: string) => {
-  let list_id = switch (store.state.list) {
-  | Some(list) => list.id
-  | None => store.list_id
-  };
-  dispatch(AddTodo({id: UUID.make(), list_id, text}));
+Use store-scoped mutation hooks in components, so writes follow the same Convex-style path as queries:
+
+```reason
+open Store.Hooks;
+
+module AddTodoMutation = {
+  include RealtimeSchema.Mutations.AddTodo;
+  type action = Store.action;
 };
 
-let toggleTodo = (store: t, id: string) =>
-  switch (Js.Array.find(~f=(todo: Model.Todo.t) => todo.id == id, store.state.todos)) {
-  | Some(todo) => dispatch(SetTodoCompleted({id, completed: !todo.completed}))
-  | None => ()
+module SetTodoCompletedMutation = {
+  include RealtimeSchema.Mutations.SetTodoCompleted;
+  type action = Store.action;
+};
+
+module RemoveTodoMutation = {
+  include RealtimeSchema.Mutations.RemoveTodo;
+  type action = Store.action;
+};
+
+[@react.component]
+let make = (~list_id: string, ~text: string, ~id: string, ~completed: bool) => {
+  let addTodoMutation = useMutation((module AddTodoMutation), ());
+  let setTodoCompletedMutation = useMutation((module SetTodoCompletedMutation), ());
+  let removeTodoMutation = useMutation((module RemoveTodoMutation), ());
+
+  let addTodo = () => {
+    let _ = addTodoMutation.mutate({id: UUID.make(), list_id, text});
+    ();
   };
 
-let removeTodo = (_store: t, id: string) => dispatch(RemoveTodo(id));
+  let setTodoCompleted = () => {
+    let _ = setTodoCompletedMutation.mutate({id, completed});
+    ();
+  };
+
+  let removeTodo = () => {
+    let _ = removeTodoMutation.mutate({id});
+    ();
+  };
+
+  React.null;
+};
 ```
 
 ### Key Points
@@ -482,7 +511,8 @@ let removeTodo = (_store: t, id: string) => dispatch(RemoveTodo(id));
 1. **`buildCrud`** creates a synced store with automatic patch handling
 2. **`StoreCrud.upsert`/`remove`** update arrays optimistically
 3. **`withSyncCrud`** configures websocket transport and table mapping
-4. **`StoreBuilder.Crud.totalCount`/`filteredCount`** compute derived state
+4. **`StoreDef.Hooks.useQuery`/`useMutation`** provide the component API
+5. **`StoreBuilder.Crud.totalCount`/`filteredCount`** compute derived state
 
 ---
 

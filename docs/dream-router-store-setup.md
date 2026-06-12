@@ -395,13 +395,28 @@ The important part is that sync talks to the captured `StoreSource` actions and 
 
 That keeps realtime updates flowing through the same Tilia-backed source that hydration and local actions use.
 
-Typed runtime actions use the same active websocket connection. The client-side write path is:
+Typed runtime actions use the same active websocket connection. In component code, use the store-scoped mutation hook:
 
 ```reason
-dispatch(AddTodo({id, list_id, text}));
+module AddTodoMutation = {
+  include RealtimeSchema.Mutations.AddTodo;
+  type action = Store.action;
+};
+
+[@react.component]
+let make = (~id: string, ~list_id: string, ~text: string) => {
+  let addTodoMutation = Store.useMutation((module AddTodoMutation), ());
+
+  let addTodo = () => {
+    let _ = addTodoMutation.mutate({id, list_id, text});
+    ();
+  };
+
+  React.null;
+};
 ```
 
-That reduces optimistically, writes the queued action to IndexedDB, sends a JSON mutation frame over the socket, and waits for an `ack`, patch, or snapshot to advance confirmed state.
+That converts params into a typed store action, reduces optimistically, writes the queued action to IndexedDB, sends a JSON mutation frame over the socket, and waits for an `ack`, patch, or snapshot to advance confirmed state.
 
 For the ecommerce demo, the relevant wiring lives in:
 
