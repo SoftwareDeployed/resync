@@ -619,6 +619,14 @@ module Runtime = {
        'p,
        ~skip: bool=?,
        unit) => UseQuery.result('r);
+    let useQueryOption:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       option('p),
+       unit) => t;
+    let useQueryResultOption:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       option('p),
+       unit) => UseQuery.result('r);
     let useIsQueryLoading:
       (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
        'p) => bool;
@@ -640,6 +648,14 @@ module Runtime = {
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          'p,
          ~skip: bool=?,
+         unit) => UseQuery.result('r);
+      let useQueryOption:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         option('p),
+         unit) => t;
+      let useQueryResultOption:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         option('p),
          unit) => UseQuery.result('r);
       let useIsQueryLoading:
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,

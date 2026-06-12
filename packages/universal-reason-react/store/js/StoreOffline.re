@@ -16,6 +16,15 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
   ) =>
     UseQuery.useQuery((module Q), params, ~skip, ());
 
+  let queryResultOption = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: option(p),
+    (),
+  ) =>
+    UseQuery.useQueryOption((module Q), params, ());
+
   let query = (
     type p,
     type r,
@@ -25,6 +34,17 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
     (),
   ) => {
     let _ = queryResult((module Q), params, ~skip, ());
+    Runtime.useStore();
+  };
+
+  let queryOption = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: option(p),
+    (),
+  ) => {
+    let _ = queryResultOption((module Q), params, ());
     Runtime.useStore();
   };
 
@@ -455,6 +475,8 @@ module Local = {
 
     let useQuery = RuntimeHooks.query;
     let useQueryResult = RuntimeHooks.queryResult;
+    let useQueryOption = RuntimeHooks.queryOption;
+    let useQueryResultOption = RuntimeHooks.queryResultOption;
     let useIsQueryLoading = RuntimeHooks.isQueryLoading;
     let useMutation = RuntimeHooks.mutation;
 
@@ -463,6 +485,8 @@ module Local = {
       let useStreaming = useStreaming;
       let useQuery = useQuery;
       let useQueryResult = useQueryResult;
+      let useQueryOption = useQueryOption;
+      let useQueryResultOption = useQueryResultOption;
       let useIsQueryLoading = useIsQueryLoading;
       let useMutation = useMutation;
     };
@@ -1608,6 +1632,8 @@ module Synced = {
 
     let useQuery = RuntimeHooks.query;
     let useQueryResult = RuntimeHooks.queryResult;
+    let useQueryOption = RuntimeHooks.queryOption;
+    let useQueryResultOption = RuntimeHooks.queryResultOption;
     let useIsQueryLoading = RuntimeHooks.isQueryLoading;
     let useMutation = RuntimeHooks.mutation;
 
@@ -1616,6 +1642,8 @@ module Synced = {
       let useStreaming = useStreaming;
       let useQuery = useQuery;
       let useQueryResult = useQueryResult;
+      let useQueryOption = useQueryOption;
+      let useQueryResultOption = useQueryResultOption;
       let useIsQueryLoading = useIsQueryLoading;
       let useMutation = useMutation;
     };

@@ -33,6 +33,8 @@ let hookResultOfData = (data: query_result('row)): result('row) => {
 };
 
 let skippedResult: result('row) = {data: Loading, loading: false, error: None};
+let skippedChannel = "__resync_skipped_query__";
+let skippedParamsHash = "skip";
 
 let decodeQueryResult =
     (
@@ -186,6 +188,26 @@ let useRawQueryResult =
   skip ? Loading : signal->Tilia.Core.lift;
 };
 
+[@platform js]
+let useRawQueryResultOption =
+    (
+      type p,
+      type r,
+      module Q: QueryModule with type params = p and type row = r,
+      params: option(p),
+    ) => {
+  let (channel, paramsHash, skip) =
+    switch (params) {
+    | Some(params) => (Q.channel(params), Q.paramsHash(params), false)
+    | None => (skippedChannel, skippedParamsHash, true)
+    };
+  let key = makeKey(~channel, ~paramsHash);
+
+  let cache = getQueryCache();
+  let signal = useQuerySignal(~cache, ~key, ~channel, ~skip);
+  skip ? Loading : signal->Tilia.Core.lift;
+};
+
 // Main useQuery hook - JS version (client-side)
 [@platform js]
 let useQuery =
@@ -201,6 +223,22 @@ let useQuery =
   skip
     ? skippedResult
     : rawResult |> decodeQueryResult((module Q)) |> hookResultOfData;
+};
+
+[@platform js]
+let useQueryOption =
+    (
+      type p,
+      type r,
+      module Q: QueryModule with type params = p and type row = r,
+      params: option(p),
+      (),
+    ) => {
+  let rawResult = useRawQueryResultOption((module Q), params);
+  switch (params) {
+  | None => skippedResult
+  | Some(_) => rawResult |> decodeQueryResult((module Q)) |> hookResultOfData
+  };
 };
 
 // Main useQuery hook - Native version (server-side SSR)
@@ -277,6 +315,20 @@ let useQuery =
     hookResultOfData(data);
   };
 };
+
+[@platform native]
+let useQueryOption =
+    (
+      type p,
+      type r,
+      module Q: QueryModule with type params = p and type row = r,
+      params: option(p),
+      (),
+    ) =>
+  switch (params) {
+  | None => skippedResult
+  | Some(params) => useQuery((module Q), params, ())
+  };
 
 // Helper to check if query is loading
 [@platform js]

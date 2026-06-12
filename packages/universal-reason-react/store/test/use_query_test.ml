@@ -133,4 +133,36 @@ let suite =
                 "unskipped query should register"
                 1
                 (QueryRegistry.registered_query_count ())));
+      Alcotest.test_case "server optional query skips None without params" `Quick
+        (fun () ->
+          with_empty_registry (fun () ->
+              let result =
+                UseQuery.useQueryOption (module StringQuery) None ()
+              in
+              Alcotest.(check bool)
+                "None query is not loading"
+                false result.loading;
+              Alcotest.(check (option string))
+                "None query has no error"
+                None result.error;
+              (match result.data with
+              | QueryRegistryTypes.Loading -> ()
+              | QueryRegistryTypes.Loaded _ ->
+                  Alcotest.fail "None query should not expose rows"
+              | QueryRegistryTypes.Error msg ->
+                  Alcotest.fail ("None query should not error: " ^ msg));
+              Alcotest.(check int)
+                "None query should not register"
+                0
+                (QueryRegistry.registered_query_count ());
+              let _ =
+                UseQuery.useQueryOption
+                  (module StringQuery)
+                  (Some("params"))
+                  ()
+              in
+              Alcotest.(check int)
+                "Some query should register"
+                1
+                (QueryRegistry.registered_query_count ())));
     ] )
