@@ -67,8 +67,14 @@ let onNewChatClick =
       _event,
     ) => {
   let uuid = UUID.make();
-  let _ = createThread({id: uuid, title: "New Chat"});
-  router.push("/" ++ uuid);
+  let _ =
+    createThread({id: uuid, title: "New Chat"})
+    |> Js.Promise.then_(_ => {
+         router.push("/" ++ uuid);
+         Js.Promise.resolve();
+       })
+    |> Js.Promise.catch(_ => Js.Promise.resolve());
+  ();
 };
 
 let onDeleteThread =

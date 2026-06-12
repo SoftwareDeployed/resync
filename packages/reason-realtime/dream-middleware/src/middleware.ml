@@ -390,7 +390,7 @@ let handle_json_message_with_io t request current_channels json ~send ~close
           | None ->
               let* () =
                 send
-                  (ack_message ~channel ~action_id:"" ~status:"error"
+                  (ack_message ~channel ~action_id ~status:"error"
                      ~error:"Invalid mutation frame: missing kind" ())
               in
               let* () = close () in
