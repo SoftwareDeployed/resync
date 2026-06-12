@@ -27,9 +27,15 @@ type loaded_query_result = {
 };
 
 let keySeparator = ':';
+let lengthPrefixedKeyPrefix = "v1:";
 
 let makeKey = (~channel: string, ~paramsHash: string): query_key => {
-  string_of_int(String.length(channel)) ++ ":" ++ channel ++ ":" ++ paramsHash;
+  lengthPrefixedKeyPrefix
+  ++ string_of_int(String.length(channel))
+  ++ ":"
+  ++ channel
+  ++ ":"
+  ++ paramsHash;
 };
 
 let findLastSeparator = (key: query_key): option(int) => {
@@ -51,28 +57,42 @@ let channelOfLegacyKey = (key: query_key): string => {
 
 let channelOfLengthPrefixedKey = (key: query_key): option(string) => {
   let keyLength = String.length(key);
-  let firstSeparator =
-    try(Some(String.index(key, keySeparator))) {
-    | Not_found => None
-    };
-  switch (firstSeparator) {
-  | None => None
-  | Some(separator) =>
-    let lengthText = String.sub(key, 0, separator);
-    switch (int_of_string_opt(lengthText)) {
-    | Some(channelLength) =>
-      let channelStart = separator + 1;
-      let separatorAfterChannel = channelStart + channelLength;
-      if (
-        channelLength >= 0
-        && separatorAfterChannel < keyLength
-        && String.get(key, separatorAfterChannel) == keySeparator
+  if (!String.starts_with(key, ~prefix=lengthPrefixedKeyPrefix)) {
+    None;
+  } else {
+    let prefixLength = String.length(lengthPrefixedKeyPrefix);
+    let firstSeparator =
+      try(
+        Some(
+          String.index(
+            String.sub(key, prefixLength, keyLength - prefixLength),
+            keySeparator,
+          ),
+        )
       ) {
-        Some(String.sub(key, channelStart, channelLength));
-      } else {
-        None;
-      }
+      | Not_found => None
+      };
+    switch (firstSeparator) {
     | None => None
+    | Some(separatorInSuffix) =>
+      let separator = prefixLength + separatorInSuffix;
+      let lengthText =
+        String.sub(key, prefixLength, separator - prefixLength);
+      switch (int_of_string_opt(lengthText)) {
+      | Some(channelLength) =>
+        let channelStart = separator + 1;
+        let separatorAfterChannel = channelStart + channelLength;
+        if (
+          channelLength >= 0
+          && separatorAfterChannel < keyLength
+          && String.get(key, separatorAfterChannel) == keySeparator
+        ) {
+          Some(String.sub(key, channelStart, channelLength));
+        } else {
+          None;
+        }
+      | None => None
+      }
     }
   };
 };

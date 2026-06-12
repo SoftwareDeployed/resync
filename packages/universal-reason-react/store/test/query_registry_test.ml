@@ -47,6 +47,10 @@ let suite =
             QueryRegistryTypes.makeKey ~channel:"thread:abc"
               ~paramsHash:"messages:latest"
           in
+          Alcotest.(check bool)
+            "versioned key prefix"
+            true
+            (String.starts_with ~prefix:"v1:" key);
           Alcotest.(check string)
             "length-prefixed channel"
             "thread:abc"
@@ -54,7 +58,16 @@ let suite =
           Alcotest.(check string)
             "legacy channel"
             "thread:abc"
-            (QueryRegistryTypes.channelOfKey "thread:abc:messages"));
+            (QueryRegistryTypes.channelOfKey "thread:abc:messages");
+          Alcotest.(check bool)
+            "unprefixed length parser rejects legacy key"
+            true
+            (Option.is_none
+               (QueryRegistryTypes.channelOfLengthPrefixedKey "2:ab:x"));
+          Alcotest.(check string)
+            "numeric legacy channel"
+            "2:ab"
+            (QueryRegistryTypes.channelOfKey "2:ab:x"));
       Alcotest.test_case "setup_registry_from_json hydrates loaded cache data" `Quick
         (fun () ->
           with_sync_registry_reset (fun () ->
