@@ -1,6 +1,6 @@
 open Store
 
-let dummy_json : Json.json = Obj.magic "dummy"
+let dummy_json : Json.json = Json.parse "\"dummy\""
 
 let make_record ~id ~status ~enqueued_at : StoreActionLedger.t =
   {
