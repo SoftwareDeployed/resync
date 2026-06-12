@@ -36,13 +36,13 @@ let make =
 
     let (newTodoText, setNewTodoText) = React.useState(() => "");
 
-    let addTodoMutation = useMutation((module TodoStore.Mutations.AddTodo), ());
-    let setTodoCompletedMutation =
-      useMutation((module TodoStore.Mutations.SetTodoCompleted), ());
-    let removeTodoMutation =
-      useMutation((module TodoStore.Mutations.RemoveTodo), ());
-    let failServerMutation =
-      useMutation((module TodoStore.Mutations.FailServer), ());
+    let addTodo = useMutationFn((module TodoStore.Mutations.AddTodo), ());
+    let setTodoCompleted =
+      useMutationFn((module TodoStore.Mutations.SetTodoCompleted), ());
+    let removeTodo =
+      useMutationFn((module TodoStore.Mutations.RemoveTodo), ());
+    let failServer =
+      useMutationFn((module TodoStore.Mutations.FailServer), ());
 
     let todos = store.state.todos;
 
@@ -61,7 +61,7 @@ let make =
       let text = String.trim(newTodoText);
       if (String.length(text) > 0) {
         let _ =
-          addTodoMutation.mutate({
+          addTodo({
             id: UUID.make(),
             list_id: listId,
             text,
@@ -72,7 +72,7 @@ let make =
 
     let handleToggleTodo = (id: string, completed: bool) => {
       let _ =
-        setTodoCompletedMutation.mutate({
+        setTodoCompleted({
           id,
           completed: !completed,
         });
@@ -80,7 +80,7 @@ let make =
     };
 
     let handleRemoveTodo = (id: string) => {
-      let _ = removeTodoMutation.mutate({ id: id });
+      let _ = removeTodo({id: id});
       ();
     };
 
@@ -97,7 +97,7 @@ let make =
             type_="button"
             onClick={_ => {
               let _ =
-                failServerMutation.mutate()
+                failServer()
                 |> Js.Promise.catch(_error => Js.Promise.resolve());
               ();
             }}>

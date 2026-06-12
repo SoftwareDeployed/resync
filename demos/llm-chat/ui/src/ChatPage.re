@@ -51,35 +51,35 @@ let handleSend = (_store, _sendPromptMutation, _prompt, _setDraft) =>
 let onThreadClick =
     (
       _router: UniversalRouter.routerApi,
-      selectThreadMutation: UseMutation.mutation_result(string),
+      selectThread: string => Js.Promise.t(unit),
       threadId,
       _event,
     ) => {
-  let _ = selectThreadMutation.mutate(threadId);
+  let _ = selectThread(threadId);
   ReasonReactRouter.push("/" ++ threadId);
 };
 
 let onNewChatClick =
     (
-      createThreadMutation: UseMutation.mutation_result(LlmChatStore.create_thread_payload),
+      createThread: LlmChatStore.create_thread_payload => Js.Promise.t(unit),
       router: UniversalRouter.routerApi,
       _event,
     ) => {
   let uuid = UUID.make();
-  let _ = createThreadMutation.mutate({id: uuid, title: "New Chat"});
+  let _ = createThread({id: uuid, title: "New Chat"});
   router.push("/" ++ uuid);
 };
 
 let onDeleteThread =
     (
       _router: UniversalRouter.routerApi,
-      deleteThreadMutation: UseMutation.mutation_result(string),
+      deleteThread: string => Js.Promise.t(unit),
       threadId,
       event,
     ) => {
   React.Event.Mouse.stopPropagation(event);
   React.Event.Mouse.preventDefault(event);
-  let _ = deleteThreadMutation.mutate(threadId);
+  let _ = deleteThread(threadId);
 };
 
 [@platform js]
@@ -202,12 +202,12 @@ module View = {
       let (draft, setDraft) = React.useState(() => "");
       let sendPromptMutation =
         useMutation((module LlmChatStore.Mutations.SendPrompt), ());
-      let createThreadMutation =
-        useMutation((module LlmChatStore.Mutations.CreateNewThread), ());
-      let selectThreadMutation =
-        useMutation((module LlmChatStore.Mutations.SelectThread), ());
-      let deleteThreadMutation =
-        useMutation((module LlmChatStore.Mutations.DeleteThread), ());
+      let createThread =
+        useMutationFn((module LlmChatStore.Mutations.CreateNewThread), ());
+      let selectThread =
+        useMutationFn((module LlmChatStore.Mutations.SelectThread), ());
+      let deleteThread =
+        useMutationFn((module LlmChatStore.Mutations.DeleteThread), ());
 
       let messages = store.state.messages;
       let threads = store.state.threads;
@@ -246,7 +246,7 @@ module View = {
           <button
             className="new-thread-button"
             id="new-thread-button"
-            onClick={event => onNewChatClick(createThreadMutation, router, event)}>
+            onClick={event => onNewChatClick(createThread, router, event)}>
             {React.string("New Chat")}
           </button>
           {threads
@@ -263,7 +263,7 @@ module View = {
                  }
                  id={"thread-item-" ++ thread.id}
                  onClick={event =>
-                   onThreadClick(router, selectThreadMutation, thread.id, event)
+                   onThreadClick(router, selectThread, thread.id, event)
                  }>
                  <span className="thread-item-title">
                    {React.string(thread.title)}
@@ -272,7 +272,7 @@ module View = {
                     id={"delete-thread-" ++ thread.id}
                     className="thread-delete-button"
                     onClick={event =>
-                      onDeleteThread(router, deleteThreadMutation, thread.id, event)
+                      onDeleteThread(router, deleteThread, thread.id, event)
                     }>
                     <Lucide.IconTrash size=14 />
                   </button>

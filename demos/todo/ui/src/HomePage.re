@@ -30,10 +30,10 @@ let make =
     open Hooks;
     let store = TodoStore.Context.useStore();
     let (newTodoText, setNewTodoText) = React.useState(() => "");
-    let addTodoMutation = useMutation((module TodoStore.Mutations.AddTodo), ());
-    let setTodoCompletedMutation =
-      useMutation((module TodoStore.Mutations.SetTodoCompleted), ());
-    let removeTodoMutation = useMutation((module TodoStore.Mutations.RemoveTodo), ());
+    let addTodo = useMutationFn((module TodoStore.Mutations.AddTodo), ());
+    let setTodoCompleted =
+      useMutationFn((module TodoStore.Mutations.SetTodoCompleted), ());
+    let removeTodo = useMutationFn((module TodoStore.Mutations.RemoveTodo), ());
 
     let completed_count =
       store.state.todos
@@ -51,7 +51,7 @@ let make =
           text,
           completed: false,
         };
-        let _ = addTodoMutation.mutate(todo);
+        let _ = addTodo(todo);
         setNewTodoText(_ => "");
       };
     };
@@ -65,13 +65,13 @@ let make =
       switch (Js.Array.find(~f=(item: TodoStore.todo) => item.id == id, store.state.todos)) {
       | Some(todo) =>
         let input: TodoStore.set_completed = {id, completed: !todo.completed};
-        let _ = setTodoCompletedMutation.mutate(input);
+        let _ = setTodoCompleted(input);
         ()
       | None => ()
       };
 
     let handleRemoveTodo = id => {
-      let _ = removeTodoMutation.mutate(id);
+      let _ = removeTodo(id);
       ();
     };
 
