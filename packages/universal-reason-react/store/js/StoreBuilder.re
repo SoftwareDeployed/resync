@@ -318,6 +318,24 @@ module Sync = {
   };
 };
 
+let stateElementIdOrDefault = (stateElementId: option(string)) =>
+  switch (stateElementId) {
+  | Some(value) => value
+  | None => "initial-store"
+  };
+
+let hooksOrDefault = (hooks: option(Sync.hooks('action))) =>
+  switch (hooks) {
+  | Some(hooks) => hooks
+  | None => Sync.defaultHooks()
+  };
+
+let onActionErrorOrDefault = (hooks: Sync.hooks('action)) =>
+  switch (hooks.onActionError) {
+  | Some(callback) => callback
+  | None => Sync.defaultOnActionError
+  };
+
 type syncPersistence('state, 'subscription) = {
   storeName: string,
   scopeKeyOfState: 'state => string,
@@ -492,11 +510,7 @@ let withSync = (
       setTimestamp,
       transport,
     },
-    hooks:
-      switch (hooks) {
-      | Some(h) => h
-      | None => Sync.defaultHooks()
-      },
+    hooks: hooksOrDefault(hooks),
     strategy: {decodePatch, updateOfPatch},
     streams,
     emptyStreamingState,
@@ -531,11 +545,7 @@ let withSyncCrud = (
     setTimestamp,
     transport,
   },
-  hooks:
-    switch (hooks) {
-    | Some(h) => h
-    | None => Sync.defaultHooks()
-    },
+  hooks: hooksOrDefault(hooks),
   crud: {
     table,
     decodeRow,
@@ -727,11 +737,7 @@ module Runtime = {
 let buildLocal =
     (type s, type a, type st, input: local_input(s, a, st))
     : (module Runtime.LocalStore with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit) => {
-  let stateElementId =
-    switch (input.persistence.stateElementId) {
-    | Some(value) => value
-    | None => "initial-store"
-    };
+  let stateElementId = stateElementIdOrDefault(input.persistence.stateElementId);
 
   module M =
     StoreOffline.Local.Make({
@@ -775,11 +781,7 @@ let buildSynced =
       input: synced_input(s, a, st, sub, p, se, ss),
     )
     : (module Runtime.SyncedStore with type state = s and type action = a and type t = st and type stream_event = se and type streaming_state = ss) => {
-  let stateElementId =
-    switch (input.persistence.stateElementId) {
-    | Some(value) => value
-    | None => "initial-store"
-    };
+  let stateElementId = stateElementIdOrDefault(input.persistence.stateElementId);
   let hooks = input.hooks;
 
   module M =
@@ -812,11 +814,7 @@ let buildSynced =
       let updateOfPatch = input.strategy.updateOfPatch;
       let streams = input.streams;
       let emptyStreamingState = input.emptyStreamingState;
-      let onActionError =
-        switch (hooks.onActionError) {
-        | Some(callback) => callback
-        | None => Sync.defaultOnActionError
-        };
+      let onActionError = onActionErrorOrDefault(hooks);
       let onActionAck = hooks.onActionAck;
       let onCustom = hooks.onCustom;
       let onMedia = hooks.onMedia;
@@ -839,11 +837,7 @@ let buildSynced =
 let buildCrud =
     (type s, type a, type st, type sub, type r, input: synced_crud_input(s, a, st, sub, r))
     : (module Runtime.SyncedStore with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit) => {
-  let stateElementId =
-    switch (input.persistence.stateElementId) {
-    | Some(value) => value
-    | None => "initial-store"
-    };
+  let stateElementId = stateElementIdOrDefault(input.persistence.stateElementId);
   let hooks = input.hooks;
   let crudPatch =
     StoreCrud.decodePatch(
@@ -888,11 +882,7 @@ let buildCrud =
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
       let streams = None;
       let emptyStreamingState = ();
-      let onActionError =
-        switch (hooks.onActionError) {
-        | Some(callback) => callback
-        | None => Sync.defaultOnActionError
-        };
+      let onActionError = onActionErrorOrDefault(hooks);
       let onActionAck = hooks.onActionAck;
       let onCustom = hooks.onCustom;
       let onMedia = hooks.onMedia;
