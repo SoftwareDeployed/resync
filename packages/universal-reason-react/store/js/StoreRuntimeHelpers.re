@@ -35,8 +35,7 @@ let rejectStaleCacheResult = (~currentConfirmedState, ~cachedState, ~timestampOf
 
 let filterResumableRecords = (records) => {
   records
-  |> Array.to_list
-  |> List.filter((record: StoreActionLedger.t) =>
+  ->Js.Array.filter(~f=(record: StoreActionLedger.t) =>
        switch (StoreActionLedger.statusOfString(record.status)) {
        | Pending | Syncing => true
        | _ => false
@@ -46,17 +45,11 @@ let filterResumableRecords = (records) => {
 
 let getPendingActionIds = (~confirmedTimestamp, ~records) => {
   records
-  |> Array.to_list
-  |> List.filter_map((record: StoreActionLedger.t) =>
+  ->Js.Array.filter(~f=(record: StoreActionLedger.t) =>
        switch (StoreActionLedger.statusOfString(record.status)) {
-       | Acked =>
-           if (UUID.timestamp(record.id) <= confirmedTimestamp) {
-             Some(record.id);
-           } else {
-             None;
-           }
-       | _ => None
+       | Acked => UUID.timestamp(record.id) <= confirmedTimestamp
+       | _ => false
        }
      )
-  |> Array.of_list;
+  ->Js.Array.map(~f=(record: StoreActionLedger.t) => record.id);
 };

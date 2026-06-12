@@ -846,9 +846,8 @@ module Synced = {
                       ~confirmedTimestamp,
                       ~records,
                     );
-                  let remaining = Array.of_list(
-                    StoreRuntimeHelpers.filterResumableRecords(records),
-                  );
+                  let remaining =
+                    StoreRuntimeHelpers.filterResumableRecords(records);
                   actions.set(
                     StoreRuntimeHelpers.replayActions(
                       ~confirmed=confirmedState,

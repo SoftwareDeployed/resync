@@ -184,7 +184,7 @@ let suite =
             |]
           in
           let result = StoreRuntimeHelpers.filterResumableRecords records in
-          Alcotest.(check int) "Should find one resumable" 1 (List.length result));
+          Alcotest.(check int) "Should find one resumable" 1 (Array.length result));
       Alcotest.test_case "filterResumableRecords includes Syncing" `Quick (fun () ->
           let records =
             [|
@@ -193,19 +193,19 @@ let suite =
             |]
           in
           let result = StoreRuntimeHelpers.filterResumableRecords records in
-          Alcotest.(check int) "Should find one resumable" 1 (List.length result));
+          Alcotest.(check int) "Should find one resumable" 1 (Array.length result));
       Alcotest.test_case "filterResumableRecords excludes Acked" `Quick (fun () ->
           let records =
             [| make_record ~id:"r1" ~status:"acked" ~enqueued_at:1000.0 |]
           in
           let result = StoreRuntimeHelpers.filterResumableRecords records in
-          Alcotest.(check int) "Should not include acked" 0 (List.length result));
+          Alcotest.(check int) "Should not include acked" 0 (Array.length result));
       Alcotest.test_case "filterResumableRecords excludes Failed" `Quick (fun () ->
           let records =
             [| make_record ~id:"r1" ~status:"failed" ~enqueued_at:1000.0 |]
           in
           let result = StoreRuntimeHelpers.filterResumableRecords records in
-          Alcotest.(check int) "Should not include failed" 0 (List.length result));
+          Alcotest.(check int) "Should not include failed" 0 (Array.length result));
       Alcotest.test_case "getPendingActionIds returns array" `Quick (fun () ->
           let records =
             [|
@@ -362,7 +362,7 @@ let alcobar_suite =
             StoreRuntimeHelpers.replayActions
               ~reduce:(fun acc _ -> acc + 1)
               ~confirmed:0
-              ~records:(Array.of_list resumable)
+              ~records:resumable
           in
-          Alcobar.check_eq replayed (List.length resumable));
+          Alcobar.check_eq replayed (Array.length resumable));
     ] )
