@@ -277,59 +277,70 @@ let reduceStream = (streaming, event) =>
   };
 
 type patch =
-  | ThreadDeleted(string)
-  | ThreadUpserted(Model.Thread.t)
-  | MessageUpserted(Model.Message.t)
-  | MessageDeleted(string);
+  | ThreadsPatch(StoreCrud.patch(Model.Thread.t))
+  | MessagesPatch(StoreCrud.patch(Model.Message.t));
 
-let decodePatch = (json: StoreJson.json) => {
-  let table =
-    switch (StoreJson.field(json, "table")) {
-    | Some(t) => Melange_json.Primitives.string_of_json(t)
-    | None => ""
+let decodeThreadsPatch =
+  StoreCrud.decodePatch(
+    ~table=RealtimeSchema.table_name("threads"),
+    ~decodeRow=Model.Thread.of_json,
+    (),
+  );
+
+let decodeMessagesPatch =
+  StoreCrud.decodePatch(
+    ~table=RealtimeSchema.table_name("messages"),
+    ~decodeRow=Model.Message.of_json,
+    (),
+  );
+
+let decodePatch =
+  StorePatch.compose([|
+    json =>
+      switch (decodeThreadsPatch(json)) {
+      | Some(patch) => Some(ThreadsPatch(patch))
+      | None => None
+      },
+    json =>
+      switch (decodeMessagesPatch(json)) {
+      | Some(patch) => Some(MessagesPatch(patch))
+      | None => None
+      },
+  |]);
+
+let insertThreadByUpdatedAt = (threads: array(Model.Thread.t), thread: Model.Thread.t) => {
+  let rec insertionIndex = index =>
+    if (index >= Array.length(threads)) {
+      index;
+    } else if (thread.updated_at >= threads[index].updated_at) {
+      index;
+    } else {
+      insertionIndex(index + 1);
     };
-  let action =
-    switch (StoreJson.field(json, "action")) {
-    | Some(a) => Melange_json.Primitives.string_of_json(a)
-    | None => ""
+
+  let index = insertionIndex(0);
+  let before = Js.Array.slice(~start=0, ~end_=index, threads);
+  let after = Js.Array.slice(~start=index, ~end_=Array.length(threads), threads);
+  let withThread = Js.Array.concat(~other=[|thread|], before);
+  Js.Array.concat(~other=after, withThread);
+};
+
+let sortThreadsByUpdatedAt = (threads: array(Model.Thread.t)) => {
+  let rec loop = (index, sorted) =>
+    if (index >= Array.length(threads)) {
+      sorted;
+    } else {
+      loop(index + 1, insertThreadByUpdatedAt(sorted, threads[index]));
     };
-  switch (table, action) {
-  | ("threads", "DELETE") =>
-    switch (StoreJson.field(json, "id")) {
-    | Some(idJson) =>
-      Some(ThreadDeleted(Melange_json.Primitives.string_of_json(idJson)))
-    | None => None
-    }
-  | ("threads", "INSERT")
-  | ("threads", "UPDATE") =>
-    switch (StoreJson.field(json, "data")) {
-    | Some(dataJson) =>
-      Some(ThreadUpserted(Model.Thread.of_json(dataJson)))
-    | None => None
-    }
-  | ("messages", "INSERT")
-  | ("messages", "UPDATE") =>
-    switch (StoreJson.field(json, "data")) {
-    | Some(dataJson) =>
-      Some(MessageUpserted(Model.Message.of_json(dataJson)))
-    | None => None
-    }
-  | ("messages", "DELETE") =>
-    switch (StoreJson.field(json, "id")) {
-    | Some(idJson) =>
-      Some(MessageDeleted(Melange_json.Primitives.string_of_json(idJson)))
-    | None => None
-    }
-  | _ => None
-  };
+
+  loop(0, [||]);
 };
 
 let updateOfPatch = (patch: patch, state: state): state =>
   switch (patch) {
-  | ThreadDeleted(threadId) =>
+  | ThreadsPatch(StoreCrud.Delete(threadId)) =>
     let remainingThreads =
-      state.threads
-      ->Js.Array.filter(~f=(t: Model.Thread.t) => t.id != threadId);
+      StoreCrud.remove(~getId=(t: Model.Thread.t) => t.id, state.threads, threadId);
     let nextThreadId =
       switch (Array.length(remainingThreads) > 0) {
       | true => Some(remainingThreads[0].id)
@@ -346,55 +357,30 @@ let updateOfPatch = (patch: patch, state: state): state =>
         },
       input: "",
     };
-  | ThreadUpserted(thread) =>
-    let alreadyExists =
-      state.threads->Js.Array.some(~f=(t: Model.Thread.t) => t.id == thread.id);
-    if (alreadyExists) {
-      let updatedThreads =
-        state.threads->Js.Array.map(~f=(t: Model.Thread.t) =>
-          t.id == thread.id ? thread : t
-        );
-      {...state, threads: updatedThreads};
-    } else {
-      let newThreads =
-        Js.Array.concat(~other=[|thread|], state.threads);
-      let sortedThreads =
-        newThreads
-        |> Array.to_list
-        |> List.sort((a: Model.Thread.t, b: Model.Thread.t) =>
-             compare(b.updated_at, a.updated_at)
-           )
-        |> Array.of_list;
-      {...state, threads: sortedThreads};
-    };
-  | MessageUpserted(msg) =>
+  | ThreadsPatch(StoreCrud.Upsert(thread)) =>
+    let threads =
+      StoreCrud.upsert(~getId=(t: Model.Thread.t) => t.id, state.threads, thread)
+      |> sortThreadsByUpdatedAt;
+    {...state, threads};
+  | MessagesPatch(StoreCrud.Upsert(msg)) =>
     switch (state.current_thread_id) {
     | Some(current_thread_id) when current_thread_id == msg.thread_id =>
-      let filteredMessages =
-        state.messages
-        ->Js.Array.filter(~f=(m: Model.Message.t) => m.id != msg.id);
       {
         ...state,
-        messages:
-          Js.Array.concat(
-            ~other=[|msg|],
-            filteredMessages,
-          ),
+        messages: StoreCrud.upsert(~getId=(m: Model.Message.t) => m.id, state.messages, msg),
       };
     | _ => state
     }
-  | MessageDeleted(id) =>
+  | MessagesPatch(StoreCrud.Delete(id)) =>
     {
       ...state,
-      messages:
-        state.messages
-        ->Js.Array.filter(~f=(m: Model.Message.t) => m.id != id),
+      messages: StoreCrud.remove(~getId=(m: Model.Message.t) => m.id, state.messages, id),
     }
   };
 
 let reconcilePatch = (patch, streaming) =>
   switch (patch) {
-  | MessageUpserted(msg) =>
+  | MessagesPatch(StoreCrud.Upsert(msg)) =>
     {activeStreams: streaming.activeStreams->Belt.Map.String.remove(msg.id)}
   | _ => streaming
   };
