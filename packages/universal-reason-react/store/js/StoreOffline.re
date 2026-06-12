@@ -1333,19 +1333,6 @@ module Synced = {
                 Js.Promise.then_(
                   _ => {
                     if (shouldApplySideEffects()) {
-                      /* Apply acked action to confirmed state so subsequent
-                         optimistic rebuilds include its effect. */
-                      switch (ledgerRecord) {
-                      | Some(r: StoreActionLedger.t) =>
-                        let action = Schema.action_of_json(r.action);
-                        let nextConfirmedState = Schema.reduce(
-                          ~state=confirmedStateRef.contents,
-                          ~action,
-                        );
-                        confirmedStateRef := nextConfirmedState;
-                        persistConfirmedState(~broadcast=true, nextConfirmedState);
-                      | None => ()
-                      };
                       StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
                       /* Ack ordering contract: the action ledger status is updated
                          before ActionAcked listeners or legacy callbacks run. */
