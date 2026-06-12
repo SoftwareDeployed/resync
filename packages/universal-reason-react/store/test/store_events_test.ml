@@ -1,6 +1,26 @@
 let suite =
   ( "StoreEvents",
     [
+      Alcotest.test_case "Callback registry emits generic payload" `Quick (fun () ->
+          let registry : int StoreEvents.callback_registry = ref [||] in
+          let received = ref 0 in
+          let _id = StoreEvents.Callback.listen ~registry (fun value -> received := value) in
+          StoreEvents.Callback.emit ~registry 42;
+          Alcotest.(check int) "payload delivered" 42 !received);
+      Alcotest.test_case "Callback unlisten removes generic listener" `Quick (fun () ->
+          let registry : string StoreEvents.callback_registry = ref [||] in
+          let received = ref [] in
+          let id =
+            StoreEvents.Callback.listen ~registry (fun value ->
+              received := value :: !received)
+          in
+          StoreEvents.Callback.emit ~registry "before";
+          StoreEvents.Callback.unlisten ~registry id;
+          StoreEvents.Callback.emit ~registry "after";
+          Alcotest.(check (list string))
+            "listener removed"
+            [ "before" ]
+            !received);
       Alcotest.test_case "listen registers callback in registry" `Quick (fun () ->
           let registry : string StoreEvents.registry = ref [||] in
           let called = ref false in
