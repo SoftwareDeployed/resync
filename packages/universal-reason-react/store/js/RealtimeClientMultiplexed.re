@@ -19,15 +19,12 @@ module Multiplexed = {
     baseUrl: string,
     disposedRef: ref(bool),
     idleCloseRef: ref(bool),
-    pingIntervalRef: ref(option(int)),
     reconnectTimeoutRef: ref(option(int)),
     pendingMutationsRef: ref(array((string, StoreJson.json))),
   };
 
   type subscription_handle = { channel: string, id: int };
 
-  external setInterval: (unit => unit, int) => int = "setInterval";
-  external clearInterval: int => unit = "clearInterval";
   external setTimeout: (unit => unit, int) => int = "setTimeout";
   external clearTimeout: int => unit = "clearTimeout";
 
@@ -48,7 +45,6 @@ module Multiplexed = {
     baseUrl,
     disposedRef: ref(false),
     idleCloseRef: ref(false),
-    pingIntervalRef: ref(None),
     reconnectTimeoutRef: ref(None),
     pendingMutationsRef: ref([||]),
   };
