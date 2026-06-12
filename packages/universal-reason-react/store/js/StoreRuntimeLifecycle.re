@@ -13,7 +13,7 @@ type t = {
   pendingPersistenceRef: ref(int),
   pendingActionsRef: ref(int),
   connectionRef: ref(StoreRuntimeTypes.connection_status),
-  statusListenersRef: ref(array((string, StoreRuntimeTypes.status => unit))),
+  statusListenersRef: StoreEvents.callback_registry(StoreRuntimeTypes.status),
 };
 
 [@platform js]
@@ -51,8 +51,9 @@ let notifySubscribers = (lifecycle: t) => {
     pendingPersistence: lifecycle.pendingPersistenceRef^,
     pendingActions: lifecycle.pendingActionsRef^,
   };
-  (lifecycle.statusListenersRef^)->Js.Array.forEach(~f=((_, callback)) =>
-    callback(currentStatus)
+  StoreEvents.Callback.emit(
+    ~registry=lifecycle.statusListenersRef,
+    currentStatus,
   );
 };
 
@@ -210,17 +211,8 @@ let status = (lifecycle: t): StoreRuntimeTypes.status => {
   };
 };
 
-let subscribeStatus = (lifecycle: t, callback: StoreRuntimeTypes.status => unit): string => {
-  let listenerId = UUID.make();
-  lifecycle.statusListenersRef :=
-    (lifecycle.statusListenersRef^)
-    ->Js.Array.concat(~other=[|(listenerId, callback)|]);
-  listenerId;
-};
+let subscribeStatus = (lifecycle: t, callback: StoreRuntimeTypes.status => unit): string =>
+  StoreEvents.Callback.listen(~registry=lifecycle.statusListenersRef, callback);
 
-let unsubscribeStatus = (lifecycle: t, listenerId: string) => {
-  lifecycle.statusListenersRef :=
-    (lifecycle.statusListenersRef^)->Js.Array.filter(~f=((currentId, _)) =>
-      currentId != listenerId
-    );
-};
+let unsubscribeStatus = (lifecycle: t, listenerId: string) =>
+  StoreEvents.Callback.unlisten(~registry=lifecycle.statusListenersRef, listenerId);
