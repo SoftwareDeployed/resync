@@ -669,184 +669,178 @@ let reconcilePatch = (_patch, streaming) => streaming;
    FRP streaming store API
    ============================================================================ */
 
-module StoreDef = Store.Frp.Synced.Streaming.Build({
-  type nonrec state = state;
-  type nonrec action = action;
-  type nonrec store = store;
-  type nonrec subscription = subscription;
-  type patch = action;
-  type nonrec stream_event = stream_event;
-  type nonrec streaming_state = streaming_state;
-
-  let config =
-    Store.Frp.Synced.Streaming.make(
-      ~transport={
-        subscriptionOfState: (state: state): option(subscription) =>
-          Some(state.client_id),
-        encodeSubscription: (sub: subscription) => sub,
-        eventUrl: Constants.event_url,
-        baseUrl: Constants.base_url,
-      },
-      ~strategy=
-        Store.Sync.custom(
-          ~decodePatch=json => {
-            let type_field =
-              StoreJson.optionalField(
-                ~json,
-                ~fieldName="type",
-                ~decode=string_of_json,
-              );
-            let table_field =
-              StoreJson.optionalField(
-                ~json,
-                ~fieldName="table",
-                ~decode=string_of_json,
-              );
-            let action_field =
-              StoreJson.optionalField(
-                ~json,
-                ~fieldName="action",
-                ~decode=string_of_json,
-              );
-            switch (type_field, table_field, action_field) {
-            | (Some("patch"), Some("chat_messages"), Some("INSERT")) =>
-              let data =
-                StoreJson.requiredField(
-                  ~json,
-                  ~fieldName="data",
-                  ~decode=value => value,
-                );
-              let message =
-                try(
-                  Some(
-                    Model.ChatMessage.{
-                      id:
-                        StoreJson.requiredField(
-                          ~json=data,
-                          ~fieldName="id",
-                          ~decode=string_of_json,
-                        ),
-                      sender_id:
-                        StoreJson.requiredField(
-                          ~json=data,
-                          ~fieldName="sender_id",
-                          ~decode=string_of_json,
-                        ),
-                      text:
-                        StoreJson.requiredField(
-                          ~json=data,
-                          ~fieldName="text",
-                          ~decode=string_of_json,
-                        ),
-                      sent_at:
-                        StoreJson.requiredField(
-                          ~json=data,
-                          ~fieldName="sent_at",
-                          ~decode=float_of_json,
-                        ),
-                    },
-                  )
-                ) {
-                | _ => None
-                };
-              switch (message) {
-              | Some(msg) => Some(ReceiveMessage(msg))
-              | None => None
-              };
-            | _ =>
-              switch (action_of_json(json)) {
-              | JoinRoom(_)
-              | LeaveRoom(_)
-              | ToggleVideo(_)
-              | ToggleAudio(_)
-              | ResetJoinStatus
-              | JoinRoomAcknowledged
-              | Noop => None
-              | patch => Some(patch)
-              }
-            };
-          },
-          ~updateOfPatch=(patch, state) => applyAction(~state, ~action=patch),
-        ),
-      ~streams={
-        decodeStreamEvent,
-        emptyStreamingState,
-        reduceStream,
-        reconcilePatch,
-      },
-      ~hooks=
-        Store.Sync.hooks(
-          ~onActionError=onActionError,
-          ~onActionAck=(~dispatch, ~action, ~actionId as _actionId) =>
-            switch (action) {
-            | JoinRoom(_) => dispatch(JoinRoomAcknowledged)
-            | _ => ()
-            },
-          ~onError=(~dispatch) => message => {
-            Js.Console.error("[VideoChatStore] Server error: " ++ message);
-            dispatch(ResetJoinStatus);
-          },
-          ~onMultiplexedHandle=handle => MediaTransport.setHandle(Some(handle)),
-          (),
-        ),
-      {
-        storeName: "video-chat",
-        emptyState: {
-          client_id: UUID.make(),
-          room: None,
-          is_joined: false,
-          local_video_enabled: true,
-          local_audio_enabled: true,
-          remote_peer_id: None,
-          remote_video_enabled: true,
-          remote_audio_enabled: true,
-          messages: [||],
-          updated_at: Js.Date.now(),
-        },
-        reduce: (~state: state, ~action: action) => applyAction(~state, ~action),
-        state_of_json,
-        state_to_json,
-        action_of_json,
-        action_to_json,
-        makeStore:
-          (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-          let room_id =
-            switch (state.room) {
-            | Some(room) => room.id
-            | None => ""
-            };
-          {
-            room_id,
-            state,
-            peers_count:
-              StoreBuilder.derived(
-                ~derive?,
-                ~client=
-                  (store: store) =>
-                    switch (store.state.room) {
-                    | Some(room) => Array.length(room.peers)
-                    | None => 0
-                    },
-                ~server=
-                  () =>
-                    switch (state.room) {
-                    | Some(room) => Array.length(room.peers)
-                    | None => 0
-                    },
-                (),
-              ),
-          };
-        },
-        scopeKeyOfState: (state: state) => state.client_id,
-        timestampOfState: (state: state) => state.updated_at,
-        setTimestamp: (~state: state, ~timestamp: float) => {
-          ...state,
-          updated_at: timestamp,
-        },
-        stateElementId: Some("initial-store"),
-      },
-    );
-});
+module StoreDef =
+  (val StoreBuilder.buildSynced(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState: ({
+           client_id: UUID.make(),
+           room: None,
+           is_joined: false,
+           local_video_enabled: true,
+           local_audio_enabled: true,
+           remote_peer_id: None,
+           remote_video_enabled: true,
+           remote_audio_enabled: true,
+           messages: [||],
+           updated_at: Js.Date.now(),
+         }: state),
+         reduce: (~state: state, ~action: action) => applyAction(~state, ~action),
+         makeStore:
+           (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+           let room_id =
+             switch (state.room) {
+             | Some(room) => room.id
+             | None => ""
+             };
+           {
+             room_id,
+             state,
+             peers_count:
+               StoreBuilder.derived(
+                 ~derive?,
+                 ~client=
+                   (store: store) =>
+                     switch (store.state.room) {
+                     | Some(room) => Array.length(room.peers)
+                     | None => 0
+                     },
+                 ~server=
+                   () =>
+                     switch (state.room) {
+                     | Some(room) => Array.length(room.peers)
+                     | None => 0
+                     },
+                 (),
+               ),
+           };
+         },
+       })
+    |> StoreBuilder.withJson(
+         ~state_of_json,
+         ~state_to_json,
+         ~action_of_json,
+         ~action_to_json,
+       )
+    |> StoreBuilder.withSync(
+         ~transport={
+           subscriptionOfState: (state: state): option(subscription) =>
+             Some(state.client_id),
+           encodeSubscription: (sub: subscription) => sub,
+           eventUrl: Constants.event_url,
+           baseUrl: Constants.base_url,
+         },
+         ~decodePatch=json => {
+           let type_field =
+             StoreJson.optionalField(
+               ~json,
+               ~fieldName="type",
+               ~decode=string_of_json,
+             );
+           let table_field =
+             StoreJson.optionalField(
+               ~json,
+               ~fieldName="table",
+               ~decode=string_of_json,
+             );
+           let action_field =
+             StoreJson.optionalField(
+               ~json,
+               ~fieldName="action",
+               ~decode=string_of_json,
+             );
+           switch (type_field, table_field, action_field) {
+           | (Some("patch"), Some("chat_messages"), Some("INSERT")) =>
+             let data =
+               StoreJson.requiredField(
+                 ~json,
+                 ~fieldName="data",
+                 ~decode=value => value,
+               );
+             let message =
+               try(
+                 Some(
+                   Model.ChatMessage.{
+                     id:
+                       StoreJson.requiredField(
+                         ~json=data,
+                         ~fieldName="id",
+                         ~decode=string_of_json,
+                       ),
+                     sender_id:
+                       StoreJson.requiredField(
+                         ~json=data,
+                         ~fieldName="sender_id",
+                         ~decode=string_of_json,
+                       ),
+                     text:
+                       StoreJson.requiredField(
+                         ~json=data,
+                         ~fieldName="text",
+                         ~decode=string_of_json,
+                       ),
+                     sent_at:
+                       StoreJson.requiredField(
+                         ~json=data,
+                         ~fieldName="sent_at",
+                         ~decode=float_of_json,
+                       ),
+                   },
+                 )
+               ) {
+               | _ => None
+               };
+             switch (message) {
+             | Some(msg) => Some(ReceiveMessage(msg))
+             | None => None
+             };
+           | _ =>
+             switch (action_of_json(json)) {
+             | JoinRoom(_)
+             | LeaveRoom(_)
+             | ToggleVideo(_)
+             | ToggleAudio(_)
+             | ResetJoinStatus
+             | JoinRoomAcknowledged
+             | Noop => None
+             | patch => Some(patch)
+             }
+           };
+         },
+         ~updateOfPatch=(patch, state) => applyAction(~state, ~action=patch),
+         ~setTimestamp=(~state: state, ~timestamp: float) => {
+           ...state,
+           updated_at: timestamp,
+         },
+         ~storeName="video-chat",
+         ~scopeKeyOfState=(state: state) => state.client_id,
+         ~timestampOfState=(state: state) => state.updated_at,
+         ~streams=Some({
+           decodeStreamEvent,
+           emptyStreamingState,
+           reduceStream,
+           reconcilePatch,
+         }),
+         ~hooks=
+           Store.Sync.hooks(
+             ~onActionError=onActionError,
+             ~onActionAck=(~dispatch, ~action, ~actionId as _actionId) =>
+               switch (action) {
+               | JoinRoom(_) => dispatch(JoinRoomAcknowledged)
+               | _ => ()
+               },
+             ~onError=(~dispatch) => message => {
+               Js.Console.error("[VideoChatStore] Server error: " ++ message);
+               dispatch(ResetJoinStatus);
+             },
+             ~onMultiplexedHandle=handle =>
+               MediaTransport.setHandle(Some(handle)),
+             (),
+           ),
+         ~stateElementId=Some("initial-store"),
+         (),
+       )
+  ));
 
 include (
   StoreDef:
