@@ -18,15 +18,33 @@ let setHandle = (handle: option(RealtimeClientMultiplexed.Multiplexed.t)) => {
   handleRef := handle;
 };
 
-let sendRaw = dict => {
-  let frame = Js.Json.stringify(Js.Json.object_(dict));
+let sendActionJson = action => {
   switch (handleRef.contents) {
   | Some(handle) =>
-    let _ = RealtimeClientMultiplexed.Multiplexed.sendAction(~actionId="", ~action=StoreJson.parse(frame), handle);
+    let _ =
+      RealtimeClientMultiplexed.Multiplexed.sendAction(
+        ~actionId="",
+        ~action,
+        handle,
+      );
     ()
   | None => ()
   };
 };
+
+let mediaAction = (~roomId, ~peerId, ~dataField, ~data) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "type", "media");
+    StoreJson.Object.setJson(
+      dict,
+      "payload",
+      StoreJson.Object.make(payload => {
+        StoreJson.Object.setString(payload, "room_id", roomId);
+        StoreJson.Object.setString(payload, "peer_id", peerId);
+        StoreJson.Object.setString(payload, dataField, data);
+      }),
+    );
+  });
 
 let lastFrameSent: ref(option(string)) = ref(None);
 
@@ -36,24 +54,20 @@ let sendMediaFrame = (roomId, peerId, frameData) => {
     ()
   | _ =>
     lastFrameSent := Some(frameData);
-    let payload = Js.Dict.empty();
-    Js.Dict.set(payload, "room_id", Js.Json.string(roomId));
-    Js.Dict.set(payload, "peer_id", Js.Json.string(peerId));
-    Js.Dict.set(payload, "frame_data", Js.Json.string(frameData));
-    let msg = Js.Dict.empty();
-    Js.Dict.set(msg, "type", Js.Json.string("media"));
-    Js.Dict.set(msg, "payload", Js.Json.object_(payload));
-    sendRaw(msg);
+    sendActionJson(mediaAction(
+      ~roomId,
+      ~peerId,
+      ~dataField="frame_data",
+      ~data=frameData,
+    ));
   };
 };
 
 let sendMediaAudio = (roomId, peerId, chunkData) => {
-  let payload = Js.Dict.empty();
-  Js.Dict.set(payload, "room_id", Js.Json.string(roomId));
-  Js.Dict.set(payload, "peer_id", Js.Json.string(peerId));
-  Js.Dict.set(payload, "chunk_data", Js.Json.string(chunkData));
-  let msg = Js.Dict.empty();
-  Js.Dict.set(msg, "type", Js.Json.string("media"));
-  Js.Dict.set(msg, "payload", Js.Json.object_(payload));
-  sendRaw(msg);
+  sendActionJson(mediaAction(
+    ~roomId,
+    ~peerId,
+    ~dataField="chunk_data",
+    ~data=chunkData,
+  ));
 };
