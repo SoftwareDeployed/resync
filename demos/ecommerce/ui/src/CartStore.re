@@ -123,10 +123,10 @@ let setItemQuantity = (items: items, ~inventoryId, ~quantity) =>
   };
 
 let actionJson = (~kind, ~fill) => {
-  let dict = Js.Dict.empty();
-  dict->Js.Dict.set("kind", string_to_json(kind));
-  fill(dict);
-  StoreJson.Dict.to_json(json => json, dict);
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    fill(dict);
+  });
 };
 
 let action_to_json = action =>
@@ -135,14 +135,14 @@ let action_to_json = action =>
     actionJson(
       ~kind="set_item_quantity",
       ~fill=dict => {
-        dict->Js.Dict.set("inventory_id", string_to_json(input.inventory_id));
-        dict->Js.Dict.set("quantity", int_to_json(input.quantity));
+        StoreJson.Object.setString(dict, "inventory_id", input.inventory_id);
+        StoreJson.Object.setInt(dict, "quantity", input.quantity);
       },
     )
   | RemoveItem(id) =>
     actionJson(
       ~kind="remove_item",
-      ~fill=dict => dict->Js.Dict.set("inventory_id", string_to_json(id)),
+      ~fill=dict => StoreJson.Object.setString(dict, "inventory_id", id),
     )
   | ClearCart => actionJson(~kind="clear_cart", ~fill=_dict => ())
   };

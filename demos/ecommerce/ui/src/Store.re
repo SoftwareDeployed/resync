@@ -19,11 +19,8 @@ type store = {
 
 let emptyConfig: config = Model.SSR.empty;
 
-let action_to_json = _action => {
-  let dict = Js.Dict.empty();
-  dict->Js.Dict.set("kind", Melange_json.Primitives.string_to_json("noop"));
-  StoreJson.Dict.to_json(json => json, dict);
-};
+let action_to_json = _action =>
+  StoreJson.Object.make(dict => StoreJson.Object.setString(dict, "kind", "noop"));
 
 let action_of_json = _json => Noop;
 

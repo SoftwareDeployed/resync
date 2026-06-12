@@ -61,10 +61,10 @@ let completedCount = todos =>
   todos->Js.Array.filter(~f=(item: todo) => item.completed)->Array.length;
 
 let actionJson = (~kind, ~fill) => {
-  let dict = Js.Dict.empty();
-  dict->Js.Dict.set("kind", string_to_json(kind));
-  fill(dict);
-  StoreJson.Dict.to_json(json => json, dict);
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    fill(dict);
+  });
 };
 
 let action_to_json = action =>
@@ -72,20 +72,20 @@ let action_to_json = action =>
   | AddTodo(todo) =>
     actionJson(
       ~kind="add_todo",
-      ~fill=dict => dict->Js.Dict.set("todo", todo_to_json(todo)),
+      ~fill=dict => StoreJson.Object.setJson(dict, "todo", todo_to_json(todo)),
     )
   | SetTodoCompleted(input) =>
     actionJson(
       ~kind="set_todo_completed",
       ~fill=dict => {
-        dict->Js.Dict.set("id", string_to_json(input.id));
-        dict->Js.Dict.set("completed", bool_to_json(input.completed));
+        StoreJson.Object.setString(dict, "id", input.id);
+        StoreJson.Object.setBool(dict, "completed", input.completed);
       },
     )
   | RemoveTodo(id) =>
     actionJson(
       ~kind="remove_todo",
-      ~fill=dict => dict->Js.Dict.set("id", string_to_json(id)),
+      ~fill=dict => StoreJson.Object.setString(dict, "id", id),
     )
   };
 

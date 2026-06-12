@@ -58,12 +58,10 @@ let setTimestamp = (~state: state, ~timestamp: float) =>
   {...state, updated_at: timestamp};
 
 let actionJson = (~kind, ~fill) => {
-  let dict = Js.Dict.empty();
-  let payload = Js.Dict.empty();
-  dict->Js.Dict.set("kind", string_to_json(kind));
-  fill(payload);
-  dict->Js.Dict.set("payload", StoreJson.Dict.to_json(json => json, payload));
-  StoreJson.Dict.to_json(json => json, dict);
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    StoreJson.Object.setJson(dict, "payload", StoreJson.Object.make(fill));
+  });
 };
 
 let action_to_json = action =>
@@ -72,37 +70,37 @@ let action_to_json = action =>
     actionJson(
       ~kind="send_prompt",
       ~fill=dict => {
-        dict->Js.Dict.set("thread_id", string_to_json(payload.thread_id));
-        dict->Js.Dict.set("prompt", string_to_json(payload.prompt));
+        StoreJson.Object.setString(dict, "thread_id", payload.thread_id);
+        StoreJson.Object.setString(dict, "prompt", payload.prompt);
       },
     )
   | CreateNewThread(payload) =>
     actionJson(
       ~kind="create_new_thread",
       ~fill=dict => {
-        dict->Js.Dict.set("id", string_to_json(payload.id));
-        dict->Js.Dict.set("title", string_to_json(payload.title));
+        StoreJson.Object.setString(dict, "id", payload.id);
+        StoreJson.Object.setString(dict, "title", payload.title);
       },
     )
   | SetInput(text) =>
     actionJson(
       ~kind="set_input",
-      ~fill=dict => dict->Js.Dict.set("text", string_to_json(text)),
+      ~fill=dict => StoreJson.Object.setString(dict, "text", text),
     )
   | SetError(message) =>
     actionJson(
       ~kind="set_error",
-      ~fill=dict => dict->Js.Dict.set("message", string_to_json(message)),
+      ~fill=dict => StoreJson.Object.setString(dict, "message", message),
     )
   | SelectThread(thread_id) =>
     actionJson(
       ~kind="select_thread",
-      ~fill=dict => dict->Js.Dict.set("thread_id", string_to_json(thread_id)),
+      ~fill=dict => StoreJson.Object.setString(dict, "thread_id", thread_id),
     )
   | DeleteThread(thread_id) =>
     actionJson(
       ~kind="delete_thread",
-      ~fill=dict => dict->Js.Dict.set("thread_id", string_to_json(thread_id)),
+      ~fill=dict => StoreJson.Object.setString(dict, "thread_id", thread_id),
     )
   };
 

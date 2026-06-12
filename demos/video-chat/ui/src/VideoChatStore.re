@@ -91,12 +91,10 @@ let setTimestamp = (~state: state, ~timestamp: float) => {
 };
 
 let actionJson = (~kind, ~fill) => {
-  let dict = Js.Dict.empty();
-  let payload = Js.Dict.empty();
-  dict->Js.Dict.set("kind", string_to_json(kind));
-  fill(payload);
-  dict->Js.Dict.set("payload", StoreJson.Dict.to_json(json => json, payload));
-  StoreJson.Dict.to_json(json => json, dict);
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    StoreJson.Object.setJson(dict, "payload", StoreJson.Object.make(fill));
+  });
 };
 
 let noopActionJson = () => actionJson(~kind="noop", ~fill=_dict => ());
@@ -107,47 +105,47 @@ let action_to_json = action =>
     actionJson(
       ~kind="join_room",
       ~fill=dict => {
-        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
-        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
+        StoreJson.Object.setString(dict, "room_id", payload.room_id);
+        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
       },
     )
   | LeaveRoom(payload) =>
     actionJson(
       ~kind="leave_room",
       ~fill=dict => {
-        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
-        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
+        StoreJson.Object.setString(dict, "room_id", payload.room_id);
+        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
       },
     )
   | PeerJoined(payload) =>
     actionJson(
       ~kind="peer_joined",
-      ~fill=dict => dict->Js.Dict.set("room_id", string_to_json(payload.room_id)),
+      ~fill=dict => StoreJson.Object.setString(dict, "room_id", payload.room_id),
     )
   | PeerLeft(payload) =>
     actionJson(
       ~kind="peer_left",
       ~fill=dict => {
-        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
-        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
+        StoreJson.Object.setString(dict, "room_id", payload.room_id);
+        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
       },
     )
   | ToggleVideo(payload) =>
     actionJson(
       ~kind="toggle_video",
       ~fill=dict => {
-        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
-        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
-        dict->Js.Dict.set("enabled", bool_to_json(payload.enabled));
+        StoreJson.Object.setString(dict, "room_id", payload.room_id);
+        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
+        StoreJson.Object.setBool(dict, "enabled", payload.enabled);
       },
     )
   | ToggleAudio(payload) =>
     actionJson(
       ~kind="toggle_audio",
       ~fill=dict => {
-        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
-        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
-        dict->Js.Dict.set("enabled", bool_to_json(payload.enabled));
+        StoreJson.Object.setString(dict, "room_id", payload.room_id);
+        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
+        StoreJson.Object.setBool(dict, "enabled", payload.enabled);
       },
     )
   | RemoteToggleVideo(_)
@@ -157,9 +155,9 @@ let action_to_json = action =>
     actionJson(
       ~kind="send_message",
       ~fill=dict => {
-        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
-        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
-        dict->Js.Dict.set("text", string_to_json(payload.text));
+        StoreJson.Object.setString(dict, "room_id", payload.room_id);
+        StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
+        StoreJson.Object.setString(dict, "text", payload.text);
       },
     )
   | ReceiveMessage(_) =>
