@@ -152,7 +152,7 @@ let get_results = () => {
   | Some(registry) =>
     let queries = Hashtbl.to_seq_keys(registry.queries) |> Array.of_seq;
     let results = Js.Dict.empty();
-    Hashtbl.iter((k, v) => results->Js.Dict.set(k, Obj.magic(v)), registry.results);
+    Hashtbl.iter((k, v) => results->Js.Dict.set(k, StoreJson.ofSafe(v)), registry.results);
     { queries, results };
   };
 };
@@ -166,10 +166,10 @@ let serialize_snapshot = (snapshot: registry_snapshot): string => {
       snapshot.results
       |> Js.Dict.entries
       |> Array.to_list
-      |> List.map(((k, v)) => (k, Obj.magic(v)))
+      |> List.map(((k, v)) => (k, StoreJson.toSafe(v)))
     ))
   ]);
-  Yojson.Basic.to_string(jsonObj);
+  Yojson.Safe.to_string(jsonObj);
 };
 
 // Serialize registry results to QueryCache hydrate format
@@ -180,16 +180,18 @@ let serialize_for_cache = (): string => {
   | None => "{}"
   | Some(registry) =>
     let entries =
-      Hashtbl.to_seq_keys(registry.results)
-      |> List.of_seq
-      |> List.map(key => {
-        let value = Hashtbl.find(registry.results, key);
-        (
-          key,
-          `Assoc([("_tag", `String("Loaded")), ("data", Obj.magic(value))]),
-        );
-      });
-    Yojson.Basic.to_string(`Assoc(entries))
+      Hashtbl.fold(
+        (key, value, entries) => [
+          (
+            key,
+            `Assoc([("_tag", `String("Loaded")), ("data", value)]),
+          ),
+          ...entries,
+        ],
+        registry.results,
+        [],
+      );
+    Yojson.Safe.to_string(`Assoc(List.rev(entries)))
   };
 };
 
