@@ -545,7 +545,7 @@ let runThreadDeletionScenario = (~browser, ~baseUrl) => {
      )
   |> catch(error => {
        Js.log2("[FAIL] Thread deletion test failed:", error);
-       reject(Obj.magic(error));
+       BrowserTestUtils.rejectPromiseError(error);
      })
 };
 
@@ -1114,7 +1114,7 @@ let run = () => {
      )
   |> catch(error =>
        cleanup(~browser=browserRef.contents, ~server=serverRef.contents)
-       |> then_(_ => reject(Obj.magic(error)))
+       |> then_(_ => BrowserTestUtils.rejectPromiseError(error))
      );
 };
 

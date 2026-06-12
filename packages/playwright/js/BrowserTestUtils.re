@@ -12,6 +12,9 @@ external makeError: string => exn = "Error";
 [@mel.module "node:timers/promises"]
 external sleep: int => Js.Promise.t(unit) = "setTimeout";
 
+let rejectPromiseError = (error: Js.Promise.error): Js.Promise.t('a) =>
+  reject(Js.Exn.anyToExnInternal(error));
+
 let assertTrue = (~label, condition, ~details) => {
   if (condition) {
     Js.log("[PASS] " ++ label);
