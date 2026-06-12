@@ -24,6 +24,25 @@ let suite =
             "019ebaad-3fed-7b7b-b36f-453970002fae"
             (RealtimeClient.channelIdOfSubscription
                "019ebaad-3fed-7b7b-b36f-453970002fae"));
+      Alcotest.test_case "select requests keep distinct logical subscriptions" `Quick
+        (fun () ->
+          let requests =
+            RealtimeClient.uniqueSelectRequests
+              [| ("thread:room-1", 1.0); ("messages:room-1", 2.0); ("thread:room-1", 3.0) |]
+          in
+          Alcotest.(check int) "request count" 2 (Array.length requests);
+          let first_subscription, first_updated_at = requests.(0) in
+          let second_subscription, second_updated_at = requests.(1) in
+          Alcotest.(check string)
+            "first subscription"
+            "thread:room-1"
+            first_subscription;
+          Alcotest.(check (float 0.0)) "first updated_at" 1.0 first_updated_at;
+          Alcotest.(check string)
+            "second subscription"
+            "messages:room-1"
+            second_subscription;
+          Alcotest.(check (float 0.0)) "second updated_at" 2.0 second_updated_at);
       Alcotest.test_case "pending mutation queue dedupes by action id" `Quick
         (fun () ->
           let pending =

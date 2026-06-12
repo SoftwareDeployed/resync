@@ -66,6 +66,24 @@ let channelIdOfSubscription = (subscription: string): string =>
     };
   };
 
+type select_request = (string, float);
+
+let hasSelectRequest = (~subscription: string, requests: array(select_request)) =>
+  requests->Js.Array.some(~f=((existingSubscription, _updatedAt)) =>
+    existingSubscription == subscription
+  );
+
+let uniqueSelectRequests = (requests: array(select_request)): array(select_request) =>
+  requests->Js.Array.reduce(
+    ~f=(acc, ((subscription, _updatedAt) as request)) =>
+      if (hasSelectRequest(~subscription, acc)) {
+        acc;
+      } else {
+        acc->Js.Array.concat(~other=[|request|]);
+      },
+    ~init=[||],
+  );
+
 [@platform native]
 module Socket = {
   type websocket = unit;
@@ -416,8 +434,13 @@ module Socket = {
             let (_, callbacks) = subs[i];
             let callbacks = activeCallbacks(callbacks);
             if (Array.length(callbacks) > 0) {
-              let first = callbacks[0];
-              let _ = sendFrame(state, selectFrameString(first.subscription, first.updatedAt));
+              callbacks
+              ->Js.Array.map(~f=callback => (callback.subscription, callback.updatedAt))
+              ->uniqueSelectRequests
+              ->Js.Array.forEach(~f=((subscription, updatedAt)) => {
+                  let _ = sendFrame(state, selectFrameString(subscription, updatedAt));
+                  ();
+                });
               callbacks->Js.Array.forEach(~f=callbacks => callbacks.onOpen());
             };
           };

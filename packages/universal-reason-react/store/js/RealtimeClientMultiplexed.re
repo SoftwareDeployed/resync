@@ -106,17 +106,24 @@ module Multiplexed = {
         ->Js.Dict.entries
         ->Js.Array.forEach(~f=((_, callbacks)) => {
             if (Js.Array.length(callbacks) > 0) {
-              let firstCallback = callbacks[0];
-              let _ =
-                t.websocketRef.contents
-                |> Option.map(ws => {
-                    ws->WebSocket.send_string(
-                      RealtimeClient.selectFrameString(
-                        firstCallback.subscription,
-                        firstCallback.updatedAt,
-                      ),
-                    )
-                  });
+              callbacks
+              ->Js.Array.map(~f=callback =>
+                  (callback.subscription, callback.updatedAt)
+                )
+              ->RealtimeClient.uniqueSelectRequests
+              ->Js.Array.forEach(~f=((subscription, updatedAt)) => {
+                  let _ =
+                    t.websocketRef.contents
+                    |> Option.map(ws => {
+                        ws->WebSocket.send_string(
+                          RealtimeClient.selectFrameString(
+                            subscription,
+                            updatedAt,
+                          ),
+                        )
+                      });
+                  ();
+                });
               callbacks->Js.Array.forEach(~f=callback => callback.onOpen());
             };
           });
@@ -342,13 +349,15 @@ module Multiplexed = {
       | None => [||]
       };
     let wasEmpty = Js.Array.length(existing) == 0;
+    let alreadySelected =
+      existing->Js.Array.some(~f=callback => callback.subscription == channel);
     subs->Js.Dict.set(channelId, existing->Js.Array.concat(~other=[|callbacks|]));
     t.subscriptionsRef := subs;
 
     /* Ensure connection is open */
     switch (t.websocketRef.contents) {
     | Some(ws) when ws->WebSocket.readyState == 1 =>
-      if (wasEmpty) {
+      if (wasEmpty || !alreadySelected) {
         ws->WebSocket.send_string(
           RealtimeClient.selectFrameString(channel, updatedAt),
         );
