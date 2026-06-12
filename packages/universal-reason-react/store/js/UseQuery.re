@@ -214,9 +214,10 @@ let useQuery =
             let rows_ =
               switch ((json : Yojson.Safe.t)) {
               | `List(rowJsons) =>
-                rowJsons
-                |> Array.of_list
-                |> Js.Array.map(~f=rowJson => Q.decodeRow(StoreJson.ofSafe(rowJson)))
+                let rowJsons = rowJsons |> Array.of_list;
+                rowJsons->Js.Array.map(~f=rowJson =>
+                  Q.decodeRow(StoreJson.ofSafe(rowJson))
+                );
               | _ => [|Q.decodeRow(StoreJson.ofSafe(json))|]
               };
             Loaded(rows_)
