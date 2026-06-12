@@ -100,22 +100,8 @@ let hydrateCacheFromDom = (~cacheId as _unused=?, ()) => {
   ();
 };
 
-// Main useQuery hook - JS version (client-side)
 [@platform js]
-let useQuery =
-    (
-      type p,
-      type r,
-      module Q: QueryModule with type params = p and type row = r,
-      params: p,
-      (),
-    ) => {
-  let channel = Q.channel(params);
-  let paramsHash = Q.paramsHash(params);
-  let key = makeKey(~channel, ~paramsHash);
-
-  let cache = getQueryCache();
-
+let useQuerySignal = (~cache, ~key, ~channel) => {
   let signal =
     React.useMemo1(() => QueryCache.getSignal(~t=cache, ~key), [|key|]);
 
@@ -135,6 +121,25 @@ let useQuery =
   );
 
   Tilia.React.useTilia();
+  signal;
+};
+
+// Main useQuery hook - JS version (client-side)
+[@platform js]
+let useQuery =
+    (
+      type p,
+      type r,
+      module Q: QueryModule with type params = p and type row = r,
+      params: p,
+      (),
+    ) => {
+  let channel = Q.channel(params);
+  let paramsHash = Q.paramsHash(params);
+  let key = makeKey(~channel, ~paramsHash);
+
+  let cache = getQueryCache();
+  let signal = useQuerySignal(~cache, ~key, ~channel);
   let currentResult = signal->Tilia.Core.lift;
 
   switch (currentResult) {
@@ -260,6 +265,28 @@ let useQuery =
 };
 
 // Helper to check if query is loading
+[@platform js]
+let useIsQueryLoading =
+    (
+      type p,
+      type r,
+      module Q: QueryModule with type params = p and type row = r,
+      params: p,
+    ) => {
+  let channel = Q.channel(params);
+  let paramsHash = Q.paramsHash(params);
+  let key = makeKey(~channel, ~paramsHash);
+
+  let cache = getQueryCache();
+  let signal = useQuerySignal(~cache, ~key, ~channel);
+  switch (signal->Tilia.Core.lift) {
+  | Loading => true
+  | Loaded(_)
+  | Error(_) => false
+  };
+};
+
+[@platform native]
 let useIsQueryLoading =
     (
       type p,
