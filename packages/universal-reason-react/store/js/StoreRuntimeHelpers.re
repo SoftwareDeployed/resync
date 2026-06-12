@@ -59,3 +59,6 @@ let getPrunableAckedActionIds = (~confirmedTimestamp, ~records) => {
      )
   ->Js.Array.map(~f=(record: StoreActionLedger.t) => record.id);
 };
+
+let shouldApplyScopeGeneration = (~startedGeneration, ~currentGeneration) =>
+  startedGeneration == currentGeneration;

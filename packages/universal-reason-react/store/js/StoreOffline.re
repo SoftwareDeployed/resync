@@ -837,6 +837,8 @@ module Synced = {
     let suppressPublishRef: ref(bool) = ref(false);
     let replayInProgressRef: ref(bool) = ref(false);
     let replayNeededRef: ref(bool) = ref(false);
+    let scopeGenerationRef: ref(int) = ref(0);
+    let pendingScopeReadyRef: ref(option((int, unit => unit))) = ref(None);
 
     /* Initialize the SyncController that owns connection state, timers,
        listeners, and queued dispatch behavior. */
@@ -862,6 +864,34 @@ module Synced = {
 
     /* Emit through the controller for stable snapshot and queued dispatch */
     let emitEvent = (event: store_event) => Controller.emit(event);
+
+    let clearPendingScopeReady = scopeGeneration =>
+      switch (pendingScopeReadyRef.contents) {
+      | Some((pendingGeneration, _)) when pendingGeneration == scopeGeneration =>
+        pendingScopeReadyRef := None
+      | _ => ()
+      };
+
+    let resolvePendingScopeReady = () =>
+      switch (pendingScopeReadyRef.contents) {
+      | Some((_, resolveReady)) =>
+        pendingScopeReadyRef := None;
+        resolveReady();
+      | None => ()
+      };
+
+    let nextScopeGeneration = () => {
+      resolvePendingScopeReady();
+      let nextGeneration = scopeGenerationRef.contents + 1;
+      scopeGenerationRef := nextGeneration;
+      nextGeneration;
+    };
+
+    let isCurrentScopeGeneration = scopeGeneration =>
+      StoreRuntimeHelpers.shouldApplyScopeGeneration(
+        ~startedGeneration=scopeGeneration,
+        ~currentGeneration=scopeGenerationRef.contents,
+      );
 
     [@platform js]
     let notifyStreamingChanged = () => {
@@ -1445,13 +1475,18 @@ module Synced = {
       };
     };
 
-    let startSubscription = (state): Js.Promise.t(unit) =>
+    let startSubscription = (~scopeGeneration, state): Js.Promise.t(unit) =>
       switch (Schema.subscriptionOfState(state)) {
       | Some(subscription) =>
         StoreRuntimeLifecycle.markConnectionWaiting(lifecycle);
         Controller.disposeConnectionHandle();
         Js.Promise.make((~resolve, ~reject as _) => {
           let resolveUnit = v => resolve(. v);
+          let resolveScopeReady = () => {
+            clearPendingScopeReady(scopeGeneration);
+            resolveUnit(());
+          };
+          pendingScopeReadyRef := Some((scopeGeneration, resolveScopeReady));
           let multiplexed =
             RealtimeClientMultiplexed.Multiplexed.make(
               ~eventUrl=Schema.eventUrl,
@@ -1462,31 +1497,51 @@ module Synced = {
               ~channel=Schema.encodeSubscription(subscription),
               ~updatedAt=Schema.timestampOfState(state),
               ~onOpen=() => {
-                StoreRuntimeLifecycle.markConnectionOpen(lifecycle);
-                let lifecycleEvent =
-                  if (Controller.getHasOpened()) {
-                    StoreEvents.Reconnect;
-                  } else {
-                    Controller.setHasOpened(true);
-                    StoreEvents.Open;
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  StoreRuntimeLifecycle.markConnectionOpen(lifecycle);
+                  let lifecycleEvent =
+                    if (Controller.getHasOpened()) {
+                      StoreEvents.Reconnect;
+                    } else {
+                      Controller.setHasOpened(true);
+                      StoreEvents.Open;
+                    };
+                  /* Lifecycle events originate from the store-owned sync runtime instead
+                     of demo code so reconnect/open ordering stays centralized. */
+                  emitEvent(lifecycleEvent);
+                  switch (Schema.onOpen) {
+                  | Some(onOpen) => onOpen(~dispatch=safeDispatch)
+                  | None => ()
                   };
-                /* Lifecycle events originate from the store-owned sync runtime instead
-                   of demo code so reconnect/open ordering stays centralized. */
-                emitEvent(lifecycleEvent);
-                switch (Schema.onOpen) {
-                | Some(onOpen) => onOpen(~dispatch=safeDispatch)
-                | None => ()
+                  resumePendingActions();
                 };
-                resumePendingActions();
-                resolveUnit(());
+                resolveScopeReady();
               },
-              ~onClose=() => emitEvent(StoreEvents.Close),
-              ~onPatch=handlePatch,
-              ~onSnapshot=handleSnapshot,
+              ~onClose=() =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  emitEvent(StoreEvents.Close);
+                },
+              ~onPatch=(~payload, ~timestamp) =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  handlePatch(~payload, ~timestamp);
+                },
+              ~onSnapshot=snapshotJson =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  handleSnapshot(snapshotJson);
+                },
               ~onAck=handleAck,
-              ~onCustom=handleCustom,
-              ~onMedia=handleMedia,
-              ~onError=handleConnectionError,
+              ~onCustom=payload =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  handleCustom(payload);
+                },
+              ~onMedia=payload =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  handleMedia(payload);
+                },
+              ~onError=message =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  handleConnectionError(message);
+                },
               multiplexed,
             );
           Controller.setConnectionHandle(Some(multiplexed));
@@ -1502,6 +1557,7 @@ module Synced = {
       };
 
     let handleScopeChange = (~actions: StoreSource.actions(state), nextState: state): Js.Promise.t(unit) => {
+      let scopeGeneration = nextScopeGeneration();
       Controller.disposeConnectionHandle();
       cacheGetState(
         ~scopeKey=Schema.scopeKeyOfState(nextState),
@@ -1509,22 +1565,26 @@ module Synced = {
       )
       |> Js.Promise.then_(
            (persistedState: option(StoreCache.state_record(state))) => {
-             let persisted =
-               switch (persistedState) {
-               | Some(record) => Some(record.state)
-               | None => None
-               };
-             let baseState =
-               StoreRuntimeHelpers.selectHydrationBase(
-                 ~initialState=nextState,
-                 ~persistedState=persisted,
-                 ~timestampOfState=Schema.timestampOfState,
-               );
-             confirmedStateRef := baseState;
-             persistConfirmedState(~broadcast=false, baseState);
-             actions.set(baseState);
-             refreshOptimisticState();
-             startSubscription(baseState);
+             if (!isCurrentScopeGeneration(scopeGeneration)) {
+               Js.Promise.resolve();
+             } else {
+               let persisted =
+                 switch (persistedState) {
+                 | Some(record) => Some(record.state)
+                 | None => None
+                 };
+               let baseState =
+                 StoreRuntimeHelpers.selectHydrationBase(
+                   ~initialState=nextState,
+                   ~persistedState=persisted,
+                   ~timestampOfState=Schema.timestampOfState,
+                 );
+               confirmedStateRef := baseState;
+               persistConfirmedState(~broadcast=false, baseState);
+               actions.set(baseState);
+               refreshOptimisticState();
+               startSubscription(~scopeGeneration, baseState);
+             };
            },
          );
     };
@@ -1543,9 +1603,12 @@ module Synced = {
           | None => Schema.emptyState
           }
         | Server => Schema.emptyState
-        };
+      };
 
       confirmedStateRef := initialState;
+      resolvePendingScopeReady();
+      scopeGenerationRef := 0;
+      pendingScopeReadyRef := None;
       Controller.setHasOpened(false);
       Controller.disposeConnectionHandle();
 

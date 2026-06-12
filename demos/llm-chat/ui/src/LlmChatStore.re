@@ -214,20 +214,24 @@ let reduce = (~state: state, ~action: action) => {
       });
     };
   | SendPrompt(payload) =>
-    withTimestamp({
-      ...state,
-      messages:
-        state.messages->Js.Array.concat(
-          ~other=[|
-            {
-              Model.Message.id: payload.message_id,
-              thread_id: payload.thread_id,
-              role: "user",
-              content: payload.prompt,
-            },
-          |],
-        ),
-    })
+    switch (state.current_thread_id) {
+    | Some(current_thread_id) when current_thread_id == payload.thread_id =>
+      withTimestamp({
+        ...state,
+        messages:
+          state.messages->Js.Array.concat(
+            ~other=[|
+              {
+                Model.Message.id: payload.message_id,
+                thread_id: payload.thread_id,
+                role: "user",
+                content: payload.prompt,
+              },
+            |],
+          ),
+      })
+    | _ => state
+    }
   | SelectThread(thread_id) =>
     switch (state.current_thread_id) {
     | Some(id) when id == thread_id => state

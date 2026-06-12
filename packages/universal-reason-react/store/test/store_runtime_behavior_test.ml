@@ -306,6 +306,20 @@ let suite =
             "Malformed acked action ids should not block pruning"
             [| "legacy-action-id" |]
             result);
+      Alcotest.test_case "shouldApplyScopeGeneration rejects stale scope work" `Quick
+        (fun () ->
+          Alcotest.(check bool)
+            "current generation should apply"
+            true
+            (StoreRuntimeHelpers.shouldApplyScopeGeneration
+               ~startedGeneration:3
+               ~currentGeneration:3);
+          Alcotest.(check bool)
+            "stale generation should not apply"
+            false
+            (StoreRuntimeHelpers.shouldApplyScopeGeneration
+               ~startedGeneration:2
+               ~currentGeneration:3));
       Alcotest.test_case "rejectStaleCacheResult returns true when cached is older" `Quick
         (fun () ->
           let current = (100, 2000.0) in
