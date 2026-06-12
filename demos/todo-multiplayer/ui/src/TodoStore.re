@@ -29,7 +29,13 @@ let reduce = (~state: state, ~action: action) => {
   | RealtimeSchema.MutationActions.AddTodo(p) =>
     wt({...state, todos: upsert(state.todos, {id: p.id, list_id: p.list_id, text: p.text, completed: false, created_at: Js.Date.now()})})
   | RealtimeSchema.MutationActions.SetTodoCompleted(p) =>
-    wt({...state, todos: Js.Array.map(~f=(item: Model.Todo.t) => item.id == p.id ? {...item, completed: p.completed} : item, state.todos)})
+    wt({
+      ...state,
+      todos:
+        state.todos->Js.Array.map(~f=(item: Model.Todo.t) =>
+          item.id == p.id ? {...item, completed: p.completed} : item
+        ),
+    })
   | RealtimeSchema.MutationActions.RemoveTodo(id) =>
     wt({...state, todos: StoreCrud.remove(~getId=(i: Model.Todo.t) => i.id, state.todos, id)})
   | RealtimeSchema.MutationActions.CreateList(id) =>
