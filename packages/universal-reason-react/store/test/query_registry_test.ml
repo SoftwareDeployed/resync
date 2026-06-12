@@ -24,6 +24,16 @@ let register_cached_string_query key =
     ~execute:(fun _db -> Lwt.return (Ok (`List [])))
     ~decode:decode_string
 
+let find_loaded_result key results =
+  let found = ref None in
+  for i = 0 to Array.length results - 1 do
+    let result = results.(i) in
+    if result.QueryRegistryTypes.key = key then found := Some result
+  done;
+  match !found with
+  | Some result -> result
+  | None -> Alcotest.fail ("expected loaded result for " ^ key)
+
 let setup_previous_registry () =
   QueryRegistry.setup_registry_from_json
     ~jsonStr:{|{"previous":{"_tag":"Loaded","data":"ok"}}|}
@@ -66,13 +76,13 @@ let suite =
           with_sync_registry_reset (fun () ->
               QueryRegistry.setup_registry_from_json
                 ~jsonStr:
-                  {|{"thread:one":{"_tag":"Loaded","data":["row-one","row-two"]},"thread:error":{"_tag":"Error","message":"bad"}}|};
+                  {|{"thread:one":{"_tag":"Loaded","data":["row-one","row-two"]},"other:two":{"_tag":"Loaded","data":["other-row"]},"thread:error":{"_tag":"Error","message":"bad"}}|};
               let results = QueryRegistry.get_loaded_results () in
               Alcotest.(check int)
                 "loaded result count"
-                1
+                2
                 (Array.length results);
-              let result = results.(0) in
+              let result = find_loaded_result "thread:one" results in
               Alcotest.(check string) "key" "thread:one" result.QueryRegistryTypes.key;
               Alcotest.(check string) "channel" "thread" result.QueryRegistryTypes.channel;
               Alcotest.(check int)
@@ -86,7 +96,16 @@ let suite =
               Alcotest.(check string)
                 "second row"
                 "row-two"
-                (decode_string result.QueryRegistryTypes.rows.(1))));
+                (decode_string result.QueryRegistryTypes.rows.(1));
+              let otherResult = find_loaded_result "other:two" results in
+              Alcotest.(check string)
+                "other channel"
+                "other"
+                otherResult.QueryRegistryTypes.channel;
+              Alcotest.(check string)
+                "other row"
+                "other-row"
+                (decode_string otherResult.QueryRegistryTypes.rows.(0))));
       Alcotest.test_case "register_query returns cached rows as an array" `Quick
         (fun () ->
           with_sync_registry_reset (fun () ->

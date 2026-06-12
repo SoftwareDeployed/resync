@@ -233,23 +233,48 @@ let get_loaded_results = (): array(loaded_query_result) => {
   switch (current_registry()) {
   | None => [||]
   | Some(registry) =>
-    let loadedResults = ref([||]);
-    Hashtbl.iter(
-      (key, value) =>
-        switch (decodeRows(~decode=StoreJson.ofSafe, value)) {
-        | Some(rows) =>
-          let result: loaded_query_result = {
-            key,
-            channel: channelOfKey(key),
-            rows,
-          };
-          loadedResults :=
-            loadedResults.contents->Js.Array.concat(~other=[|result|]);
-        | None => ()
-        },
-      registry.results,
+    let decoded =
+      Hashtbl.to_seq(registry.results)
+      |> Array.of_seq
+      |> Js.Array.map(~f=((key, value)) =>
+          switch (decodeRows(~decode=StoreJson.ofSafe, value)) {
+          | Some(rows) =>
+            Some({
+              key,
+              channel: channelOfKey(key),
+              rows,
+            }: loaded_query_result)
+          | None => None
+          },
+        );
+    let count = ref(0);
+    let first = ref(None);
+    decoded->Js.Array.forEach(~f=result =>
+      switch (result) {
+      | Some(loadedResult) =>
+        switch (first.contents) {
+        | None => first := Some(loadedResult)
+        | Some(_) => ()
+        };
+        count := count.contents + 1;
+      | None => ()
+      }
     );
-    loadedResults.contents;
+    switch (first.contents) {
+    | None => [||]
+    | Some(firstResult) =>
+      let results = Array.make(count.contents, firstResult);
+      let index = ref(0);
+      decoded->Js.Array.forEach(~f=result =>
+        switch (result) {
+        | Some(loadedResult) =>
+          results[index.contents] = loadedResult;
+          index := index.contents + 1;
+        | None => ()
+        }
+      );
+      results;
+    };
   };
 };
 
