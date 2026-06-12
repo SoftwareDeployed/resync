@@ -246,14 +246,16 @@ let useQuery =
       | Some(json) =>
         try(
           {
+            let storeJson = StoreJson.ofSafe(json);
             let rows_ =
-              switch ((json : Yojson.Safe.t)) {
-              | `List(rowJsons) =>
-                let rowJsons = rowJsons |> Array.of_list;
-                rowJsons->Js.Array.map(~f=rowJson =>
-                  Q.decodeRow(StoreJson.ofSafe(rowJson))
-                );
-              | _ => [|Q.decodeRow(StoreJson.ofSafe(json))|]
+              switch (
+                StoreJson.tryDecode(
+                  Melange_json.Of_json.array(rowJson => Q.decodeRow(rowJson)),
+                  storeJson,
+                )
+              ) {
+              | Some(rows) => rows
+              | None => [|Q.decodeRow(storeJson)|]
               };
             Loaded(rows_)
           }

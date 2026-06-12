@@ -9,9 +9,20 @@ module DecodeFailingQuery = struct
   let execute _db _params = Lwt.return (Ok [||])
 end
 
-let with_sync_registry json f =
+module StringQuery = struct
+  type params = string
+  type row = string
+
+  let channel _params = "strings"
+  let paramsHash params = params
+  let decodeRow = Melange_json.Primitives.string_of_json
+  let row_to_json = Melange_json.Primitives.string_to_json
+  let execute _db _params = Lwt.return (Ok [||])
+end
+
+let with_sync_registry ?(key = "decode-failing:params") json f =
   let results = Hashtbl.create 1 in
-  Hashtbl.replace results "decode-failing:params" json;
+  Hashtbl.replace results key json;
   let registry =
     {
       QueryRegistry.state = QueryRegistry.Rendered;
@@ -27,6 +38,22 @@ let with_sync_registry json f =
 let suite =
   ( "UseQuery",
     [
+      Alcotest.test_case "server cached array rows decode to Loaded" `Quick
+        (fun () ->
+          with_sync_registry
+            ~key:"strings:params"
+            (`List [ `String "first"; `String "second" ])
+            (fun () ->
+              let result = UseQuery.useQuery (module StringQuery) "params" () in
+              match result.data with
+              | QueryRegistryTypes.Loaded rows ->
+                  Alcotest.(check int) "row count" 2 (Array.length rows);
+                  Alcotest.(check string) "first row" "first" rows.(0);
+                  Alcotest.(check string) "second row" "second" rows.(1)
+              | QueryRegistryTypes.Loading ->
+                  Alcotest.fail "cached array rows should not stay Loading"
+              | QueryRegistryTypes.Error msg ->
+                  Alcotest.fail ("cached array rows should decode: " ^ msg)));
       Alcotest.test_case "server decode failure returns Error" `Quick (fun () ->
           with_sync_registry (`String "not a row") (fun () ->
               let result =
