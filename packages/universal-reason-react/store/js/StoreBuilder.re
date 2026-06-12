@@ -155,19 +155,19 @@ module Bootstrap = {
   let withHydratedProviders = (~stores, ~children) => {
     hydrateQueryCache();
     let hydratedStores = stores->Js.Array.map(~f=((_, hydrate, _)) => hydrate());
-    let element =
-      stores
-      ->Js.Array.reducei(
-          ~init=children,
-          ~f=(acc, (_, _, provider), index) => {
-            let store = hydratedStores[index];
-            React.createElement(
-              provider,
-              {"value": store, "children": acc},
-            );
-          },
+    let elementRef = ref(children);
+    let storeCount = Array.length(stores);
+    for (offset in 0 to storeCount - 1) {
+      let index = storeCount - 1 - offset;
+      let (_, _, provider) = stores[index];
+      let store = hydratedStores[index];
+      elementRef :=
+        React.createElement(
+          provider,
+          {"value": store, "children": elementRef.contents},
         );
-    {stores: hydratedStores, element};
+    };
+    {stores: hydratedStores, element: elementRef.contents};
   };
 
   let withCreatedProvider = (~createStore, ~provider, ~initialState, ~children) => {

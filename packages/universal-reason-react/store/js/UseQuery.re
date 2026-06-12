@@ -111,8 +111,15 @@ let hydrateCache = (_jsonStr: string) => ();
 type element;
 
 [@platform js]
-[@mel.scope "document"]
-external getElementById: string => Js.Nullable.t(element) = "getElementById";
+type domDocument;
+
+[@platform js]
+[@mel.scope "globalThis"]
+external globalDocument: Js.Nullable.t(domDocument) = "document";
+
+[@platform js]
+[@mel.send]
+external getElementById: (domDocument, string) => Js.Nullable.t(element) = "getElementById";
 
 [@platform js]
 [@mel.get]
@@ -122,10 +129,14 @@ external textContent: element => Js.Nullable.t(string) = "textContent";
 [@platform js]
 let hydrateCacheFromDom = (~cacheId="query-cache", ()) => {
   let cache = getQueryCache();
-  switch (cacheId->getElementById->Js.Nullable.toOption) {
-  | Some(element) =>
-    switch (element->textContent->Js.Nullable.toOption) {
-    | Some(text) => QueryCache.hydrate(~t=cache, ~jsonStr=text)
+  switch (globalDocument->Js.Nullable.toOption) {
+  | Some(document) =>
+    switch (document->getElementById(cacheId)->Js.Nullable.toOption) {
+    | Some(element) =>
+      switch (element->textContent->Js.Nullable.toOption) {
+      | Some(text) => QueryCache.hydrate(~t=cache, ~jsonStr=text)
+      | None => ()
+      }
     | None => ()
     }
   | None => ()

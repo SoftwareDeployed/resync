@@ -4,6 +4,17 @@ open QueryRegistryTypes;
 [@mel.get]
 external signalValue: Tilia.Core.signal('a) => 'a = "value";
 
+type providerProps('store) = Js.t({. value: 'store, children: React.element});
+[@mel.get]
+external elementProps: React.element => providerProps('store) = "props";
+[@mel.get]
+external propValue: providerProps('store) => 'store = "value";
+[@mel.get]
+external propChildren: providerProps('store) => React.element = "children";
+
+let testProvider = (props: providerProps(string)): React.element =>
+  propChildren(props);
+
 /* Cleanup helper for browser and server resources */
 let cleanup = (~browser, ~server) => {
   let closeBrowser =
@@ -252,6 +263,25 @@ let testLoadedResultListenersAreCacheScoped = () => {
   );
 };
 
+let testHydratedProvidersPreserveOuterToInnerOrder = () => {
+  let result =
+    StoreBuilder.Bootstrap.withHydratedProviders(
+      ~stores=[|
+        ("outer", () => "outer", testProvider),
+        ("inner", () => "inner", testProvider),
+      |],
+      ~children=React.null,
+    );
+  let outerProps = elementProps(result.element);
+  let innerProps = elementProps(propChildren(outerProps));
+
+  BrowserTestUtils.assertTrue(
+    ~label="Bootstrap.withHydratedProviders preserves provider order",
+    propValue(outerProps) == "outer" && propValue(innerProps) == "inner",
+    ~details="withHydratedProviders wrapped the last provider as the outermost provider",
+  );
+};
+
 let testWhenIdleWaitsForPendingActionSettlement = () => {
   let lifecycle = StoreRuntimeLifecycle.make(~storeName="browser-lifecycle", ());
   let _ = StoreRuntimeLifecycle.trackBoot(lifecycle, resolve());
@@ -295,6 +325,7 @@ let run = () => {
   |> then_(_ => testQueryCacheHydrateUpdatesExistingSignalWithError())
   |> then_(_ => testNoQueryConfigDoesNotRegisterLoadedResultListener())
   |> then_(_ => testLoadedResultListenersAreCacheScoped())
+  |> then_(_ => testHydratedProvidersPreserveOuterToInnerOrder())
   |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
   |> then_(_ => StoreTestServer.start())
   |> then_(server => {
