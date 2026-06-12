@@ -64,23 +64,40 @@ let actionJson = (~kind, ~fill) => {
   });
 };
 
+let sendPromptPayloadJson = (payload: send_prompt_payload) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "thread_id", payload.thread_id);
+    StoreJson.Object.setString(dict, "prompt", payload.prompt);
+  });
+
+let createThreadPayloadJson = (payload: create_thread_payload) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "id", payload.id);
+    StoreJson.Object.setString(dict, "title", payload.title);
+  });
+
+let threadIdPayloadJson = (thread_id: string) =>
+  StoreJson.Object.make(dict =>
+    StoreJson.Object.setString(dict, "thread_id", thread_id)
+  );
+
+let actionJsonWithPayload = (~kind, ~payload) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    StoreJson.Object.setJson(dict, "payload", payload);
+  });
+
 let action_to_json = action =>
   switch (action) {
   | SendPrompt(payload) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="send_prompt",
-      ~fill=dict => {
-        StoreJson.Object.setString(dict, "thread_id", payload.thread_id);
-        StoreJson.Object.setString(dict, "prompt", payload.prompt);
-      },
+      ~payload=sendPromptPayloadJson(payload),
     )
   | CreateNewThread(payload) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="create_new_thread",
-      ~fill=dict => {
-        StoreJson.Object.setString(dict, "id", payload.id);
-        StoreJson.Object.setString(dict, "title", payload.title);
-      },
+      ~payload=createThreadPayloadJson(payload),
     )
   | SetInput(text) =>
     actionJson(
@@ -93,14 +110,14 @@ let action_to_json = action =>
       ~fill=dict => StoreJson.Object.setString(dict, "message", message),
     )
   | SelectThread(thread_id) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="select_thread",
-      ~fill=dict => StoreJson.Object.setString(dict, "thread_id", thread_id),
+      ~payload=threadIdPayloadJson(thread_id),
     )
   | DeleteThread(thread_id) =>
-    actionJson(
+    actionJsonWithPayload(
       ~kind="delete_thread",
-      ~fill=dict => StoreJson.Object.setString(dict, "thread_id", thread_id),
+      ~payload=threadIdPayloadJson(thread_id),
     )
   };
 
@@ -147,11 +164,7 @@ module Mutations = {
     type params = send_prompt_payload;
     type nonrec action = action;
     let name = "send_prompt";
-    let encodeParams = (params: params) =>
-      StoreJson.Object.make(dict => {
-        StoreJson.Object.setString(dict, "thread_id", params.thread_id);
-        StoreJson.Object.setString(dict, "prompt", params.prompt);
-      });
+    let encodeParams = sendPromptPayloadJson;
     let toAction = params => SendPrompt(params);
   };
 
@@ -159,11 +172,7 @@ module Mutations = {
     type params = create_thread_payload;
     type nonrec action = action;
     let name = "create_new_thread";
-    let encodeParams = (params: params) =>
-      StoreJson.Object.make(dict => {
-        StoreJson.Object.setString(dict, "id", params.id);
-        StoreJson.Object.setString(dict, "title", params.title);
-      });
+    let encodeParams = createThreadPayloadJson;
     let toAction = params => CreateNewThread(params);
   };
 
@@ -171,10 +180,7 @@ module Mutations = {
     type params = string;
     type nonrec action = action;
     let name = "select_thread";
-    let encodeParams = (thread_id: string) =>
-      StoreJson.Object.make(dict =>
-        StoreJson.Object.setString(dict, "thread_id", thread_id)
-      );
+    let encodeParams = threadIdPayloadJson;
     let toAction = thread_id => SelectThread(thread_id);
   };
 
@@ -182,10 +188,7 @@ module Mutations = {
     type params = string;
     type nonrec action = action;
     let name = "delete_thread";
-    let encodeParams = (thread_id: string) =>
-      StoreJson.Object.make(dict =>
-        StoreJson.Object.setString(dict, "thread_id", thread_id)
-      );
+    let encodeParams = threadIdPayloadJson;
     let toAction = thread_id => DeleteThread(thread_id);
   };
 };
