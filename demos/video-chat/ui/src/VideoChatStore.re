@@ -898,20 +898,6 @@ let leaveRoomPayload = (store: t): option(peer_left_payload) =>
   | None => None
   };
 
-let sendVideoFrame = (store: t, frame_data: string) =>
-  switch (store.state.room) {
-  | Some(room) when store.state.is_joined =>
-    MediaTransport.sendMediaFrame(room.id, store.state.client_id, frame_data)
-  | _ => ()
-  };
-
-let sendAudioChunk = (store: t, chunk_data: string) =>
-  switch (store.state.room) {
-  | Some(room) when store.state.is_joined =>
-    MediaTransport.sendMediaAudio(room.id, store.state.client_id, chunk_data)
-  | _ => ()
-  };
-
 let toggleVideoPayload = (store: t, enabled: bool): option(toggle_video_payload) =>
   switch (store.state.room) {
   | Some(room) =>
