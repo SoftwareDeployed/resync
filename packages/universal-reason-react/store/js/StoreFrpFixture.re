@@ -127,24 +127,6 @@ module CrudFixture = {
     state: state,
   };
 
-  let emptyState = {
-    items: [||],
-    updated_at: 0.0,
-  };
-
-  let reduce = (~state: state, ~action: action) => {
-    switch (action) {
-    | AddRow(row) => {
-        items: Crud.upsert(~getId=(r: row) => r.id, state.items, row),
-        updated_at: Js.Date.now(),
-      }
-    | RemoveRow(id) => {
-        items: Crud.remove(~getId=(r: row) => r.id, state.items, id),
-        updated_at: Js.Date.now(),
-      }
-    };
-  };
-
   let setTimestamp = (~state: state, ~timestamp: float) => {
     ...state,
     updated_at: timestamp,
@@ -202,26 +184,38 @@ module CrudFixture = {
     };
   };
 
-  let makeStore =
-      (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-    state:
-      StoreBuilder.current(
-        ~derive?,
-        ~client=state,
-        ~server=() => state,
-        (),
-      ),
-  };
-
   let schema: StoreFrp.Crud.schema(state, action, store) = {
     storeName: "fixture.crud",
-    emptyState,
-    reduce,
+    emptyState: {
+      items: [||],
+      updated_at: 0.0,
+    },
+    reduce:
+      (~state: state, ~action: action) =>
+        switch (action) {
+        | AddRow(row) => {
+            items: Crud.upsert(~getId=(r: row) => r.id, state.items, row),
+            updated_at: Js.Date.now(),
+          }
+        | RemoveRow(id) => {
+            items: Crud.remove(~getId=(r: row) => r.id, state.items, id),
+            updated_at: Js.Date.now(),
+          }
+        },
     state_of_json,
     state_to_json,
     action_of_json,
     action_to_json,
-    makeStore,
+    makeStore:
+      (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+        state:
+          StoreBuilder.current(
+            ~derive?,
+            ~client=state,
+            ~server=() => state,
+            (),
+          ),
+      },
     scopeKeyOfState: _state => "default",
     timestampOfState: state => state.updated_at,
     setTimestamp,
