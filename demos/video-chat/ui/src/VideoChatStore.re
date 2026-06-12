@@ -408,7 +408,7 @@ let upsertPeer = (peers: array(Model.Peer.t), peer: Model.Peer.t) => {
     peers->Js.Array.filter(~f=(existing: Model.Peer.t) =>
       existing.id != peer.id
     );
-  Js.Array.concat(~other=[|peer|], remaining);
+  remaining->Js.Array.concat(~other=[|peer|]);
 };
 
 let removePeer = (peers: array(Model.Peer.t), peer_id: string) =>
@@ -612,7 +612,7 @@ let reduce = (~state: state, ~action: action) => {
       } else {
         {
           ...state,
-          messages: Js.Array.concat(~other=[|message|], state.messages),
+          messages: state.messages->Js.Array.concat(~other=[|message|]),
           updated_at,
         };
       };
@@ -629,7 +629,7 @@ let reduce = (~state: state, ~action: action) => {
     } else {
       {
         ...state,
-        messages: Js.Array.concat(~other=[|message|], state.messages),
+        messages: state.messages->Js.Array.concat(~other=[|message|]),
         updated_at,
       };
     }
