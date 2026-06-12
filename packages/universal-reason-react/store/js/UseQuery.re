@@ -91,10 +91,7 @@ let initCache = (~eventUrl as _: string, ~baseUrl as _: string) => ();
 
 // Serialize cache for SSR hydration (native only - server serializes)
 [@platform native]
-let serializeCache = (): string => {
-  let cache = getQueryCache();
-  QueryCache.serialize(cache);
-};
+let serializeCache = (): string => QueryRegistry.serialize_for_cache();
 
 [@platform js]
 let serializeCache = (): string => "{}";

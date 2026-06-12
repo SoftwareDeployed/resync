@@ -69,6 +69,32 @@ let with_empty_registry f =
   QueryRegistry.setup_registry_from_json ~jsonStr:"{}";
   Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
 
+let loaded_data json key =
+  match Yojson.Safe.from_string json with
+  | `Assoc entries -> (
+      match List.assoc_opt key entries with
+      | Some (`Assoc fields) -> (
+          match List.assoc_opt "data" fields with
+          | Some data -> data
+          | None -> Alcotest.fail ("missing data for " ^ key))
+      | Some _ -> Alcotest.fail ("expected loaded object for " ^ key)
+      | None -> Alcotest.fail ("missing cache key " ^ key))
+  | _ -> Alcotest.fail "serialized cache should be a JSON object"
+
+let with_active_registry_result key json f =
+  let results = Hashtbl.create 8 in
+  Hashtbl.replace results key json;
+  let registry =
+    {
+      QueryRegistry.state = QueryRegistry.Executed;
+      queries = Hashtbl.create 8;
+      results;
+      errors = Hashtbl.create 8;
+      db_connection = None;
+    }
+  in
+  Lwt.with_value QueryRegistry.registry_key (Some registry) f
+
 let suite =
   ( "UseQuery",
     [
@@ -117,6 +143,17 @@ let suite =
                   Alcotest.fail "cached query error should not stay Loading"
               | QueryRegistryTypes.Loaded _ ->
                   Alcotest.fail "cached query error should not return Loaded"));
+      Alcotest.test_case "server serializeCache uses query registry results" `Quick
+        (fun () ->
+          with_active_registry_result
+            string_query_key
+            (`List [ `String "serialized" ])
+            (fun () ->
+              let serialized = UseQuery.serializeCache () in
+              Alcotest.(check string)
+                "serialized loaded rows"
+                {|["serialized"]|}
+                (Yojson.Safe.to_string (loaded_data serialized string_query_key))));
       Alcotest.test_case "server skipped query is idle and unregistered" `Quick
         (fun () ->
           with_empty_registry (fun () ->
