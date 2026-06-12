@@ -58,102 +58,97 @@ let project = (config: config): projections => {
    FRP CRUD store API
    ============================================================================ */
 
-module StoreDef = StoreFrp.Crud.Build({
-  type state = config;
-  type nonrec action = action;
-  type nonrec store = store;
-  type nonrec subscription = subscription;
-  type row = Model.InventoryItem.t;
+let setConfigTimestamp = (~state: config, ~timestamp: float) =>
+  switch (state.premise) {
+  | Some(premise) => {
+      ...state,
+      premise: Some({...premise, updated_at: Js.Date.fromFloat(timestamp)}),
+    }
+  | None => state
+  };
 
-  let setConfigTimestamp = (~state: config, ~timestamp: float) =>
-    switch (state.premise) {
-    | Some(premise) => {
-        ...state,
-        premise: Some({...premise, updated_at: Js.Date.fromFloat(timestamp)}),
-      }
-    | None => state
-    };
-
-  let config =
-    StoreFrp.Crud.make(
-      ~transport={
-        subscriptionOfState:
-          (config: config): option(subscription) =>
-            switch (config.premise) {
-            | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
-            | None => None
-            },
-        encodeSubscription: RealtimeSubscription.encode,
-        eventUrl: Constants.event_url,
-        baseUrl: Constants.base_url,
-      },
-      ~strategy=
-        StoreBuilder.Sync.crud(
-          ~table=RealtimeSchema.table_name("inventory"),
-          ~decodeRow=Model.InventoryItem.of_json,
-          ~getId=(item: Model.InventoryItem.t) => item.id,
-          ~getItems=(config: config) => config.inventory,
-          ~setItems=(config: config, items) => {...config, inventory: items},
-        ),
-      {
-        storeName: "ecommerce.inventory",
-        emptyState: Model.SSR.empty,
-        reduce: (~state: config, ~action: action) => {
-          let _ = action;
-          state;
-        },
-        state_of_json: config_of_json,
-        state_to_json: config_to_json,
-        action_of_json,
-        action_to_json,
-        makeStore:
-          (~state: config, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-          {
-            premise_id:
-              StoreBuilder.projected(
-                ~derive?,
-                ~project,
-                ~serverSource=state,
-                ~fromStore=store => store.config,
-                ~select=projections => projections.premise_id,
-                (),
-              ),
-            config: state,
-            period_list:
-              StoreBuilder.projected(
-                ~derive?,
-                ~project,
-                ~serverSource=state,
-                ~fromStore=store => store.config,
-                ~select=projections => projections.period_list,
-                (),
-              ),
-            unit:
-              StoreBuilder.current(
-                ~derive?,
-                ~client=PeriodList.Unit.value,
-                ~server=() => PeriodList.Unit.defaultState,
-                (),
-              ),
-          };
-        },
-        scopeKeyOfState:
-          (config: config) =>
-            switch (config.premise) {
-            | Some(premise) => premise.id
-            | None => "default"
-            },
-        timestampOfState:
-          (config: config) =>
-            switch (config.premise) {
-            | Some(premise) => premise.updated_at->Js.Date.getTime
-            | None => 0.0
-            },
-        setTimestamp: setConfigTimestamp,
-        stateElementId: Some("initial-store"),
-      },
-    );
-});
+module StoreDef =
+  (val StoreBuilder.buildCrud(
+    StoreBuilder.make()
+    |> StoreBuilder.withSchema({
+         emptyState: Model.SSR.empty,
+         reduce: (~state: config, ~action: action) => {
+           let _ = action;
+           state;
+         },
+         makeStore:
+           (~state: config, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+           {
+             premise_id:
+               StoreBuilder.projected(
+                 ~derive?,
+                 ~project,
+                 ~serverSource=state,
+                 ~fromStore=store => store.config,
+                 ~select=projections => projections.premise_id,
+                 (),
+               ),
+             config: state,
+             period_list:
+               StoreBuilder.projected(
+                 ~derive?,
+                 ~project,
+                 ~serverSource=state,
+                 ~fromStore=store => store.config,
+                 ~select=projections => projections.period_list,
+                 (),
+               ),
+             unit:
+               StoreBuilder.current(
+                 ~derive?,
+                 ~client=PeriodList.Unit.value,
+                 ~server=() => PeriodList.Unit.defaultState,
+                 (),
+               ),
+           };
+         },
+       })
+    |> StoreBuilder.withJson(
+         ~state_of_json=config_of_json,
+         ~state_to_json=config_to_json,
+         ~action_of_json,
+         ~action_to_json,
+       )
+    |> StoreBuilder.withSyncCrud(
+         ~transport={
+           subscriptionOfState:
+             (config: config): option(subscription) =>
+               switch (config.premise) {
+               | Some(premise) => Some(RealtimeSubscription.premise(premise.id))
+               | None => None
+               },
+           encodeSubscription: RealtimeSubscription.encode,
+           eventUrl: Constants.event_url,
+           baseUrl: Constants.base_url,
+         },
+         ~setTimestamp=setConfigTimestamp,
+         ~storeName="ecommerce.inventory",
+         ~scopeKeyOfState=
+           (config: config) =>
+             switch (config.premise) {
+             | Some(premise) => premise.id
+             | None => "default"
+             },
+         ~timestampOfState=
+           (config: config) =>
+             switch (config.premise) {
+             | Some(premise) => premise.updated_at->Js.Date.getTime
+             | None => 0.0
+             },
+         ~table=RealtimeSchema.table_name("inventory"),
+         ~decodeRow=Model.InventoryItem.of_json,
+         ~getId=(item: Model.InventoryItem.t) => item.id,
+         ~getItems=(config: config) => config.inventory,
+         ~setItems=(config: config, items) => {...config, inventory: items},
+         ~stateElementId=Some("initial-store"),
+         (),
+       )
+  ));
 
 /* Re-export with the same interface as before */
 include (
