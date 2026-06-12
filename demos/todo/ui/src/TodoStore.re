@@ -127,10 +127,9 @@ let reduce = (~state: state, ~action: action) => {
     }
   | SetTodoCompleted(input) => {
       todos:
-        Js.Array.map(
+        state.todos->Js.Array.map(
           ~f=(item: todo) =>
             item.id == input.id ? {...item, completed: input.completed} : item,
-          state.todos,
         ),
       updated_at,
     }

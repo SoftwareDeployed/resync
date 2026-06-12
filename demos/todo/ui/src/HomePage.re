@@ -78,8 +78,7 @@ let make =
                {React.string("No todos yet. Add one above!")}
              </div>;
             } else {
-             store.state.todos
-             |> Js.Array.map(~f=(todo: TodoStore.todo) => {
+             store.state.todos->Js.Array.map(~f=(todo: TodoStore.todo) => {
                  let textClassName =
                    "todo-text " ++ (todo.completed ? "completed" : "");
 
