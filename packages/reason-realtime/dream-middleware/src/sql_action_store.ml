@@ -25,6 +25,12 @@ let return_error_after_rollback db error =
   let* () = best_effort_rollback db in
   Lwt.return (Error error)
 
+let exec_unit (module Db : Caqti_lwt.CONNECTION) sql =
+  let query =
+    Caqti_request.Infix.(T.unit ->. T.unit) sql
+  in
+  Db.exec query ()
+
 let is_safe_identifier_suffix value =
   String.length value > 0
   &&
@@ -111,18 +117,68 @@ let check (module Db : Caqti_lwt.CONNECTION) storage ~mutation_name ~action_id =
   | Ok (Some ("failed", None)) -> Lwt.return (Ok (`Already_failed ""))
   | Ok (Some (_, _)) -> Lwt.return (Ok `New)
 
-let record_status (module Db : Caqti_lwt.CONNECTION) storage ~mutation_name ~action_id ~status ~error_message =
+let claim_action (module Db : Caqti_lwt.CONNECTION) storage ~mutation_name ~action_id =
+  match storage with
+  | Per_mutation_table table ->
+      Caqti_request.Infix.(
+        T.string ->? T.(t2 string (option string))
+      )
+        (Printf.sprintf
+           "INSERT INTO %s (action_id, status, error_message) VALUES ($1, 'ok', NULL) ON CONFLICT (action_id) DO NOTHING RETURNING status, error_message"
+           table)
+      |> fun query ->
+      let* result = Db.find_opt query action_id in
+      Lwt.return
+        (match result with
+         | Ok (Some _) -> Ok `Claimed
+         | Ok None -> Ok `Duplicate
+         | Error err -> Error err)
+  | Generic_table ->
+      Caqti_request.Infix.(
+        T.(t2 string string) ->? T.(t2 string (option string))
+      )
+        "INSERT INTO _resync_actions (action_id, mutation_name, status, error_message) VALUES ($1, $2, 'ok', NULL) ON CONFLICT (action_id) DO NOTHING RETURNING status, error_message"
+      |> fun query ->
+      let* result = Db.find_opt query (action_id, mutation_name) in
+      Lwt.return
+        (match result with
+         | Ok (Some _) -> Ok `Claimed
+         | Ok None -> Ok `Duplicate
+         | Error err -> Error err)
+
+let update_status (module Db : Caqti_lwt.CONNECTION) storage ~mutation_name ~action_id ~status ~error_message =
   match storage with
   | Per_mutation_table table ->
       Caqti_request.Infix.(
         T.(t3 string string (option string)) ->. T.unit
-      ) (Printf.sprintf "INSERT INTO %s (action_id, status, error_message) VALUES ($1, $2, $3)" table)
+      )
+        (Printf.sprintf
+           "UPDATE %s SET status = $2, error_message = $3, processed_at = NOW() WHERE action_id = $1"
+           table)
       |> fun query -> Db.exec query (action_id, status, error_message)
   | Generic_table ->
       Caqti_request.Infix.(
         T.(t4 string string string (option string)) ->. T.unit
-      ) "INSERT INTO _resync_actions (action_id, mutation_name, status, error_message) VALUES ($1, $2, $3, $4)"
+      )
+        "UPDATE _resync_actions SET status = $3, error_message = $4, processed_at = NOW() WHERE action_id = $1 AND mutation_name = $2"
       |> fun query -> Db.exec query (action_id, mutation_name, status, error_message)
+
+let record_failure_status (module Db : Caqti_lwt.CONNECTION) storage ~mutation_name ~action_id ~error_message =
+  match storage with
+  | Per_mutation_table table ->
+      Caqti_request.Infix.(
+        T.(t2 string (option string)) ->. T.unit
+      )
+        (Printf.sprintf
+           "INSERT INTO %s (action_id, status, error_message) VALUES ($1, 'failed', $2) ON CONFLICT (action_id) DO UPDATE SET status = CASE WHEN %s.status = 'ok' THEN %s.status ELSE EXCLUDED.status END, error_message = CASE WHEN %s.status = 'ok' THEN %s.error_message ELSE EXCLUDED.error_message END, processed_at = CASE WHEN %s.status = 'ok' THEN %s.processed_at ELSE NOW() END"
+           table table table table table table table)
+      |> fun query -> Db.exec query (action_id, error_message)
+  | Generic_table ->
+      Caqti_request.Infix.(
+        T.(t3 string string (option string)) ->. T.unit
+      )
+        "INSERT INTO _resync_actions (action_id, mutation_name, status, error_message) VALUES ($1, $2, 'failed', $3) ON CONFLICT (action_id) DO UPDATE SET status = CASE WHEN _resync_actions.status = 'ok' THEN _resync_actions.status ELSE EXCLUDED.status END, error_message = CASE WHEN _resync_actions.status = 'ok' THEN _resync_actions.error_message ELSE EXCLUDED.error_message END, processed_at = CASE WHEN _resync_actions.status = 'ok' THEN _resync_actions.processed_at ELSE NOW() END"
+      |> fun query -> Db.exec query (action_id, mutation_name, error_message)
 
 let record_failed (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id ~msg =
   let truncated = truncate_msg msg in
@@ -132,7 +188,7 @@ let record_failed (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id ~
   match storage with
   | Ok storage ->
     let* result =
-      record_status db_module storage ~mutation_name ~action_id ~status:"failed" ~error_message:(Some truncated)
+      record_failure_status db_module storage ~mutation_name ~action_id ~error_message:(Some truncated)
     in
     (match result with
      | Ok () -> Lwt.return (Ok ())
@@ -162,38 +218,73 @@ let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id call
       match start_result with
       | Error err -> ack_caqti_error err
       | Ok () ->
-        Lwt.catch
-          (fun () ->
-            let* result = callback () in
-            match result with
-            | Ack (Ok ()) ->
-              let* record_result = record_status db_module storage ~mutation_name ~action_id ~status:"ok" ~error_message:None in
-              (match record_result with
-               | Error err ->
-                 let* _ = Db.rollback () in
-                 Lwt.return (Ack (Error (Caqti_error.show err)))
-               | Ok () ->
-                 let* commit_result = Db.commit () in
-                 (match commit_result with
-                  | Error err -> ack_caqti_error err
-                  | Ok () -> Lwt.return (Ack (Ok ()))))
-            | Ack (Error msg) ->
-              let* rollback_result = Db.rollback () in
-              (match rollback_result with
-               | Error err -> Lwt.return (Ack (Error (Caqti_error.show err)))
-               | Ok () ->
-                 let* record_result = record_status db_module storage ~mutation_name ~action_id ~status:"failed" ~error_message:(Some (truncate_msg msg)) in
-                 (match record_result with
-                  | Error err -> ack_caqti_error err
-                  | Ok () -> Lwt.return (Ack (Error msg))))
-            | NoAck ->
-              let* rollback_result = Db.rollback () in
-              (match rollback_result with
-               | Error err -> Lwt.return (Ack (Error (Caqti_error.show err)))
-               | Ok () -> Lwt.return NoAck))
-          (fun exn ->
-            let* _ = Db.rollback () in
-            Lwt.fail exn)
+        (*
+          The action row is inserted before the callback so concurrent replays
+          of the same action id block on the primary key. The savepoint keeps
+          that claim intact even when user SQL aborts the mutation work.
+        *)
+        let* claim_result = claim_action db_module storage ~mutation_name ~action_id in
+        (match claim_result with
+         | Error err -> ack_caqti_error err
+         | Ok `Duplicate ->
+           let* replay_result = check db_module storage ~mutation_name ~action_id in
+           let* () = best_effort_rollback db_module in
+           (match replay_result with
+            | Error err -> ack_error (Caqti_error.show err)
+            | Ok `Already_ok -> Lwt.return (Ack (Ok ()))
+            | Ok (`Already_failed msg) -> Lwt.return (Ack (Error msg))
+            | Ok `New ->
+              ack_error
+                (Printf.sprintf
+                   "Action %s.%s was claimed by another transaction but no committed result was found"
+                   mutation_name action_id))
+         | Ok `Claimed ->
+           let finish_success () =
+             let* release_result = exec_unit db_module "RELEASE SAVEPOINT resync_action_handler" in
+             match release_result with
+             | Error err -> ack_caqti_error err
+             | Ok () ->
+               let* commit_result = Db.commit () in
+               (match commit_result with
+                | Error err -> ack_caqti_error err
+                | Ok () -> Lwt.return (Ack (Ok ())))
+           in
+           let finish_failure msg =
+             let truncated = truncate_msg msg in
+             let* rollback_result = exec_unit db_module "ROLLBACK TO SAVEPOINT resync_action_handler" in
+             match rollback_result with
+             | Error err -> ack_caqti_error err
+             | Ok () ->
+               let* record_result =
+                 update_status db_module storage ~mutation_name ~action_id
+                   ~status:"failed" ~error_message:(Some truncated)
+               in
+               (match record_result with
+                | Error err -> ack_caqti_error err
+                | Ok () ->
+                  let* commit_result = Db.commit () in
+                  (match commit_result with
+                   | Error err -> ack_caqti_error err
+                   | Ok () -> Lwt.return (Ack (Error msg))))
+           in
+           let finish_noack () =
+             let* rollback_result = Db.rollback () in
+             match rollback_result with
+             | Error err -> Lwt.return (Ack (Error (Caqti_error.show err)))
+             | Ok () -> Lwt.return NoAck
+           in
+           let* savepoint_result = exec_unit db_module "SAVEPOINT resync_action_handler" in
+           (match savepoint_result with
+            | Error err -> ack_caqti_error err
+            | Ok () ->
+              Lwt.catch
+                (fun () ->
+                  let* result = callback () in
+                  match result with
+                  | Ack (Ok ()) -> finish_success ()
+                  | Ack (Error msg) -> finish_failure msg
+                  | NoAck -> finish_noack ())
+                (fun exn -> finish_failure (Printexc.to_string exn))))
 
 include (struct
   let with_guard = with_guard

@@ -76,6 +76,23 @@ let suite =
             "failed rejects ack"
             false
             (StoreActionLedger.shouldAcceptAck StoreActionLedger.Failed));
+      Alcotest.test_case "only pending actions send on open" `Quick (fun () ->
+          Alcotest.(check bool)
+            "pending sends"
+            true
+            (StoreActionLedger.shouldSendOnOpen StoreActionLedger.Pending);
+          Alcotest.(check bool)
+            "syncing is already in flight"
+            false
+            (StoreActionLedger.shouldSendOnOpen StoreActionLedger.Syncing);
+          Alcotest.(check bool)
+            "acked does not send"
+            false
+            (StoreActionLedger.shouldSendOnOpen StoreActionLedger.Acked);
+          Alcotest.(check bool)
+            "failed does not send"
+            false
+            (StoreActionLedger.shouldSendOnOpen StoreActionLedger.Failed));
       Alcotest.test_case "action record has required fields" `Quick (fun () ->
           let record : StoreActionLedger.t =
             {

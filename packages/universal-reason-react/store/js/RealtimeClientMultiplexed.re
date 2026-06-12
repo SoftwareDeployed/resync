@@ -1,3 +1,30 @@
+type pending_mutation = (string, StoreJson.json);
+
+let hasPendingMutation = (~actionId: string, pending: array(pending_mutation)) =>
+  pending->Js.Array.some(~f=((pendingActionId, _action)) =>
+    pendingActionId == actionId
+  );
+
+let enqueuePendingMutation =
+    (
+      ~actionId: string,
+      ~action: StoreJson.json,
+      pending: array(pending_mutation),
+    )
+    : array(pending_mutation) =>
+  if (hasPendingMutation(~actionId, pending)) {
+    pending;
+  } else {
+    pending->Js.Array.concat(~other=[|(actionId, action)|]);
+  };
+
+let removePendingMutation =
+    (~actionId: string, pending: array(pending_mutation))
+    : array(pending_mutation) =>
+  pending->Js.Array.filter(~f=((pendingActionId, _action)) =>
+    pendingActionId != actionId
+  );
+
 [@platform js]
 module Multiplexed = {
   type websocket = WebSocket.t;
@@ -25,7 +52,7 @@ module Multiplexed = {
     disposedRef: ref(bool),
     idleCloseRef: ref(bool),
     reconnectTimeoutRef: ref(option(int)),
-    pendingMutationsRef: ref(array((string, StoreJson.json))),
+    pendingMutationsRef: ref(array(pending_mutation)),
   };
 
   type subscription_handle = { channel: string, id: int };
@@ -254,6 +281,8 @@ module Multiplexed = {
   and sendAction = (~actionId: string, ~action: StoreJson.json, t: t) => {
     switch (t.websocketRef.contents) {
     | Some(ws) when ws->WebSocket.readyState == 1 =>
+      t.pendingMutationsRef :=
+        removePendingMutation(~actionId, t.pendingMutationsRef.contents);
       ws->WebSocket.send_string(
         RealtimeClient.mutationFrameString(
           actionId,
@@ -264,8 +293,11 @@ module Multiplexed = {
     | _ =>
       /* Queue for after reconnect */
       t.pendingMutationsRef :=
-        t.pendingMutationsRef.contents
-        ->Js.Array.concat(~other=[|(actionId, action)|]);
+        enqueuePendingMutation(
+          ~actionId,
+          ~action,
+          t.pendingMutationsRef.contents,
+        );
       false;
     };
   };

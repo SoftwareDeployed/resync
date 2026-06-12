@@ -988,14 +988,14 @@ module Synced = {
             status: StoreActionLedger.statusToString(Pending),
           };
         };
-      let _ =
-        cachePutAction(cacheRecordOfLedger(nextRecord));
+      let persistPromise = cachePutAction(cacheRecordOfLedger(nextRecord));
       if (sent) {
         Controller.scheduleAckTimeout(
           nextRecord.id,
           () => handleAckTimeout(nextRecord.id),
         );
       };
+      persistPromise
     }
 
     and handleAckTimeout = actionId =>
@@ -1044,10 +1044,7 @@ module Synced = {
                     };
                     let nextLedger = ledgerRecordOfCache(nextRecord);
                     Js.Promise.then_(
-                      _ => {
-                        sendQueuedRecord(nextLedger);
-                        Js.Promise.resolve();
-                      },
+                      _ => sendQueuedRecord(nextLedger),
                       cachePutAction(nextRecord),
                     );
                   }
@@ -1087,18 +1084,23 @@ module Synced = {
             );
           let cacheRecord = cacheRecordOfLedger(ledgerRecord);
           actions.set(nextState);
+          let sendAndBroadcast = () =>
+            sendQueuedRecord(ledgerRecord)
+            |> Js.Promise.then_(_ => {
+                 broadcastOptimisticAction(ledgerRecord);
+                 Js.Promise.resolve();
+               })
+            |> Js.Promise.catch(_ => {
+                 broadcastOptimisticAction(ledgerRecord);
+                 Js.Promise.resolve();
+               });
           let _ =
             Js.Promise.then_(
-              _ => {
-                broadcastOptimisticAction(ledgerRecord);
-                sendQueuedRecord(ledgerRecord);
-                Js.Promise.resolve();
-              },
+              _ => sendAndBroadcast(),
               cachePutAction(cacheRecord),
             )
             |> Js.Promise.catch(_ => {
-                 sendQueuedRecord(ledgerRecord);
-                 Js.Promise.resolve();
+                 sendAndBroadcast()
                });
           Ok(actionId);
         };
@@ -1174,11 +1176,13 @@ module Synced = {
                 ->Js.Array.map(~f=ledgerRecordOfCache);
               StoreActionLedger.sortByEnqueuedAt(records)
               ->Js.Array.forEach(~f=(record: StoreActionLedger.t) =>
-                  switch (StoreActionLedger.statusOfString(record.status)) {
-                  | Pending
-                  | Syncing => sendQueuedRecord(record)
-                  | Acked
-                  | Failed => ()
+                  if (
+                    StoreActionLedger.shouldSendOnOpen(
+                      StoreActionLedger.statusOfString(record.status),
+                    )
+                  ) {
+                    let _ = sendQueuedRecord(record);
+                    ();
                   }
                 );
               Js.Promise.resolve();
@@ -1196,7 +1200,6 @@ module Synced = {
       Controller.clearAckTimeout(actionId);
       switch (status) {
       | "ok" =>
-        StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
         let _ = 
           Js.Promise.then_(
             cacheRecord => {
@@ -1259,7 +1262,6 @@ module Synced = {
           );
         ();
       | "error" =>
-        StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
         let message =
           switch (error) {
           | Some(message) => message

@@ -36,6 +36,14 @@ let isTerminalStatus = status =>
 
 let shouldAcceptAck = status => !isTerminalStatus(status);
 
+let shouldSendOnOpen = status =>
+  switch (status) {
+  | Pending => true
+  | Syncing
+  | Acked
+  | Failed => false
+  };
+
 let make = (~id: string, ~scopeKey: string, ~action: StoreJson.json, ()) : t => {
   id,
   scopeKey,
