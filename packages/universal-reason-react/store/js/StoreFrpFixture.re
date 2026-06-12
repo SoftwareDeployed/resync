@@ -15,18 +15,6 @@ module LocalFixture = {
     state: state,
   };
 
-  let emptyState = {
-    count: 0,
-    updated_at: 0.0,
-  };
-
-  let reduce = (~state: state, ~action: action) => {
-    switch (action) {
-    | Increment => {count: state.count + 1, updated_at: Js.Date.now()}
-    | Decrement => {count: state.count - 1, updated_at: Js.Date.now()}
-    };
-  };
-
   let state_of_json = json => {
     count: Json.requiredField(~json, ~fieldName="count", ~decode=int_of_json),
     updated_at:
@@ -55,26 +43,32 @@ module LocalFixture = {
     };
   };
 
-  let makeStore =
-      (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-    state:
-      StoreBuilder.current(
-        ~derive?,
-        ~client=state,
-        ~server=() => state,
-        (),
-      ),
-  };
-
   let schema: StoreFrp.Local.schema(state, action, store) = {
     storeName: "fixture.local",
-    emptyState,
-    reduce,
+    emptyState: {
+      count: 0,
+      updated_at: 0.0,
+    },
+    reduce:
+      (~state: state, ~action: action) =>
+        switch (action) {
+        | Increment => {count: state.count + 1, updated_at: Js.Date.now()}
+        | Decrement => {count: state.count - 1, updated_at: Js.Date.now()}
+        },
     state_of_json,
     state_to_json,
     action_of_json,
     action_to_json,
-    makeStore,
+    makeStore:
+      (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+        state:
+          StoreBuilder.current(
+            ~derive?,
+            ~client=state,
+            ~server=() => state,
+            (),
+          ),
+      },
     scopeKeyOfState: _state => "default",
     timestampOfState: state => state.updated_at,
     stateElementId: None,
