@@ -43,18 +43,21 @@ let make = (~storeName, ()) => {
   };
 };
 
-let notifySubscribers = (lifecycle: t) => {
+let currentStatus = (lifecycle: t): StoreRuntimeTypes.status => {
   let pendingActions = Array.length(lifecycle.pendingActionIdsRef^);
-  let currentStatus: StoreRuntimeTypes.status = {
+  {
     ready: lifecycle.readyResolveRef^ == None,
     idle: lifecycle.readyResolveRef^ == None && lifecycle.pendingPersistenceRef^ == 0 && pendingActions == 0,
     connection: lifecycle.connectionRef^,
     pendingPersistence: lifecycle.pendingPersistenceRef^,
     pendingActions,
   };
+};
+
+let notifySubscribers = (lifecycle: t) => {
   StoreEvents.Callback.emit(
     ~registry=lifecycle.statusListenersRef,
-    currentStatus,
+    currentStatus(lifecycle),
   );
 };
 
@@ -169,55 +172,59 @@ let whenReady = (~timeout: int=10000, lifecycle: t): Js.Promise.t(unit) =>
     ();
   });
 
-let rec whenIdle = (~timeout: int=10000, lifecycle: t): Js.Promise.t(unit) =>
+let whenIdle = (~timeout: int=10000, lifecycle: t): Js.Promise.t(unit) =>
   Js.Promise.make((~resolve, ~reject) => {
     let settled = ref(false);
-    let _ = whenReady(~timeout, lifecycle) |> Js.Promise.then_(() =>
-      lifecycle.persistenceQueueRef^ |> Js.Promise.then_(() =>
-        if (Array.length(lifecycle.pendingActionIdsRef^) > 0) {
-          Js.Promise.resolve() |> Js.Promise.then_(() => {
-            if (!settled.contents) {
-              let _ =
-                whenIdle(~timeout, lifecycle)
-                |> Js.Promise.then_(() => { settled := true; let unitValue = (); resolve(. unitValue); Js.Promise.resolve(); })
-                |> Js.Promise.catch(_err => { settled := true; reject(. Failure("StoreRuntimeLifecycle whenIdle failed")); Js.Promise.resolve(); });
-              ();
-            };
-            Js.Promise.resolve();
-          });
-        } else {
-          settled := true;
-          let unitValue = ();
-          resolve(. unitValue);
-          Js.Promise.resolve();
-        }
-      )
-    ) |> Js.Promise.catch(_err => {
-      settled := true;
-      reject(. Failure("StoreRuntimeLifecycle whenIdle failed"));
-      Js.Promise.resolve();
-    });
+    let listenerIdRef: ref(option(StoreEvents.listener_id)) = ref(None);
+    let cleanup = () =>
+      switch (listenerIdRef.contents) {
+      | Some(listenerId) =>
+        StoreEvents.Callback.unlisten(
+          ~registry=lifecycle.statusListenersRef,
+          listenerId,
+        );
+        listenerIdRef := None;
+      | None => ()
+      };
+    let resolveIfIdle = (status: StoreRuntimeTypes.status) => {
+      if (!settled.contents && status.idle) {
+        settled := true;
+        cleanup();
+        let unitValue = ();
+        resolve(. unitValue);
+      };
+    };
+    let _ =
+      whenReady(~timeout, lifecycle)
+      |> Js.Promise.then_(() => {
+           let listenerId =
+             StoreEvents.Callback.listen(
+               ~registry=lifecycle.statusListenersRef,
+               status => resolveIfIdle(status),
+             );
+           listenerIdRef := Some(listenerId);
+           resolveIfIdle(currentStatus(lifecycle));
+           Js.Promise.resolve();
+         })
+      |> Js.Promise.catch(_err => {
+           if (!settled.contents) {
+             settled := true;
+             cleanup();
+             reject(. Failure("StoreRuntimeLifecycle whenIdle failed"));
+           };
+           Js.Promise.resolve();
+         });
     setTimeout(() => {
       if (!settled.contents) {
         settled := true;
+        cleanup();
         reject(. Failure("StoreRuntimeLifecycle.whenIdle timed out after " ++ string_of_int(timeout) ++ "ms"));
       };
     }, timeout);
     ();
   });
 
-let status = (lifecycle: t): StoreRuntimeTypes.status => {
-  let ready = lifecycle.readyResolveRef^ == None;
-  let pendingActions = Array.length(lifecycle.pendingActionIdsRef^);
-  let idle = ready && lifecycle.pendingPersistenceRef^ == 0 && pendingActions == 0;
-  {
-    ready,
-    idle,
-    connection: lifecycle.connectionRef^,
-    pendingPersistence: lifecycle.pendingPersistenceRef^,
-    pendingActions,
-  };
-};
+let status = (lifecycle: t): StoreRuntimeTypes.status => currentStatus(lifecycle);
 
 let subscribeStatus =
     (lifecycle: t, callback: StoreRuntimeTypes.status => unit): StoreEvents.listener_id =>

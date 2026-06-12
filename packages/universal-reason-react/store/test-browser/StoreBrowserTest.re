@@ -180,6 +180,40 @@ let testQueryCacheHydrateUpdatesExistingSignalWithError = () => {
   );
 };
 
+let testWhenIdleWaitsForPendingActionSettlement = () => {
+  let lifecycle = StoreRuntimeLifecycle.make(~storeName="browser-lifecycle", ());
+  let _ = StoreRuntimeLifecycle.trackBoot(lifecycle, resolve());
+  StoreRuntimeLifecycle.markActionPending(lifecycle, "pending-action");
+
+  let resolved = ref(false);
+  let idlePromise =
+    StoreRuntimeLifecycle.whenIdle(~timeout=1000, lifecycle)
+    |> then_(_ => {
+         resolved := true;
+         resolve();
+       });
+
+  BrowserTestUtils.sleep(20)
+  |> then_(_ =>
+       BrowserTestUtils.assertTrue(
+         ~label="StoreRuntimeLifecycle.whenIdle waits for pending actions",
+         !resolved.contents,
+         ~details="whenIdle resolved before the pending action settled",
+       )
+     )
+  |> then_(_ => {
+       StoreRuntimeLifecycle.markActionSettled(lifecycle, "pending-action");
+       idlePromise;
+     })
+  |> then_(_ =>
+       BrowserTestUtils.assertTrue(
+         ~label="StoreRuntimeLifecycle.whenIdle resolves after pending actions settle",
+         resolved.contents,
+         ~details="whenIdle did not resolve after the pending action settled",
+       )
+     );
+};
+
 let run = () => {
   let launchOptions = Playwright.makeLaunchOptions(~headless=true, ());
   let browserRef = ref(None);
@@ -187,6 +221,7 @@ let run = () => {
 
   testQueryCacheHydrateUpdatesExistingSignal()
   |> then_(_ => testQueryCacheHydrateUpdatesExistingSignalWithError())
+  |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
   |> then_(_ => StoreTestServer.start())
   |> then_(server => {
        serverRef := Some(server);
