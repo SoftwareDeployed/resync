@@ -332,6 +332,7 @@ type synced_input('state, 'action, 'store, 'subscription, 'patch, 'stream_event,
   hooks: Sync.hooks('action),
   strategy: Sync.customStrategy('state, 'patch),
   streams: option(StoreRuntimeTypes.streamsConfig('patch, 'stream_event, 'streaming_state)),
+  emptyStreamingState: 'streaming_state,
 };
 
 type synced_crud_input('state, 'action, 'store, 'subscription, 'row) = {
@@ -456,25 +457,36 @@ let withSync = (
   _,
   builder: queriesBuilder('state, 'action, 'store),
 ): synced_input('state, 'action, 'store, 'subscription, 'patch, 'stream_event, 'streaming_state) => {
-  schema: builder.schema,
-  json: builder.json,
-  guardTree: builder.guardTree,
-  queries: builder.queries,
-  persistence: {
-    storeName,
-    scopeKeyOfState,
-    timestampOfState,
-    stateElementId,
-    setTimestamp,
-    transport,
-  },
-  hooks:
-    switch (hooks) {
-    | Some(h) => h
-    | None => Sync.defaultHooks()
+  let emptyStreamingState =
+    switch (streams) {
+    | Some({emptyStreamingState, _}) => emptyStreamingState
+    | None =>
+      Js.Exn.raiseError(
+        "StoreBuilder.withSync requires ~streams with an emptyStreamingState; use withSyncCrud for non-streaming CRUD stores.",
+      )
+    };
+  {
+    schema: builder.schema,
+    json: builder.json,
+    guardTree: builder.guardTree,
+    queries: builder.queries,
+    persistence: {
+      storeName,
+      scopeKeyOfState,
+      timestampOfState,
+      stateElementId,
+      setTimestamp,
+      transport,
     },
-  strategy: {decodePatch, updateOfPatch},
-  streams,
+    hooks:
+      switch (hooks) {
+      | Some(h) => h
+      | None => Sync.defaultHooks()
+      },
+    strategy: {decodePatch, updateOfPatch},
+    streams,
+    emptyStreamingState,
+  };
 };
 
 let withSyncCrud = (
@@ -638,6 +650,7 @@ module Runtime = {
     let decodePatch: StoreJson.json => option(patch);
     let updateOfPatch: (patch, state) => state;
     let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state));
+    let emptyStreamingState: streaming_state;
     let onActionError: string => unit;
     let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit);
     let onCustom: option(StoreJson.json => unit);
@@ -770,6 +783,7 @@ let buildSynced =
       let decodePatch = input.strategy.decodePatch;
       let updateOfPatch = input.strategy.updateOfPatch;
       let streams = input.streams;
+      let emptyStreamingState = input.emptyStreamingState;
       let onActionError =
         switch (hooks.onActionError) {
         | Some(callback) => callback
@@ -845,6 +859,7 @@ let buildCrud =
       let decodePatch = StorePatch.compose([crudPatch]);
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
       let streams = None;
+      let emptyStreamingState = ();
       let onActionError =
         switch (hooks.onActionError) {
         | Some(callback) => callback

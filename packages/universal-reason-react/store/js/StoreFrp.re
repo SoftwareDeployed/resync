@@ -154,6 +154,7 @@ module Synced = {
       let decodePatch = Input.config.strategy.decodePatch;
       let updateOfPatch = Input.config.strategy.updateOfPatch;
       let streams = None;
+      let emptyStreamingState = ();
       let onActionError =
         switch (hooks.onActionError) {
         | Some(cb) => cb
@@ -275,6 +276,7 @@ module Crud = {
       let decodePatch = Store.Patch.compose([crudPatch]);
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
       let streams = None;
+      let emptyStreamingState = ();
       let onActionError =
         switch (hooks.onActionError) {
         | Some(cb) => cb

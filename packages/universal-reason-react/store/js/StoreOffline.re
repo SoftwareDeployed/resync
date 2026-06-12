@@ -601,6 +601,7 @@ module Synced = {
     let decodePatch: StoreJson.json => option(patch);
     let updateOfPatch: (patch, state) => state;
     let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state));
+    let emptyStreamingState: streaming_state;
     /* Legacy compatibility hooks. New code should prefer Runtime.Events.listen and
        the narrow StoreEvents.store_event surface instead of raw per-frame callback
        registration. */
@@ -716,12 +717,7 @@ module Synced = {
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
     let queryResultListenerIdRef: ref(option(string)) = ref(None);
-    let streamingRef: ref(Schema.streaming_state) = ref(
-      switch (Schema.streams) {
-      | Some({emptyStreamingState, _}) => emptyStreamingState
-      | None => Obj.magic()
-      },
-    );
+    let streamingRef: ref(Schema.streaming_state) = ref(Schema.emptyStreamingState);
     let suppressPublishRef: ref(bool) = ref(false);
     let replayInProgressRef: ref(bool) = ref(false);
     let replayNeededRef: ref(bool) = ref(false);
