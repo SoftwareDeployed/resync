@@ -31,11 +31,6 @@ type store = {
 
 let storeName = "todo.simple";
 
-let emptyState: state = {
-  todos: [||],
-  updated_at: 0.0,
-};
-
 let nextTodoId = (todos: array(todo)) => {
   let rec loop = (index, current) =>
     if (index >= Array.length(todos)) {
@@ -118,28 +113,6 @@ let action_of_json = json => {
   };
 };
 
-let reduce = (~state: state, ~action: action) => {
-  let updated_at = Js.Date.now();
-  switch (action) {
-  | AddTodo(todo) => {
-      todos: StoreCrud.upsert(~getId=(item: todo) => item.id, state.todos, todo),
-      updated_at,
-    }
-  | SetTodoCompleted(input) => {
-      todos:
-        state.todos->Js.Array.map(
-          ~f=(item: todo) =>
-            item.id == input.id ? {...item, completed: input.completed} : item,
-        ),
-      updated_at,
-    }
-  | RemoveTodo(id) => {
-      todos: StoreCrud.remove(~getId=(item: todo) => item.id, state.todos, id),
-      updated_at,
-    }
-  };
-};
-
 /* ============================================================================
    Pipeline Builder API
    ============================================================================ */
@@ -148,8 +121,41 @@ module StoreDef =
   (val StoreBuilder.buildLocal(
     StoreBuilder.make()
     |> StoreBuilder.withSchema({
-         emptyState,
-         reduce,
+         emptyState: {
+           todos: [||],
+           updated_at: 0.0,
+         },
+         reduce: (~state: state, ~action: action) => {
+           let updated_at = Js.Date.now();
+           switch (action) {
+           | AddTodo(todo) => {
+               todos:
+                 StoreCrud.upsert(
+                   ~getId=(item: todo) => item.id,
+                   state.todos,
+                   todo,
+                 ),
+               updated_at,
+             }
+           | SetTodoCompleted(input) => {
+               todos:
+                 state.todos->Js.Array.map(
+                   ~f=(item: todo) =>
+                     item.id == input.id ? {...item, completed: input.completed} : item,
+                 ),
+               updated_at,
+             }
+           | RemoveTodo(id) => {
+               todos:
+                 StoreCrud.remove(
+                   ~getId=(item: todo) => item.id,
+                   state.todos,
+                   id,
+                 ),
+               updated_at,
+             }
+           };
+         },
          makeStore:
            (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
            state:
