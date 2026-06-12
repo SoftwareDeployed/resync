@@ -31,8 +31,12 @@ let make =
     ) => {
   // Client: Delegate to the store's dispatch function
   let dispatch = (params: p): Js.Promise.t(unit) => {
-    onDispatch(params);
-    Js.Promise.resolve(());
+    try({
+      onDispatch(params);
+      Js.Promise.resolve(());
+    }) {
+    | error => Js.Promise.reject(error)
+    };
   };
 
   {dispatch, mutate: dispatch, loading: false, error: None};
