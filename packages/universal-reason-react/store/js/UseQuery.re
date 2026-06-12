@@ -256,22 +256,6 @@ let useIsQueryLoading =
       module Q: QueryModule with type params = p and type row = r,
       params: p,
     ) => {
-  let channel = Q.channel(params);
-  let paramsHash = Q.paramsHash(params);
-  let key = makeKey(~channel, ~paramsHash);
-
-  switch%platform (Runtime.platform) {
-  | Client =>
-    let cache = getQueryCache();
-    switch (QueryCache.getResult(~t=cache, ~key)) {
-    | Some(Loading) => true
-    | Some(_) => false
-    | None => true
-    };
-  | Server =>
-    // On server, queries are executed synchronously in two-pass render
-    // After first pass, all queries should be loaded
-    let _ = key;
-    false;
-  };
+  let result = useQuery((module Q), params, ());
+  result.loading;
 };
