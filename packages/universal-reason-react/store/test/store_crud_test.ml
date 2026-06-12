@@ -36,12 +36,18 @@ let item_testable =
     (fun ppf { id; name } -> Format.fprintf ppf "{ id=%S; name=%S }" id name)
     Stdlib.( = )
 
+let pp_item ppf it = Format.fprintf ppf "{ id=%S; name=%S }" it.id it.name
+
+let pp_item_array ppf items =
+  Array.iteri
+    (fun index item ->
+      if index > 0 then Format.fprintf ppf "; ";
+      pp_item ppf item)
+    items
+
 let config_testable =
   Alcotest.testable
-    (fun ppf { items } -> Format.fprintf ppf "{ items=[|%a|] }"
-       (Format.pp_print_list ~pp_sep:(fun ppf () -> Format.fprintf ppf "; ")
-         (fun ppf it -> Format.fprintf ppf "{ id=%S; name=%S }" it.id it.name))
-       (Array.to_list items))
+    (fun ppf { items } -> Format.fprintf ppf "{ items=[|%a|] }" pp_item_array items)
     Stdlib.( = )
 
 let suite =
