@@ -25,6 +25,8 @@ let listenLoadedResults = (listener: loaded_result_listener): loaded_result_list
 let unlistenLoadedResults = (listenerId: loaded_result_listener_id) =>
   StoreEvents.Callback.unlisten(~registry=loadedResultListenersRef, listenerId);
 
+let loadedResultListenerCount = () => Array.length(loadedResultListenersRef.contents);
+
 let decodeJsonRows = (json: StoreJson.json): option(array(StoreJson.json)) =>
   StoreJson.tryDecode(
     Melange_json.Primitives.array_of_json(rowJson => rowJson),

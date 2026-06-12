@@ -127,24 +127,20 @@ module Local = {
   };
 
   let applyLoadedQueryResult = (
-    ~queriesConfig: option(queriesConfig('state)),
+    ~queriesConfig: queriesConfig('state),
     ~confirmedStateRef: ref('state),
     ~refreshOptimisticState: unit => unit,
     ~channel: string,
     ~rows: array(StoreJson.json),
     (),
   ) => {
-    switch (queriesConfig) {
-    | Some(config) =>
-      let newState = config.applyQueryResult(
-        ~state=confirmedStateRef.contents,
-        ~channel,
-        ~rows,
-      );
-      confirmedStateRef := newState;
-      refreshOptimisticState();
-    | None => ()
-    };
+    let newState = queriesConfig.applyQueryResult(
+      ~state=confirmedStateRef.contents,
+      ~channel,
+      ~rows,
+    );
+    confirmedStateRef := newState;
+    refreshOptimisticState();
   };
 
   let replaceLoadedQueryResultListener = (
@@ -158,18 +154,23 @@ module Local = {
     | Some(listenerId) => QueryCache.unlistenLoadedResults(listenerId)
     | None => ()
     };
-    listenerIdRef := Some(
-      QueryCache.listenLoadedResults(loadedResult =>
-        applyLoadedQueryResult(
-          ~queriesConfig,
-          ~confirmedStateRef,
-          ~refreshOptimisticState,
-          ~channel=loadedResult.QueryCache.channel,
-          ~rows=loadedResult.QueryCache.rows,
-          (),
+    listenerIdRef :=
+      switch (queriesConfig) {
+      | Some(config) =>
+        Some(
+          QueryCache.listenLoadedResults(loadedResult =>
+            applyLoadedQueryResult(
+              ~queriesConfig=config,
+              ~confirmedStateRef,
+              ~refreshOptimisticState,
+              ~channel=loadedResult.QueryCache.channel,
+              ~rows=loadedResult.QueryCache.rows,
+              (),
+            )
+          ),
         )
-      ),
-    );
+      | None => None
+      };
   };
 
   module type Schema = {

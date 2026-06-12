@@ -180,6 +180,43 @@ let testQueryCacheHydrateUpdatesExistingSignalWithError = () => {
   );
 };
 
+let testNoQueryConfigDoesNotRegisterLoadedResultListener = () => {
+  let beforeCount = QueryCache.loadedResultListenerCount();
+  let listenerIdRef = ref(None);
+  let confirmedStateRef = ref(0);
+  let refreshCount = ref(0);
+  let refreshOptimisticState = () => refreshCount := refreshCount.contents + 1;
+  let queriesConfig: StoreOffline.Local.queriesConfig(int) = {
+    applyQueryResult: (~state, ~channel as _, ~rows as _) => state + 1,
+  };
+
+  StoreOffline.Local.replaceLoadedQueryResultListener(
+    ~listenerIdRef,
+    ~queriesConfig=Some(queriesConfig),
+    ~confirmedStateRef,
+    ~refreshOptimisticState,
+    (),
+  );
+
+  let registeredCount = QueryCache.loadedResultListenerCount();
+  StoreOffline.Local.replaceLoadedQueryResultListener(
+    ~listenerIdRef,
+    ~queriesConfig=None,
+    ~confirmedStateRef,
+    ~refreshOptimisticState,
+    (),
+  );
+
+  BrowserTestUtils.assertTrue(
+    ~label="No query config avoids loaded-result listeners",
+    registeredCount == beforeCount + 1
+    && QueryCache.loadedResultListenerCount() == beforeCount
+    && listenerIdRef.contents == None
+    && refreshCount.contents == 0,
+    ~details="no-query stores kept a global loaded-result listener",
+  );
+};
+
 let testWhenIdleWaitsForPendingActionSettlement = () => {
   let lifecycle = StoreRuntimeLifecycle.make(~storeName="browser-lifecycle", ());
   let _ = StoreRuntimeLifecycle.trackBoot(lifecycle, resolve());
@@ -221,6 +258,7 @@ let run = () => {
 
   testQueryCacheHydrateUpdatesExistingSignal()
   |> then_(_ => testQueryCacheHydrateUpdatesExistingSignalWithError())
+  |> then_(_ => testNoQueryConfigDoesNotRegisterLoadedResultListener())
   |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
   |> then_(_ => StoreTestServer.start())
   |> then_(server => {
