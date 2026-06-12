@@ -90,19 +90,14 @@ let setTimestamp = (~state: state, ~timestamp: float) => {
   updated_at: timestamp,
 };
 
-let actionJson = (~kind, ~fill) => {
-  StoreJson.Object.make(dict => {
-    StoreJson.Object.setString(dict, "kind", kind);
-    StoreJson.Object.setJson(dict, "payload", StoreJson.Object.make(fill));
-  });
-};
-
-let actionJsonWithPayload = (~kind, ~payload) => {
+let actionJsonWithPayload = (~kind, ~payload) =>
   StoreJson.Object.make(dict => {
     StoreJson.Object.setString(dict, "kind", kind);
     StoreJson.Object.setJson(dict, "payload", payload);
   });
-};
+
+let actionJson = (~kind, ~fill) =>
+  actionJsonWithPayload(~kind, ~payload=StoreJson.Object.make(fill));
 
 let noopActionJson = () => actionJson(~kind="noop", ~fill=_dict => ());
 

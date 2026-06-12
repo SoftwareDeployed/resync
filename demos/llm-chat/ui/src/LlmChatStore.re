@@ -57,12 +57,14 @@ let timestampOfState = (state: state) => state.updated_at;
 let setTimestamp = (~state: state, ~timestamp: float) =>
   {...state, updated_at: timestamp};
 
-let actionJson = (~kind, ~fill) => {
+let actionJsonWithPayload = (~kind, ~payload) =>
   StoreJson.Object.make(dict => {
     StoreJson.Object.setString(dict, "kind", kind);
-    StoreJson.Object.setJson(dict, "payload", StoreJson.Object.make(fill));
+    StoreJson.Object.setJson(dict, "payload", payload);
   });
-};
+
+let actionJson = (~kind, ~fill) =>
+  actionJsonWithPayload(~kind, ~payload=StoreJson.Object.make(fill));
 
 let sendPromptPayloadJson = (payload: send_prompt_payload) =>
   StoreJson.Object.make(dict => {
@@ -80,12 +82,6 @@ let threadIdPayloadJson = (thread_id: string) =>
   StoreJson.Object.make(dict =>
     StoreJson.Object.setString(dict, "thread_id", thread_id)
   );
-
-let actionJsonWithPayload = (~kind, ~payload) =>
-  StoreJson.Object.make(dict => {
-    StoreJson.Object.setString(dict, "kind", kind);
-    StoreJson.Object.setJson(dict, "payload", payload);
-  });
 
 let action_to_json = action =>
   switch (action) {
