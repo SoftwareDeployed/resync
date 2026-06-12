@@ -22,33 +22,6 @@ let customAction_of_json = (~kind, ~payload as _payload) => switch (kind) {
   | _ => FailClientMutation
 };
 let upsert = (todos, item) => StoreCrud.upsert(~getId=(i: Model.Todo.t) => i.id, todos, item);
-let reduce = (~state: state, ~action: action) => {
-  let ts = Js.Date.now();
-  let wt = s => setTimestamp(~state=s, ~timestamp=ts);
-  switch (action) {
-  | RealtimeSchema.MutationActions.AddTodo(p) =>
-    wt({...state, todos: upsert(state.todos, {id: p.id, list_id: p.list_id, text: p.text, completed: false, created_at: Js.Date.now()})})
-  | RealtimeSchema.MutationActions.SetTodoCompleted(p) =>
-    wt({
-      ...state,
-      todos:
-        state.todos->Js.Array.map(~f=(item: Model.Todo.t) =>
-          item.id == p.id ? {...item, completed: p.completed} : item
-        ),
-    })
-  | RealtimeSchema.MutationActions.RemoveTodo(id) =>
-    wt({...state, todos: StoreCrud.remove(~getId=(i: Model.Todo.t) => i.id, state.todos, id)})
-  | RealtimeSchema.MutationActions.CreateList(id) =>
-    wt({...state, list: Some({id, name: "My Todo List", updated_at: ts})})
-  | RealtimeSchema.MutationActions.RenameList(p) =>
-    (switch (state.list) { | Some(_l) => wt({...state, list: Some({id: p.id, name: p.name, updated_at: ts})}) | None => state })
-  | RealtimeSchema.MutationActions.Custom(FailServerMutation) =>
-    (switch (state.list) {
-     | Some(l) => wt({...state, todos: upsert(state.todos, {id: "fail-server-test", list_id: l.id, text: "Server failure test todo", completed: false, created_at: Js.Date.now()})})
-     | None => state })
-  | RealtimeSchema.MutationActions.Custom(FailClientMutation) => state
-  };
-};
 [@platform js]
 let onActionError = message => Sonner.showError(message);
 [@platform native]
@@ -68,7 +41,34 @@ let applyQueryResult = (~state: state, ~channel: string, ~rows: array(StoreJson.
   };
 };
 module StoreDef = (val StoreBuilder.buildCrud(StoreBuilder.make()
-  |> StoreBuilder.withSchema({ emptyState, reduce,
+  |> StoreBuilder.withSchema({ emptyState,
+       reduce: (~state: state, ~action: action) => {
+         let ts = Js.Date.now();
+         let wt = s => setTimestamp(~state=s, ~timestamp=ts);
+         switch (action) {
+         | RealtimeSchema.MutationActions.AddTodo(p) =>
+           wt({...state, todos: upsert(state.todos, {id: p.id, list_id: p.list_id, text: p.text, completed: false, created_at: Js.Date.now()})})
+         | RealtimeSchema.MutationActions.SetTodoCompleted(p) =>
+           wt({
+             ...state,
+             todos:
+               state.todos->Js.Array.map(~f=(item: Model.Todo.t) =>
+                 item.id == p.id ? {...item, completed: p.completed} : item
+               ),
+           })
+         | RealtimeSchema.MutationActions.RemoveTodo(id) =>
+           wt({...state, todos: StoreCrud.remove(~getId=(i: Model.Todo.t) => i.id, state.todos, id)})
+         | RealtimeSchema.MutationActions.CreateList(id) =>
+           wt({...state, list: Some({id, name: "My Todo List", updated_at: ts})})
+         | RealtimeSchema.MutationActions.RenameList(p) =>
+           (switch (state.list) { | Some(_l) => wt({...state, list: Some({id: p.id, name: p.name, updated_at: ts})}) | None => state })
+         | RealtimeSchema.MutationActions.Custom(FailServerMutation) =>
+           (switch (state.list) {
+            | Some(l) => wt({...state, todos: upsert(state.todos, {id: "fail-server-test", list_id: l.id, text: "Server failure test todo", completed: false, created_at: Js.Date.now()})})
+            | None => state })
+         | RealtimeSchema.MutationActions.Custom(FailClientMutation) => state
+         };
+       },
        makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
           {
             list_id: StoreBuilder.derived(~derive?, ~client=store => switch (store.state.list) { | Some(list) => list.id | None => "" }, ~server=() => switch (state.list) { | Some(list) => list.id | None => "" }, ()),
