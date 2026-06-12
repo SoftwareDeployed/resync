@@ -94,26 +94,13 @@ let getServerState = (context: UniversalRouterDream.serverContext(Routes.serverS
                 // Execute all registered queries
                 let* () = QueryRegistry.execute_queries();
                 // Apply query results to state
-                let snapshot = QueryRegistry.get_results();
-                let updatedState = snapshot.queries->Js.Array.reduce(
-                  ~f=(state: TodoStore.state, key: QueryRegistry.query_key) => {
-                    switch (snapshot.results->Js.Dict.get(key)) {
-                    | None => state
-                    | Some(jsonRows) =>
-                      // Extract channel from key (format: "channel:paramsHash")
-                      let channel = switch (Js.String.split(~limit=2, key, ~sep=":")) {
-                      | [|ch, _|] => ch
-                      | [|ch|] => ch
-                      | _ => ""
-                      };
-                      // Parse rows: jsonRows is a Yojson list of row objects
-                      let rows = switch (jsonRows) {
-                      | `List(items) => items->Array.of_list
-                      | _ => [|jsonRows|]
-                      };
-                      TodoStore.applyQueryResult(~state, ~channel, ~rows);
-                    };
-                  },
+                let updatedState = QueryRegistry.get_loaded_results()->Js.Array.reduce(
+                  ~f=(state: TodoStore.state, result) =>
+                    TodoStore.applyQueryResult(
+                      ~state,
+                      ~channel=result.QueryRegistryTypes.channel,
+                      ~rows=result.QueryRegistryTypes.rows,
+                    ),
                   ~init=TodoStore.emptyState,
                 );
                 // Create store with query-populated state

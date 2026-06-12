@@ -61,6 +61,32 @@ let suite =
                 "missing data entry should be ignored"
                 false
                 (has_result "thread:missing")));
+      Alcotest.test_case "get_loaded_results returns decoded JSON row arrays" `Quick
+        (fun () ->
+          with_sync_registry_reset (fun () ->
+              QueryRegistry.setup_registry_from_json
+                ~jsonStr:
+                  {|{"thread:one":{"_tag":"Loaded","data":["row-one","row-two"]},"thread:error":{"_tag":"Error","message":"bad"}}|};
+              let results = QueryRegistry.get_loaded_results () in
+              Alcotest.(check int)
+                "loaded result count"
+                1
+                (Array.length results);
+              let result = results.(0) in
+              Alcotest.(check string) "key" "thread:one" result.QueryRegistryTypes.key;
+              Alcotest.(check string) "channel" "thread" result.QueryRegistryTypes.channel;
+              Alcotest.(check int)
+                "row count"
+                2
+                (Array.length result.QueryRegistryTypes.rows);
+              Alcotest.(check string)
+                "first row"
+                "row-one"
+                (decode_string result.QueryRegistryTypes.rows.(0));
+              Alcotest.(check string)
+                "second row"
+                "row-two"
+                (decode_string result.QueryRegistryTypes.rows.(1))));
       Alcotest.test_case "register_query returns cached rows as an array" `Quick
         (fun () ->
           with_sync_registry_reset (fun () ->

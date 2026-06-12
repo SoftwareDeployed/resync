@@ -25,8 +25,22 @@ type registry_snapshot = {
   results: Js.Dict.t(StoreJson.json),
 };
 
+type loaded_query_result = {
+  key: query_key,
+  channel: string,
+  rows: array(StoreJson.json),
+};
+
 let makeKey = (~channel: string, ~paramsHash: string): query_key => {
   channel ++ ":" ++ paramsHash;
+};
+
+let channelOfKey = (key: query_key): string => {
+  switch (Js.String.split(~limit=2, key, ~sep=":")) {
+  | [|channel, _|] => channel
+  | [|channel|] => channel
+  | _ => key
+  };
 };
 
 // Module type for query modules used by useQuery hook

@@ -240,6 +240,31 @@ let get_results = () => {
   };
 };
 
+[@platform native]
+let get_loaded_results = (): array(loaded_query_result) => {
+  switch (current_registry()) {
+  | None => [||]
+  | Some(registry) =>
+    let loadedResults = ref([||]);
+    Hashtbl.iter(
+      (key, value) =>
+        switch (decodeRows(~decode=StoreJson.ofSafe, value)) {
+        | Some(rows) =>
+          let result: loaded_query_result = {
+            key,
+            channel: channelOfKey(key),
+            rows,
+          };
+          loadedResults :=
+            loadedResults.contents->Js.Array.concat(~other=[|result|]);
+        | None => ()
+        },
+      registry.results,
+    );
+    loadedResults.contents;
+  };
+};
+
 // Serialize snapshot to JSON string for SSR
 [@platform native]
 let serialize_snapshot = (snapshot: registry_snapshot): string => {
@@ -380,6 +405,9 @@ let get_results = () => {
   queries: [||],
   results: Js.Dict.empty(),
 };
+
+[@platform js]
+let get_loaded_results = () => [||];
 
 [@platform js]
 let with_registry = (~db as _, ~f, ()) => f();

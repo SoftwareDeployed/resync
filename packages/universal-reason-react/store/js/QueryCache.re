@@ -12,14 +12,6 @@ type loaded_result_listener_id = StoreEvents.listener_id;
 
 let loadedResultListenersRef: StoreEvents.callback_registry(loaded_result) = ref([||]);
 
-let channelOfKey = (key: query_key): string => {
-  switch (Js.String.split(~limit=2, key, ~sep=":")) {
-  | [|channel, _|] => channel
-  | [|channel|] => channel
-  | _ => key
-  };
-};
-
 let notifyLoadedResult = (~channel: string, ~rows: array(StoreJson.json)) => {
   StoreEvents.Callback.emit(
     ~registry=loadedResultListenersRef,
