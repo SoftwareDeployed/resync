@@ -1,3 +1,21 @@
+let stateElementIdOrDefault = stateElementId =>
+  switch (stateElementId) {
+  | Some(id) => id
+  | None => "initial-store"
+  };
+
+let hooksOrDefault = hooks =>
+  switch (hooks) {
+  | Some(hooks) => hooks
+  | None => StoreBuilder.Sync.defaultHooks()
+  };
+
+let onActionErrorOrDefault = hooks =>
+  switch (hooks.StoreBuilder.Sync.onActionError) {
+  | Some(callback) => callback
+  | None => StoreBuilder.Sync.defaultOnActionError
+  };
+
 module Local = {
   type schema('state, 'action, 'store) = {
     storeName: string,
@@ -36,11 +54,7 @@ module Local = {
   };
 
   module Build = (Input: BuildInput) => {
-    let stateElementId =
-      switch (Input.config.schema.stateElementId) {
-      | Some(id) => id
-      | None => "initial-store"
-      };
+    let stateElementId = stateElementIdOrDefault(Input.config.schema.stateElementId);
 
     module Schema = {
       type state = Input.state;
@@ -114,17 +128,9 @@ module Synced = {
   };
 
   module Build = (Input: BuildInput) => {
-    let stateElementId =
-      switch (Input.config.schema.stateElementId) {
-      | Some(id) => id
-      | None => "initial-store"
-      };
+    let stateElementId = stateElementIdOrDefault(Input.config.schema.stateElementId);
 
-    let hooks =
-      switch (Input.config.hooks) {
-      | Some(h) => h
-      | None => StoreBuilder.Sync.defaultHooks()
-      };
+    let hooks = hooksOrDefault(Input.config.hooks);
 
     module Schema = {
       type state = Input.state;
@@ -155,11 +161,7 @@ module Synced = {
       let updateOfPatch = Input.config.strategy.updateOfPatch;
       let streams = None;
       let emptyStreamingState = ();
-      let onActionError =
-        switch (hooks.onActionError) {
-        | Some(cb) => cb
-        | None => StoreBuilder.Sync.defaultOnActionError
-        };
+      let onActionError = onActionErrorOrDefault(hooks);
       let onActionAck = hooks.onActionAck;
       let onCustom = hooks.onCustom;
       let onMedia = hooks.onMedia;
@@ -222,17 +224,9 @@ module Crud = {
   };
 
   module Build = (Input: BuildInput) => {
-    let stateElementId =
-      switch (Input.config.schema.stateElementId) {
-      | Some(id) => id
-      | None => "initial-store"
-      };
+    let stateElementId = stateElementIdOrDefault(Input.config.schema.stateElementId);
 
-    let hooks =
-      switch (Input.config.hooks) {
-      | Some(h) => h
-      | None => StoreBuilder.Sync.defaultHooks()
-      };
+    let hooks = hooksOrDefault(Input.config.hooks);
 
     let crudPatch =
       Store.Crud.decodePatch(
@@ -277,11 +271,7 @@ module Crud = {
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
       let streams = None;
       let emptyStreamingState = ();
-      let onActionError =
-        switch (hooks.onActionError) {
-        | Some(cb) => cb
-        | None => StoreBuilder.Sync.defaultOnActionError
-        };
+      let onActionError = onActionErrorOrDefault(hooks);
       let onActionAck = hooks.onActionAck;
       let onCustom = hooks.onCustom;
       let onMedia = hooks.onMedia;
