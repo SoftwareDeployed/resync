@@ -90,84 +90,84 @@ let setTimestamp = (~state: state, ~timestamp: float) => {
   updated_at: timestamp,
 };
 
+let actionJson = (~kind, ~fill) => {
+  let dict = Js.Dict.empty();
+  let payload = Js.Dict.empty();
+  dict->Js.Dict.set("kind", string_to_json(kind));
+  fill(payload);
+  dict->Js.Dict.set("payload", StoreJson.Dict.to_json(json => json, payload));
+  StoreJson.Dict.to_json(json => json, dict);
+};
+
+let noopActionJson = () => actionJson(~kind="noop", ~fill=_dict => ());
+
 let action_to_json = action =>
   switch (action) {
   | JoinRoom(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"join_room\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ "}}",
+    actionJson(
+      ~kind="join_room",
+      ~fill=dict => {
+        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
+        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
+      },
     )
   | LeaveRoom(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"leave_room\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ "}}",
+    actionJson(
+      ~kind="leave_room",
+      ~fill=dict => {
+        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
+        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
+      },
     )
   | PeerJoined(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"peer_joined\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ "}}",
+    actionJson(
+      ~kind="peer_joined",
+      ~fill=dict => dict->Js.Dict.set("room_id", string_to_json(payload.room_id)),
     )
   | PeerLeft(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"peer_left\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ "}}",
+    actionJson(
+      ~kind="peer_left",
+      ~fill=dict => {
+        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
+        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
+      },
     )
   | ToggleVideo(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"toggle_video\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ ",\"enabled\":"
-      ++ bool_to_json(payload.enabled)->Melange_json.to_string
-      ++ "}}",
+    actionJson(
+      ~kind="toggle_video",
+      ~fill=dict => {
+        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
+        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
+        dict->Js.Dict.set("enabled", bool_to_json(payload.enabled));
+      },
     )
   | ToggleAudio(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"toggle_audio\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ ",\"enabled\":"
-      ++ bool_to_json(payload.enabled)->Melange_json.to_string
-      ++ "}}",
+    actionJson(
+      ~kind="toggle_audio",
+      ~fill=dict => {
+        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
+        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
+        dict->Js.Dict.set("enabled", bool_to_json(payload.enabled));
+      },
     )
   | RemoteToggleVideo(_)
   | RemoteToggleAudio(_) =>
-    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+    noopActionJson()
   | SendMessage(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"send_message\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ ",\"text\":"
-      ++ string_to_json(payload.text)->Melange_json.to_string
-      ++ "}}",
+    actionJson(
+      ~kind="send_message",
+      ~fill=dict => {
+        dict->Js.Dict.set("room_id", string_to_json(payload.room_id));
+        dict->Js.Dict.set("peer_id", string_to_json(payload.peer_id));
+        dict->Js.Dict.set("text", string_to_json(payload.text));
+      },
     )
   | ReceiveMessage(_) =>
-    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+    noopActionJson()
   | ResetJoinStatus =>
-    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+    noopActionJson()
   | JoinRoomAcknowledged =>
-    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+    noopActionJson()
   };
 
 let action_of_json = json => {
