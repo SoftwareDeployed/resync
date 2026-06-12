@@ -203,12 +203,20 @@ let execSql = (sql: string) => {
 };
 
 let installMalformedSendPromptLedger = () => {
+  execSql("DROP TABLE IF EXISTS _resync_actions");
   execSql("DROP TABLE IF EXISTS _resync_actions_send_prompt");
   execSql("CREATE TABLE _resync_actions_send_prompt (action_id text PRIMARY KEY)");
 };
 
-let removeMalformedSendPromptLedger = () =>
+let removeMalformedSendPromptLedger = () => {
   execSql("DROP TABLE IF EXISTS _resync_actions_send_prompt");
+  execSql(
+    "CREATE TABLE IF NOT EXISTS _resync_actions (action_id uuid PRIMARY KEY, mutation_name text NOT NULL, status text NOT NULL CHECK (status IN ('ok', 'failed')), processed_at timestamptz NOT NULL DEFAULT NOW(), error_message text)",
+  );
+  execSql(
+    "CREATE INDEX IF NOT EXISTS idx_resync_actions_lookup ON _resync_actions(action_id, mutation_name)",
+  );
+};
 
 module MockOllama = {
   type t = {
