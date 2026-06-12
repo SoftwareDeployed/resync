@@ -19,7 +19,7 @@ let feed = (parser: t, chunk: string) : array(Melange_json.t) => {
         (acc, String.sub(raw, start, len - start))
       } else {
         let line = String.sub(raw, start, idx^ - start);
-        split(idx^ + 1, Js.Array.concat(~other=[|line|], acc));
+        split(idx^ + 1, acc->Js.Array.concat(~other=[|line|]));
       };
     };
   };
@@ -28,7 +28,7 @@ let feed = (parser: t, chunk: string) : array(Melange_json.t) => {
 
   let parsedLines =
     lines
-    |> Js.Array.map(~f=(line => {
+    ->Js.Array.map(~f=(line => {
          if (String.length(line) == 0) {
            None
          } else {
@@ -37,14 +37,14 @@ let feed = (parser: t, chunk: string) : array(Melange_json.t) => {
            }
          }
        }))
-    |> Js.Array.filter(~f=(opt => switch(opt) { | Some(_) => true | None => false }))
-    |> Js.Array.map(~f=(opt => switch(opt) { | Some(v) => v | None => assert(false) }));
+    ->Js.Array.filter(~f=(opt => switch(opt) { | Some(_) => true | None => false }))
+    ->Js.Array.map(~f=(opt => switch(opt) { | Some(v) => v | None => assert(false) }));
 
   if (String.length(remainder) > 0) {
     try({
       let json = Melange_json.of_string(remainder);
       parser.buffer := "";
-      Js.Array.concat(~other=[|json|], parsedLines);
+      parsedLines->Js.Array.concat(~other=[|json|]);
     }) {
     | _ => {
       parser.buffer := remainder;

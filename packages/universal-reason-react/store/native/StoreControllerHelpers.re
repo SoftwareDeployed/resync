@@ -39,7 +39,7 @@ let applyAckOrdering = (
 
  let queueDispatch = (state: emission_state, dispatch_fn: unit => unit) => {
    state.pending_dispatches =
-     Js.Array.concat(~other=[|dispatch_fn|], state.pending_dispatches);
+     state.pending_dispatches->Js.Array.concat(~other=[|dispatch_fn|]);
  };
 
  /* Core emit with queued dispatch ordering.

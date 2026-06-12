@@ -21,7 +21,7 @@ let writeEvent = (
             incr(idx);
           };
           let line = String.sub(data, start, idx^ - start);
-          let newAcc = Js.Array.concat(~other=[|line|], acc);
+          let newAcc = acc->Js.Array.concat(~other=[|line|]);
           if (idx^ < len && data.[idx^] == '\n') {
             split(idx^ + 1, newAcc);
           } else {
