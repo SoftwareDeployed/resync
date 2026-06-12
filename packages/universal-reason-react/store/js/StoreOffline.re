@@ -123,7 +123,6 @@ module Local = {
 
     /* Cache adapter instantiation based on Schema.cache selection */
     module IDBCache = StoreCache.IndexedDB(Schema);
-    module NoOpCache = StoreCache.NoCache(Schema);
 
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
