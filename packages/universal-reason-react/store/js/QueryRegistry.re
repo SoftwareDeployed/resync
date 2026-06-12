@@ -42,29 +42,6 @@ let registry_key: Lwt.key(query_registry) = Lwt.new_key();
 let sync_registry_ref: ref(option(query_registry)) = ref(None);
 
 [@platform native]
-let listOfArrayMap = (~f, items: array('a)): list('b) => {
-  let rec loop = (index, acc) =>
-    if (index < 0) {
-      acc;
-    } else {
-      loop(index - 1, [f(items[index]), ...acc]);
-    };
-
-  loop(Array.length(items) - 1, []);
-};
-
-[@platform native]
-let reverseList = (items: list('a)): list('a) => {
-  let rec loop = (remaining, acc) =>
-    switch (remaining) {
-    | [] => acc
-    | [item, ...rest] => loop(rest, [item, ...acc])
-    };
-
-  loop(items, []);
-};
-
-[@platform native]
 let lwtIterArraySerial = (items: array('a), f: 'a => Lwt.t(unit)) => {
   let rec loop = index =>
     if (index >= Array.length(items)) {
@@ -201,14 +178,17 @@ let get_results = () => {
 [@platform native]
 let serialize_snapshot = (snapshot: registry_snapshot): string => {
   let jsonObj = `Assoc([
-    ("queries", `List(listOfArrayMap(~f=q => `String(q), snapshot.queries))),
+    (
+      "queries",
+      `List(snapshot.queries->Js.Array.map(~f=q => `String(q))->StoreJson.listOfArray),
+    ),
     (
       "results",
       `Assoc(
-        listOfArrayMap(
-          ~f=((k, v)) => (k, StoreJson.toSafe(v)),
-          snapshot.results->Js.Dict.entries,
-        ),
+        snapshot.results
+        ->Js.Dict.entries
+        ->Js.Array.map(~f=((k, v)) => (k, StoreJson.toSafe(v)))
+        ->StoreJson.listOfArray,
       ),
     ),
   ]);
@@ -223,18 +203,15 @@ let serialize_for_cache = (): string => {
   | None => "{}"
   | Some(registry) =>
     let entries =
-      Hashtbl.fold(
-        (key, value, entries) => [
+      Hashtbl.to_seq(registry.results)
+      |> Array.of_seq
+      |> Js.Array.map(~f=((key, value)) =>
           (
             key,
             `Assoc([("_tag", `String("Loaded")), ("data", value)]),
-          ),
-          ...entries,
-        ],
-        registry.results,
-        [],
+          )
       );
-    Yojson.Safe.to_string(`Assoc(reverseList(entries)))
+    Yojson.Safe.to_string(`Assoc(StoreJson.listOfArray(entries)))
   };
 };
 
