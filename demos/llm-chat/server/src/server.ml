@@ -191,6 +191,124 @@ let message_rows_to_json rows =
        `Assoc [("role", `String row.role); ("content", `String row.content)])
     rows
 
+type upstream_stream_format = Unknown | Ndjson | Sse
+
+let contains_substring ~needle value =
+  try
+    ignore (Str.search_forward (Str.regexp_string needle) value 0);
+    true
+  with Not_found -> false
+
+let string_field name fields =
+  match List.assoc_opt name fields with
+  | Some (`String value) -> Some value
+  | _ -> None
+
+let assoc_field name fields =
+  match List.assoc_opt name fields with
+  | Some (`Assoc value) -> Some value
+  | _ -> None
+
+let list_field name fields =
+  match List.assoc_opt name fields with
+  | Some (`List value) -> value
+  | _ -> []
+
+let push_nonempty token tokens =
+  match token with
+  | Some text when String.length text > 0 -> tokens := text :: !tokens
+  | _ -> ()
+
+let token_of_message fields =
+  match assoc_field "message" fields with
+  | Some message_fields -> string_field "content" message_fields
+  | None -> None
+
+let token_of_delta fields =
+  match assoc_field "delta" fields with
+  | Some delta_fields -> (
+      match string_field "content" delta_fields with
+      | Some _ as token -> token
+      | None -> string_field "text" delta_fields)
+  | None -> string_field "delta" fields
+
+let token_of_choice = function
+  | `Assoc fields -> (
+      match token_of_delta fields with
+      | Some _ as token -> token
+      | None -> (
+          match assoc_field "message" fields with
+          | Some message_fields -> string_field "content" message_fields
+          | None -> string_field "text" fields))
+  | _ -> None
+
+let tokens_of_json = function
+  | `Assoc fields ->
+      let tokens = ref [] in
+      push_nonempty (token_of_message fields) tokens;
+      push_nonempty (token_of_delta fields) tokens;
+      List.iter
+        (fun choice -> push_nonempty (token_of_choice choice) tokens)
+        (list_field "choices" fields);
+      List.rev !tokens
+  | _ -> []
+
+let error_of_json = function
+  | `Assoc fields -> (
+      match List.assoc_opt "error" fields with
+      | Some (`String error) -> Some error
+      | Some (`Assoc error_fields) -> string_field "message" error_fields
+      | _ -> None)
+  | _ -> None
+
+let is_done_json = function
+  | `Assoc fields -> (
+      match List.assoc_opt "done" fields with
+      | Some (`Bool true) -> true
+      | _ -> false)
+  | _ -> false
+
+let json_of_sse_data data =
+  let trimmed = String.trim data in
+  if trimmed = "" || trimmed = "[DONE]" then
+    None
+  else
+    try Some (Yojson.Basic.from_string trimmed) with _ -> None
+
+let looks_like_sse_chunk chunk =
+  let trimmed = String.trim chunk in
+  String.starts_with ~prefix:"data:" trimmed
+  || String.starts_with ~prefix:"event:" trimmed
+  || contains_substring ~needle:"\ndata:" chunk
+  || contains_substring ~needle:"\nevent:" chunk
+
+let content_type_is_sse resp =
+  match Cohttp.Header.get (Cohttp.Response.headers resp) "content-type" with
+  | Some content_type ->
+      contains_substring ~needle:"text/event-stream" (String.lowercase_ascii content_type)
+  | None -> false
+
+let sse_jsons_of_chunk ~sse_buffer chunk =
+  SseParser.parseChunk chunk ~buffer:sse_buffer
+  |> Array.to_list
+  |> List.filter_map (fun event -> json_of_sse_data event.SseParser.data)
+  |> Array.of_list
+
+let collect_upstream_jsons ~format_ref ~ndjson_parser ~sse_buffer chunk =
+  match !format_ref with
+  | Sse ->
+      sse_jsons_of_chunk ~sse_buffer chunk
+  | Ndjson ->
+      NdjsonParser.feed ndjson_parser chunk
+  | Unknown ->
+      if looks_like_sse_chunk chunk then begin
+        format_ref := Sse;
+        sse_jsons_of_chunk ~sse_buffer chunk
+      end else begin
+        format_ref := Ndjson;
+        NdjsonParser.feed ndjson_parser chunk
+      end
+
 let stream_ollama ~broadcast_fn ~with_background_db ~thread_id ~assistant_message_id ~messages_json () =
   let ollama_body =
     Yojson.Safe.to_string
@@ -231,6 +349,8 @@ let stream_ollama ~broadcast_fn ~with_background_db ~thread_id ~assistant_messag
   else
   let body_stream = Cohttp_lwt.Body.to_stream resp_body in
   let ndjson_parser = NdjsonParser.make () in
+  let sse_buffer = ref "" in
+  let format_ref = ref (if content_type_is_sse resp then Sse else Unknown) in
   let all_tokens = ref [] in
   let rec read_loop () =
     let* chunk = Lwt_stream.get body_stream in
@@ -249,28 +369,22 @@ let stream_ollama ~broadcast_fn ~with_background_db ~thread_id ~assistant_messag
               ("message_id", `String assistant_message_id) ]
     | Some chunk ->
         (try
-           let jsons = NdjsonParser.feed ndjson_parser chunk in
+           let jsons =
+             collect_upstream_jsons ~format_ref ~ndjson_parser ~sse_buffer chunk
+           in
            let tokens = ref [] in
            let upstream_error = ref None in
            Array.iter
              (fun json ->
-                match json with
-                | `Assoc fields ->
-                    (match List.assoc_opt "error" fields with
-                     | Some (`String error) -> upstream_error := Some error
-                     | _ ->
-                         (match List.assoc_opt "done" fields with
-                          | Some (`Bool true) -> ()
-                          | _ ->
-                              (match List.assoc_opt "message" fields with
-                               | Some (`Assoc msg_fields) ->
-                                   (match List.assoc_opt "content" msg_fields with
-                                    | Some (`String text) when String.length text > 0 ->
-                                        tokens := text :: !tokens;
-                                        all_tokens := text :: !all_tokens
-                                    | _ -> ())
-                               | _ -> ())))
-                | _ -> ())
+                match error_of_json json with
+                | Some error -> upstream_error := Some error
+                | None ->
+                    if not (is_done_json json) then
+                      List.iter
+                        (fun text ->
+                           tokens := text :: !tokens;
+                           all_tokens := text :: !all_tokens)
+                        (tokens_of_json json))
              jsons;
            match !upstream_error with
            | Some error ->

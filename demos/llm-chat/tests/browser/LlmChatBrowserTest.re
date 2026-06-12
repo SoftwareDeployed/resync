@@ -132,10 +132,17 @@ function llmChatMockResponseChunk(content) {
     done: false
   }) + "\n";
 }
+
+function llmChatMockSseResponseChunk(content) {
+  return "data: " + JSON.stringify({
+    choices: [{ delta: { content } }]
+  }) + "\n\n";
+}
 |}];
 
 external mockLastUserContent: string => string = "llmChatMockLastUserContent";
 external mockResponseChunk: string => string = "llmChatMockResponseChunk";
+external mockSseResponseChunk: string => string = "llmChatMockSseResponseChunk";
 
 let currentThreadIdScript =
   "(() => window.location.pathname.split('/').filter(Boolean).slice(-1)[0] || '')()";
@@ -247,32 +254,48 @@ module MockOllama = {
               lastRequestBody := requestBody.contents;
               let prompt = mockLastUserContent(requestBody.contents);
               let headers = Js.Dict.empty();
-              Js.Dict.set(headers, "Content-Type", "application/x-ndjson");
-              let _ = response->writeHead(200, headers);
-              let _ = response->write(mockResponseChunk("Mock assistant saw "));
-              let writeTail = () => {
-                let _ = response->write(mockResponseChunk(prompt));
+              if (prompt->includes("sse streaming regression")) {
+                Js.Dict.set(headers, "Content-Type", "text/event-stream");
+                let _ = response->writeHead(200, headers);
+                let _ = response->write(mockSseResponseChunk("SSE assistant saw "));
                 setTimeout(() => {
-                  let _ = response->write(mockResponseChunk(" while streaming"));
+                  let _ = response->write(mockSseResponseChunk(prompt));
                   setTimeout(() => {
-                    let _ = response->endString("{\"done\":true}\n");
-                    ();
-                  }, 300);
-                }, 250);
-              };
-              if (prompt->includes("strict streaming regression")) {
-                setTimeout(() => {
+                    let _ = response->write(mockSseResponseChunk(" while streaming"));
+                    setTimeout(() => {
+                      let _ = response->endString("data: [DONE]\n\n");
+                      ();
+                    }, 500);
+                  }, 1200);
+                }, 700);
+              } else {
+                Js.Dict.set(headers, "Content-Type", "application/x-ndjson");
+                let _ = response->writeHead(200, headers);
+                let _ = response->write(mockResponseChunk("Mock assistant saw "));
+                let writeTail = () => {
                   let _ = response->write(mockResponseChunk(prompt));
                   setTimeout(() => {
                     let _ = response->write(mockResponseChunk(" while streaming"));
                     setTimeout(() => {
                       let _ = response->endString("{\"done\":true}\n");
                       ();
-                    }, 500);
-                  }, 1200);
-                }, 700);
-              } else {
-                writeTail();
+                    }, 300);
+                  }, 250);
+                };
+                if (prompt->includes("strict streaming regression")) {
+                  setTimeout(() => {
+                    let _ = response->write(mockResponseChunk(prompt));
+                    setTimeout(() => {
+                      let _ = response->write(mockResponseChunk(" while streaming"));
+                      setTimeout(() => {
+                        let _ = response->endString("{\"done\":true}\n");
+                        ();
+                      }, 500);
+                    }, 1200);
+                  }, 700);
+                } else {
+                  writeTail();
+                };
               };
             });
           ();
@@ -452,6 +475,76 @@ let runOllamaStreamingScenario = (~browser, ~baseUrl, ~mock) => {
               ~page,
               ~expression="(() => document.querySelector('#streaming-message') == null && document.querySelectorAll('.message--assistant').length === 1)().toString()",
               ~label="Ollama streaming test: transient message is replaced by one confirmed assistant message",
+              ~attemptsLeft=150,
+            )
+          )
+       |> then_(_ => MockOllama.assertSawPrompt(~mock, ~prompt))
+       |> then_(_ => {
+            removeMalformedSendPromptLedger();
+            resolve();
+          })
+      );
+};
+
+let runSseStreamingScenario = (~browser, ~baseUrl, ~mock) => {
+  Js.log("Running SSE streaming scenario...");
+  removeMalformedSendPromptLedger();
+  let prompt = "sse streaming regression " ++ UUID.make();
+  browser
+  ->Playwright.newPage
+  |> then_(page =>
+       page
+       ->Playwright.goto(baseUrl ++ "/")
+       |> then_(_ =>
+            page->Playwright.evaluateString(
+              createThreadScript(~baseUrl, ~title="SSE Streaming Test"),
+            )
+          )
+       |> then_(threadId => page->Playwright.goto(baseUrl ++ "/" ++ threadId))
+       |> then_(_ => page->Playwright.waitForSelector("#prompt-input"))
+       |> then_(_ => page->Playwright.fill("#prompt-input", prompt))
+       |> then_(_ => page->Playwright.click("#send-button"))
+       |> then_(_ =>
+            waitForSelectorText(
+              ~page,
+              ~selector="#message-list",
+              ~expected=prompt,
+              ~label="SSE streaming test: prompt visible in message list",
+              ~attemptsLeft=30,
+            )
+          )
+       |> then_(_ =>
+            waitForPartialSelectorText(
+              ~page,
+              ~selector="#streaming-message",
+              ~expected="SSE assistant saw",
+              ~notExpected=prompt,
+              ~label="SSE streaming test: first delta renders before later API chunks",
+              ~attemptsLeft=80,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression="(() => document.querySelector('#streaming-message') != null && document.querySelectorAll('.message--assistant:not(#streaming-message)').length === 0)().toString()",
+              ~label="SSE streaming test: partial delta is transient, not a confirmed assistant message",
+              ~attemptsLeft=20,
+            )
+          )
+       |> then_(_ =>
+            waitForSelectorText(
+              ~page,
+              ~selector="#message-list",
+              ~expected="SSE assistant saw " ++ prompt ++ " while streaming",
+              ~label="SSE streaming test: final assistant message reconciles",
+              ~attemptsLeft=150,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression="(() => document.querySelector('#streaming-message') == null && document.querySelectorAll('.message--assistant').length === 1)().toString()",
+              ~label="SSE streaming test: transient message is replaced by one confirmed assistant message",
               ~attemptsLeft=150,
             )
           )
@@ -1376,11 +1469,18 @@ let run = () => {
                      |> then_(_ =>
                           switch (mockRef.contents) {
                           | Some(mock) =>
-                              runOllamaStreamingScenario(
+                              runSseStreamingScenario(
                                 ~browser,
                                 ~baseUrl=server.baseUrl,
                                 ~mock,
                               )
+                              |> then_(_ =>
+                                   runOllamaStreamingScenario(
+                                     ~browser,
+                                     ~baseUrl=server.baseUrl,
+                                     ~mock,
+                                   )
+                                 )
                           | None =>
                               reject(BrowserTestUtils.makeError("mock Ollama server was not initialized"))
                           }
