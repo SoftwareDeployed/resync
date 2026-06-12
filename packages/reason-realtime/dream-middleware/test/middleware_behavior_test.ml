@@ -318,6 +318,58 @@ let suite =
         "duplicate no-db mutation should replay ok ack"
         [payload; payload]
         !sent);
+  Alcotest.test_case "concurrent no-db duplicate waits for in-progress action" `Quick
+    (fun () ->
+      let adapter = Fake_adapter.create () in
+      let call_count = ref 0 in
+      let release_ref = ref None in
+      let handle_mutation_without_db _broadcast _request ~action_id:_ ~mutation_name:_ _action =
+        incr call_count;
+        let promise, wake = Lwt.wait () in
+        release_ref :=
+          Some
+            (fun () ->
+              Lwt.wakeup_later wake (Mutation_result.Ack (Ok ())));
+        promise
+      in
+      let runtime = make_runtime ~handle_mutation_without_db adapter in
+      let sent = ref [] in
+      let run_once () =
+        Middleware.handle_message_with_io runtime request []
+          "{\"type\":\"mutation\",\"actionId\":\"nodbless-concurrent-1\",\"action\":{\"kind\":\"noop\"}}"
+          ~send:(fun message ->
+            sent := message :: !sent;
+            Lwt.return_unit)
+          ~close:(fun () -> Lwt.return_unit)
+          ~subscribe:(fun channel -> Lwt.return_some channel)
+          ~unsubscribe:(fun _channel -> Lwt.return_unit)
+      in
+      Lwt_main.run
+        (let first = run_once () in
+         let* () = Lwt.pause () in
+         let second = run_once () in
+         let* () = Lwt.pause () in
+         Alcotest.(check int)
+           "concurrent no-db handler should run once"
+           1
+           !call_count;
+         (match !release_ref with
+          | Some release -> release ()
+          | None -> Alcotest.fail "Expected first handler to be in progress");
+         let* _ = first in
+         let* _ = second in
+         Lwt.return_unit);
+      let payload =
+        Middleware.ack_message
+          ~channel:""
+          ~action_id:"nodbless-concurrent-1"
+          ~status:"ok"
+          ()
+      in
+      Alcotest.(check (list string))
+        "concurrent duplicate no-db mutation should share ok ack"
+        [payload; payload]
+        !sent);
   Alcotest.test_case "invalid mutation sends error ack" `Quick (fun () ->
     let adapter = Fake_adapter.create () in
     let runtime = make_runtime adapter in

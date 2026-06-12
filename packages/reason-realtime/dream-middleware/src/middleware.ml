@@ -36,6 +36,7 @@ type dispatch_mutation =
 type in_memory_action_status =
   [ `Ok
   | `Failed of string
+  | `InProgress of Mutation_result.t Lwt.t
   ]
 
 type t = {
@@ -139,19 +140,27 @@ let with_in_memory_action_guard t ~mutation_name ~action_id callback =
   match Hashtbl.find_opt t.in_memory_actions key with
   | Some `Ok -> Lwt.return (Ack (Ok ()))
   | Some (`Failed msg) -> Lwt.return (Ack (Error msg))
+  | Some (`InProgress promise) -> promise
   | None ->
-      Lwt.catch
-        (fun () ->
-           let* result = callback () in
-           (match result with
-            | Ack (Ok ()) -> Hashtbl.replace t.in_memory_actions key `Ok
-            | Ack (Error msg) -> Hashtbl.replace t.in_memory_actions key (`Failed msg)
-            | NoAck -> ());
-           Lwt.return result)
-        (fun exn ->
-           let msg = Printexc.to_string exn in
-           Hashtbl.replace t.in_memory_actions key (`Failed msg);
-           Lwt.return (Ack (Error msg)))
+      let promise, wake = Lwt.wait () in
+      Hashtbl.replace t.in_memory_actions key (`InProgress promise);
+      Lwt.async (fun () ->
+        Lwt.catch
+          (fun () ->
+             let* result = callback () in
+             (match result with
+              | Ack (Ok ()) -> Hashtbl.replace t.in_memory_actions key `Ok
+              | Ack (Error msg) -> Hashtbl.replace t.in_memory_actions key (`Failed msg)
+              | NoAck -> Hashtbl.remove t.in_memory_actions key);
+             Lwt.wakeup_later wake result;
+             Lwt.return_unit)
+          (fun exn ->
+             let msg = Printexc.to_string exn in
+             let result = Ack (Error msg) in
+             Hashtbl.replace t.in_memory_actions key (`Failed msg);
+             Lwt.wakeup_later wake result;
+             Lwt.return_unit));
+      promise
 
 let run_mutation_without_db_handler t request ~action_id ~mutation_name action handler =
   with_in_memory_action_guard t ~mutation_name ~action_id (fun () ->
