@@ -8,7 +8,8 @@
 //   let {mutate} = TodoStore.useMutation((module AddTodoMutation), ());
 //   mutate({id: UUID.make(), list_id: "abc", text: "Hello"});
 //
-// On client (JS): Dispatches mutation through the store's dispatch function
+// On client (JS): Calls the provided dispatch callback. Store-scoped runtimes
+// pass their store dispatch function via StoreDef.Hooks.useMutation.
 // On server (native): No-op for SSR
 
 open QueryRegistryTypes;
@@ -30,7 +31,7 @@ let make =
       ~onDispatch: p => unit,
       (),
     ) => {
-  // Client: Delegate to the store's dispatch function
+  // Client: Delegate to the dispatch callback supplied by the runtime.
   let dispatch = (params: p): Js.Promise.t(unit) => {
     try({
       onDispatch(params);
