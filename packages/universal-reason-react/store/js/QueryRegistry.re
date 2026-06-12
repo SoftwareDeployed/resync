@@ -3,23 +3,7 @@
 // On native (server SSR): Collects queries during render, executes them, returns results
 // On JS (client): Client-side cache stubs (full implementation in QueryCache.re)
 
-// Shared types (both platforms)
-
-type query_key = string;
-
-type query_result('row) =
-  | Loading
-  | Loaded(array('row))
-  | Error(string);
-
-type registry_snapshot = {
-  queries: array(query_key),
-  results: Js.Dict.t(StoreJson.json),
-};
-
-let makeKey = (~channel: string, ~paramsHash: string): query_key => {
-  channel ++ ":" ++ paramsHash;
-};
+include QueryRegistryTypes;
 
 // Native-only: SSR query collection
 
