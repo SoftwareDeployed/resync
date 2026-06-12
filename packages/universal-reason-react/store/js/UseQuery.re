@@ -133,12 +133,8 @@ let useQuery =
       [|key|],
     );
 
-  let _ = signal;
-  let currentResult =
-    switch (QueryCache.getResult(~t=cache, ~key)) {
-    | Some(result) => result
-    | None => Loading
-    };
+  Tilia.React.useTilia();
+  let currentResult = signal->Tilia.Core.lift;
 
   React.useEffect1(
     () => {
