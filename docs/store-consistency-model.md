@@ -40,7 +40,7 @@ The synced runtime lives in `StoreOffline.re:580-1298` (`Synced.Make`). Its life
 
 4. **`startSubscription`** (lines 1081-1152) — Opens a `RealtimeClient.Socket.subscribeSynced` websocket connection for the store’s subscription. It surfaces lifecycle events (`Open`, `Reconnect`, `Close`, `ConnectionError`) through the store’s typed event emitter and resumes any pending actions once the socket opens.
 
-5. **`handleAck`** — Processes server acknowledgements. Status `"ok"` marks the action settled, updates the ledger to `Acked`, applies the acknowledged action to `confirmedStateRef`, persists that confirmed state to IndexedDB via `persistConfirmedState`, broadcasts it to sibling tabs, and emits `ActionAcked`. Status `"error"` marks the action settled, updates the ledger to `Failed`, calls `refreshOptimisticState` to roll back the optimistic state to confirmed plus remaining pending actions, and emits `ActionFailed`.
+5. **`handleAck`** — Processes server acknowledgements. Status `"ok"` updates the ledger to `Acked`, applies the acknowledged action to `confirmedStateRef`, persists that confirmed state to IndexedDB via `persistConfirmedState`, broadcasts it to sibling tabs, marks the action settled, and emits `ActionAcked`. Status `"error"` updates the ledger to `Failed`, calls `refreshOptimisticState` to roll back the optimistic state to confirmed plus remaining pending actions, marks the action settled, and emits `ActionFailed`.
 
 6. **`handlePatch`** and **`handleSnapshot`** — Apply server-delivered changes to `confirmedStateRef`, persist the new confirmed state to IndexedDB (`persistConfirmedState`), broadcast it across tabs, and then call `refreshOptimisticState` to rebuild the optimistic overlay. These frames can further reconcile state after an ack-confirmed mutation.
 
@@ -82,10 +82,9 @@ In `StoreOffline.re:747-756` (`refreshOptimisticState` catch branch), if reading
 ### Ack-error rollback path
 
 When the server returns `status: "error"` in `handleAck` (`StoreOffline.re:1005-1047`), the runtime:
-1. Marks the action settled in the lifecycle tracker.
-2. Persists the action ledger record with `Failed` status and the error message.
-3. Calls `refreshOptimisticState` to rebuild state from confirmed plus the remaining pending actions, effectively rolling back the failed action.
-4. Emits `ActionFailed` only after the ledger has been updated.
+1. Persists the action ledger record with `Failed` status and the error message.
+2. Calls `refreshOptimisticState` to rebuild state from confirmed plus the remaining pending actions, effectively rolling back the failed action.
+3. Marks the action settled and emits `ActionFailed` only after the ledger has been updated and rollback replay has been requested.
 
 ### Promise rejection hygiene
 

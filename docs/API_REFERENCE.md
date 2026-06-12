@@ -385,7 +385,7 @@ module Context = StoreDef.Context;
 - `let serializeState: state => string`: Serialize for SSR
 - `let serializeSnapshot: state => string`: Serialize for snapshot
 - `let dispatch: action => unit`: Dispatch a typed action
-- `let useStreaming(): streaming_state`: Read the store's typed streaming state reactively; local stores return `unit`, synced stores update after typed stream events and confirmed patch reconciliation
+- `let useStreaming(): streaming_state`: Read the store's typed streaming state reactively; local stores return `unit`, synced stores update after typed stream events and confirmed-state reconciliation
 - `let useQuery((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the store after applying loaded rows. Pass `~skip=true` to preserve React hook order while avoiding SSR registration and client subscription.
 - `let useQueryResult((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the low-level `{data, loading, error}` query result. When skipped, it returns `{data: Loading, loading: false, error: None}` and does not contact the backend.
 - `let useQueryOption((module Query), paramsOpt, ())`: Reason-friendly conditional query helper. `Some(params)` behaves like `useQuery`; `None` behaves like `~skip=true` without requiring placeholder params.
@@ -945,7 +945,8 @@ React.useEffect0(() => {
 
 - Confirmed snapshot application completes before any snapshot-adjacent notifications fire
 - Confirmed patch application completes before any patch-adjacent notifications fire
-- `ActionAcked` and `ActionFailed` are emitted after ledger status updates complete
+- `ActionAcked` is emitted after the ledger status update completes and the ack-confirmed state persistence has been queued
+- `ActionFailed` is emitted after the ledger status update completes and rollback replay has been requested
 - `Open`, `Close`, `Reconnect`, and `ConnectionError` are emitted from the runtime-owned sync layer
 - Raw `snapshot` and `patch` frames are intentionally not the primary public event model
 
