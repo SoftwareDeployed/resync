@@ -365,6 +365,71 @@ let action_of_json = json => {
   };
 };
 
+let encodeRoomPeerPayload = (room_id: string, peer_id: string) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "room_id", room_id);
+    StoreJson.Object.setString(dict, "peer_id", peer_id);
+  });
+
+let encodeTogglePayload =
+    (room_id: string, peer_id: string, enabled: bool) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "room_id", room_id);
+    StoreJson.Object.setString(dict, "peer_id", peer_id);
+    StoreJson.Object.setBool(dict, "enabled", enabled);
+  });
+
+module Mutations = {
+  module JoinRoom = {
+    type params = join_room_payload;
+    type nonrec action = action;
+    let name = "join_room";
+    let encodeParams = (params: params) =>
+      encodeRoomPeerPayload(params.room_id, params.peer_id);
+    let toAction = params => JoinRoom(params);
+  };
+
+  module LeaveRoom = {
+    type params = peer_left_payload;
+    type nonrec action = action;
+    let name = "leave_room";
+    let encodeParams = (params: params) =>
+      encodeRoomPeerPayload(params.room_id, params.peer_id);
+    let toAction = params => LeaveRoom(params);
+  };
+
+  module ToggleVideo = {
+    type params = toggle_video_payload;
+    type nonrec action = action;
+    let name = "toggle_video";
+    let encodeParams = (params: params) =>
+      encodeTogglePayload(params.room_id, params.peer_id, params.enabled);
+    let toAction = params => ToggleVideo(params);
+  };
+
+  module ToggleAudio = {
+    type params = toggle_audio_payload;
+    type nonrec action = action;
+    let name = "toggle_audio";
+    let encodeParams = (params: params) =>
+      encodeTogglePayload(params.room_id, params.peer_id, params.enabled);
+    let toAction = params => ToggleAudio(params);
+  };
+
+  module SendMessage = {
+    type params = send_message_payload;
+    type nonrec action = action;
+    let name = "send_message";
+    let encodeParams = (params: params) =>
+      StoreJson.Object.make(dict => {
+        StoreJson.Object.setString(dict, "room_id", params.room_id);
+        StoreJson.Object.setString(dict, "peer_id", params.peer_id);
+        StoreJson.Object.setString(dict, "text", params.text);
+      });
+    let toAction = params => SendMessage(params);
+  };
+};
+
 let upsertPeer = (peers: array(Model.Peer.t), peer: Model.Peer.t) => {
   let remaining =
     peers->Js.Array.filter(~f=(existing: Model.Peer.t) =>
@@ -820,33 +885,17 @@ include (
 type t = store;
 
 module Context = StoreDef.Context;
+module Hooks = StoreDef.Hooks;
 
-let dispatch = StoreDef.dispatch;
-
-let joinRoom = (store: t, room_id: string) => {
-  let peer_id = store.state.client_id;
-  Js.Console.log(
-    "[joinRoom] called with room_id=" ++ room_id ++ " peer_id=" ++ peer_id,
-  );
-  dispatch(
-    JoinRoom({
-      room_id,
-      peer_id,
-    }),
-  );
-  peer_id;
+let joinRoomPayload = (store: t, room_id: string): join_room_payload => {
+  room_id,
+  peer_id: store.state.client_id,
 };
 
-let leaveRoom = (store: t) =>
+let leaveRoomPayload = (store: t): option(peer_left_payload) =>
   switch (store.state.room) {
-  | Some(room) =>
-    dispatch(
-      LeaveRoom({
-        room_id: room.id,
-        peer_id: store.state.client_id,
-      }),
-    )
-  | None => ()
+  | Some(room) => Some({room_id: room.id, peer_id: store.state.client_id})
+  | None => None
   };
 
 let sendVideoFrame = (store: t, frame_data: string) =>
@@ -863,41 +912,23 @@ let sendAudioChunk = (store: t, chunk_data: string) =>
   | _ => ()
   };
 
-let toggleVideo = (store: t, enabled: bool) =>
+let toggleVideoPayload = (store: t, enabled: bool): option(toggle_video_payload) =>
   switch (store.state.room) {
   | Some(room) =>
-    dispatch(
-      ToggleVideo({
-        room_id: room.id,
-        peer_id: store.state.client_id,
-        enabled,
-      }),
-    )
-  | None => ()
+    Some({room_id: room.id, peer_id: store.state.client_id, enabled})
+  | None => None
   };
 
-let toggleAudio = (store: t, enabled: bool) =>
+let toggleAudioPayload = (store: t, enabled: bool): option(toggle_audio_payload) =>
   switch (store.state.room) {
   | Some(room) =>
-    dispatch(
-      ToggleAudio({
-        room_id: room.id,
-        peer_id: store.state.client_id,
-        enabled,
-      }),
-    )
-  | None => ()
+    Some({room_id: room.id, peer_id: store.state.client_id, enabled})
+  | None => None
   };
 
-let sendMessage = (store: t, text: string) =>
+let sendMessagePayload = (store: t, text: string): option(send_message_payload) =>
   switch (store.state.room) {
   | Some(room) =>
-    dispatch(
-      SendMessage({
-        room_id: room.id,
-        peer_id: store.state.client_id,
-        text,
-      }),
-    )
-  | None => ()
+    Some({room_id: room.id, peer_id: store.state.client_id, text})
+  | None => None
   };

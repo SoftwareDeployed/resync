@@ -70,11 +70,23 @@ module View = {
         ~params: UniversalRouter.Params.t,
         ~searchParams: UniversalRouter.SearchParams.t,
       ) => {
+      module Hooks = VideoChatStore.Hooks;
+      open Hooks;
       let _searchParams: UniversalRouter.SearchParams.t = searchParams;
       let roomId = UniversalRouter.Params.find("roomId", params);
       let roomIdValue = Option.value(roomId, ~default="");
       let store = VideoChatStore.Context.useStore();
       let router = UniversalRouter.useRouter();
+      let joinRoomMutation =
+        useMutation((module VideoChatStore.Mutations.JoinRoom), ());
+      let leaveRoomMutation =
+        useMutation((module VideoChatStore.Mutations.LeaveRoom), ());
+      let toggleVideoMutation =
+        useMutation((module VideoChatStore.Mutations.ToggleVideo), ());
+      let toggleAudioMutation =
+        useMutation((module VideoChatStore.Mutations.ToggleAudio), ());
+      let sendMessageMutation =
+        useMutation((module VideoChatStore.Mutations.SendMessage), ());
 
       let localVideoRef = React.useRef(None);
       let remoteCanvasRef = React.useRef(None);
@@ -160,7 +172,9 @@ module View = {
               Js.Global.setTimeout(
                 ~f=
                   () => {
-                    let peerId = VideoChatStore.joinRoom(store, roomIdValue);
+                    let payload = VideoChatStore.joinRoomPayload(store, roomIdValue);
+                    let _ = joinRoomMutation.mutate(payload);
+                    let peerId = payload.peer_id;
                     Js.Console.log2("Joined room with peerId:", peerId);
                   },
                 500,
@@ -169,7 +183,12 @@ module View = {
             Some(
               () => {
                 Js.Global.clearTimeout(timeoutId);
-                VideoChatStore.leaveRoom(store);
+                switch (VideoChatStore.leaveRoomPayload(store)) {
+                | Some(payload) =>
+                  let _ = leaveRoomMutation.mutate(payload);
+                  ()
+                | None => ()
+                };
               },
             );
           },
@@ -222,7 +241,12 @@ module View = {
 
       let leaveRoom = () => {
         releaseCapture();
-        VideoChatStore.leaveRoom(store);
+        switch (VideoChatStore.leaveRoomPayload(store)) {
+        | Some(payload) =>
+          let _ = leaveRoomMutation.mutate(payload);
+          ()
+        | None => ()
+        };
         router.push("/");
       };
 
@@ -232,7 +256,12 @@ module View = {
         | Some(capture) => MediaCapture.setVideoEnabled(capture, nextEnabled)
         | None => ()
         };
-        VideoChatStore.toggleVideo(store, nextEnabled);
+        switch (VideoChatStore.toggleVideoPayload(store, nextEnabled)) {
+        | Some(payload) =>
+          let _ = toggleVideoMutation.mutate(payload);
+          ()
+        | None => ()
+        };
       };
 
       let toggleAudio = () => {
@@ -241,7 +270,12 @@ module View = {
         | Some(capture) => MediaCapture.setAudioEnabled(capture, nextEnabled)
         | None => ()
         };
-        VideoChatStore.toggleAudio(store, nextEnabled);
+        switch (VideoChatStore.toggleAudioPayload(store, nextEnabled)) {
+        | Some(payload) =>
+          let _ = toggleAudioMutation.mutate(payload);
+          ()
+        | None => ()
+        };
       };
 
       let hasRemotePeer =
@@ -256,7 +290,12 @@ module View = {
 
       let handleSendMessage = () => {
         if (chatText != "") {
-          VideoChatStore.sendMessage(store, chatText);
+          switch (VideoChatStore.sendMessagePayload(store, chatText)) {
+          | Some(payload) =>
+            let _ = sendMessageMutation.mutate(payload);
+            ()
+          | None => ()
+          };
           setChatText(_ => "");
         };
       };
