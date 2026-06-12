@@ -1,6 +1,6 @@
 [@platform js]
 module Multiplexed = {
-  type websocket;
+  type websocket = WebSocket.t;
 
   type callbacks = {
     onOpen: unit => unit,
@@ -56,7 +56,7 @@ module Multiplexed = {
       let isSecure = Webapi.Url.protocol(url) == "https:";
       url->Webapi.Url.setProtocol(isSecure ? "wss" : "ws");
 
-      let ws: websocket = Obj.magic(WebSocket.make(url->Webapi.Url.href));
+      let ws: websocket = WebSocket.make(url->Webapi.Url.href);
       t.websocketRef := Some(ws);
 
       WebSocket.onOpen(ws, () => {

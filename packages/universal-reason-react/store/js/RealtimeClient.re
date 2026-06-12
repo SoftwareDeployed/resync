@@ -38,7 +38,7 @@ let pingFrameString = () => "";
 
 [@platform native]
 module Socket = {
-  type websocket;
+  type websocket = unit;
 
   type websocket_state = {
     last_ping: float,
@@ -124,7 +124,7 @@ module Socket = {
 
 [@platform js]
 module Socket = {
-  type websocket;
+  type websocket = WebSocket.t;
 
   external setInterval: (unit => unit, int) => int = "setInterval";
   external clearInterval: int => unit = "clearInterval";
@@ -352,7 +352,7 @@ module Socket = {
         let isSecure = Webapi.Url.protocol(url) == "https:";
         url->Webapi.Url.setProtocol(isSecure ? "wss" : "ws");
 
-        let ws: websocket = Obj.magic(WebSocket.make(url->Webapi.Url.href));
+        let ws: websocket = WebSocket.make(url->Webapi.Url.href);
         state.websocket = Some(ws);
         state.connectionState = {
           last_ping: Js.Date.now(),
