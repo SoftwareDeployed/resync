@@ -12,7 +12,7 @@ The middleware owns websocket lifecycle and channel subscriptions; it delegates 
 
 - how a client selection string maps to a channel (`~resolve_subscription`)
 - how to load a channel snapshot (`~load_snapshot`)
-- how to execute a typed action frame (`~handle_mutation`, optional)
+- how to execute a typed action frame (`~handle_mutation` or `~handle_mutation_without_db`, optional)
 - how to auto-dispatch SQL mutations (`~dispatch_mutation`, optional)
 
 ## Features
@@ -140,13 +140,16 @@ let create: (
   ~adapter: Adapter.packed,
   ~resolve_subscription: (Dream.request => string => string option Lwt.t),
   ~load_snapshot: (Dream.request => string => string Lwt.t),
-  ?handle_mutation: (Dream.request => action_id:string => Yojson.Basic.t => (unit, string) result Lwt.t),
+  ?handle_mutation: (Middleware.broadcast_fn => Dream.request => db:(module Caqti_lwt.CONNECTION) => action_id:string => mutation_name:string => Yojson.Basic.t => Mutation_result.t Lwt.t),
+  ?handle_mutation_without_db: (Middleware.broadcast_fn => Dream.request => action_id:string => mutation_name:string => Yojson.Basic.t => Mutation_result.t Lwt.t),
   ?dispatch_mutation: ((module Caqti_lwt.CONNECTION) => mutation_name:string => Yojson.Basic.t => (unit, string) result Lwt.t option),
   unit,
 ) => Middleware.t;
 ```
 
 Build middleware and provide callbacks for subscription resolution, snapshot loading, and optional action execution. If `~dispatch_mutation` is provided, it is tried first for every mutation frame; only mutations it returns `None` for fall through to `~handle_mutation`.
+
+Use `~handle_mutation_without_db` only when the server intentionally has no `Dream.sql` pool, such as an in-memory demo transport. It is selected when neither `~dispatch_mutation` nor DB-backed `~handle_mutation` is configured. The middleware still guards duplicate `{mutation_name, action_id}` pairs in memory and replays the previous ack, but those action statuses are not durable across process restarts.
 
 #### `Middleware.route`
 
@@ -221,7 +224,7 @@ Supported messages:
 
 - `ping` → server replies with `pong`
 - `{type: "select", subscription, updatedAt}` → subscribe or replace the active subscription
-- `{type: "mutation", actionId, action}` → try `~dispatch_mutation`, then fall back to `~handle_mutation`
+- `{type: "mutation", actionId, action}` → try `~dispatch_mutation`, then fall back to DB-backed `~handle_mutation`, or use `~handle_mutation_without_db` when that is the only mutation handler
 
 Responses are JSON payloads sent by the server, including `snapshot`, `patch`, `ack`, and `pong`.
 
@@ -259,6 +262,28 @@ let middleware =
     ~load_snapshot,
     ~dispatch_mutation:RealtimeSchema.dispatch_mutation,
     ~handle_mutation,
+    (),
+  );
+```
+
+For in-memory demos without a Dream SQL pool, use the no-DB handler form instead of installing a fake database dependency:
+
+```reason
+let handle_mutation_without_db _broadcast_fn request ~action_id ~mutation_name action =
+  switch (mutation_name) {
+  | "join_room" =>
+      (* update in-memory state and broadcast patches *)
+      Lwt.return(Mutation_result.Ack(Ok(())))
+  | _ =>
+      Lwt.return(Mutation_result.Ack(Error("Unknown mutation")))
+  };
+
+let middleware =
+  Middleware.create(
+    ~adapter,
+    ~resolve_subscription,
+    ~load_snapshot,
+    ~handle_mutation_without_db,
     (),
   );
 ```
@@ -308,6 +333,7 @@ Current native test cases in `packages/reason-realtime/dream-middleware/test/mid
 - `ping replies with pong`
 - `select subscribes and sends snapshot`
 - `mutation success sends ack ok`
+- `mutation without db skips use_db and dedupes action id`
 - `invalid mutation sends error ack`
 - `media handler error sends error frame`
 - `detach unsubscribes active channel`

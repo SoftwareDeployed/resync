@@ -1174,13 +1174,16 @@ let create: (
   ~adapter: Adapter.packed,
   ~resolve_subscription: Dream.request => string => string option Lwt.t,
   ~load_snapshot: Dream.request => string => string Lwt.t,
-  ?handle_mutation: Dream.request => action_id:string => Yojson.Basic.t => (unit, string) result Lwt.t,
+  ?handle_mutation: Middleware.broadcast_fn => Dream.request => db:(module Caqti_lwt.CONNECTION) => action_id:string => mutation_name:string => Yojson.Basic.t => Mutation_result.t Lwt.t,
+  ?handle_mutation_without_db: Middleware.broadcast_fn => Dream.request => action_id:string => mutation_name:string => Yojson.Basic.t => Mutation_result.t Lwt.t,
   ?dispatch_mutation: (module Caqti_lwt.CONNECTION) => mutation_name:string => Yojson.Basic.t => (unit, string) result Lwt.t option,
   unit,
 ) => Middleware.t;
 ```
 
-Creates middleware instance. `~handle_mutation` is optional and receives JSON mutation frames in the form `{type: "mutation", actionId, action}`. If `~dispatch_mutation` is provided, the middleware tries it first for every mutation; only when it returns `None` does the frame fall through to `~handle_mutation`.
+Creates middleware instance. `~handle_mutation` is optional and receives JSON mutation frames in the form `{type: "mutation", actionId, action}` with a Dream SQL connection. If `~dispatch_mutation` is provided, the middleware tries it first for every mutation; only when it returns `None` does the frame fall through to `~handle_mutation`.
+
+Use `~handle_mutation_without_db` for in-memory transports that intentionally run without a `Dream.sql` pool. It is selected only when neither `~dispatch_mutation` nor DB-backed `~handle_mutation` is configured. Duplicate `{mutation_name, actionId}` pairs are still guarded in memory and replay the previous ack, but this idempotency state is not durable across server restarts.
 
 #### `Middleware.route`
 
@@ -1198,7 +1201,7 @@ let broadcast: (Middleware.t, string, string) => Lwt.t(unit);
 
 Broadcasts a payload string to all connected clients.
 
-**Test coverage:** Native protocol tests for ping/select/ack/error/media/detach behavior live under `packages/reason-realtime/dream-middleware/test`. See `docs/testing.md` for commands and the full case list.
+**Test coverage:** Native protocol tests for ping/select/ack/error/media/detach and no-DB mutation idempotency behavior live under `packages/reason-realtime/dream-middleware/test`. See `docs/testing.md` for commands and the full case list.
 
 ### Realtime Client Socket
 
