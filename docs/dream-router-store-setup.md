@@ -410,7 +410,7 @@ module Mutations = {
 [@react.component]
 let make = (~id: string, ~list_id: string, ~text: string) => {
   let addTodoMutation =
-    Store.useMutation((module Store.Mutations.AddTodo), ());
+    Store.Hooks.useMutation((module Store.Mutations.AddTodo), ());
 
   let addTodo = () => {
     let _ = addTodoMutation.mutate({id, list_id, text});
