@@ -83,7 +83,7 @@ module Local = {
     let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
 
     [@platform native]
-    let openBroadcastChannel = (_name: string) => Obj.magic();
+    let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
 
     [@platform js]
     let postBroadcastMessage = (channel: broadcast_channel, message: string) =>
@@ -408,7 +408,7 @@ module Synced = {
   let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
 
   [@platform native]
-  let openBroadcastChannel = (_name: string) => Obj.magic();
+  let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
 
   [@platform js]
   let postBroadcastMessage = (channel: broadcast_channel, message: string) =>
