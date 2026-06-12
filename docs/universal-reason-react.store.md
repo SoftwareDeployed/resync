@@ -16,6 +16,8 @@ The current store model is runtime-first:
 - local-only stores persist confirmed snapshots to IndexedDB and sync across tabs with `BroadcastChannel`
 - synced stores persist confirmed snapshots and an action ledger in IndexedDB, then reconcile with websocket acks, patches, and snapshots
 
+The `Store` namespace re-exports common helpers (`Store.Json`, `Store.Crud`, `Store.Patch`, `Store.Runtime`, `Store.Sync`, and `Store.Frp`) so components and store modules can import one top-level namespace when desired.
+
 ## End-to-End Authoring Example
 
 The smallest complete store in the repo is the todo demo. It shows the full path from types to reducer to store shape to component dispatch.

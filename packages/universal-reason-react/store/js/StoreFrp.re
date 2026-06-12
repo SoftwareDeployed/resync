@@ -3,10 +3,10 @@ module Local = {
     storeName: string,
     emptyState: 'state,
     reduce: (~state: 'state, ~action: 'action) => 'state,
-    state_of_json: Store.Json.json => 'state,
-    state_to_json: 'state => Store.Json.json,
-    action_of_json: Store.Json.json => 'action,
-    action_to_json: 'action => Store.Json.json,
+    state_of_json: StoreJson.json => 'state,
+    state_to_json: 'state => StoreJson.json,
+    action_of_json: StoreJson.json => 'action,
+    action_to_json: 'action => StoreJson.json,
     makeStore: (~state: 'state, ~derive: Tilia.Core.deriver('store)=?, unit) => 'store,
     scopeKeyOfState: 'state => string,
     timestampOfState: 'state => float,
@@ -69,10 +69,10 @@ module Synced = {
     storeName: string,
     emptyState: 'state,
     reduce: (~state: 'state, ~action: 'action) => 'state,
-    state_of_json: Store.Json.json => 'state,
-    state_to_json: 'state => Store.Json.json,
-    action_of_json: Store.Json.json => 'action,
-    action_to_json: 'action => Store.Json.json,
+    state_of_json: StoreJson.json => 'state,
+    state_to_json: 'state => StoreJson.json,
+    action_of_json: StoreJson.json => 'action,
+    action_to_json: 'action => StoreJson.json,
     makeStore: (~state: 'state, ~derive: Tilia.Core.deriver('store)=?, unit) => 'store,
     scopeKeyOfState: 'state => string,
     timestampOfState: 'state => float,
@@ -166,10 +166,10 @@ module Crud = {
     storeName: string,
     emptyState: 'state,
     reduce: (~state: 'state, ~action: 'action) => 'state,
-    state_of_json: Store.Json.json => 'state,
-    state_to_json: 'state => Store.Json.json,
-    action_of_json: Store.Json.json => 'action,
-    action_to_json: 'action => Store.Json.json,
+    state_of_json: StoreJson.json => 'state,
+    state_to_json: 'state => StoreJson.json,
+    action_of_json: StoreJson.json => 'action,
+    action_to_json: 'action => StoreJson.json,
     makeStore: (~state: 'state, ~derive: Tilia.Core.deriver('store)=?, unit) => 'store,
     scopeKeyOfState: 'state => string,
     timestampOfState: 'state => float,
@@ -214,14 +214,14 @@ module Crud = {
     let hooks = StoreBuilder.hooksOrDefault(Input.config.hooks);
 
     let crudPatch =
-      Store.Crud.decodePatch(
+      StoreCrud.decodePatch(
         ~table=Input.config.strategy.crud.table,
         ~decodeRow=Input.config.strategy.crud.decodeRow,
         (),
       );
 
     let crudUpdate =
-      Store.Crud.updateOfPatch(
+      StoreCrud.updateOfPatch(
         ~getId=Input.config.strategy.crud.getId,
         ~getItems=Input.config.strategy.crud.getItems,
         ~setItems=Input.config.strategy.crud.setItems,
@@ -232,7 +232,7 @@ module Crud = {
       type action = Input.action;
       type store = Input.store;
       type subscription = Input.subscription;
-      type patch = Store.Crud.patch(Input.row);
+      type patch = StoreCrud.patch(Input.row);
       type stream_event = unit;
       type streaming_state = unit;
 
@@ -252,7 +252,7 @@ module Crud = {
       let encodeSubscription = Input.config.transport.encodeSubscription;
       let eventUrl = Input.config.transport.eventUrl;
       let baseUrl = Input.config.transport.baseUrl;
-      let decodePatch = Store.Patch.compose([|crudPatch|]);
+      let decodePatch = StorePatch.compose([|crudPatch|]);
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
       let streams = None;
       let emptyStreamingState = ();

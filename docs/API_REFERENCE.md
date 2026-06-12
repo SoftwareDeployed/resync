@@ -265,6 +265,10 @@ let {UniversalRouterDream.basePath, UniversalRouterDream.request} = context;
 
 ## Universal Store
 
+### Store Namespace
+
+The `Store` module re-exports the common store namespaces: `Json`, `Crud`, `Patch`, `Signal`, `Events`, `Source`, `IndexedDB`, `Selectors`, `Bootstrap`, `Runtime`, `Sync`, and `Frp`. Prefer `Store.Frp` for the FRP wrapper API; `StoreFrp` remains the underlying module name.
+
 ### Types
 
 #### `store`

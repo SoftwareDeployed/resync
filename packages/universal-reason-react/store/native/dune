@@ -12,6 +12,7 @@
   Store
   StoreBuilder
   StoreActionLedger
+  StoreFrp
   StoreCache
   StoreComputed
   StoreControllerHelpers
@@ -28,10 +29,10 @@
   StoreSignal
   StoreSource
   Tilia
-    Hooks
-    UseQuery
-    UseMutation
-    WebSocket)
+  Hooks
+  UseQuery
+  UseMutation
+  WebSocket)
  (wrapped false)
  (libraries
   caqti
