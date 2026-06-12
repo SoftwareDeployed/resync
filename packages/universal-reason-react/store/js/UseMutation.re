@@ -22,6 +22,9 @@ type mutation_result('params) = {
   error: option(string),
 };
 
+[@platform js]
+external stringOfJsValue: 'a => string = "String";
+
 // Main useMutation hook - JS version (client-side)
 [@platform js]
 let make =
@@ -46,7 +49,7 @@ let make =
     | None =>
       switch (exn) {
       | Failure(message) => message
-      | _ => "Mutation failed"
+      | _ => stringOfJsValue(error)
       }
     };
   };
