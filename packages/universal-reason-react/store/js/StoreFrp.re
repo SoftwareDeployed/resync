@@ -20,7 +20,7 @@ module Local = {
 
   let make = (schema: schema('state, 'action, 'store)): config('state, 'action, 'store) => {
     schema,
-    cache: `None,
+    cache: `IndexedDB,
   };
 
   let withCache = (cache: [ | `IndexedDB | `None ], config: config('state, 'action, 'store)): config('state, 'action, 'store) => {
@@ -93,7 +93,7 @@ module Synced = {
     transport,
     strategy,
     hooks,
-    cache: `None,
+    cache: `IndexedDB,
   };
 
   let withCache = (cache, config) => {
@@ -190,7 +190,7 @@ module Crud = {
     transport,
     strategy,
     hooks,
-    cache: `None,
+    cache: `IndexedDB,
   };
 
   let withCache = (cache, config) => {
