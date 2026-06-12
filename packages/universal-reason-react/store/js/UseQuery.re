@@ -179,8 +179,10 @@ let useRawQueryResult =
       params: p,
       ~skip,
     ) => {
-  let channel = Q.channel(params);
-  let paramsHash = Q.paramsHash(params);
+  let (channel, paramsHash) =
+    skip
+      ? (skippedChannel, skippedParamsHash)
+      : (Q.channel(params), Q.paramsHash(params));
   let key = makeKey(~channel, ~paramsHash);
 
   let cache = getQueryCache();
@@ -252,13 +254,13 @@ let useQuery =
       ~skip=false,
       (),
     ) => {
-  let channel = Q.channel(params);
-  let paramsHash = Q.paramsHash(params);
-  let key = makeKey(~channel, ~paramsHash);
-
   if (skip) {
     skippedResult;
   } else {
+    let channel = Q.channel(params);
+    let paramsHash = Q.paramsHash(params);
+    let key = makeKey(~channel, ~paramsHash);
+
     // Server: Register with QueryRegistry for SSR collection
     let _ =
       QueryRegistry.register_query(

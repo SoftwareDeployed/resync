@@ -20,6 +20,17 @@ module StringQuery = struct
   let execute _db _params = Lwt.return (Ok [||])
 end
 
+module ExplodingQuery = struct
+  type params = string
+  type row = string
+
+  let channel _params = failwith "channel should not be called"
+  let paramsHash _params = failwith "paramsHash should not be called"
+  let decodeRow = Melange_json.Primitives.string_of_json
+  let row_to_json = Melange_json.Primitives.string_to_json
+  let execute _db _params = Lwt.return (Ok [||])
+end
+
 let string_query_key =
   QueryRegistryTypes.makeKey ~channel:"strings" ~paramsHash:"params"
 
@@ -132,6 +143,19 @@ let suite =
               Alcotest.(check int)
                 "unskipped query should register"
                 1
+                (QueryRegistry.registered_query_count ())));
+      Alcotest.test_case "server skipped query avoids channel and hash derivation" `Quick
+        (fun () ->
+          with_empty_registry (fun () ->
+              let result =
+                UseQuery.useQuery (module ExplodingQuery) "params" ~skip:true ()
+              in
+              Alcotest.(check bool)
+                "skipped query is not loading"
+                false result.loading;
+              Alcotest.(check int)
+                "skipped query should not register"
+                0
                 (QueryRegistry.registered_query_count ())));
       Alcotest.test_case "server optional query skips None without params" `Quick
         (fun () ->
