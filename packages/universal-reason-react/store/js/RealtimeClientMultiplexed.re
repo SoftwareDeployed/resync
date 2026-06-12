@@ -170,7 +170,7 @@ module Multiplexed = {
               }
             | None => ()
             }
-          | None => Js.Console.warn("Message missing channel field")
+          | None => ()
           }
         | None => ()
         };
