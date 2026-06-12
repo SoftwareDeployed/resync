@@ -3,11 +3,17 @@ let with_sync_registry_reset f =
   Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
 
 let has_result key = Option.is_some (QueryRegistry.find_result ~key)
+let has_error key = Option.is_some (QueryRegistry.find_error ~key)
 
 let result_json_string key =
   match QueryRegistry.find_result ~key with
   | Some json -> Yojson.Safe.to_string json
   | None -> Alcotest.fail ("expected result for " ^ key)
+
+let error_message key =
+  match QueryRegistry.find_error ~key with
+  | Some message -> message
+  | None -> Alcotest.fail ("expected error for " ^ key)
 
 let setup_previous_registry () =
   QueryRegistry.setup_registry_from_json
@@ -35,6 +41,14 @@ let suite =
                 false
                 (has_result "thread:error");
               Alcotest.(check bool)
+                "error entry should hydrate as error"
+                true
+                (has_error "thread:error");
+              Alcotest.(check string)
+                "error message"
+                "bad"
+                (error_message "thread:error");
+              Alcotest.(check bool)
                 "missing data entry should be ignored"
                 false
                 (has_result "thread:missing")));
@@ -43,11 +57,15 @@ let suite =
           with_sync_registry_reset (fun () ->
               QueryRegistry.setup_registry_from_json
                 ~jsonStr:
-                  {|{"thread:error-data":{"_tag":"Error","data":["bad"]},"thread:loading-data":{"_tag":"Loading","data":["bad"]}}|};
+                  {|{"thread:error-data":{"_tag":"Error","message":"bad","data":["bad"]},"thread:loading-data":{"_tag":"Loading","data":["bad"]}}|};
               Alcotest.(check bool)
                 "error result with data should not hydrate"
                 false
                 (has_result "thread:error-data");
+              Alcotest.(check string)
+                "error result should preserve message"
+                "bad"
+                (error_message "thread:error-data");
               Alcotest.(check bool)
                 "loading result with data should not hydrate"
                 false

@@ -33,6 +33,20 @@ let with_sync_registry ?(key = "decode-failing:params") json f =
   QueryRegistry.setup_registry_from_json ~jsonStr;
   Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
 
+let with_error_registry ?(key = "strings:params") message f =
+  let previous = !(QueryRegistry.sync_registry_ref) in
+  let jsonStr =
+    Yojson.Safe.to_string
+      (`Assoc
+        [
+          ( key,
+            `Assoc [ ("_tag", `String "Error"); ("message", `String message) ]
+          );
+        ])
+  in
+  QueryRegistry.setup_registry_from_json ~jsonStr;
+  Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
+
 let suite =
   ( "UseQuery",
     [
@@ -67,4 +81,18 @@ let suite =
                   Alcotest.fail "decode failure should not stay Loading"
               | QueryRegistryTypes.Loaded _ ->
                   Alcotest.fail "decode failure should not return Loaded"));
+      Alcotest.test_case "server cached query error returns Error" `Quick
+        (fun () ->
+          with_error_registry "database unavailable" (fun () ->
+              let result = UseQuery.useQuery (module StringQuery) "params" () in
+              match result.data with
+              | QueryRegistryTypes.Error msg ->
+                  Alcotest.(check string)
+                    "query error"
+                    "database unavailable"
+                    msg
+              | QueryRegistryTypes.Loading ->
+                  Alcotest.fail "cached query error should not stay Loading"
+              | QueryRegistryTypes.Loaded _ ->
+                  Alcotest.fail "cached query error should not return Loaded"));
     ] )

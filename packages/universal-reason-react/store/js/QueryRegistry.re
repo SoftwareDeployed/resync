@@ -32,6 +32,7 @@ type query_registry = {
   mutable state: registry_state,
   mutable queries: Hashtbl.t(string, registered_query_exec),
   mutable results: Hashtbl.t(string, Yojson.Safe.t),
+  mutable errors: Hashtbl.t(string, string),
   db_connection: option(module Caqti_lwt.CONNECTION),
 };
 
@@ -89,12 +90,20 @@ let isLoadedResult = fields =>
   };
 
 [@platform native]
+let errorMessageOfResult = fields =>
+  switch (assocOpt("_tag", fields), assocOpt("message", fields)) {
+  | (Some(`String("Error")), Some(`String(message))) => Some(message)
+  | _ => None
+  };
+
+[@platform native]
 let with_registry = (~db, ~f, ()) => {
   let f: unit => Lwt.t('a) = f;
   let registry = {
     state: Collecting,
     queries: Hashtbl.create(8),
     results: Hashtbl.create(8),
+    errors: Hashtbl.create(8),
     db_connection: Some(db),
   };
   Lwt.with_value(registry_key, Some(registry), f);
@@ -149,6 +158,13 @@ let find_result = (~key: string): option(Yojson.Safe.t) =>
   };
 
 [@platform native]
+let find_error = (~key: string): option(string) =>
+  switch (current_registry()) {
+  | Some(registry) => Hashtbl.find_opt(registry.errors, key)
+  | None => None
+  };
+
+[@platform native]
 let execute_queries = () => {
   switch (Lwt.get(registry_key)) {
   | None => Lwt.return()
@@ -165,7 +181,7 @@ let execute_queries = () => {
             Lwt.bind(q.execute((module Db)), result => {
               switch (result) {
               | Ok(json) => Hashtbl.replace(registry.results, q.key, json); Lwt.return()
-              | Error(_) => Lwt.return()
+              | Error(message) => Hashtbl.replace(registry.errors, q.key, message); Lwt.return()
               };
             });
           };
@@ -218,7 +234,7 @@ let serialize_for_cache = (): string => {
   switch (Lwt.get(registry_key)) {
   | None => "{}"
   | Some(registry) =>
-    let entries =
+    let loadedEntries =
       Hashtbl.to_seq(registry.results)
       |> Array.of_seq
       |> Js.Array.map(~f=((key, value)) =>
@@ -227,7 +243,20 @@ let serialize_for_cache = (): string => {
             `Assoc([("_tag", `String("Loaded")), ("data", value)]),
           )
       );
-    Yojson.Safe.to_string(`Assoc(StoreJson.listOfArray(entries)))
+    let errorEntries =
+      Hashtbl.to_seq(registry.errors)
+      |> Array.of_seq
+      |> Js.Array.map(~f=((key, message)) =>
+          (
+            key,
+            `Assoc([("_tag", `String("Error")), ("message", `String(message))]),
+          )
+      );
+    Yojson.Safe.to_string(
+      `Assoc(StoreJson.listOfArray(
+        loadedEntries->Js.Array.concat(~other=errorEntries),
+      )),
+    )
   };
 };
 
@@ -236,6 +265,7 @@ let serialize_for_cache = (): string => {
 let setup_registry_from_json = (~jsonStr: string): unit => {
   let json = Yojson.Safe.from_string(jsonStr);
   let results = Hashtbl.create(8);
+  let errors = Hashtbl.create(8);
   (switch (json) {
   | `Assoc(entries) =>
     iterAssoc(entries, ((key, value)) => {
@@ -247,7 +277,10 @@ let setup_registry_from_json = (~jsonStr: string): unit => {
           | None => ()
           };
         } else {
-          ();
+          switch (errorMessageOfResult(fields)) {
+          | Some(message) => Hashtbl.replace(errors, key, message)
+          | None => ()
+          };
         }
       | _ => ()
       };
@@ -258,6 +291,7 @@ let setup_registry_from_json = (~jsonStr: string): unit => {
     state: Rendered,
     queries: Hashtbl.create(8),
     results,
+    errors,
     db_connection: None,
   };
   sync_registry_ref := Some(registry);
@@ -300,6 +334,9 @@ let register_query =
 
 [@platform js]
 let find_result = (~key as _) => None;
+
+[@platform js]
+let find_error = (~key as _) => None;
 
 [@platform js]
 let execute_queries = () => ();

@@ -234,27 +234,31 @@ let useQuery =
     );
 
   let data =
-    switch (QueryRegistry.find_result(~key)) {
-    | Some(json) =>
-      try(
-        {
-          let storeJson = StoreJson.ofSafe(json);
-          let rows_ =
-            switch (
-              StoreJson.tryDecode(
-                Melange_json.Of_json.array(rowJson => Q.decodeRow(rowJson)),
-                storeJson,
-              )
-            ) {
-            | Some(rows) => rows
-            | None => [|Q.decodeRow(storeJson)|]
-            };
-          Loaded(rows_)
+    switch (QueryRegistry.find_error(~key)) {
+    | Some(message) => Error(message)
+    | None =>
+      switch (QueryRegistry.find_result(~key)) {
+      | Some(json) =>
+        try(
+          {
+            let storeJson = StoreJson.ofSafe(json);
+            let rows_ =
+              switch (
+                StoreJson.tryDecode(
+                  Melange_json.Of_json.array(rowJson => Q.decodeRow(rowJson)),
+                  storeJson,
+                )
+              ) {
+              | Some(rows) => rows
+              | None => [|Q.decodeRow(storeJson)|]
+              };
+            Loaded(rows_)
+          }
+        ) {
+        | _ => Error(decodeErrorMessage)
         }
-      ) {
-      | _ => Error(decodeErrorMessage)
+      | None => Loading
       }
-    | None => Loading
     };
   hookResultOfData(data);
 };
