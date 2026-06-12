@@ -31,6 +31,15 @@ module Multiplexed = {
   external setTimeout: (unit => unit, int) => int = "setTimeout";
   external clearTimeout: int => unit = "clearTimeout";
 
+  let clearReconnectTimeout = (t: t) => {
+    switch (t.reconnectTimeoutRef.contents) {
+    | Some(timeoutId) =>
+      clearTimeout(timeoutId);
+      t.reconnectTimeoutRef := None;
+    | None => ()
+    };
+  };
+
   let make = (~eventUrl: string, ~baseUrl: string) => {
     websocketRef: ref(None),
     subscriptionsRef: ref(Js.Dict.empty()),
@@ -101,6 +110,7 @@ module Multiplexed = {
             Some(
               setTimeout(
                 () => {
+                  t.reconnectTimeoutRef := None;
                   connect(t);
                 },
                 250,
@@ -281,6 +291,7 @@ module Multiplexed = {
             }
           });
       if (removed && !hasActive()) {
+        clearReconnectTimeout(t);
         switch (t.websocketRef.contents) {
         | Some(ws) =>
           t.idleCloseRef := true;
@@ -295,6 +306,7 @@ module Multiplexed = {
 
   let dispose = (t: t) => {
     t.disposedRef := true;
+    clearReconnectTimeout(t);
     t.subscriptionsRef := Js.Dict.empty();
     switch (t.websocketRef.contents) {
     | Some(ws) =>
