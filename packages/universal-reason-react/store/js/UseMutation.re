@@ -125,8 +125,19 @@ let makeFn =
       ~onDispatch: p => Js.Promise.t(unit),
       (),
     ) => {
-  let result = make((module M), ~onDispatch, ());
-  result.mutate;
+  let onDispatchRef = React.useRef(onDispatch);
+  onDispatchRef.current = onDispatch;
+
+  React.useMemo1(
+    () =>
+      (params: p): Js.Promise.t(unit) =>
+        try({
+          onDispatchRef.current(params)
+        }) {
+        | error => Js.Promise.reject(error)
+        },
+    [||],
+  );
 };
 
 // Main useMutation hook - Native version (server-side)
@@ -151,6 +162,5 @@ let makeFn =
       ~onDispatch: option(p => Js.Promise.t(unit))=?,
       (),
     ) => {
-  let result = make((module M), ());
-  result.mutate;
+  (_params: p): Js.Promise.t(unit) => Js.Promise.resolve();
 };
