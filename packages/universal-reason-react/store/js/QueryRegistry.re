@@ -65,6 +65,39 @@ let reverseList = (items: list('a)): list('a) => {
 };
 
 [@platform native]
+let lwtIterArraySerial = (items: array('a), f: 'a => Lwt.t(unit)) => {
+  let rec loop = index =>
+    if (index >= Array.length(items)) {
+      Lwt.return();
+    } else {
+      Lwt.bind(f(items[index]), _ => loop(index + 1));
+    };
+
+  loop(0);
+};
+
+[@platform native]
+let rec assocOpt = (key: string, fields: list((string, Yojson.Safe.t))) =>
+  switch (fields) {
+  | [] => None
+  | [(currentKey, value), ...rest] =>
+    if (currentKey == key) {
+      Some(value);
+    } else {
+      assocOpt(key, rest);
+    }
+  };
+
+[@platform native]
+let rec iterAssoc = (entries: list((string, Yojson.Safe.t)), f) =>
+  switch (entries) {
+  | [] => ()
+  | [entry, ...rest] =>
+    f(entry);
+    iterAssoc(rest, f);
+  };
+
+[@platform native]
 let with_registry = (~db, ~f, ()) => {
   let f: unit => Lwt.t('a) = f;
   let registry = {
@@ -129,8 +162,9 @@ let execute_queries = () => {
   | Some(registry) =>
     switch (registry.state) {
     | Collecting =>
-      let queries = Hashtbl.to_seq_values(registry.queries) |> List.of_seq;
-      Lwt_list.iter_s(
+      let queries = Hashtbl.to_seq_values(registry.queries) |> Array.of_seq;
+      lwtIterArraySerial(
+        queries,
         (Query(q)) => {
           switch (registry.db_connection) {
           | None => Lwt.return()
@@ -143,7 +177,6 @@ let execute_queries = () => {
             });
           };
         },
-        queries,
       ) |> Lwt.map(_ => {
         registry.state = Executed;
       });
@@ -212,16 +245,16 @@ let setup_registry_from_json = (~jsonStr: string): unit => {
   let results = Hashtbl.create(8);
   (switch (json) {
   | `Assoc(entries) =>
-    List.iter(((key, value)) => {
+    iterAssoc(entries, ((key, value)) => {
       switch (value) {
       | `Assoc(fields) =>
-        switch (List.assoc_opt("data", fields)) {
+        switch (assocOpt("data", fields)) {
         | Some(data) => Hashtbl.replace(results, key, data)
         | None => ()
         }
       | _ => ()
       };
-    }, entries)
+    })
   | _ => ()
   });
   let registry = {
