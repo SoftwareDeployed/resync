@@ -842,7 +842,7 @@ module Synced = {
                     cacheRecords
                     ->Js.Array.map(~f=ledgerRecordOfCache);
                   let idsToDelete =
-                    StoreRuntimeHelpers.getPendingActionIds(
+                    StoreRuntimeHelpers.getPrunableAckedActionIds(
                       ~confirmedTimestamp,
                       ~records,
                     );

@@ -43,7 +43,7 @@ let filterResumableRecords = (records) => {
      );
 };
 
-let getPendingActionIds = (~confirmedTimestamp, ~records) => {
+let getPrunableAckedActionIds = (~confirmedTimestamp, ~records) => {
   records
   ->Js.Array.filter(~f=(record: StoreActionLedger.t) =>
        switch (StoreActionLedger.statusOfString(record.status)) {

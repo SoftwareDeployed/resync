@@ -206,7 +206,7 @@ let suite =
           in
           let result = StoreRuntimeHelpers.filterResumableRecords records in
           Alcotest.(check int) "Should not include failed" 0 (Array.length result));
-      Alcotest.test_case "getPendingActionIds returns array" `Quick (fun () ->
+      Alcotest.test_case "getPrunableAckedActionIds returns acked ids" `Quick (fun () ->
           let records =
             [|
               make_record ~id:"acked-1" ~status:"acked" ~enqueued_at:1000.0;
@@ -214,7 +214,7 @@ let suite =
             |]
           in
           let result =
-            StoreRuntimeHelpers.getPendingActionIds
+            StoreRuntimeHelpers.getPrunableAckedActionIds
               ~confirmedTimestamp:2000.0
               ~records
           in
