@@ -58,6 +58,29 @@ let registry_key: Lwt.key(query_registry) = Lwt.new_key();
 let sync_registry_ref: ref(option(query_registry)) = ref(None);
 
 [@platform native]
+let listOfArrayMap = (~f, items: array('a)): list('b) => {
+  let rec loop = (index, acc) =>
+    if (index < 0) {
+      acc;
+    } else {
+      loop(index - 1, [f(items[index]), ...acc]);
+    };
+
+  loop(Array.length(items) - 1, []);
+};
+
+[@platform native]
+let reverseList = (items: list('a)): list('a) => {
+  let rec loop = (remaining, acc) =>
+    switch (remaining) {
+    | [] => acc
+    | [item, ...rest] => loop(rest, [item, ...acc])
+    };
+
+  loop(items, []);
+};
+
+[@platform native]
 let with_registry = (~db, ~f, ()) => {
   let f: unit => Lwt.t('a) = f;
   let registry = {
@@ -161,13 +184,16 @@ let get_results = () => {
 [@platform native]
 let serialize_snapshot = (snapshot: registry_snapshot): string => {
   let jsonObj = `Assoc([
-    ("queries", `List(snapshot.queries |> Array.to_list |> List.map(q => `String(q)))),
-    ("results", `Assoc(
-      snapshot.results
-      |> Js.Dict.entries
-      |> Array.to_list
-      |> List.map(((k, v)) => (k, StoreJson.toSafe(v)))
-    ))
+    ("queries", `List(listOfArrayMap(~f=q => `String(q), snapshot.queries))),
+    (
+      "results",
+      `Assoc(
+        listOfArrayMap(
+          ~f=((k, v)) => (k, StoreJson.toSafe(v)),
+          snapshot.results->Js.Dict.entries,
+        ),
+      ),
+    ),
   ]);
   Yojson.Safe.to_string(jsonObj);
 };
@@ -191,7 +217,7 @@ let serialize_for_cache = (): string => {
         registry.results,
         [],
       );
-    Yojson.Safe.to_string(`Assoc(List.rev(entries)))
+    Yojson.Safe.to_string(`Assoc(reverseList(entries)))
   };
 };
 
