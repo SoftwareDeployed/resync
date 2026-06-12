@@ -12,13 +12,6 @@ open Tilia.React;
 module Hooks = TodoStore.Hooks;
 open Hooks;
 
-module FailServerMutationDef = {
-  type params = unit;
-  type action = TodoStore.action;
-  let toAction = (_: unit) =>
-    RealtimeSchema.MutationActions.Custom(TodoStore.FailServerMutation);
-};
-
 let copyUrl = () =>
   switch%platform (Runtime.platform) {
   | Server => ()
@@ -43,23 +36,13 @@ let make =
 
     let (newTodoText, setNewTodoText) = React.useState(() => "");
 
-    // Mutations - auto-dispatched via TodoStore.Hooks
-    module AddTodoMutation = {
-      include RealtimeSchema.Mutations.AddTodo;
-      type action = TodoStore.action;
-    };
-    module SetTodoCompletedMutation = {
-      include RealtimeSchema.Mutations.SetTodoCompleted;
-      type action = TodoStore.action;
-    };
-    module RemoveTodoMutation = {
-      include RealtimeSchema.Mutations.RemoveTodo;
-      type action = TodoStore.action;
-    };
-    let addTodoMutation = useMutation((module AddTodoMutation), ());
-    let setTodoCompletedMutation = useMutation((module SetTodoCompletedMutation), ());
-    let removeTodoMutation = useMutation((module RemoveTodoMutation), ());
-    let failServerMutation = useMutation((module FailServerMutationDef), ());
+    let addTodoMutation = useMutation((module TodoStore.Mutations.AddTodo), ());
+    let setTodoCompletedMutation =
+      useMutation((module TodoStore.Mutations.SetTodoCompleted), ());
+    let removeTodoMutation =
+      useMutation((module TodoStore.Mutations.RemoveTodo), ());
+    let failServerMutation =
+      useMutation((module TodoStore.Mutations.FailServer), ());
 
     let todos = store.state.todos;
 

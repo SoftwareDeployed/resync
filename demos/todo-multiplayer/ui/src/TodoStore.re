@@ -3,6 +3,31 @@ type action = RealtimeSchema.MutationActions.action(customAction);
 type state = Model.t;
 type subscription = RealtimeSubscription.t;
 type store = { list_id: string, state, completed_count: int, total_count: int };
+
+module Mutations = {
+  module AddTodo = {
+    include RealtimeSchema.Mutations.AddTodo;
+    type nonrec action = action;
+  };
+
+  module SetTodoCompleted = {
+    include RealtimeSchema.Mutations.SetTodoCompleted;
+    type nonrec action = action;
+  };
+
+  module RemoveTodo = {
+    include RealtimeSchema.Mutations.RemoveTodo;
+    type nonrec action = action;
+  };
+
+  module FailServer = {
+    type params = unit;
+    type nonrec action = action;
+    let toAction = (_: unit) =>
+      RealtimeSchema.MutationActions.Custom(FailServerMutation);
+  };
+};
+
 let emptyState: state = { todos: [||], list: None };
 let scopeKeyOfState = (state: state) => switch (state.list) { | Some(list) => list.id | None => "default" };
 let timestampOfState = (state: state) => switch (state.list) { | Some(list) => list.updated_at | None => 0.0 };
