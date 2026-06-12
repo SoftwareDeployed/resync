@@ -90,6 +90,7 @@ let with_active_registry_result key json f =
     {
       QueryRegistry.state = QueryRegistry.Executed;
       queries = Hashtbl.create 8;
+      ordered_keys = [| key |];
       results;
       errors = Hashtbl.create 8;
       db_connection = None;

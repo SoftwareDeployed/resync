@@ -123,6 +123,14 @@ let suite =
                 "loaded result count"
                 2
                 (Array.length results);
+              Alcotest.(check string)
+                "first loaded result follows registry order"
+                colon_key
+                results.(0).QueryRegistryTypes.key;
+              Alcotest.(check string)
+                "second loaded result follows registry order"
+                "other:two"
+                results.(1).QueryRegistryTypes.key;
               let result = find_loaded_result colon_key results in
               Alcotest.(check string) "key" colon_key result.QueryRegistryTypes.key;
               Alcotest.(check string) "channel" "thread:one" result.QueryRegistryTypes.channel;

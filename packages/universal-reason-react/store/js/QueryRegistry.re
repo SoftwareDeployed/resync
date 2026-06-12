@@ -31,6 +31,7 @@ type registered_query_exec =
 type query_registry = {
   mutable state: registry_state,
   mutable queries: Hashtbl.t(string, registered_query_exec),
+  mutable ordered_keys: array(string),
   mutable results: Hashtbl.t(string, Yojson.Safe.t),
   mutable errors: Hashtbl.t(string, string),
   db_connection: option(module Caqti_lwt.CONNECTION),
@@ -139,6 +140,7 @@ let with_registry = (~db, ~f, ()) => {
   let registry = {
     state: Collecting,
     queries: Hashtbl.create(8),
+    ordered_keys: [||],
     results: Hashtbl.create(8),
     errors: Hashtbl.create(8),
     db_connection: Some(db),
@@ -166,6 +168,8 @@ let register_query =
       if (Hashtbl.mem(registry.queries, key)) {
         None;
       } else {
+        registry.ordered_keys =
+          registry.ordered_keys->Js.Array.concat(~other=[|key|]);
         Hashtbl.add(
           registry.queries,
           key,
@@ -241,9 +245,10 @@ let get_loaded_results = (): array(loaded_query_result) => {
   | None => [||]
   | Some(registry) =>
     let decoded =
-      Hashtbl.to_seq(registry.results)
-      |> Array.of_seq
-      |> Js.Array.map(~f=((key, value)) =>
+      registry.ordered_keys
+      |> Js.Array.map(~f=key =>
+          switch (Hashtbl.find_opt(registry.results, key)) {
+          | Some(value) =>
           switch (decodeRows(~decode=StoreJson.ofSafe, value)) {
           | Some(rows) =>
             Some({
@@ -252,7 +257,9 @@ let get_loaded_results = (): array(loaded_query_result) => {
               rows,
             }: loaded_query_result)
           | None => None
-          },
+          }
+          | None => None
+          }
         );
     let count = ref(0);
     let first = ref(None);
@@ -323,11 +330,13 @@ let registryFromSerialized = (~jsonStr: string): query_registry => {
   let json = Yojson.Safe.from_string(jsonStr);
   let results = Hashtbl.create(8);
   let errors = Hashtbl.create(8);
+  let orderedKeys = ref([||]);
   (switch (json) {
   | `Assoc(entries) =>
     iterAssoc(entries, ((key, value)) => {
       switch (value) {
       | `Assoc(fields) =>
+        orderedKeys := orderedKeys.contents->Js.Array.concat(~other=[|key|]);
         if (isLoadedResult(fields)) {
           switch (assocOpt("data", fields)) {
           | Some(data) => Hashtbl.replace(results, key, data)
@@ -347,6 +356,7 @@ let registryFromSerialized = (~jsonStr: string): query_registry => {
   {
     state: Rendered,
     queries: Hashtbl.create(8),
+    ordered_keys: orderedKeys.contents,
     results,
     errors,
     db_connection: None,
@@ -363,6 +373,7 @@ let setup_registry_from_json = (~jsonStr: string): unit => {
   | Some(currentRegistry) =>
     currentRegistry.state = registry.state;
     currentRegistry.queries = registry.queries;
+    currentRegistry.ordered_keys = registry.ordered_keys;
     currentRegistry.results = registry.results;
     currentRegistry.errors = registry.errors;
   | None => sync_registry_ref := Some(registry)
