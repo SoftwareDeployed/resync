@@ -263,6 +263,30 @@ let testLoadedResultListenersAreCacheScoped = () => {
   );
 };
 
+let testRealtimeClientKeepsStatesPerUrl = () => {
+  RealtimeClient.Socket.InternalForTests.resetStates();
+  RealtimeClient.Socket.InternalForTests.touchState(
+    ~eventUrl="/_events",
+    ~baseUrl="http://one.test",
+  );
+  RealtimeClient.Socket.InternalForTests.touchState(
+    ~eventUrl="/_events",
+    ~baseUrl="http://two.test",
+  );
+  RealtimeClient.Socket.InternalForTests.touchState(
+    ~eventUrl="/_events",
+    ~baseUrl="http://one.test",
+  );
+  let count = RealtimeClient.Socket.InternalForTests.activeStateCount();
+  RealtimeClient.Socket.InternalForTests.resetStates();
+
+  BrowserTestUtils.assertTrue(
+    ~label="RealtimeClient keeps websocket states per URL",
+    count == 2 && RealtimeClient.Socket.InternalForTests.activeStateCount() == 0,
+    ~details="different event/base URLs reused one global websocket state",
+  );
+};
+
 let testHydratedProvidersPreserveOuterToInnerOrder = () => {
   let result =
     StoreBuilder.Bootstrap.withHydratedProviders(
@@ -383,6 +407,7 @@ let run = () => {
   |> then_(_ => testQueryCacheHydrateUpdatesExistingSignalWithError())
   |> then_(_ => testNoQueryConfigDoesNotRegisterLoadedResultListener())
   |> then_(_ => testLoadedResultListenersAreCacheScoped())
+  |> then_(_ => testRealtimeClientKeepsStatesPerUrl())
   |> then_(_ => testHydratedProvidersPreserveOuterToInnerOrder())
   |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
   |> then_(_ => testPrunableAckedActionIdsHandleMalformedUuid())

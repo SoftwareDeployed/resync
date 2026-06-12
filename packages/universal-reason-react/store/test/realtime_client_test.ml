@@ -24,6 +24,17 @@ let suite =
             "019ebaad-3fed-7b7b-b36f-453970002fae"
             (RealtimeClient.channelIdOfSubscription
                "019ebaad-3fed-7b7b-b36f-453970002fae"));
+      Alcotest.test_case "connectionStateKey separates base URLs" `Quick
+        (fun () ->
+          Alcotest.(check bool)
+            "different base URLs"
+            true
+            (RealtimeClient.connectionStateKey
+               ~eventUrl:"/_events"
+               ~baseUrl:"http://one.test"
+             <> RealtimeClient.connectionStateKey
+                  ~eventUrl:"/_events"
+                  ~baseUrl:"http://two.test"));
       Alcotest.test_case "select requests keep distinct logical subscriptions" `Quick
         (fun () ->
           let requests =

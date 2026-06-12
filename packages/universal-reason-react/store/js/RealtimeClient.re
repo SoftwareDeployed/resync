@@ -66,6 +66,9 @@ let channelIdOfSubscription = (subscription: string): string =>
     };
   };
 
+let connectionStateKey = (~eventUrl: string, ~baseUrl: string): string =>
+  string_of_int(String.length(baseUrl)) ++ ":" ++ baseUrl ++ eventUrl;
+
 type select_request = (string, float);
 
 let hasSelectRequest = (~subscription: string, requests: array(select_request)) =>
@@ -207,6 +210,7 @@ module Socket = {
 
   /* Multiplexed connection state - shared across all subscriptions */
   type multiplexed_state = {
+    key: string,
     mutable websocket: option(websocket),
     mutable pingIntervalId: option(int),
     mutable reconnectTimeoutId: option(int),
@@ -218,18 +222,18 @@ module Socket = {
     mutable isClosing: bool,
   };
 
-  /* Global singleton state per URL combination */
-  let globalState: ref(option(multiplexed_state)) = ref(None);
+  external deleteState: (Js.Dict.t(multiplexed_state), string) => unit = "delete";
+
+  /* Global websocket state per URL combination */
+  let globalStatesRef: ref(Js.Dict.t(multiplexed_state)) = ref(Js.Dict.empty());
 
   let getOrCreateState = (~eventUrl: string, ~baseUrl: string) => {
-    switch (globalState.contents) {
-    | Some(state) =>
-      /* Update URLs in case they changed */
-      state.eventUrl = eventUrl;
-      state.baseUrl = baseUrl;
-      state
+    let key = connectionStateKey(~eventUrl, ~baseUrl);
+    switch (globalStatesRef.contents->Js.Dict.get(key)) {
+    | Some(state) => state
     | None =>
       let state = {
+        key,
         websocket: None,
         pingIntervalId: None,
         reconnectTimeoutId: None,
@@ -243,7 +247,7 @@ module Socket = {
         isConnecting: false,
         isClosing: false,
       };
-      globalState := Some(state);
+      globalStatesRef.contents->Js.Dict.set(key, state);
       state
     };
   };
@@ -264,6 +268,19 @@ module Socket = {
       }
     | None => ()
     };
+
+  let disposeState = state => {
+    state.isClosing = true;
+    clearPingInterval(state);
+    clearReconnectTimeout(state);
+    switch (state.websocket) {
+    | Some(ws) => {
+        state.websocket = None;
+        ws->WebSocket.close;
+      }
+    | None => ()
+    };
+  };
 
   let sendFrame = (state, frame: string) =>
     switch (state.websocket) {
@@ -372,17 +389,8 @@ module Socket = {
       };
     };
     if (!hasActive.contents) {
-      state.isClosing = true;
-      clearPingInterval(state);
-      clearReconnectTimeout(state);
-      switch (state.websocket) {
-      | Some(ws) => {
-          state.websocket = None;
-          ws->WebSocket.close;
-        }
-      | None => ()
-      };
-      globalState := None;
+      disposeState(state);
+      deleteState(globalStatesRef.contents, state.key);
     };
   };
 
@@ -591,6 +599,23 @@ module Socket = {
 
   let disposeHandle = handle => {
     handle.dispose();
+  };
+
+  module InternalForTests = {
+    let touchState = (~eventUrl, ~baseUrl) => {
+      let _ = getOrCreateState(~eventUrl, ~baseUrl);
+      ();
+    };
+
+    let activeStateCount = () =>
+      Array.length(globalStatesRef.contents->Js.Dict.keys);
+
+    let resetStates = () => {
+      globalStatesRef.contents
+      ->Js.Dict.entries
+      ->Js.Array.forEach(~f=((_, state)) => disposeState(state));
+      globalStatesRef := Js.Dict.empty();
+    };
   };
 };
 
