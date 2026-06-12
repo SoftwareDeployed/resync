@@ -202,7 +202,11 @@ module Bootstrap = {
   };
 
   let withHydratedProviders = (~stores as _, ~children as _) => {
-    {stores: [||], element: React.null};
+    {
+      stores:
+        Js.Exn.raiseError("StoreBuilder.Bootstrap.withHydratedProviders is client-only"),
+      element: React.null,
+    };
   };
 
   let withCreatedProvider = (~createStore as _, ~provider as _, ~initialState as _, ~children as _) => {
