@@ -20,11 +20,6 @@ type registered_query('params, 'row) = {
   mutable result: query_result('row),
 };
 
-type registry_snapshot = {
-  queries: array(query_key),
-  results: Js.Dict.t(StoreJson.json),
-};
-
 type loaded_query_result = {
   key: query_key,
   channel: string,

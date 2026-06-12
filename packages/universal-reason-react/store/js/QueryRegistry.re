@@ -229,18 +229,6 @@ let execute_queries = () => {
 };
 
 [@platform native]
-let get_results = () => {
-  switch (Lwt.get(registry_key)) {
-  | None => { queries: [||], results: Js.Dict.empty() }
-  | Some(registry) =>
-    let queries = Hashtbl.to_seq_keys(registry.queries) |> Array.of_seq;
-    let results = Js.Dict.empty();
-    Hashtbl.iter((k, v) => results->Js.Dict.set(k, StoreJson.ofSafe(v)), registry.results);
-    { queries, results };
-  };
-};
-
-[@platform native]
 let get_loaded_results = (): array(loaded_query_result) => {
   switch (current_registry()) {
   | None => [||]
@@ -263,27 +251,6 @@ let get_loaded_results = (): array(loaded_query_result) => {
     );
     loadedResults.contents;
   };
-};
-
-// Serialize snapshot to JSON string for SSR
-[@platform native]
-let serialize_snapshot = (snapshot: registry_snapshot): string => {
-  let jsonObj = `Assoc([
-    (
-      "queries",
-      `List(snapshot.queries->Js.Array.map(~f=q => `String(q))->StoreJson.listOfArray),
-    ),
-    (
-      "results",
-      `Assoc(
-        snapshot.results
-        ->Js.Dict.entries
-        ->Js.Array.map(~f=((k, v)) => (k, StoreJson.toSafe(v)))
-        ->StoreJson.listOfArray,
-      ),
-    ),
-  ]);
-  Yojson.Safe.to_string(jsonObj);
 };
 
 // Serialize registry results to QueryCache hydrate format
@@ -401,19 +368,10 @@ let find_error = (~key as _) => None;
 let execute_queries = () => ();
 
 [@platform js]
-let get_results = () => {
-  queries: [||],
-  results: Js.Dict.empty(),
-};
-
-[@platform js]
 let get_loaded_results = () => [||];
 
 [@platform js]
 let with_registry = (~db as _, ~f, ()) => f();
-
-[@platform js]
-let serialize_snapshot = (_snapshot: registry_snapshot): string => "{}";
 
 // Note: registry_key not needed on JS platform
 
