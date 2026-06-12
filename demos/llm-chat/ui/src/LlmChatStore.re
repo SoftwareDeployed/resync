@@ -57,47 +57,52 @@ let timestampOfState = (state: state) => state.updated_at;
 let setTimestamp = (~state: state, ~timestamp: float) =>
   {...state, updated_at: timestamp};
 
+let actionJson = (~kind, ~fill) => {
+  let dict = Js.Dict.empty();
+  let payload = Js.Dict.empty();
+  dict->Js.Dict.set("kind", string_to_json(kind));
+  fill(payload);
+  dict->Js.Dict.set("payload", StoreJson.Dict.to_json(json => json, payload));
+  StoreJson.Dict.to_json(json => json, dict);
+};
+
 let action_to_json = action =>
   switch (action) {
   | SendPrompt(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"send_prompt\",\"payload\":{\"thread_id\":"
-      ++ string_to_json(payload.thread_id)->Melange_json.to_string
-      ++ ",\"prompt\":"
-      ++ string_to_json(payload.prompt)->Melange_json.to_string
-      ++ "}}"
+    actionJson(
+      ~kind="send_prompt",
+      ~fill=dict => {
+        dict->Js.Dict.set("thread_id", string_to_json(payload.thread_id));
+        dict->Js.Dict.set("prompt", string_to_json(payload.prompt));
+      },
     )
   | CreateNewThread(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"create_new_thread\",\"payload\":{\"id\":"
-      ++ string_to_json(payload.id)->Melange_json.to_string
-      ++ ",\"title\":"
-      ++ string_to_json(payload.title)->Melange_json.to_string
-      ++ "}}"
+    actionJson(
+      ~kind="create_new_thread",
+      ~fill=dict => {
+        dict->Js.Dict.set("id", string_to_json(payload.id));
+        dict->Js.Dict.set("title", string_to_json(payload.title));
+      },
     )
   | SetInput(text) =>
-    StoreJson.parse(
-      "{\"kind\":\"set_input\",\"payload\":{\"text\":"
-      ++ string_to_json(text)->Melange_json.to_string
-      ++ "}}"
+    actionJson(
+      ~kind="set_input",
+      ~fill=dict => dict->Js.Dict.set("text", string_to_json(text)),
     )
   | SetError(message) =>
-    StoreJson.parse(
-      "{\"kind\":\"set_error\",\"payload\":{\"message\":"
-      ++ string_to_json(message)->Melange_json.to_string
-      ++ "}}"
+    actionJson(
+      ~kind="set_error",
+      ~fill=dict => dict->Js.Dict.set("message", string_to_json(message)),
     )
   | SelectThread(thread_id) =>
-    StoreJson.parse(
-      "{\"kind\":\"select_thread\",\"payload\":{\"thread_id\":"
-      ++ string_to_json(thread_id)->Melange_json.to_string
-      ++ "}}"
+    actionJson(
+      ~kind="select_thread",
+      ~fill=dict => dict->Js.Dict.set("thread_id", string_to_json(thread_id)),
     )
   | DeleteThread(thread_id) =>
-    StoreJson.parse(
-      "{\"kind\":\"delete_thread\",\"payload\":{\"thread_id\":"
-      ++ string_to_json(thread_id)->Melange_json.to_string
-      ++ "}}"
+    actionJson(
+      ~kind="delete_thread",
+      ~fill=dict => dict->Js.Dict.set("thread_id", string_to_json(thread_id)),
     )
   };
 
