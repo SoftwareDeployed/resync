@@ -46,7 +46,7 @@ let appendUniquePeriod = (periods, period: Model.Pricing.period) =>
   if (hasPeriodUnit(periods, period.unit)) {
     periods;
   } else {
-    Js.Array.concat(~other=[|period|], periods);
+    periods->Js.Array.concat(~other=[|period|]);
   };
 
 let appendUniquePeriods = (periods, periodList) => {
