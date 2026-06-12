@@ -31,8 +31,8 @@ let make_runtime
   ?(load_snapshot = fun _request channel ->
     Lwt.return (Printf.sprintf "{\"channel\":\"%s\"}" channel))
   ?handle_mutation ?handle_mutation_without_db ?handle_media ?(action_store = (module In_memory_action_store : Action_store.S))
-  ?(use_db = fun _request callback ->
-    callback Test_db.unused)
+  ?(use_db = fun _request _callback ->
+    Alcotest.fail "Unexpected database access in middleware test")
   adapter_state =
   let packed = Adapter.pack (module Fake_adapter) adapter_state in
   Middleware.create ~adapter:packed ~resolve_subscription ~load_snapshot
@@ -105,7 +105,7 @@ let suite =
     let handle_mutation _broadcast _request ~db:_ ~action_id:_ ~mutation_name:_ _action =
     Lwt.return (Mutation_result.Ack (Ok ()))
     in
-    let runtime = make_runtime ~handle_mutation adapter in
+    let runtime = make_runtime ~handle_mutation ~use_db:Test_db.use_unused adapter in
     let sent = ref [] in
     let _ =
     Lwt_main.run
@@ -128,7 +128,7 @@ let suite =
     incr call_count;
     Lwt.return (Mutation_result.Ack (Ok ()))
     in
-    let runtime = make_runtime ~handle_mutation adapter in
+    let runtime = make_runtime ~handle_mutation ~use_db:Test_db.use_unused adapter in
     let _ =
     Lwt_main.run
     (Middleware.handle_message_with_io runtime request []
@@ -156,7 +156,7 @@ let suite =
     incr call_count;
     Lwt.return (Mutation_result.Ack (Error "bad"))
     in
-    let runtime = make_runtime ~handle_mutation adapter in
+    let runtime = make_runtime ~handle_mutation ~use_db:Test_db.use_unused adapter in
     let sent = ref [] in
     let _ =
     Lwt_main.run
@@ -229,7 +229,7 @@ let suite =
     incr call_count;
     Lwt.return Mutation_result.NoAck
     in
-    let runtime = make_runtime ~handle_mutation adapter in
+    let runtime = make_runtime ~handle_mutation ~use_db:Test_db.use_unused adapter in
     let _ =
     Lwt_main.run
     (Middleware.handle_message_with_io runtime request []
@@ -258,7 +258,7 @@ let suite =
     | (module _ : Caqti_lwt.CONNECTION) -> received_db := true);
     Lwt.return (Mutation_result.Ack (Ok ()))
     in
-    let runtime = make_runtime ~handle_mutation adapter in
+    let runtime = make_runtime ~handle_mutation ~use_db:Test_db.use_unused adapter in
     let _ =
     Lwt_main.run
     (Middleware.handle_message_with_io runtime request []
@@ -609,7 +609,7 @@ let suite =
     broadcast "c" (fun ~channel s -> s);
     Lwt.return (Mutation_result.Ack (Ok ()))
     in
-    let runtime = make_runtime ~handle_mutation adapter in
+    let runtime = make_runtime ~handle_mutation ~use_db:Test_db.use_unused adapter in
     let sent = ref [] in
     let _ =
     Lwt_main.run
