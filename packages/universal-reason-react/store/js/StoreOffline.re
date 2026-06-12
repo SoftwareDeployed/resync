@@ -31,20 +31,6 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
   };
 };
 
-let jsonObject = fill => {
-  let dict: Js.Dict.t(StoreJson.json) = Js.Dict.empty();
-  fill(dict);
-  StoreJson.Dict.to_json(json => json, dict);
-};
-
-let setJsonField = (dict, key, value) => dict->Js.Dict.set(key, value);
-
-let setStringField = (dict, key, value) =>
-  setJsonField(dict, key, Melange_json.Primitives.string_to_json(value));
-
-let setFloatField = (dict, key, value) =>
-  setJsonField(dict, key, Melange_json.Primitives.float_to_json(value));
-
 module Local = {
   type queriesConfig('state) = {
     applyQueryResult: (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
@@ -158,10 +144,10 @@ module Local = {
             channel,
             StoreJson.stringify(
               json => json,
-              jsonObject(dict => {
-                setStringField(dict, "scopeKey", Schema.scopeKeyOfState(state));
-                setFloatField(dict, "timestamp", Schema.timestampOfState(state));
-                setJsonField(dict, "state", Schema.state_to_json(state));
+              StoreJson.Object.make(dict => {
+                StoreJson.Object.setString(dict, "scopeKey", Schema.scopeKeyOfState(state));
+                StoreJson.Object.setFloat(dict, "timestamp", Schema.timestampOfState(state));
+                StoreJson.Object.setJson(dict, "state", Schema.state_to_json(state));
               }),
             ),
           )
@@ -760,10 +746,10 @@ module Synced = {
             channel,
             StoreJson.stringify(
               json => json,
-              jsonObject(dict => {
-                setStringField(dict, "type", "optimistic_action");
-                setStringField(dict, "scopeKey", record.scopeKey);
-                setStringField(dict, "actionId", record.id);
+              StoreJson.Object.make(dict => {
+                StoreJson.Object.setString(dict, "type", "optimistic_action");
+                StoreJson.Object.setString(dict, "scopeKey", record.scopeKey);
+                StoreJson.Object.setString(dict, "actionId", record.id);
               }),
             ),
           )
@@ -781,11 +767,11 @@ module Synced = {
             channel,
             StoreJson.stringify(
               json => json,
-              jsonObject(dict => {
-                setStringField(dict, "type", "confirmed_state");
-                setStringField(dict, "scopeKey", Schema.scopeKeyOfState(state));
-                setFloatField(dict, "timestamp", Schema.timestampOfState(state));
-                setJsonField(dict, "state", Schema.state_to_json(state));
+              StoreJson.Object.make(dict => {
+                StoreJson.Object.setString(dict, "type", "confirmed_state");
+                StoreJson.Object.setString(dict, "scopeKey", Schema.scopeKeyOfState(state));
+                StoreJson.Object.setFloat(dict, "timestamp", Schema.timestampOfState(state));
+                StoreJson.Object.setJson(dict, "state", Schema.state_to_json(state));
               }),
             ),
           )

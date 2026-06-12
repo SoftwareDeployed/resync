@@ -80,6 +80,26 @@ module Dict = {
   };
 };
 
+module Object = {
+  type t = Js.Dict.t(json);
+
+  let make = fill => {
+    let dict: t = Js.Dict.empty();
+    fill(dict);
+    Dict.to_json(json => json, dict);
+  };
+
+  let setJson = (dict: t, key, value) => dict->Js.Dict.set(key, value);
+  let setString = (dict: t, key, value) =>
+    setJson(dict, key, Melange_json.Primitives.string_to_json(value));
+  let setInt = (dict: t, key, value) =>
+    setJson(dict, key, Melange_json.Primitives.int_to_json(value));
+  let setFloat = (dict: t, key, value) =>
+    setJson(dict, key, Melange_json.Primitives.float_to_json(value));
+  let setBool = (dict: t, key, value) =>
+    setJson(dict, key, Melange_json.Primitives.bool_to_json(value));
+};
+
 let parse = (data: string) => Melange_json.of_string(data);
 
 let tryParse = (data: string) =>

@@ -1,17 +1,6 @@
 open Melange_json.Primitives;
 open Store;
 
-let jsonObject = fill => {
-  let dict: Js.Dict.t(Json.json) = Js.Dict.empty();
-  fill(dict);
-  Json.Dict.to_json(json => json, dict);
-};
-
-let setJsonField = (dict, key, value) => dict->Js.Dict.set(key, value);
-let setStringField = (dict, key, value) => setJsonField(dict, key, string_to_json(value));
-let setIntField = (dict, key, value) => setJsonField(dict, key, int_to_json(value));
-let setFloatField = (dict, key, value) => setJsonField(dict, key, float_to_json(value));
-
 module LocalFixture = {
   type state = {
     count: int,
@@ -45,9 +34,9 @@ module LocalFixture = {
   };
 
   let state_to_json = state =>
-    jsonObject(dict => {
-      setIntField(dict, "count", state.count);
-      setFloatField(dict, "updated_at", state.updated_at);
+    Json.Object.make(dict => {
+      Json.Object.setInt(dict, "count", state.count);
+      Json.Object.setFloat(dict, "updated_at", state.updated_at);
     });
 
   let action_of_json = json => {
@@ -61,8 +50,8 @@ module LocalFixture = {
 
   let action_to_json = action => {
     switch (action) {
-    | Increment => jsonObject(dict => setStringField(dict, "kind", "increment"))
-    | Decrement => jsonObject(dict => setStringField(dict, "kind", "decrement"))
+    | Increment => Json.Object.make(dict => Json.Object.setString(dict, "kind", "increment"))
+    | Decrement => Json.Object.make(dict => Json.Object.setString(dict, "kind", "decrement"))
     };
   };
 
@@ -124,9 +113,9 @@ module CrudFixture = {
   };
 
   let row_to_json = row =>
-    jsonObject(dict => {
-      setStringField(dict, "id", row.id);
-      setStringField(dict, "name", row.name);
+    Json.Object.make(dict => {
+      Json.Object.setString(dict, "id", row.id);
+      Json.Object.setString(dict, "name", row.name);
     });
 
   type state = {
@@ -179,9 +168,13 @@ module CrudFixture = {
   };
 
   let state_to_json = state =>
-    jsonObject(dict => {
-      setJsonField(dict, "items", Melange_json.To_json.array(row_to_json)(state.items));
-      setFloatField(dict, "updated_at", state.updated_at);
+    Json.Object.make(dict => {
+      Json.Object.setJson(
+        dict,
+        "items",
+        Melange_json.To_json.array(row_to_json)(state.items),
+      );
+      Json.Object.setFloat(dict, "updated_at", state.updated_at);
     });
 
   let action_of_json = json => {
@@ -202,15 +195,15 @@ module CrudFixture = {
   let action_to_json = action => {
     switch (action) {
     | AddRow(row) =>
-      jsonObject(dict => {
-        setStringField(dict, "kind", "add_row");
-        setStringField(dict, "id", row.id);
-        setStringField(dict, "name", row.name);
+      Json.Object.make(dict => {
+        Json.Object.setString(dict, "kind", "add_row");
+        Json.Object.setString(dict, "id", row.id);
+        Json.Object.setString(dict, "name", row.name);
       })
     | RemoveRow(id) =>
-      jsonObject(dict => {
-        setStringField(dict, "kind", "remove_row");
-        setStringField(dict, "id", id);
+      Json.Object.make(dict => {
+        Json.Object.setString(dict, "kind", "remove_row");
+        Json.Object.setString(dict, "id", id);
       })
     };
   };
@@ -331,13 +324,13 @@ module CustomSyncedFixture = {
   };
 
   let state_to_json = state =>
-    jsonObject(dict => {
-      setJsonField(
+    Json.Object.make(dict => {
+      Json.Object.setJson(
         dict,
         "messages",
         Melange_json.To_json.array(string_to_json)(state.messages),
       );
-      setFloatField(dict, "updated_at", state.updated_at);
+      Json.Object.setFloat(dict, "updated_at", state.updated_at);
     });
 
   let action_of_json = json => {
@@ -355,9 +348,9 @@ module CustomSyncedFixture = {
   let action_to_json = action => {
     switch (action) {
     | SendMessage(msg) =>
-      jsonObject(dict => {
-        setStringField(dict, "kind", "send_message");
-        setStringField(dict, "message", msg);
+      Json.Object.make(dict => {
+        Json.Object.setString(dict, "kind", "send_message");
+        Json.Object.setString(dict, "message", msg);
       })
     };
   };
