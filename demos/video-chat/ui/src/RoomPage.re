@@ -92,6 +92,13 @@ module View = {
       let remoteCanvasRef = React.useRef(None);
       let captureRef = React.useRef(None);
       let remotePeerRef = React.useRef(None);
+      let storeRef = React.useRef(store);
+      let roomIdValueRef = React.useRef(roomIdValue);
+      let joinRoomFnRef = React.useRef(joinRoomFn);
+
+      storeRef.current = store;
+      roomIdValueRef.current = roomIdValue;
+      joinRoomFnRef.current = joinRoomFn;
 
       let releaseCapture = () => {
         switch (captureRef.current) {
@@ -155,6 +162,15 @@ module View = {
               switch (chunkData) {
               | Some(data) => playAudioChunk(data)
               | None => ()
+              };
+            | Reconnect =>
+              let currentStore = storeRef.current;
+              let currentRoomId = roomIdValueRef.current;
+              if (currentRoomId != "" && currentStore.state.is_joined) {
+                let payload =
+                  VideoChatStore.joinRoomPayload(currentStore, currentRoomId);
+                let _ = joinRoomFnRef.current(payload);
+                ();
               };
             | _ => ()
             }

@@ -786,7 +786,6 @@ module StoreDef = Store.Frp.Synced.Streaming.Build({
             Js.Console.error("[VideoChatStore] Server error: " ++ message);
             dispatch(ResetJoinStatus);
           },
-          ~onOpen=(~dispatch) => dispatch(ResetJoinStatus),
           ~onMultiplexedHandle=handle => MediaTransport.setHandle(Some(handle)),
           (),
         ),
