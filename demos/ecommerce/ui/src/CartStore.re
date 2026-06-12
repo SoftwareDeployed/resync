@@ -78,7 +78,7 @@ let copyItems = (items: items) => {
   let nextItems = Js.Dict.empty();
   items
   ->Js.Dict.keys
-  ->Belt.Array.forEach(key =>
+  ->Js.Array.forEach(~f=key =>
       switch (items->Js.Dict.get(key)) {
       | Some(item) => nextItems->Js.Dict.set(key, item)
       | None => ()
@@ -91,7 +91,7 @@ let removeItemById = (items: items, inventoryId: string) => {
   let nextItems = Js.Dict.empty();
   items
   ->Js.Dict.keys
-  ->Belt.Array.forEach(key =>
+  ->Js.Array.forEach(~f=key =>
       if (key != inventoryId) {
         switch (items->Js.Dict.get(key)) {
         | Some(item) => nextItems->Js.Dict.set(key, item)
