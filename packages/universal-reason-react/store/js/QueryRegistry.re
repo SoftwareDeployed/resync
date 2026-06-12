@@ -199,6 +199,13 @@ let find_error = (~key: string): option(string) =>
   };
 
 [@platform native]
+let registered_query_count = (): int =>
+  switch (current_registry()) {
+  | Some(registry) => Hashtbl.length(registry.queries)
+  | None => 0
+  };
+
+[@platform native]
 let execute_queries = () => {
   switch (Lwt.get(registry_key)) {
   | None => Lwt.return()
@@ -388,6 +395,9 @@ let find_result = (~key as _) => None;
 
 [@platform js]
 let find_error = (~key as _) => None;
+
+[@platform js]
+let registered_query_count = () => 0;
 
 [@platform js]
 let execute_queries = () => ();

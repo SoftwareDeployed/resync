@@ -612,10 +612,12 @@ module Runtime = {
     let useQuery:
       (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
        'p,
+       ~skip: bool=?,
        unit) => t;
     let useQueryResult:
       (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
        'p,
+       ~skip: bool=?,
        unit) => UseQuery.result('r);
     let useIsQueryLoading:
       (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
@@ -632,10 +634,12 @@ module Runtime = {
       let useQuery:
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          'p,
+         ~skip: bool=?,
          unit) => t;
       let useQueryResult:
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          'p,
+         ~skip: bool=?,
          unit) => UseQuery.result('r);
       let useIsQueryLoading:
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,

@@ -53,6 +53,11 @@ let with_error_registry ?(key = string_query_key) message f =
   QueryRegistry.setup_registry_from_json ~jsonStr;
   Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
 
+let with_empty_registry f =
+  let previous = !(QueryRegistry.sync_registry_ref) in
+  QueryRegistry.setup_registry_from_json ~jsonStr:"{}";
+  Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
+
 let suite =
   ( "UseQuery",
     [
@@ -101,4 +106,31 @@ let suite =
                   Alcotest.fail "cached query error should not stay Loading"
               | QueryRegistryTypes.Loaded _ ->
                   Alcotest.fail "cached query error should not return Loaded"));
+      Alcotest.test_case "server skipped query is idle and unregistered" `Quick
+        (fun () ->
+          with_empty_registry (fun () ->
+              let result =
+                UseQuery.useQuery (module StringQuery) "params" ~skip:true ()
+              in
+              Alcotest.(check bool)
+                "skipped query is not loading"
+                false result.loading;
+              Alcotest.(check (option string))
+                "skipped query has no error"
+                None result.error;
+              (match result.data with
+              | QueryRegistryTypes.Loading -> ()
+              | QueryRegistryTypes.Loaded _ ->
+                  Alcotest.fail "skipped query should not expose rows"
+              | QueryRegistryTypes.Error msg ->
+                  Alcotest.fail ("skipped query should not error: " ^ msg));
+              Alcotest.(check int)
+                "skipped query should not register"
+                0
+                (QueryRegistry.registered_query_count ());
+              let _ = UseQuery.useQuery (module StringQuery) "params" () in
+              Alcotest.(check int)
+                "unskipped query should register"
+                1
+                (QueryRegistry.registered_query_count ())));
     ] )

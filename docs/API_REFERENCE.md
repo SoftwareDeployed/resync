@@ -386,8 +386,8 @@ module Context = StoreDef.Context;
 - `let serializeSnapshot: state => string`: Serialize for snapshot
 - `let dispatch: action => unit`: Dispatch a typed action
 - `let useStreaming(): streaming_state`: Read the store's typed streaming state reactively; local stores return `unit`, synced stores update after typed stream events and confirmed patch reconciliation
-- `let useQuery((module Query), params, ())`: Subscribe to an SSR-hydrated query and return the store after applying loaded rows
-- `let useQueryResult((module Query), params, ())`: Subscribe to an SSR-hydrated query and return the low-level `{data, loading, error}` query result
+- `let useQuery((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the store after applying loaded rows. Pass `~skip=true` to preserve React hook order while avoiding SSR registration and client subscription.
+- `let useQueryResult((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the low-level `{data, loading, error}` query result. When skipped, it returns `{data: Loading, loading: false, error: None}` and does not contact the backend.
 - `let useMutation((module Mutation), ())`: Create a store-scoped mutation handle; custom modules provide `type params`, `type action`, and `toAction(params)`; `result.dispatch(params)` and `result.mutate(params)` are aliases that return `Js.Promise.t(unit)`. The handle also exposes `loading` while one or more mutations are in flight and `error` with the latest rejection message. Local stores resolve after local dispatch and reject when validation denies the action or the store is unavailable; synced stores resolve after server acknowledgement and reject on validation or server mutation failure.
 - `let useIsQueryLoading((module Query), params)`: Reactive loading helper backed by the shared query cache signal
 - `module Context`: React context for store access

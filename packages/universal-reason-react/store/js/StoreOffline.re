@@ -11,18 +11,20 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
     type r,
     module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
     params: p,
+    ~skip=false,
     (),
   ) =>
-    UseQuery.useQuery((module Q), params, ());
+    UseQuery.useQuery((module Q), params, ~skip, ());
 
   let query = (
     type p,
     type r,
     module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
     params: p,
+    ~skip=false,
     (),
   ) => {
-    let _ = queryResult((module Q), params, ());
+    let _ = queryResult((module Q), params, ~skip, ());
     Runtime.useStore();
   };
 

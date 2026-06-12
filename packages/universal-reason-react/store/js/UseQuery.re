@@ -32,6 +32,8 @@ let hookResultOfData = (data: query_result('row)): result('row) => {
   {data, loading, error};
 };
 
+let skippedResult: result('row) = {data: Loading, loading: false, error: None};
+
 let decodeQueryResult =
     (
       type p,
@@ -138,23 +140,28 @@ let hydrateCacheFromDom = (~cacheId as _unused=?, ()) => {
 };
 
 [@platform js]
-let useQuerySignal = (~cache, ~key, ~channel) => {
+let useQuerySignal = (~cache, ~key, ~channel, ~skip) => {
   let signal =
     React.useMemo1(() => QueryCache.getSignal(~t=cache, ~key), [|key|]);
+  let skipToken = skip ? "skip" : "run";
 
   React.useEffect1(
     () => {
-      let (_signal, unsubscribe) =
-        QueryCache.subscribe(
-          ~t=cache,
-          ~key,
-          ~channel,
-          ~updatedAt=0.0,
-          (),
-        );
-      Some(unsubscribe);
+      if (skip) {
+        Some(() => ());
+      } else {
+        let (_signal, unsubscribe) =
+          QueryCache.subscribe(
+            ~t=cache,
+            ~key,
+            ~channel,
+            ~updatedAt=0.0,
+            (),
+          );
+        Some(unsubscribe);
+      };
     },
-    [|key, channel|],
+    [|key, channel, skipToken|],
   );
 
   Tilia.React.useTilia();
@@ -168,14 +175,15 @@ let useRawQueryResult =
       type r,
       module Q: QueryModule with type params = p and type row = r,
       params: p,
+      ~skip,
     ) => {
   let channel = Q.channel(params);
   let paramsHash = Q.paramsHash(params);
   let key = makeKey(~channel, ~paramsHash);
 
   let cache = getQueryCache();
-  let signal = useQuerySignal(~cache, ~key, ~channel);
-  signal->Tilia.Core.lift;
+  let signal = useQuerySignal(~cache, ~key, ~channel, ~skip);
+  skip ? Loading : signal->Tilia.Core.lift;
 };
 
 // Main useQuery hook - JS version (client-side)
@@ -186,11 +194,13 @@ let useQuery =
       type r,
       module Q: QueryModule with type params = p and type row = r,
       params: p,
+      ~skip=false,
       (),
     ) => {
-  useRawQueryResult((module Q), params)
-  |> decodeQueryResult((module Q))
-  |> hookResultOfData;
+  let rawResult = useRawQueryResult((module Q), params, ~skip);
+  skip
+    ? skippedResult
+    : rawResult |> decodeQueryResult((module Q)) |> hookResultOfData;
 };
 
 // Main useQuery hook - Native version (server-side SSR)
@@ -201,66 +211,71 @@ let useQuery =
       type r,
       module Q: QueryModule with type params = p and type row = r,
       params: p,
+      ~skip=false,
       (),
     ) => {
   let channel = Q.channel(params);
   let paramsHash = Q.paramsHash(params);
   let key = makeKey(~channel, ~paramsHash);
 
-  // Server: Register with QueryRegistry for SSR collection
-  let _ =
-    QueryRegistry.register_query(
-      ~key,
-      ~channel,
-      ~params,
-      ~sql="",
-      ~execute=
-        db => {
-          Lwt.bind(
-            Q.execute(db, params),
-            (result: Stdlib.result(array(r), string)) => {
-            switch (result) {
-            | Ok(rows) =>
-              let jsonRows =
-                rows->Js.Array.map(~f=(row: r) =>
-                  row->Q.row_to_json->StoreJson.toSafe
-                );
-              Lwt.return(Stdlib.Ok(StoreJson.safeListOfArray(jsonRows)));
-            | Error(msg) => Lwt.return(Stdlib.Error(msg))
-            }
-          })
-        },
-      ~decode=json => Q.decodeRow(StoreJson.ofSafe(json)),
-    );
+  if (skip) {
+    skippedResult;
+  } else {
+    // Server: Register with QueryRegistry for SSR collection
+    let _ =
+      QueryRegistry.register_query(
+        ~key,
+        ~channel,
+        ~params,
+        ~sql="",
+        ~execute=
+          db => {
+            Lwt.bind(
+              Q.execute(db, params),
+              (result: Stdlib.result(array(r), string)) => {
+              switch (result) {
+              | Ok(rows) =>
+                let jsonRows =
+                  rows->Js.Array.map(~f=(row: r) =>
+                    row->Q.row_to_json->StoreJson.toSafe
+                  );
+                Lwt.return(Stdlib.Ok(StoreJson.safeListOfArray(jsonRows)));
+              | Error(msg) => Lwt.return(Stdlib.Error(msg))
+              }
+            })
+          },
+        ~decode=json => Q.decodeRow(StoreJson.ofSafe(json)),
+      );
 
-  let data =
-    switch (QueryRegistry.find_error(~key)) {
-    | Some(message) => Error(message)
-    | None =>
-      switch (QueryRegistry.find_result(~key)) {
-      | Some(json) =>
-        try(
-          {
-            let storeJson = StoreJson.ofSafe(json);
-            let rows_ =
-              switch (
-                StoreJson.tryDecode(
-                  Melange_json.Of_json.array(rowJson => Q.decodeRow(rowJson)),
-                  storeJson,
-                )
-              ) {
-              | Some(rows) => rows
-              | None => [|Q.decodeRow(storeJson)|]
-              };
-            Loaded(rows_)
+    let data =
+      switch (QueryRegistry.find_error(~key)) {
+      | Some(message) => Error(message)
+      | None =>
+        switch (QueryRegistry.find_result(~key)) {
+        | Some(json) =>
+          try(
+            {
+              let storeJson = StoreJson.ofSafe(json);
+              let rows_ =
+                switch (
+                  StoreJson.tryDecode(
+                    Melange_json.Of_json.array(rowJson => Q.decodeRow(rowJson)),
+                    storeJson,
+                  )
+                ) {
+                | Some(rows) => rows
+                | None => [|Q.decodeRow(storeJson)|]
+                };
+              Loaded(rows_)
+            }
+          ) {
+          | _ => Error(decodeErrorMessage)
           }
-        ) {
-        | _ => Error(decodeErrorMessage)
+        | None => Loading
         }
-      | None => Loading
-      }
-    };
-  hookResultOfData(data);
+      };
+    hookResultOfData(data);
+  };
 };
 
 // Helper to check if query is loading
@@ -273,7 +288,7 @@ let useIsQueryLoading =
       params: p,
     ) => {
   let result =
-    useRawQueryResult((module Q), params)
+    useRawQueryResult((module Q), params, ~skip=false)
     |> hookResultOfData;
   result.loading;
 };
