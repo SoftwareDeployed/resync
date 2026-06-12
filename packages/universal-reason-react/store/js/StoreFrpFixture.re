@@ -281,20 +281,6 @@ module CustomSyncedFixture = {
     state: state,
   };
 
-  let emptyState = {
-    messages: [||],
-    updated_at: 0.0,
-  };
-
-  let reduce = (~state: state, ~action: action) => {
-    switch (action) {
-    | SendMessage(msg) => {
-        messages: state.messages->Js.Array.concat(~other=[|msg|]),
-        updated_at: Js.Date.now(),
-      }
-    };
-  };
-
   let setTimestamp = (~state: state, ~timestamp: float) => {
     ...state,
     updated_at: timestamp,
@@ -343,26 +329,34 @@ module CustomSyncedFixture = {
     };
   };
 
-  let makeStore =
-      (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-    state:
-      StoreBuilder.current(
-        ~derive?,
-        ~client=state,
-        ~server=() => state,
-        (),
-      ),
-  };
-
   let schema: StoreFrp.Synced.schema(state, action, store) = {
     storeName: "fixture.synced.custom",
-    emptyState,
-    reduce,
+    emptyState: {
+      messages: [||],
+      updated_at: 0.0,
+    },
+    reduce:
+      (~state: state, ~action: action) =>
+        switch (action) {
+        | SendMessage(msg) => {
+            messages: state.messages->Js.Array.concat(~other=[|msg|]),
+            updated_at: Js.Date.now(),
+          }
+        },
     state_of_json,
     state_to_json,
     action_of_json,
     action_to_json,
-    makeStore,
+    makeStore:
+      (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+        state:
+          StoreBuilder.current(
+            ~derive?,
+            ~client=state,
+            ~server=() => state,
+            (),
+          ),
+      },
     scopeKeyOfState: _state => "default",
     timestampOfState: state => state.updated_at,
     setTimestamp,
