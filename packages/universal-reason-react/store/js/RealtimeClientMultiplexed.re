@@ -135,9 +135,6 @@ module Multiplexed = {
                     ~f=callback => callback.onPatch(~payload, ~timestamp),
                   );
               | Some("snapshot") =>
-                Js.Console.log(
-                  "RealtimeClient.Multiplexed: Received snapshot",
-                );
                 let payload =
                   StoreJson.requiredField(
                     ~json,
@@ -147,7 +144,6 @@ module Multiplexed = {
                 callbacks
                 ->Js.Array.forEach(~f=callback => callback.onSnapshot(payload));
               | Some("ack") =>
-                Js.Console.log("RealtimeClient.Multiplexed: Received ack");
                 let actionId =
                   StoreJson.requiredField(
                     ~json,

@@ -434,7 +434,6 @@ module Socket = {
 
         WebSocket.onMessage(ws, event => {
           let data: string = event##data;
-          Js.Console.log2("[RealtimeClient] WebSocket raw message received:", data);
           updateLastPong(state);
           switch (StoreJson.tryParse(data)) {
           | Some(json) => routeMessage(state, json)
