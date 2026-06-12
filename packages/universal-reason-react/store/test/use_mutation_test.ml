@@ -30,4 +30,11 @@ let suite =
             "mutate promise should resolve"
             true
             (promise_resolves (result.mutate "test")));
+      Alcotest.test_case "server mutation function resolves" `Quick
+        (fun () ->
+          let mutate = UseMutation.makeFn (module MockMutation) () in
+          Alcotest.(check bool)
+            "mutation function promise should resolve"
+            true
+            (promise_resolves (mutate "test")));
     ] )

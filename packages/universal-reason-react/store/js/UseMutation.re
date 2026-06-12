@@ -10,6 +10,8 @@
 //   };
 //   let addTodo = TodoStore.Hooks.useMutation((module TodoStore.Mutations.AddTodo), ());
 //   addTodo.mutate(todo);
+//   let addTodo = TodoStore.Hooks.useMutationFn((module TodoStore.Mutations.AddTodo), ());
+//   addTodo(todo);
 //
 // On client (JS): Calls the provided dispatch callback. Store-scoped synced
 // runtimes resolve this promise after the server acknowledges the mutation.
@@ -115,6 +117,18 @@ let make =
   {dispatch, mutate: dispatch, loading, error};
 };
 
+[@platform js]
+let makeFn =
+    (
+      type p,
+      module M: MutationModule with type params = p,
+      ~onDispatch: p => Js.Promise.t(unit),
+      (),
+    ) => {
+  let result = make((module M), ~onDispatch, ());
+  result.mutate;
+};
+
 // Main useMutation hook - Native version (server-side)
 [@platform native]
 let make =
@@ -127,4 +141,16 @@ let make =
   // Server: Mutations are not dispatched during SSR
   let dispatch = (_params: p): Js.Promise.t(unit) => Js.Promise.resolve(());
   {dispatch, mutate: dispatch, loading: false, error: None};
+};
+
+[@platform native]
+let makeFn =
+    (
+      type p,
+      module M: MutationModuleNative with type params = p,
+      ~onDispatch: option(p => Js.Promise.t(unit))=?,
+      (),
+    ) => {
+  let result = make((module M), ());
+  result.mutate;
 };

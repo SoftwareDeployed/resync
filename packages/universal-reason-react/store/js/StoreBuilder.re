@@ -635,6 +635,11 @@ module Runtime = {
          with type params = 'p and type action = action,
        unit) =>
       UseMutation.mutation_result('p);
+    let useMutationFn:
+      (module QueryRegistryTypes.MutationModuleWithAction
+         with type params = 'p and type action = action,
+       unit) =>
+      ('p => Js.Promise.t(unit));
 
     module Hooks: {
       let useStore: unit => t;
@@ -665,6 +670,11 @@ module Runtime = {
            with type params = 'p and type action = action,
          unit) =>
         UseMutation.mutation_result('p);
+      let useMutationFn:
+        (module QueryRegistryTypes.MutationModuleWithAction
+           with type params = 'p and type action = action,
+         unit) =>
+        ('p => Js.Promise.t(unit));
     };
 
     type status_listener_id = StoreEvents.listener_id;
