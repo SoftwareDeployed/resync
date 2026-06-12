@@ -82,6 +82,24 @@ let suite =
     then ()
     else Alcotest.fail "Expected room subscription and snapshot wrapper"
     | _ -> Alcotest.fail "Expected select to subscribe room-1");
+  Alcotest.test_case "json frame increments diagnostics once" `Quick (fun () ->
+    let adapter = Fake_adapter.create () in
+    let runtime = make_runtime adapter in
+    Middleware.message_count := 0;
+    Middleware.last_log_time := Unix.gettimeofday ();
+    let _ =
+      Lwt_main.run
+        (Middleware.handle_message_with_io runtime request []
+           "{\"type\":\"select\",\"subscription\":\"room-1\"}"
+           ~send:(fun _message -> Lwt.return_unit)
+           ~close:(fun () -> Lwt.return_unit)
+           ~subscribe:(fun channel -> Lwt.return_some channel)
+           ~unsubscribe:(fun _channel -> Lwt.return_unit))
+    in
+    Alcotest.(check int)
+      "json frame should count as one websocket message"
+      1
+      !(Middleware.message_count));
   Alcotest.test_case "mutation success sends ack ok" `Quick (fun () ->
     let adapter = Fake_adapter.create () in
     let handle_mutation _broadcast _request ~db:_ ~action_id:_ ~mutation_name:_ _action =

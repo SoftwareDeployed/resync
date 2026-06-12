@@ -347,8 +347,6 @@ let assoc_json key = function
 
 let handle_json_message_with_io t request current_channels json ~send ~close
     ~subscribe ~unsubscribe =
-  incr message_count;
-  log_stats t;
   let msg_type = assoc_string "type" json in
   Printf.eprintf "[ws] message type: %s\n%!" (match msg_type with Some t -> t | None -> "unknown");
   let get_channel () = match current_channels with ch :: _ -> ch | [] -> "" in
