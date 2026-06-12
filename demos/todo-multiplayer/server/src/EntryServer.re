@@ -40,7 +40,6 @@ module RoutesServerState = {
 
 let getServerState = (context: UniversalRouterDream.serverContext(Routes.serverState)) => {
   let UniversalRouterDream.{basePath, request, params} = context;
-  // Only accept root basePath to ensure correct route matching
   if (basePath != "/") {
     Lwt.return(UniversalRouterDream.NotFound);
   } else {
