@@ -30,6 +30,12 @@ let selectHydrationBase = (~initialState, ~persistedState, ~timestampOfState) =>
   };
 };
 
+let validateAction = (~state, ~action, ~validate) =>
+  switch (validate) {
+  | Some(validate) => validate(~state, ~action)
+  | None => StoreRuntimeTypes.Allow
+  };
+
 let rejectStaleCacheResult = (~currentConfirmedState, ~cachedState, ~timestampOfState) =>
   timestampOfState(cachedState) <= timestampOfState(currentConfirmedState);
 

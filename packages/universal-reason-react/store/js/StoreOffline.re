@@ -341,20 +341,27 @@ module Local = {
       };
     };
 
+    let executeDispatch = (actions: StoreSource.actions(state), action) => {
+      let currentState = actions.get();
+      let guardResult =
+        StoreRuntimeHelpers.validateAction(
+          ~state=currentState,
+          ~action,
+          ~validate=Schema.validate,
+        );
+      switch (guardResult) {
+      | Deny(reason) => Error(reason)
+      | Allow =>
+        actions.update(state => Schema.reduce(~state, ~action));
+        Ok()
+      };
+    };
+
     let dispatch = (action: action) =>
       switch (sourceRef.contents) {
       | Some(actions) =>
-        let currentState = actions.get();
-        switch (Schema.validate) {
-        | Some(validate) =>
-          switch (validate(~state=currentState, ~action)) {
-          | Deny(_) => ()
-          | Allow =>
-            actions.update(state => Schema.reduce(~state, ~action))
-          }
-        | None =>
-          actions.update(state => Schema.reduce(~state, ~action))
-        };
+        let _ = executeDispatch(actions, action);
+        ();
       | None => ()
       };
 
@@ -379,8 +386,14 @@ module Local = {
       let dispatch = runtimeDispatch;
       let dispatchForMutation = action => {
         try({
-          runtimeDispatch(action);
-          Js.Promise.resolve();
+          switch (sourceRef.contents) {
+          | Some(actions) =>
+            switch (executeDispatch(actions, action)) {
+            | Ok(()) => Js.Promise.resolve()
+            | Error(reason) => Js.Promise.reject(Failure(reason))
+            }
+          | None => Js.Promise.reject(Failure("Store is not mounted"))
+          };
         }) {
         | error => Js.Promise.reject(error)
         };
@@ -987,11 +1000,11 @@ module Synced = {
       | Some(actions) =>
         let currentState = actions.get();
         let validationResult =
-          switch (Schema.validate) {
-          | Some(validate) =>
-            validate(~state=currentState, ~action)
-          | None => Allow
-          };
+          StoreRuntimeHelpers.validateAction(
+            ~state=currentState,
+            ~action,
+            ~validate=Schema.validate,
+          );
         switch (validationResult) {
         | Deny(reason) => Error(reason)
         | Allow =>

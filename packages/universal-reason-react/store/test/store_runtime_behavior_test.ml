@@ -176,6 +176,40 @@ let suite =
             "Should use initial when equal"
             (100, 1000.0)
             result);
+      Alcotest.test_case "validateAction allows when no validator is configured" `Quick
+        (fun () ->
+          match
+            StoreRuntimeHelpers.validateAction ~state:10 ~action:5 ~validate:None
+          with
+          | StoreRuntimeTypes.Allow -> ()
+          | StoreRuntimeTypes.Deny reason ->
+              Alcotest.fail ("Expected allow, got deny: " ^ reason));
+      Alcotest.test_case "validateAction returns validator deny reason" `Quick
+        (fun () ->
+          let validate ~state ~action =
+            if action > state then StoreRuntimeTypes.Deny "too large"
+            else StoreRuntimeTypes.Allow
+          in
+          match
+            StoreRuntimeHelpers.validateAction ~state:10 ~action:11
+              ~validate:(Some validate)
+          with
+          | StoreRuntimeTypes.Deny "too large" -> ()
+          | StoreRuntimeTypes.Deny reason ->
+              Alcotest.fail ("Unexpected deny reason: " ^ reason)
+          | StoreRuntimeTypes.Allow -> Alcotest.fail "Expected deny");
+      Alcotest.test_case "validateAction returns validator allow" `Quick (fun () ->
+          let validate ~state ~action =
+            if action > state then StoreRuntimeTypes.Deny "too large"
+            else StoreRuntimeTypes.Allow
+          in
+          match
+            StoreRuntimeHelpers.validateAction ~state:10 ~action:9
+              ~validate:(Some validate)
+          with
+          | StoreRuntimeTypes.Allow -> ()
+          | StoreRuntimeTypes.Deny reason ->
+              Alcotest.fail ("Expected allow, got deny: " ^ reason));
       Alcotest.test_case "filterResumableRecords includes Pending" `Quick (fun () ->
           let records =
             [|
