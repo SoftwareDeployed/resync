@@ -144,11 +144,21 @@ let useQuery =
       error: None,
     }
   | Loaded(jsonRows) =>
-    let decodedRows = jsonRows->Js.Array.map(~f=Q.decodeRow);
-    {
-      data: Loaded(decodedRows),
-      loading: false,
-      error: None,
+    try({
+      let decodedRows = jsonRows->Js.Array.map(~f=Q.decodeRow);
+      {
+        data: Loaded(decodedRows),
+        loading: false,
+        error: None,
+      };
+    }) {
+    | _ =>
+      let message = "Failed to decode query result";
+      {
+        data: Error(message),
+        loading: false,
+        error: Some(message),
+      }
     };
   | Error(msg) => {
       data: Error(msg),
