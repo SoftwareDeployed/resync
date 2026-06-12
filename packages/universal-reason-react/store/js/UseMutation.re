@@ -38,6 +38,8 @@ let make =
   let (error, setError) = React.useState(() => None);
   let pendingCountRef = React.useRef(0);
   let mountedRef = React.useRef(true);
+  let onDispatchRef = React.useRef(onDispatch);
+  onDispatchRef.current = onDispatch;
 
   React.useEffect0(() => {
     mountedRef.current = true;
@@ -79,28 +81,33 @@ let make =
   };
 
   // Client: Delegate to the dispatch callback supplied by the runtime.
-  let dispatch = (params: p): Js.Promise.t(unit) => {
-    beginMutation();
-    let promise =
-      try({
-        onDispatch(params)
-      }) {
-      | error => Js.Promise.reject(error)
-      };
+  let dispatch =
+    React.useMemo1(
+      () =>
+        (params: p): Js.Promise.t(unit) => {
+          beginMutation();
+          let promise =
+            try({
+              onDispatchRef.current(params)
+            }) {
+            | error => Js.Promise.reject(error)
+            };
 
-    promise
-    |> Js.Promise.then_(_ => {
-         finishMutation();
-         Js.Promise.resolve();
-       })
-    |> Js.Promise.catch(error => {
-         finishMutation();
-         if (mountedRef.current) {
-           setError(_ => Some(errorMessage(error)));
-         };
-         Js.Promise.reject(Js.Exn.anyToExnInternal(error));
-       });
-  };
+          promise
+          |> Js.Promise.then_(_ => {
+               finishMutation();
+               Js.Promise.resolve();
+             })
+          |> Js.Promise.catch(error => {
+               finishMutation();
+               if (mountedRef.current) {
+                 setError(_ => Some(errorMessage(error)));
+               };
+               Js.Promise.reject(Js.Exn.anyToExnInternal(error));
+             });
+        },
+      [||],
+    );
 
   {dispatch, mutate: dispatch, loading, error};
 };
