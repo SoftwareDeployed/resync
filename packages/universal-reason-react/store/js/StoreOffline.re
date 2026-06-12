@@ -17,6 +17,13 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
     Runtime.useStore();
   };
 
+  let isQueryLoading = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: p,
+  ) => UseQuery.useIsQueryLoading((module Q), params);
+
   let mutation = (
     type p,
     module M: QueryRegistryTypes.MutationModuleWithAction
@@ -378,11 +385,13 @@ module Local = {
     module RuntimeHooks = MakeStoreHooks(HookRuntime);
 
     let useQuery = RuntimeHooks.query;
+    let useIsQueryLoading = RuntimeHooks.isQueryLoading;
     let useMutation = RuntimeHooks.mutation;
 
     module Hooks = {
       let useStore = Context.useStore;
       let useQuery = useQuery;
+      let useIsQueryLoading = useIsQueryLoading;
       let useMutation = useMutation;
     };
 
@@ -1446,11 +1455,13 @@ module Synced = {
     module RuntimeHooks = MakeStoreHooks(HookRuntime);
 
     let useQuery = RuntimeHooks.query;
+    let useIsQueryLoading = RuntimeHooks.isQueryLoading;
     let useMutation = RuntimeHooks.mutation;
 
     module Hooks = {
       let useStore = Context.useStore;
       let useQuery = useQuery;
+      let useIsQueryLoading = useIsQueryLoading;
       let useMutation = useMutation;
     };
 

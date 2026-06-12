@@ -582,6 +582,9 @@ module Runtime = {
       (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
        'p,
        unit) => t;
+    let useIsQueryLoading:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       'p) => bool;
     let useMutation:
       (module QueryRegistryTypes.MutationModuleWithAction
          with type params = 'p and type action = action,
@@ -594,6 +597,9 @@ module Runtime = {
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          'p,
          unit) => t;
+      let useIsQueryLoading:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         'p) => bool;
       let useMutation:
         (module QueryRegistryTypes.MutationModuleWithAction
            with type params = 'p and type action = action,
