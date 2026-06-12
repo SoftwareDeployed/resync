@@ -415,10 +415,7 @@ let removePeer = (peers: array(Model.Peer.t), peer_id: string) =>
   peers->Js.Array.filter(~f=(peer: Model.Peer.t) => peer.id != peer_id);
 
 let firstPeerId = (peers: array(Model.Peer.t)) =>
-  switch (Belt.Array.get(peers, 0)) {
-  | Some(peer) => Some(peer.id)
-  | None => None
-  };
+  Array.length(peers) > 0 ? Some(peers[0].id) : None;
 
 let resolveRemotePeerId = (~current, ~selfId, ~peers) => {
   let otherPeers =

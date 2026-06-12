@@ -56,9 +56,10 @@ let onActionError = _message => ();
 let applyQueryResult = (~state: state, ~channel: string, ~rows: array(StoreJson.json)) => {
   switch (channel) {
   | "get_list_info" =>
-    switch (Belt.Array.get(rows, 0)) {
-    | Some(row) => {...state, list: Some(Model.TodoList.of_json(row))}
-    | None => state
+    if (Array.length(rows) > 0) {
+      {...state, list: Some(Model.TodoList.of_json(rows[0]))};
+    } else {
+      state;
     }
   | "get_list" =>
     let todos = rows->Js.Array.map(~f=Model.Todo.of_json);
