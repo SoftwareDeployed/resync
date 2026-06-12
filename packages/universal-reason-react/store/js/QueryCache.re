@@ -154,6 +154,16 @@ let setEntryResult =
   };
 };
 
+let isLoading = (result: query_result('row)) =>
+  switch (result) {
+  | Loading => true
+  | Loaded(_)
+  | Error(_) => false
+  };
+
+let uninitializedTransportMessage =
+  "QueryCache transport is not initialized. Call UseQuery.initCache before subscribing to uncached queries.";
+
 // Configure WebSocket URLs at initialization
 [@platform js]
 let init = (~eventUrl: string, ~baseUrl: string, t: t) => {
@@ -231,6 +241,15 @@ let subscribe =
           );
         Some(h);
       } else {
+        if (isLoading(entry.data)) {
+          setEntryResult(
+            ~t,
+            ~entry,
+            ~channel,
+            ~result=Error(uninitializedTransportMessage),
+            ~lastUpdated=entry.lastUpdated,
+          );
+        };
         None;
       }
     };

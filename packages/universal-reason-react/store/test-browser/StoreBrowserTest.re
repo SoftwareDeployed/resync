@@ -324,6 +324,53 @@ let testQueryCacheAllowsSameOriginTransport = () =>
     ~details="same-origin query cache subscriptions required an unnecessary base URL",
   );
 
+let testQueryCacheErrorsUncachedQueryWithoutTransport = () => {
+  let cache = QueryCache.make();
+  let key = makeKey(~channel="uncached-channel", ~paramsHash="first");
+  let signal = QueryCache.getSignal(~t=cache, ~key);
+  let (_signal, unsubscribe) =
+    QueryCache.subscribe(
+      ~t=cache,
+      ~key,
+      ~channel="uncached-channel",
+      (),
+    );
+  unsubscribe();
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache errors uncached query without transport",
+    errorSignalContains(
+      signal,
+      QueryCache.uninitializedTransportMessage,
+    ),
+    ~details="uncached query stayed loading forever without initialized transport",
+  );
+};
+
+let testQueryCacheKeepsHydratedQueryWithoutTransport = () => {
+  let cache = QueryCache.make();
+  let key = makeKey(~channel="hydrated-without-transport", ~paramsHash="first");
+  let signal = QueryCache.getSignal(~t=cache, ~key);
+  QueryCache.hydrate(
+    ~t=cache,
+    ~jsonStr="{\"" ++ key ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"hydrated\"]}}",
+  );
+  let (_signal, unsubscribe) =
+    QueryCache.subscribe(
+      ~t=cache,
+      ~key,
+      ~channel="hydrated-without-transport",
+      (),
+    );
+  unsubscribe();
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache keeps hydrated query without transport",
+    loadedSignalContains(signal, "hydrated"),
+    ~details="missing transport overwrote SSR-hydrated query data",
+  );
+};
+
 let testRealtimeClientKeepsStatesPerUrl = () => {
   RealtimeClient.Socket.InternalForTests.resetStates();
   RealtimeClient.Socket.InternalForTests.touchState(
@@ -531,6 +578,8 @@ let run = () => {
   |> then_(_ => testLoadedResultListenersAreCacheScoped())
   |> then_(_ => testLoadedResultListenersPreserveQueryKey())
   |> then_(_ => testQueryCacheAllowsSameOriginTransport())
+  |> then_(_ => testQueryCacheErrorsUncachedQueryWithoutTransport())
+  |> then_(_ => testQueryCacheKeepsHydratedQueryWithoutTransport())
   |> then_(_ => testRealtimeClientKeepsStatesPerUrl())
   |> then_(_ => testHydratedProvidersPreserveOuterToInnerOrder())
   |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
