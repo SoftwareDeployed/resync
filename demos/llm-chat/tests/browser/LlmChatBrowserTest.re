@@ -110,6 +110,74 @@ external execSync: (string, Js.Dict.t(string)) => string = "execSync";
 [@mel.scope "process"]
 external env: Js.Dict.t(string) = "env";
 
+[%%raw {|
+function llmChatMockLastUserContent(body) {
+  try {
+    const parsed = JSON.parse(body);
+    const messages = Array.isArray(parsed.messages) ? parsed.messages : [];
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i] || {};
+      if (message.role === "user" && typeof message.content === "string") {
+        return message.content;
+      }
+    }
+  } catch (_error) {
+  }
+  return "";
+}
+
+function llmChatMockResponseChunk(content) {
+  return JSON.stringify({
+    message: { role: "assistant", content },
+    done: false
+  }) + "\n";
+}
+|}];
+
+external mockLastUserContent: string => string = "llmChatMockLastUserContent";
+external mockResponseChunk: string => string = "llmChatMockResponseChunk";
+
+type mockRequest;
+type mockResponse;
+type mockServer;
+type addressInfo;
+
+[@mel.module "node:http"]
+external createServer: ((mockRequest, mockResponse) => unit) => mockServer = "createServer";
+
+[@mel.module "node:timers"]
+external setTimeout: (unit => unit, int) => unit = "setTimeout";
+
+[@mel.send]
+external listenOn: (mockServer, int, string, unit => unit) => unit = "listen";
+
+[@mel.send]
+external closeServer: mockServer => mockServer = "close";
+
+[@mel.send]
+external address: mockServer => addressInfo = "address";
+
+[@mel.get]
+external port: addressInfo => int = "port";
+
+[@mel.send]
+external requestOnString: (mockRequest, string, string => unit) => mockRequest = "on";
+
+[@mel.send]
+external requestOnUnit: (mockRequest, string, unit => unit) => mockRequest = "on";
+
+[@mel.send]
+external setEncoding: (mockRequest, string) => unit = "setEncoding";
+
+[@mel.send]
+external writeHead: (mockResponse, int, Js.Dict.t(string)) => mockResponse = "writeHead";
+
+[@mel.send]
+external write: (mockResponse, string) => bool = "write";
+
+[@mel.send]
+external endString: (mockResponse, string) => mockResponse = "end";
+
 let getDbUrl = () =>
   switch (Js.Dict.get(env, "DB_URL")) {
   | Some(url) => url
@@ -129,7 +197,67 @@ let execSql = (sql: string) => {
   };
 };
 
-let cleanup = (~browser, ~server) => {
+module MockOllama = {
+  type t = {
+    server: mockServer,
+    lastRequestBody: ref(string),
+  };
+
+  let start = () =>
+    Js.Promise.make((~resolve, ~reject as _) => {
+      let lastRequestBody = ref("");
+      let server =
+        createServer((request, response) => {
+          let requestBody = ref("");
+          request->setEncoding("utf8");
+          let _ =
+            request->requestOnString("data", chunk =>
+              requestBody := requestBody.contents ++ chunk
+            );
+          let _ =
+            request->requestOnUnit("end", () => {
+              lastRequestBody := requestBody.contents;
+              let prompt = mockLastUserContent(requestBody.contents);
+              let headers = Js.Dict.empty();
+              Js.Dict.set(headers, "Content-Type", "application/x-ndjson");
+              let _ = response->writeHead(200, headers);
+              let _ = response->write(mockResponseChunk("Mock assistant saw "));
+              let _ = response->write(mockResponseChunk(prompt));
+              setTimeout(() => {
+                let _ = response->endString("{\"done\":true}\n");
+                ();
+              }, 80);
+            });
+          ();
+        });
+      server->listenOn(0, "127.0.0.1", () => {
+        let selectedPort = server->address->port;
+        let url =
+          "http://127.0.0.1:" ++ Js.Int.toString(selectedPort) ++ "/api/chat";
+        Js.Dict.set(env, "LLM_CHAT_OLLAMA_URL", url);
+        resolve(. {server, lastRequestBody});
+      });
+    });
+
+  let stop = mock =>
+    {
+      let _ = mock.server->closeServer;
+      Js.Promise.resolve();
+    };
+
+  let assertSawPrompt = (~mock, ~prompt) =>
+    BrowserTestUtils.assertTrue(
+      ~label="Mock Ollama received prompt",
+      mock.lastRequestBody.contents->includes(prompt),
+      ~details=
+        "Expected mock Ollama request body to include prompt: "
+        ++ prompt
+        ++ ". Last body: "
+        ++ mock.lastRequestBody.contents,
+    );
+};
+
+let cleanup = (~browser, ~server, ~mock) => {
   let closeBrowser =
     switch (browser) {
     | Some(activeBrowser) => activeBrowser->Playwright.close |> catch(_ => resolve())
@@ -139,6 +267,12 @@ let cleanup = (~browser, ~server) => {
   |> then_(_ =>
        switch (server) {
        | Some(activeServer) => LlmChatTestServer.stop(activeServer) |> catch(_ => resolve())
+       | None => resolve()
+       }
+     )
+  |> then_(_ =>
+       switch (mock) {
+       | Some(activeMock) => MockOllama.stop(activeMock) |> catch(_ => resolve())
        | None => resolve()
        }
      );
@@ -211,43 +345,36 @@ let runMessageDisplayScenario = (~browser, ~threadUrl) => {
      );
 };
 
-let runOllamaStreamingScenario = (~browser, ~baseUrl) => {
-  Js.log("Running Ollama streaming scenario (skipped if unavailable)...");
+let runOllamaStreamingScenario = (~browser, ~baseUrl, ~mock) => {
+  Js.log("Running Ollama streaming scenario...");
+  let prompt = "ping";
   browser
   ->Playwright.newPage
   |> then_(page =>
        page
        ->Playwright.goto(baseUrl ++ "/")
        |> then_(_ => page->Playwright.waitForSelector("#prompt-input"))
-       |> then_(_ => page->Playwright.fill("#prompt-input", "ping"))
+       |> then_(_ => page->Playwright.fill("#prompt-input", prompt))
        |> then_(_ => page->Playwright.click("#send-button"))
        |> then_(_ =>
             waitForSelectorText(
               ~page,
               ~selector="#message-list",
-              ~expected="ping",
+              ~expected=prompt,
               ~label="Prompt visible in message list",
               ~attemptsLeft=30,
             )
           )
-       |> then_(_ => BrowserTestUtils.sleep(3000))
-       |> then_(_ => BrowserTestUtils.textOrEmpty(page, "#message-list"))
-       |> then_(text => {
-            if (text->includes("Error") || text->includes("error")) {
-              Js.log("[SKIP] Ollama streaming test skipped (error detected)");
-              resolve();
-            } else if (text->includes("assistant")) {
-              Js.log("[PASS] Ollama streaming test");
-              resolve();
-            } else {
-              Js.log("[SKIP] Ollama streaming test skipped (no assistant response)");
-              resolve();
-            }
-          })
-       |> catch(_ => {
-            Js.log("[SKIP] Ollama streaming test skipped (exception)");
-            resolve();
-          })
+       |> then_(_ =>
+            waitForSelectorText(
+              ~page,
+              ~selector="#message-list",
+              ~expected="Mock assistant saw " ++ prompt,
+              ~label="Ollama streaming test",
+              ~attemptsLeft=80,
+            )
+          )
+       |> then_(_ => MockOllama.assertSawPrompt(~mock, ~prompt))
       );
 };
 
@@ -1077,44 +1204,64 @@ let run = () => {
   let launchOptions = Playwright.makeLaunchOptions(~headless=true, ());
   let browserRef = ref(None);
   let serverRef = ref(None);
+  let mockRef = ref(None);
 
-  LlmChatTestServer.start()
+  MockOllama.start()
+  |> then_(mock => {
+       mockRef := Some(mock);
+       LlmChatTestServer.start();
+     })
   |> then_(server => {
        serverRef := Some(server);
        Playwright.chromium->Playwright.launch(launchOptions);
      })
   |> then_(browser => {
        browserRef := Some(browser);
-         switch (serverRef.contents) {
-          | Some(server) =>
-              runRootRedirectScenario(~browser, ~baseUrl=server.baseUrl)
-              |> then_(_ =>
-                   runEmptyStateScenario(~browser, ~baseUrl=server.baseUrl)
-                   |> then_(_ => runThreadListAndInputScenario(~browser, ~baseUrl=server.baseUrl))
-                   |> then_(threadUrl =>
-                        runMessageDisplayScenario(~browser, ~threadUrl)
-                        |> then_(_ => runCrossTabRealtimeSyncScenario(~browser, ~baseUrl=server.baseUrl))
-                        |> then_(_ => runOllamaStreamingScenario(~browser, ~baseUrl=server.baseUrl))
-                        |> then_(_ => runStreamingScrollScenario(~browser, ~baseUrl=server.baseUrl))
-                         |> then_(_ => runThreadDeletionScenario(~browser, ~baseUrl=server.baseUrl))
-                         |> then_(_ => runDbSyncScenario(~browser, ~baseUrl=server.baseUrl))
-                         |> then_(_ => runDbCreateSyncScenario(~browser, ~baseUrl=server.baseUrl))
-                         |> then_(_ => runUiCreateSyncScenario(~browser, ~baseUrl=server.baseUrl))
-                         |> then_(_ => runMessageSyncScenario(~browser, ~baseUrl=server.baseUrl))
-                          |> then_(_ => runDeleteAllThreadsScenario(~browser, ~baseUrl=server.baseUrl))
-                          |> then_(_ => runCrossTabDeleteActiveThreadScenario(~browser, ~baseUrl=server.baseUrl))
-                          |> then_(_ => runReconnectionScenario(~browser, ~baseUrl=server.baseUrl, ~serverRef))
+       switch (serverRef.contents) {
+       | Some(server) =>
+           runRootRedirectScenario(~browser, ~baseUrl=server.baseUrl)
+           |> then_(_ =>
+                runEmptyStateScenario(~browser, ~baseUrl=server.baseUrl)
+                |> then_(_ => runThreadListAndInputScenario(~browser, ~baseUrl=server.baseUrl))
+                |> then_(threadUrl =>
+                     runMessageDisplayScenario(~browser, ~threadUrl)
+                     |> then_(_ => runCrossTabRealtimeSyncScenario(~browser, ~baseUrl=server.baseUrl))
+                     |> then_(_ =>
+                          switch (mockRef.contents) {
+                          | Some(mock) =>
+                              runOllamaStreamingScenario(
+                                ~browser,
+                                ~baseUrl=server.baseUrl,
+                                ~mock,
+                              )
+                          | None =>
+                              reject(BrowserTestUtils.makeError("mock Ollama server was not initialized"))
+                          }
+                        )
+                     |> then_(_ => runStreamingScrollScenario(~browser, ~baseUrl=server.baseUrl))
+                     |> then_(_ => runThreadDeletionScenario(~browser, ~baseUrl=server.baseUrl))
+                     |> then_(_ => runDbSyncScenario(~browser, ~baseUrl=server.baseUrl))
+                     |> then_(_ => runDbCreateSyncScenario(~browser, ~baseUrl=server.baseUrl))
+                     |> then_(_ => runUiCreateSyncScenario(~browser, ~baseUrl=server.baseUrl))
+                     |> then_(_ => runMessageSyncScenario(~browser, ~baseUrl=server.baseUrl))
+                     |> then_(_ => runDeleteAllThreadsScenario(~browser, ~baseUrl=server.baseUrl))
+                     |> then_(_ =>
+                          runCrossTabDeleteActiveThreadScenario(~browser, ~baseUrl=server.baseUrl)
+                        )
+                     |> then_(_ =>
+                          runReconnectionScenario(~browser, ~baseUrl=server.baseUrl, ~serverRef)
+                        )
                        )
                  )
-         | None => reject(BrowserTestUtils.makeError("server was not initialized"))
-         };
+       | None => reject(BrowserTestUtils.makeError("server was not initialized"))
+       };
      })
   |> then_(result =>
-       cleanup(~browser=browserRef.contents, ~server=serverRef.contents)
+       cleanup(~browser=browserRef.contents, ~server=serverRef.contents, ~mock=mockRef.contents)
        |> then_(_ => resolve(result))
      )
   |> catch(error =>
-       cleanup(~browser=browserRef.contents, ~server=serverRef.contents)
+       cleanup(~browser=browserRef.contents, ~server=serverRef.contents, ~mock=mockRef.contents)
        |> then_(_ => BrowserTestUtils.rejectPromiseError(error))
      );
 };
