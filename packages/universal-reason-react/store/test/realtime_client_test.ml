@@ -69,8 +69,12 @@ let suite =
               pending
           in
           Alcotest.(check int) "queued count" 1 (Array.length pending);
-          let action_id, _ = pending.(0) in
-          Alcotest.(check string) "kept action id" "a" action_id);
+          let action_id, payload = pending.(0) in
+          Alcotest.(check string) "kept action id" "a" action_id;
+          Alcotest.(check string)
+            "kept original payload"
+            "first"
+            (Melange_json.Primitives.string_of_json payload));
       Alcotest.test_case "pending mutation queue removes sent action id" `Quick
         (fun () ->
           let pending =
