@@ -114,7 +114,9 @@ let make =
             className="share-button"
             type_="button"
             onClick={_ => {
-              let _ = failServerMutation.mutate();
+              let _ =
+                failServerMutation.mutate()
+                |> Js.Promise.catch(_error => Js.Promise.resolve());
               ();
             }}>
             {React.string("Fail Query")}

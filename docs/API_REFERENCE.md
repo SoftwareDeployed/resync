@@ -386,7 +386,7 @@ module Context = StoreDef.Context;
 - `let serializeSnapshot: state => string`: Serialize for snapshot
 - `let dispatch: action => unit`: Dispatch a typed action
 - `let useQuery((module Query), params, ())`: Subscribe to an SSR-hydrated query and return the store after applying loaded rows
-- `let useMutation((module Mutation), ())`: Create a store-scoped mutation handle; custom modules provide `type params`, `type action`, and `toAction(params)`; `result.dispatch(params)` and `result.mutate(params)` are aliases that return `Js.Promise.t(unit)`
+- `let useMutation((module Mutation), ())`: Create a store-scoped mutation handle; custom modules provide `type params`, `type action`, and `toAction(params)`; `result.dispatch(params)` and `result.mutate(params)` are aliases that return `Js.Promise.t(unit)`. Local stores resolve after local dispatch; synced stores resolve after server acknowledgement and reject on validation or server mutation failure.
 - `let useIsQueryLoading((module Query), params)`: Reactive loading helper backed by `useQuery`
 - `module Context`: React context for store access
 - `module Hooks`: Nested `useQuery`, `useMutation`, and `useIsQueryLoading` exports for component-local opens

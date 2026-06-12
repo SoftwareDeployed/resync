@@ -8,9 +8,8 @@
 //   let {mutate} = TodoStore.useMutation((module AddTodoMutation), ());
 //   mutate({id: UUID.make(), list_id: "abc", text: "Hello"});
 //
-// On client (JS): Calls the provided dispatch callback. The mutation module
-// only carries the params type; store-scoped runtimes pass their store
-// dispatch function via StoreDef.Hooks.useMutation.
+// On client (JS): Calls the provided dispatch callback. Store-scoped synced
+// runtimes resolve this promise after the server acknowledges the mutation.
 // On server (native): No-op for SSR
 
 open QueryRegistryTypes;
@@ -29,14 +28,13 @@ let make =
     (
       type p,
       module M: MutationModule with type params = p,
-      ~onDispatch: p => unit,
+      ~onDispatch: p => Js.Promise.t(unit),
       (),
     ) => {
   // Client: Delegate to the dispatch callback supplied by the runtime.
   let dispatch = (params: p): Js.Promise.t(unit) => {
     try({
-      onDispatch(params);
-      Js.Promise.resolve(());
+      onDispatch(params)
     }) {
     | error => Js.Promise.reject(error)
     };
@@ -51,7 +49,7 @@ let make =
     (
       type p,
       module M: MutationModuleNative with type params = p,
-      ~onDispatch: option(p => unit)=?,
+      ~onDispatch: option(p => Js.Promise.t(unit))=?,
       (),
     ) => {
   // Server: Mutations are not dispatched during SSR

@@ -285,7 +285,7 @@ type t = store;
 module Context = StoreDef.Context;
 ```
 
-The runtime export also includes store-scoped hooks. `useQuery((module Query), params, ())` subscribes through the shared query cache and returns the store with loaded rows applied. `useIsQueryLoading((module Query), params)` returns the query cache loading state. `useMutation((module Mutation), ())` returns a mutation handle whose `dispatch(params)` and `mutate(params)` fields are aliases that return `Js.Promise.t(unit)`. Custom store-scoped mutation modules only need `type params`, `type action`, and `let toAction: params => action`.
+The runtime export also includes store-scoped hooks. `useQuery((module Query), params, ())` subscribes through the shared query cache and returns the store with loaded rows applied. `useIsQueryLoading((module Query), params)` returns the query cache loading state. `useMutation((module Mutation), ())` returns a mutation handle whose `dispatch(params)` and `mutate(params)` fields are aliases that return `Js.Promise.t(unit)`. Local stores resolve after local dispatch. Synced stores resolve after server acknowledgement and reject when validation or the server mutation fails. Custom store-scoped mutation modules only need `type params`, `type action`, and `let toAction: params => action`.
 
 ### `StoreBuilder.buildSynced`
 

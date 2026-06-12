@@ -3,6 +3,7 @@ module type StoreHookRuntime = {
   type action;
   let useStore: unit => store;
   let dispatch: action => unit;
+  let dispatchForMutation: action => Js.Promise.t(unit);
 };
 
 module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
@@ -32,7 +33,7 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
   ) => {
     UseMutation.make(
       (module M),
-      ~onDispatch=params => Runtime.dispatch(M.toAction(params)),
+      ~onDispatch=params => Runtime.dispatchForMutation(M.toAction(params)),
       (),
     );
   };
@@ -376,6 +377,14 @@ module Local = {
       type action = Schema.action;
       let useStore = Context.useStore;
       let dispatch = runtimeDispatch;
+      let dispatchForMutation = action => {
+        try({
+          runtimeDispatch(action);
+          Js.Promise.resolve();
+        }) {
+        | error => Js.Promise.reject(error)
+        };
+      };
     };
 
     module RuntimeHooks = MakeStoreHooks(HookRuntime);
@@ -977,43 +986,43 @@ module Synced = {
       switch (sourceRef.contents) {
       | Some(actions) =>
         let currentState = actions.get();
-        let isValid =
+        let validationResult =
           switch (Schema.validate) {
           | Some(validate) =>
-            switch (validate(~state=currentState, ~action)) {
-            | Deny(_) => false
-            | Allow => true
-            }
-          | None => true
+            validate(~state=currentState, ~action)
+          | None => Allow
           };
-        if (!isValid) { () } else {
-        let nextState = Schema.reduce(~state=currentState, ~action);
-        let actionId = UUID.make();
-        StoreRuntimeLifecycle.markActionPending(lifecycle, actionId);
-        let ledgerRecord =
-          StoreActionLedger.make(
-            ~id=actionId,
-            ~scopeKey=Schema.scopeKeyOfState(nextState),
-            ~action=Schema.action_to_json(action),
-            (),
-          );
-        let cacheRecord = cacheRecordOfLedger(ledgerRecord);
-        actions.set(nextState);
-        let _ =
-          Js.Promise.then_(
-            _ => {
-              broadcastOptimisticAction(ledgerRecord);
-              sendQueuedRecord(ledgerRecord);
-              Js.Promise.resolve();
-            },
-            cachePutAction(cacheRecord),
-          )
-          |> Js.Promise.catch(_ => {
-               sendQueuedRecord(ledgerRecord);
-               Js.Promise.resolve();
-             });
-        ();};
-      | None => ()
+        switch (validationResult) {
+        | Deny(reason) => Error(reason)
+        | Allow =>
+          let nextState = Schema.reduce(~state=currentState, ~action);
+          let actionId = UUID.make();
+          StoreRuntimeLifecycle.markActionPending(lifecycle, actionId);
+          let ledgerRecord =
+            StoreActionLedger.make(
+              ~id=actionId,
+              ~scopeKey=Schema.scopeKeyOfState(nextState),
+              ~action=Schema.action_to_json(action),
+              (),
+            );
+          let cacheRecord = cacheRecordOfLedger(ledgerRecord);
+          actions.set(nextState);
+          let _ =
+            Js.Promise.then_(
+              _ => {
+                broadcastOptimisticAction(ledgerRecord);
+                sendQueuedRecord(ledgerRecord);
+                Js.Promise.resolve();
+              },
+              cachePutAction(cacheRecord),
+            )
+            |> Js.Promise.catch(_ => {
+                 sendQueuedRecord(ledgerRecord);
+                 Js.Promise.resolve();
+               });
+          Ok(actionId);
+        };
+      | None => Error("Store is not mounted")
       }
 
     /* Public dispatch that respects controller emission gating.
@@ -1022,15 +1031,57 @@ module Synced = {
        while preserving FIFO ordering for both typed listeners and legacy callbacks. */
     and dispatch = (action: action) => {
       if (Controller.isEmitting()) {
-        Controller.queueDispatch(() => executeDispatch(action));
+        Controller.queueDispatch(() => {
+          let _ = executeDispatch(action);
+          ();
+        });
       } else {
-        executeDispatch(action);
+        let _ = executeDispatch(action);
+        ();
       }
     }
 
     /* Legacy callback dispatch wrapper - calls the main dispatch
        since both respect emission gating uniformly. */
     and safeDispatch = (action: action) => dispatch(action);
+
+    let dispatchForMutation = (action: action): Js.Promise.t(unit) =>
+      Js.Promise.make((~resolve, ~reject) => {
+        let settleWithActionId = actionId => {
+          let listenerIdRef = ref(None);
+          let cleanup = () =>
+            switch (listenerIdRef.contents) {
+            | Some(listenerId) => Controller.unsubscribe(listenerId)
+            | None => ()
+            };
+          let listener = event =>
+            switch (event) {
+            | StoreEvents.ActionAcked({actionId: ackedActionId, _}) when ackedActionId == actionId =>
+              cleanup();
+              let unitValue = ();
+              resolve(. unitValue);
+            | StoreEvents.ActionFailed({actionId: failedActionId, message, _}) when failedActionId == actionId =>
+              cleanup();
+              reject(. Failure(message));
+            | _ => ()
+            };
+          listenerIdRef := Some(Controller.subscribe(listener));
+        };
+        let run = () =>
+          try({
+            switch (executeDispatch(action)) {
+            | Ok(actionId) => settleWithActionId(actionId)
+            | Error(reason) => reject(. Failure(reason))
+            };
+          }) {
+          | error => reject(. error)
+          };
+        if (Controller.isEmitting()) {
+          Controller.queueDispatch(run);
+        } else {
+          run();
+        };
+      });
 
     let resumePendingActions = () =>
       switch%platform (Runtime.platform) {
@@ -1421,11 +1472,13 @@ module Synced = {
     });
 
     let runtimeDispatch = dispatch;
+    let runtimeDispatchForMutation = dispatchForMutation;
     module HookRuntime = {
       type store = t;
       type action = Schema.action;
       let useStore = Context.useStore;
       let dispatch = runtimeDispatch;
+      let dispatchForMutation = runtimeDispatchForMutation;
     };
 
     module RuntimeHooks = MakeStoreHooks(HookRuntime);
