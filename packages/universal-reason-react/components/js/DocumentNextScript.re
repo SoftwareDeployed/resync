@@ -1,7 +1,7 @@
 [@react.component]
 let make = (~serializedState="", ~stateId="initial-store", ~scripts=[||]) => {
   let scriptNodes =
-    Array.map(src => <script key=src type_="module" src=src />, scripts)
+    scripts->Js.Array.map(~f=src => <script key=src type_="module" src=src />)
     ->React.array;
   <>
     <script

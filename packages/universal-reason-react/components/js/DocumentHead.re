@@ -5,10 +5,8 @@ let make = (
   ~stylesheets=[||],
 ) => {
   let stylesheetNodes =
-    Array.map(
-      href => <link key=href rel="stylesheet" href=href />,
-      stylesheets,
-    )
+    stylesheets
+    ->Js.Array.map(~f=href => <link key=href rel="stylesheet" href=href />)
     ->React.array;
   <head>
     <meta charSet="utf-8" />
