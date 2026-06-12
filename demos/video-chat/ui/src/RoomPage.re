@@ -77,16 +77,16 @@ module View = {
       let roomIdValue = Option.value(roomId, ~default="");
       let store = VideoChatStore.Context.useStore();
       let router = UniversalRouter.useRouter();
-      let joinRoomMutation =
-        useMutation((module VideoChatStore.Mutations.JoinRoom), ());
-      let leaveRoomMutation =
-        useMutation((module VideoChatStore.Mutations.LeaveRoom), ());
-      let toggleVideoMutation =
-        useMutation((module VideoChatStore.Mutations.ToggleVideo), ());
-      let toggleAudioMutation =
-        useMutation((module VideoChatStore.Mutations.ToggleAudio), ());
-      let sendMessageMutation =
-        useMutation((module VideoChatStore.Mutations.SendMessage), ());
+      let joinRoomFn =
+        useMutationFn((module VideoChatStore.Mutations.JoinRoom), ());
+      let leaveRoomFn =
+        useMutationFn((module VideoChatStore.Mutations.LeaveRoom), ());
+      let toggleVideoFn =
+        useMutationFn((module VideoChatStore.Mutations.ToggleVideo), ());
+      let toggleAudioFn =
+        useMutationFn((module VideoChatStore.Mutations.ToggleAudio), ());
+      let sendMessageFn =
+        useMutationFn((module VideoChatStore.Mutations.SendMessage), ());
 
       let localVideoRef = React.useRef(None);
       let remoteCanvasRef = React.useRef(None);
@@ -173,7 +173,7 @@ module View = {
                 ~f=
                   () => {
                     let payload = VideoChatStore.joinRoomPayload(store, roomIdValue);
-                    let _ = joinRoomMutation.mutate(payload);
+                    let _ = joinRoomFn(payload);
                     let peerId = payload.peer_id;
                     Js.Console.log2("Joined room with peerId:", peerId);
                   },
@@ -185,7 +185,7 @@ module View = {
                 Js.Global.clearTimeout(timeoutId);
                 switch (VideoChatStore.leaveRoomPayload(store)) {
                 | Some(payload) =>
-                  let _ = leaveRoomMutation.mutate(payload);
+                  let _ = leaveRoomFn(payload);
                   ()
                 | None => ()
                 };
@@ -243,7 +243,7 @@ module View = {
         releaseCapture();
         switch (VideoChatStore.leaveRoomPayload(store)) {
         | Some(payload) =>
-          let _ = leaveRoomMutation.mutate(payload);
+          let _ = leaveRoomFn(payload);
           ()
         | None => ()
         };
@@ -258,7 +258,7 @@ module View = {
         };
         switch (VideoChatStore.toggleVideoPayload(store, nextEnabled)) {
         | Some(payload) =>
-          let _ = toggleVideoMutation.mutate(payload);
+          let _ = toggleVideoFn(payload);
           ()
         | None => ()
         };
@@ -272,7 +272,7 @@ module View = {
         };
         switch (VideoChatStore.toggleAudioPayload(store, nextEnabled)) {
         | Some(payload) =>
-          let _ = toggleAudioMutation.mutate(payload);
+          let _ = toggleAudioFn(payload);
           ()
         | None => ()
         };
@@ -292,7 +292,7 @@ module View = {
         if (chatText != "") {
           switch (VideoChatStore.sendMessagePayload(store, chatText)) {
           | Some(payload) =>
-            let _ = sendMessageMutation.mutate(payload);
+            let _ = sendMessageFn(payload);
             ()
           | None => ()
           };
