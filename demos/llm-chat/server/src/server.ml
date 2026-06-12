@@ -11,6 +11,53 @@ let touch_thread_updated_at =
     let* result = Db.exec query thread_id in
     Caqti_lwt.or_fail result
 
+let collect_thread_ids =
+  let query =
+    Caqti_request.Infix.(
+      Caqti_type.unit ->* Caqti_type.string
+    ) "SELECT id::text FROM threads"
+  in
+  fun (module Db : Caqti_lwt.CONNECTION) ->
+    let* result = Db.collect_list query () in
+    Caqti_lwt.or_fail result
+
+let collect_active_thread_view_ids =
+  let query =
+    Caqti_request.Infix.(
+      Caqti_type.unit ->* Caqti_type.string
+    ) "SELECT DISTINCT thread_id::text FROM active_thread_views"
+  in
+  fun (module Db : Caqti_lwt.CONNECTION) ->
+    let* result = Db.collect_list query () in
+    Caqti_lwt.or_fail result
+
+let notify_query =
+  Caqti_request.Infix.(
+    Caqti_type.(t2 string string) ->. Caqti_type.unit
+  ) "SELECT pg_notify($1, $2)"
+
+let notify_patch (module Db : Caqti_lwt.CONNECTION) ~channel ~payload =
+  let* result = Db.exec notify_query (channel, payload) in
+  Caqti_lwt.or_fail result
+
+let thread_delete_patch thread_id =
+  Yojson.Safe.to_string
+    (`Assoc
+      [ ("type", `String "patch");
+        ("table", `String "threads");
+        ("id", `String thread_id);
+        ("action", `String "DELETE") ])
+
+let notify_deleted_threads db ~channels ~thread_ids =
+  let channels = List.sort_uniq String.compare channels in
+  Lwt_list.iter_s
+    (fun channel ->
+       Lwt_list.iter_s
+         (fun thread_id ->
+            notify_patch db ~channel ~payload:(thread_delete_patch thread_id))
+         thread_ids)
+    channels
+
 let get_config request thread_id =
   let* thread_info_row =
     Dream.sql request (fun db ->
@@ -69,7 +116,7 @@ let get_config request thread_id =
   in
   let state : Model.t = {
     threads;
-    current_thread_id = Some thread_id;
+    current_thread_id = Option.map (fun (_thread : Model.Thread.t) -> thread_id) thread_info;
     messages;
     input = "";
     updated_at = max latest_thread_at latest_message_at;
@@ -522,8 +569,14 @@ let () =
         touch_thread_updated_at db thread_id) in
       Dream.respond (Yojson.Safe.to_string (`Assoc [("id", `String message_id); ("thread_id", `String thread_id)])));
     Dream.post "/api/test/delete-all-threads" (fun request ->
-      let* _ = Dream.sql request (fun db ->
-        RealtimeSchema.Mutations.DeleteAllThreads.exec db ()) in
+      let* _ =
+        Dream.sql request (fun db ->
+          let* thread_ids = collect_thread_ids db in
+          let* active_thread_ids = collect_active_thread_view_ids db in
+          let channels = thread_ids @ active_thread_ids in
+          let* () = RealtimeSchema.Mutations.DeleteAllThreads.exec db () in
+          notify_deleted_threads db ~channels ~thread_ids)
+      in
       Dream.json "{\"status\":\"deleted_all\"}");
     Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
   ]

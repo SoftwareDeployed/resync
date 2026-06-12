@@ -451,6 +451,14 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
                            )
                          )
                       |> then_(_ =>
+                           waitForExpressionTrue(
+                             ~page=pageA,
+                             ~expression="(() => document.querySelector('#streaming-message') == null && document.querySelectorAll('.message--assistant').length === 1)().toString()",
+                             ~label="Cross-tab sync: sender receives end-of-stream and reconciles to one confirmed assistant message",
+                             ~attemptsLeft=250,
+                           )
+                         )
+                      |> then_(_ =>
                            pageA->Playwright.evaluateString(
                              "document.getElementById('message-list')?.textContent || ''"
                            )
@@ -494,6 +502,7 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
                   Js.log2("[SKIP] Cross-tab realtime sync test skipped (no assistant response from LLM):", error);
                   resolve();
                 } else {
+                  Js.log2("[FAIL] Cross-tab realtime sync test failed:", error);
                   reject(BrowserTestUtils.makeError("Cross-tab realtime sync test failed"));
                 }
               )
@@ -1099,17 +1108,13 @@ let runDeleteAllThreadsScenario = (~browser, ~baseUrl) => {
             )
           )
        |> then_(inputHidden =>
-            BrowserTestUtils.assertTrue(
-              ~label="Delete all threads: prompt input is hidden",
-              inputHidden == "true",
-              ~details="Expected prompt-input to be removed when no active thread",
+           BrowserTestUtils.assertTrue(
+             ~label="Delete all threads: prompt input is hidden",
+             inputHidden == "true",
+             ~details="Expected prompt-input to be removed when no active thread",
             )
           )
-     )
-  |> catch(error => {
-       Js.log2("[SKIP] Delete all threads test skipped:", error);
-       resolve();
-     });
+     );
 };
 
 let runCrossTabDeleteActiveThreadScenario = (~browser, ~baseUrl) => {
