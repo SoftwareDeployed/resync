@@ -154,7 +154,7 @@ let useQuerySignal = (~cache, ~key, ~channel) => {
         );
       Some(unsubscribe);
     },
-    [|key|],
+    [|key, channel|],
   );
 
   Tilia.React.useTilia();
