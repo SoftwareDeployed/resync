@@ -57,13 +57,6 @@ type t = {
   mutable baseUrl: string,
 };
 
-// External for deleting dictionary entries (already in file)
-[@platform js]
-external deleteEntry: (Js.Dict.t('a), string) => unit = "delete";
-
-[@platform native]
-let deleteEntry = (_dict, _key) => ();
-
 // Platform-specific implementations
 [@platform js]
 let make = () => {
@@ -77,6 +70,53 @@ let make = () => {
   entries: Js.Dict.empty(),
   eventUrl: "",
   baseUrl: "",
+};
+
+[@platform js]
+let getOrCreateEntry =
+    (~t: t, ~key: query_key, ~updatedAt: float=0.0, ()): cache_entry => {
+  switch (t.entries->Js.Dict.get(key)) {
+  | Some(existing) => existing
+  | None =>
+    let (signal, setSignal) = Tilia.Core.signal(Loading);
+    let newEntry = {
+      key,
+      data: Loading,
+      signal,
+      setSignal,
+      subscriptionHandle: None,
+      lastUpdated: updatedAt,
+      refCount: 0,
+    };
+    t.entries->Js.Dict.set(key, newEntry);
+    newEntry;
+  };
+};
+
+[@platform native]
+let getOrCreateEntry =
+    (~t: t, ~key: query_key, ~updatedAt as _: float=0.0, ()): cache_entry => {
+  switch (t.entries->Js.Dict.get(key)) {
+  | Some(existing) => existing
+  | None =>
+    let (signal, setSignal) = Tilia.Core.signal(Loading);
+    let newEntry = {
+      key,
+      data: Loading,
+      signal,
+      setSignal,
+      subscriptionHandle: None,
+      lastUpdated: 0.0,
+      refCount: 0,
+    };
+    t.entries->Js.Dict.set(key, newEntry);
+    newEntry;
+  };
+};
+
+let getSignal = (~t: t, ~key: query_key): Tilia.Core.signal(query_result(StoreJson.json)) => {
+  let entry = getOrCreateEntry(~t, ~key, ());
+  entry.signal;
 };
 
 // Configure WebSocket URLs at initialization
@@ -101,33 +141,8 @@ let subscribe =
       (),
     )
     : (Tilia.Core.signal(query_result(StoreJson.json)), unit => unit) => {
-  // Get or create cache entry
-  let entry =
-    switch (t.entries->Js.Dict.get(key)) {
-    | Some(existing) =>
-      // Increment ref count and return existing entry
-      if (existing.refCount == 0) {
-        let (signal, setSignal) = Tilia.Core.signal(existing.data);
-        existing.signal = signal;
-        existing.setSignal = setSignal;
-      };
-      existing.refCount = existing.refCount + 1;
-      existing;
-    | None =>
-      // Create new entry with Loading state
-      let (signal, setSignal) = Tilia.Core.signal(Loading);
-      let newEntry = {
-        key,
-        data: Loading,
-        signal,
-        setSignal,
-        subscriptionHandle: None,
-        lastUpdated: updatedAt,
-        refCount: 1,
-      };
-      t.entries->Js.Dict.set(key, newEntry);
-      newEntry;
-    };
+  let entry = getOrCreateEntry(~t, ~key, ~updatedAt, ());
+  entry.refCount = entry.refCount + 1;
 
   // Subscribe via RealtimeClient.Socket if not already subscribed
   let handle =
@@ -186,16 +201,18 @@ let subscribe =
   entry.subscriptionHandle = handle;
 
   // Return signal and unsubscribe function
+  let active = ref(true);
   let unsubscribe = () => {
-    entry.refCount = entry.refCount - 1;
-    if (entry.refCount <= 0) {
-      // Dispose subscription
-      switch (entry.subscriptionHandle) {
-      | Some(h) => RealtimeClient.Socket.disposeHandle(h)
-      | None => ()
+    if (active.contents) {
+      active := false;
+      entry.refCount = max(0, entry.refCount - 1);
+      if (entry.refCount == 0) {
+        switch (entry.subscriptionHandle) {
+        | Some(h) => RealtimeClient.Socket.disposeHandle(h)
+        | None => ()
+        };
+        entry.subscriptionHandle = None;
       };
-      // Remove entry from cache
-      deleteEntry(t.entries, key);
     };
   };
 

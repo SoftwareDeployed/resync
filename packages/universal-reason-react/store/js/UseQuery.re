@@ -114,33 +114,28 @@ let useQuery =
   let paramsHash = Q.paramsHash(params);
   let key = makeKey(~channel, ~paramsHash);
 
-  // Client: Subscribe via QueryCache, decode raw JSON on access
   let cache = getQueryCache();
 
-  // Subscribe to cache updates
-  let (signal, unsubscribe) =
-    React.useMemo1(
-      () => {
+  let signal =
+    React.useMemo1(() => QueryCache.getSignal(~t=cache, ~key), [|key|]);
+
+  React.useEffect1(
+    () => {
+      let (_signal, unsubscribe) =
         QueryCache.subscribe(
           ~t=cache,
           ~key,
           ~channel,
           ~updatedAt=0.0,
           (),
-        )
-      },
-      [|key|],
-    );
-
-  Tilia.React.useTilia();
-  let currentResult = signal->Tilia.Core.lift;
-
-  React.useEffect1(
-    () => {
+        );
       Some(unsubscribe);
     },
     [|key|],
   );
+
+  Tilia.React.useTilia();
+  let currentResult = signal->Tilia.Core.lift;
 
   switch (currentResult) {
   | Loading => {
