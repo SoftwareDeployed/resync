@@ -89,15 +89,14 @@ let init = (~eventUrl: string, ~baseUrl: string, t: t) => {
 [@platform native]
 let init = (~eventUrl as _: string, ~baseUrl as _: string, _t: t) => ();
 
-// Subscribe to a query with type-erased storage
-// Store raw JSON directly - decodeRow is used by consumers, not the cache
+// Subscribe to a query with type-erased storage.
+// Store raw JSON directly; UseQuery decodes rows on access.
 [@platform js]
 let subscribe =
     (
       ~t: t,
       ~key: query_key,
       ~channel: string,
-      ~decodeRow as _: StoreJson.json => 'row,
       ~updatedAt: float=0.0,
       (),
     )
@@ -148,8 +147,7 @@ let subscribe =
               },
             ~onSnapshot=
               (json: StoreJson.json) => {
-                // Store raw JSON directly - the cache stores type-erased JSON
-                // UseQuery will decode using decodeRow on access
+                // Store raw JSON directly; UseQuery decodes rows on access.
                 let result =
                   switch (
                     StoreJson.tryDecode(
@@ -210,7 +208,6 @@ let subscribe =
       ~t as _: t,
       ~key as _: query_key,
       ~channel as _: string,
-      ~decodeRow as _: StoreJson.json => 'row,
       ~updatedAt as _: float=0.0,
       (),
     )

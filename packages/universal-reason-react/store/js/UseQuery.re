@@ -125,7 +125,6 @@ let useQuery =
           ~t=cache,
           ~key,
           ~channel,
-          ~decodeRow=Q.decodeRow,
           ~updatedAt=0.0,
           (),
         )
