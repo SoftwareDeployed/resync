@@ -499,8 +499,8 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
            )
            |> then_(hasConfirmedAssistant =>
                 if (hasConfirmedAssistant == "false") {
-                  Js.log2("[SKIP] Cross-tab realtime sync test skipped (no assistant response from LLM):", error);
-                  resolve();
+                  Js.log2("[FAIL] Cross-tab realtime sync test failed before assistant response:", error);
+                  BrowserTestUtils.rejectPromiseError(error);
                 } else {
                   Js.log2("[FAIL] Cross-tab realtime sync test failed:", error);
                   reject(BrowserTestUtils.makeError("Cross-tab realtime sync test failed"));
@@ -567,8 +567,8 @@ let runStreamingScrollScenario = (~browser, ~baseUrl) => {
           )
      )
   |> catch(error => {
-       Js.log2("[SKIP] Streaming scroll test skipped or failed due to LLM availability:", error);
-       resolve();
+       Js.log2("[FAIL] Streaming scroll test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
      });
 };
 
@@ -596,8 +596,8 @@ let runRootRedirectScenario = (~browser, ~baseUrl) => {
           })
      )
   |> catch(error => {
-       Js.log2("[SKIP] Root redirect test skipped:", error);
-       resolve();
+       Js.log2("[FAIL] Root redirect test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
      });
 };
 
@@ -810,8 +810,8 @@ let runDbSyncScenario = (~browser, ~baseUrl) => {
           })
     )
   |> catch(error => {
-       Js.log2("[SKIP] DB sync test skipped:", error);
-       resolve();
+       Js.log2("[FAIL] DB sync test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
      })
 };
 
@@ -875,8 +875,8 @@ let runDbCreateSyncScenario = (~browser, ~baseUrl) => {
           })
      )
   |> catch(error => {
-       Js.log2("[SKIP] DB create sync test skipped:", error);
-       resolve();
+       Js.log2("[FAIL] DB create sync test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
      })
 };
 
@@ -956,8 +956,8 @@ let runUiCreateSyncScenario = (~browser, ~baseUrl) => {
           )
      )
   |> catch(error => {
-       Js.log2("[SKIP] UI create sync test skipped:", error);
-       resolve();
+       Js.log2("[FAIL] UI create sync test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
      })
 };
 
@@ -1017,8 +1017,8 @@ let runMessageSyncScenario = (~browser, ~baseUrl) => {
           })
      )
   |> catch(error => {
-       Js.log2("[SKIP] Message sync test skipped:", error);
-       resolve();
+       Js.log2("[FAIL] Message sync test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
      })
 };
 
@@ -1074,8 +1074,8 @@ let runEmptyStateScenario = (~browser, ~baseUrl) => {
           });
      })
   |> catch(error => {
-       Js.log2("[SKIP] Empty state test skipped:", error);
-       resolve();
+       Js.log2("[FAIL] Empty state test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
      });
 };
 
@@ -1187,8 +1187,8 @@ let runCrossTabDeleteActiveThreadScenario = (~browser, ~baseUrl) => {
        })
   })
   |> catch(error => {
-       Js.log2("[SKIP] Cross-tab delete active thread test skipped:", error);
-       resolve();
+       Js.log2("[FAIL] Cross-tab delete active thread test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
      });
 };
 
@@ -1256,8 +1256,8 @@ let runReconnectionScenario = (~browser, ~baseUrl, ~serverRef) => {
           })
      )
   |> catch(error => {
-       Js.log2("[SKIP] Reconnection test skipped:", error);
-       resolve();
+       Js.log2("[FAIL] Reconnection test failed:", error);
+       BrowserTestUtils.rejectPromiseError(error);
      });
 };
 
