@@ -327,6 +327,30 @@ let suite =
     in
     if !sent = [ payload ] && !closed then ()
     else Alcotest.fail "Expected invalid mutation kind ack to preserve action id");
+  Alcotest.test_case "invalid mutation action preserves action id in ack" `Quick (fun () ->
+    let adapter = Fake_adapter.create () in
+    let runtime = make_runtime adapter in
+    let sent = ref [] in
+    let closed = ref false in
+    let _ =
+    Lwt_main.run
+    (Middleware.handle_message_with_io runtime request []
+    "{\"type\":\"mutation\",\"actionId\":\"missing-action-1\"}"
+    ~send:(fun message ->
+      sent := message :: !sent;
+      Lwt.return_unit)
+    ~close:(fun () ->
+      closed := true;
+      Lwt.return_unit)
+    ~subscribe:(fun channel -> Lwt.return_some channel)
+    ~unsubscribe:(fun _channel -> Lwt.return_unit))
+    in
+    let payload =
+    Middleware.ack_message ~channel:"" ~action_id:"missing-action-1" ~status:"error"
+    ~error:"Invalid mutation frame" ()
+    in
+    if !sent = [ payload ] && !closed then ()
+    else Alcotest.fail "Expected invalid mutation action ack to preserve action id");
   Alcotest.test_case "media handler error sends error frame" `Quick (fun () ->
     let adapter = Fake_adapter.create () in
     let handle_media _broadcast _request _channel _payload =

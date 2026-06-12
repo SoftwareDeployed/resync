@@ -415,9 +415,14 @@ let handle_json_message_with_io t request current_channels json ~send ~close
                  )
          )
       | _ ->
+          let action_id =
+            match assoc_string "actionId" json with
+            | Some action_id -> action_id
+            | None -> ""
+          in
           let* () =
             send
-              (ack_message ~channel:(get_channel ()) ~action_id:"" ~status:"error"
+              (ack_message ~channel:(get_channel ()) ~action_id ~status:"error"
                  ~error:"Invalid mutation frame" ())
           in
           let* () = close () in
