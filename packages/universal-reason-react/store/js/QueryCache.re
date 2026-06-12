@@ -73,9 +73,14 @@ let listenLoadedResults = (~t: t, listener: loaded_result_listener): loaded_resu
 let unlistenLoadedResults = (~t: t, listenerId: loaded_result_listener_id) =>
   StoreEvents.Callback.unlisten(~registry=t.loadedResultListenersRef, listenerId);
 
+let shouldUseTransport = (~eventUrl: string, ~baseUrl as _: string) =>
+  eventUrl != "";
+
 module InternalForTests = {
   let loadedResultListenerCount = (~t: t) =>
     Array.length(t.loadedResultListenersRef.contents);
+
+  let shouldUseTransport = shouldUseTransport;
 };
 
 [@platform js]
@@ -179,7 +184,7 @@ let subscribe =
     switch (entry.subscriptionHandle) {
     | Some(h) => Some(h)
     | None =>
-      if (t.eventUrl != "" && t.baseUrl != "") {
+      if (shouldUseTransport(~eventUrl=t.eventUrl, ~baseUrl=t.baseUrl)) {
         let h =
           RealtimeClient.Socket.subscribeSynced(
             ~subscription=channel,

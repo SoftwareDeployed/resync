@@ -306,6 +306,24 @@ let testLoadedResultListenersPreserveQueryKey = () => {
   );
 };
 
+let testQueryCacheAllowsSameOriginTransport = () =>
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache allows same-origin transport",
+    QueryCache.InternalForTests.shouldUseTransport(
+      ~eventUrl="/_events",
+      ~baseUrl="",
+    )
+    && QueryCache.InternalForTests.shouldUseTransport(
+         ~eventUrl="/_events",
+         ~baseUrl="http://127.0.0.1:8080",
+       )
+    && QueryCache.InternalForTests.shouldUseTransport(
+         ~eventUrl="",
+         ~baseUrl="http://127.0.0.1:8080",
+       ) == false,
+    ~details="same-origin query cache subscriptions required an unnecessary base URL",
+  );
+
 let testRealtimeClientKeepsStatesPerUrl = () => {
   RealtimeClient.Socket.InternalForTests.resetStates();
   RealtimeClient.Socket.InternalForTests.touchState(
@@ -512,6 +530,7 @@ let run = () => {
   |> then_(_ => testNoQueryConfigDoesNotRegisterLoadedResultListener())
   |> then_(_ => testLoadedResultListenersAreCacheScoped())
   |> then_(_ => testLoadedResultListenersPreserveQueryKey())
+  |> then_(_ => testQueryCacheAllowsSameOriginTransport())
   |> then_(_ => testRealtimeClientKeepsStatesPerUrl())
   |> then_(_ => testHydratedProvidersPreserveOuterToInnerOrder())
   |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
