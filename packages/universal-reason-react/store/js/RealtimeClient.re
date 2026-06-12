@@ -49,6 +49,12 @@ let pingFrameString = () =>
 [@platform native]
 let pingFrameString = () => "";
 
+let channelIdOfSubscription = (subscription: string): string =>
+  switch (Js.String.split(~sep=":", subscription)) {
+  | [|_, id|] => id
+  | _ => subscription
+  };
+
 [@platform native]
 module Socket = {
   type websocket = unit;
@@ -472,12 +478,7 @@ module Socket = {
     let callbackId = UUID.make();
     let disposedRef = ref(false);
 
-    /* Extract channel ID from subscription (format: "type:id", e.g., "list:uuid") */
-    let channelId =
-      switch (Js.String.split(~sep=":", subscription)) {
-      | [|_, id|] => id
-      | _ => subscription
-      };
+    let channelId = channelIdOfSubscription(subscription);
 
     let callbacks = {
       id: callbackId,

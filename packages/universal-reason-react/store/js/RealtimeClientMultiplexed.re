@@ -287,11 +287,7 @@ module Multiplexed = {
     let id = t.nextIdRef.contents;
     t.nextIdRef := id + 1;
 
-    let channelId =
-      switch (Js.String.split(~sep=":", channel)) {
-      | [|_, id|] => id
-      | _ => channel
-      };
+    let channelId = RealtimeClient.channelIdOfSubscription(channel);
 
     let callbacks = {
       id,
