@@ -1305,7 +1305,13 @@ module Synced = {
       | Server => ()
       };
 
-    let handleAck = (actionId: string, status: string, error: option(string)) => {
+    let handleAck =
+        (
+          ~shouldApplySideEffects: unit => bool,
+          actionId: string,
+          status: string,
+          error: option(string),
+        ) => {
       Controller.clearAckTimeout(actionId);
       switch (status) {
       | "ok" =>
@@ -1323,43 +1329,45 @@ module Synced = {
                       status: StoreActionLedger.statusToString(Acked),
                     })
                   | None => Js.Promise.resolve()
-                  };
+                };
                 Js.Promise.then_(
                   _ => {
-                    /* Apply acked action to confirmed state so subsequent
-                       optimistic rebuilds include its effect. */
-                    switch (ledgerRecord) {
-                    | Some(r: StoreActionLedger.t) =>
-                      let action = Schema.action_of_json(r.action);
-                      let nextConfirmedState = Schema.reduce(
-                        ~state=confirmedStateRef.contents,
-                        ~action,
-                      );
-                      confirmedStateRef := nextConfirmedState;
-                      persistConfirmedState(~broadcast=true, nextConfirmedState);
-                    | None => ()
-                    };
-                    StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
-                    /* Ack ordering contract: the action ledger status is updated
-                       before ActionAcked listeners or legacy callbacks run. */
-                    emitEvent(
-                      StoreEvents.ActionAcked({
-                        actionId,
-                        action: actionOptionOfRecord(ledgerRecord),
-                      }),
-                    );
-                    switch (ledgerRecord) {
-                    | Some(r: StoreActionLedger.t) =>
-                      switch (Schema.onActionAck) {
-                      | Some(onActionAck) =>
-                        onActionAck(
-                          ~dispatch=safeDispatch,
-                          ~action=Schema.action_of_json(r.action),
-                          ~actionId,
-                        )
+                    if (shouldApplySideEffects()) {
+                      /* Apply acked action to confirmed state so subsequent
+                         optimistic rebuilds include its effect. */
+                      switch (ledgerRecord) {
+                      | Some(r: StoreActionLedger.t) =>
+                        let action = Schema.action_of_json(r.action);
+                        let nextConfirmedState = Schema.reduce(
+                          ~state=confirmedStateRef.contents,
+                          ~action,
+                        );
+                        confirmedStateRef := nextConfirmedState;
+                        persistConfirmedState(~broadcast=true, nextConfirmedState);
                       | None => ()
-                      }
-                    | None => ()
+                      };
+                      StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
+                      /* Ack ordering contract: the action ledger status is updated
+                         before ActionAcked listeners or legacy callbacks run. */
+                      emitEvent(
+                        StoreEvents.ActionAcked({
+                          actionId,
+                          action: actionOptionOfRecord(ledgerRecord),
+                        }),
+                      );
+                      switch (ledgerRecord) {
+                      | Some(r: StoreActionLedger.t) =>
+                        switch (Schema.onActionAck) {
+                        | Some(onActionAck) =>
+                          onActionAck(
+                            ~dispatch=safeDispatch,
+                            ~action=Schema.action_of_json(r.action),
+                            ~actionId,
+                          )
+                        | None => ()
+                        }
+                      | None => ()
+                      };
                     };
                     Js.Promise.resolve();
                   },
@@ -1393,21 +1401,23 @@ module Synced = {
                       error: Some(message),
                     })
                   | None => Js.Promise.resolve()
-                  };
+                };
                 Js.Promise.then_(
                   _ => {
-                    refreshOptimisticState();
-                    StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
-                    /* Failure ordering contract: emit ActionFailed only after the
-                       ledger status reflects the failed action. */
-                    emitEvent(
-                      StoreEvents.ActionFailed({
-                        actionId,
-                        action: actionOptionOfRecord(ledgerRecord),
-                        message,
-                      }),
-                    );
-                    Schema.onActionError(message);
+                    if (shouldApplySideEffects()) {
+                      refreshOptimisticState();
+                      StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
+                      /* Failure ordering contract: emit ActionFailed only after the
+                         ledger status reflects the failed action. */
+                      emitEvent(
+                        StoreEvents.ActionFailed({
+                          actionId,
+                          action: actionOptionOfRecord(ledgerRecord),
+                          message,
+                        }),
+                      );
+                      Schema.onActionError(message);
+                    };
                     Js.Promise.resolve();
                   },
                   persistPromise,
@@ -1545,7 +1555,14 @@ module Synced = {
                 if (isCurrentScopeGeneration(scopeGeneration)) {
                   handleSnapshot(snapshotJson);
                 },
-              ~onAck=handleAck,
+              ~onAck=(actionId, status, error) =>
+                handleAck(
+                  ~shouldApplySideEffects=() =>
+                    isCurrentScopeGeneration(scopeGeneration),
+                  actionId,
+                  status,
+                  error,
+                ),
               ~onCustom=payload =>
                 if (isCurrentScopeGeneration(scopeGeneration)) {
                   handleCustom(payload);
