@@ -33,6 +33,12 @@ let listenLoadedResults = (listener: loaded_result_listener): loaded_result_list
 let unlistenLoadedResults = (listenerId: loaded_result_listener_id) =>
   StoreEvents.Callback.unlisten(~registry=loadedResultListenersRef, listenerId);
 
+let decodeJsonRows = (json: StoreJson.json): option(array(StoreJson.json)) =>
+  StoreJson.tryDecode(
+    Melange_json.Primitives.array_of_json(rowJson => rowJson),
+    json,
+  );
+
 // Cache entry stores type-erased JSON data
 // The decoder is provided at access time, not storage time
 type cache_entry = {
@@ -185,15 +191,10 @@ let subscribe =
               (json: StoreJson.json) => {
                 // Store raw JSON directly; UseQuery decodes rows on access.
                 let result =
-                  switch (
-                    StoreJson.tryDecode(
-                      Melange_json.Primitives.array_of_json(x => x),
-                      json,
-                    )
-                ) {
-                | Some(jsonRows) => Loaded(jsonRows)
-                | None => Error("Failed to decode snapshot data")
-                };
+                  switch (decodeJsonRows(json)) {
+                  | Some(jsonRows) => Loaded(jsonRows)
+                  | None => Error("Failed to decode snapshot data")
+                  };
                 setEntryResult(
                   ~entry,
                   ~channel,
@@ -309,12 +310,7 @@ let result_of_json = (json: StoreJson.json): query_result(StoreJson.json) => {
     | Some("Loaded") =>
       switch (StoreJson.field(json, "data")) {
       | Some(data) =>
-        switch (
-          StoreJson.tryDecode(
-            Melange_json.Primitives.array_of_json(x => x),
-            data,
-          )
-        ) {
+        switch (decodeJsonRows(data)) {
         | Some(rows) => Loaded(rows)
         | None => Error("Invalid data field in Loaded result")
         }
