@@ -79,7 +79,7 @@ Server-side SSE output helper.
 
 ### NDJSON token stream in `llm-chat`
 
-`demos/llm-chat/server/src/server.ml` parses Ollama’s streaming response one chunk at a time:
+`demos/llm-chat/server/src/server.ml` parses Ollama’s streaming response one chunk at a time. Custom stream frames include the resolved subscription channel at the top level so the client can route them:
 
 ```reason
 let ndjson_parser = NdjsonParser.make ();
@@ -91,9 +91,13 @@ let rec read_loop () =
   let* chunk = Lwt_stream.get body_stream in
   match chunk with
   | None ->
+      finalize_assistant_message
+        ~with_background_db
+        ~thread_id
+        ~assistant_message_id
+        ~full_response;
       broadcast_stream_event ~broadcast_fn ~thread_id ~event:"stream_complete"
-        [("thread_id", `String thread_id); ("message_id", `String assistant_message_id)];
-      finalize_assistant_message ~request ~thread_id ~assistant_message_id ~full_response
+        [("thread_id", `String thread_id); ("message_id", `String assistant_message_id)]
   | Some chunk ->
       let jsons = NdjsonParser.feed ndjson_parser chunk in
       Array.iter (fun json -> (* extract token text and broadcast token_received *) ) jsons;
@@ -101,6 +105,7 @@ let rec read_loop () =
 ```
 
 Use `NdjsonParser.feed` whenever the upstream server emits newline-delimited JSON instead of one JSON object per response.
+The demo reads `LLM_CHAT_OLLAMA_URL` and `LLM_CHAT_OLLAMA_MODEL` when you need to point it at a non-default Ollama endpoint or model.
 
 ### SSE parsing and writing
 

@@ -4,11 +4,16 @@ module Multiplexed = {
 
   type callbacks = {
     id: int,
+    subscription: string,
+    updatedAt: float,
     onOpen: unit => unit,
     onClose: unit => unit,
     onPatch: (~payload: StoreJson.json, ~timestamp: float) => unit,
     onSnapshot: StoreJson.json => unit,
     onAck: (string, string, option(string)) => unit,
+    onCustom: option(StoreJson.json => unit),
+    onMedia: option(StoreJson.json => unit),
+    onError: option(string => unit),
   };
 
   type t = {
@@ -71,15 +76,22 @@ module Multiplexed = {
       WebSocket.onOpen(ws, () => {
         /* Send select for all active subscriptions */
         t.subscriptionsRef.contents
-        ->Js.Dict.keys
-        ->Js.Array.forEach(~f=channel => {
-            let _ =
-              t.websocketRef.contents
-              |> Option.map(ws => {
-                  ws->WebSocket.send_string(
-                    RealtimeClient.selectFrameString(channel, 0.0),
-                  )
-                });
+        ->Js.Dict.entries
+        ->Js.Array.forEach(~f=((_, callbacks)) => {
+            if (Js.Array.length(callbacks) > 0) {
+              let firstCallback = callbacks[0];
+              let _ =
+                t.websocketRef.contents
+                |> Option.map(ws => {
+                    ws->WebSocket.send_string(
+                      RealtimeClient.selectFrameString(
+                        firstCallback.subscription,
+                        firstCallback.updatedAt,
+                      ),
+                    )
+                  });
+              callbacks->Js.Array.forEach(~f=callback => callback.onOpen());
+            };
           });
 
         /* Send pending mutations */
@@ -185,6 +197,48 @@ module Multiplexed = {
                 ->Js.Array.forEach(
                     ~f=callback => callback.onAck(actionId, status, error),
                   );
+              | Some("custom") =>
+                let payload =
+                  StoreJson.requiredField(
+                    ~json,
+                    ~fieldName="payload",
+                    ~decode=value => value,
+                  );
+                callbacks
+                ->Js.Array.forEach(~f=callback =>
+                    switch (callback.onCustom) {
+                    | Some(handler) => handler(payload)
+                    | None => ()
+                    }
+                  );
+              | Some("media") =>
+                let payload =
+                  StoreJson.requiredField(
+                    ~json,
+                    ~fieldName="payload",
+                    ~decode=value => value,
+                  );
+                callbacks
+                ->Js.Array.forEach(~f=callback =>
+                    switch (callback.onMedia) {
+                    | Some(handler) => handler(payload)
+                    | None => ()
+                    }
+                  );
+              | Some("error") =>
+                let message =
+                  StoreJson.requiredField(
+                    ~json,
+                    ~fieldName="message",
+                    ~decode=Melange_json.Primitives.string_of_json,
+                  );
+                callbacks
+                ->Js.Array.forEach(~f=callback =>
+                    switch (callback.onError) {
+                    | Some(handler) => handler(message)
+                    | None => ()
+                    }
+                  );
               | _ => ()
               }
             | None => ()
@@ -225,21 +279,42 @@ module Multiplexed = {
         ~onPatch,
         ~onSnapshot,
         ~onAck,
+        ~onCustom=?,
+        ~onMedia=?,
+        ~onError=?,
         t: t,
       ) => {
     let id = t.nextIdRef.contents;
     t.nextIdRef := id + 1;
 
-    let callbacks = {id, onOpen, onClose, onPatch, onSnapshot, onAck};
+    let channelId =
+      switch (Js.String.split(~sep=":", channel)) {
+      | [|_, id|] => id
+      | _ => channel
+      };
+
+    let callbacks = {
+      id,
+      subscription: channel,
+      updatedAt,
+      onOpen,
+      onClose,
+      onPatch,
+      onSnapshot,
+      onAck,
+      onCustom,
+      onMedia,
+      onError,
+    };
 
     let subs = t.subscriptionsRef.contents;
     let existing =
-      switch (subs->Js.Dict.get(channel)) {
+      switch (subs->Js.Dict.get(channelId)) {
       | Some(callbacks) => callbacks
       | None => [||]
       };
     let wasEmpty = Js.Array.length(existing) == 0;
-    subs->Js.Dict.set(channel, existing->Js.Array.concat(~other=[|callbacks|]));
+    subs->Js.Dict.set(channelId, existing->Js.Array.concat(~other=[|callbacks|]));
     t.subscriptionsRef := subs;
 
     /* Ensure connection is open */
@@ -250,11 +325,12 @@ module Multiplexed = {
           RealtimeClient.selectFrameString(channel, updatedAt),
         );
       }
+      onOpen();
     | Some(_) => ()
     | None => connect(t)
     };
 
-    {channel, id};
+    {channel: channelId, id};
   };
 
   let unsubscribe = (t: t, handle: subscription_handle) => {
@@ -327,6 +403,9 @@ module Multiplexed = {
         ~onPatch as _,
         ~onSnapshot as _,
         ~onAck as _,
+        ~onCustom as _=?,
+        ~onMedia as _=?,
+        ~onError as _=?,
         _t,
       ) => {
     channel: "",

@@ -1268,6 +1268,39 @@ module Synced = {
       };
     };
 
+    let handleCustom = (payload: StoreJson.json) => {
+      switch (Schema.streams) {
+      | Some({decodeStreamEvent, reduceStream, _}) =>
+        switch (decodeStreamEvent(payload)) {
+        | Some(event) =>
+          streamingRef := reduceStream(streamingRef.contents, event)
+        | None => ()
+        }
+      | None => ()
+      };
+      emitEvent(StoreEvents.CustomEvent(payload));
+      switch (Schema.onCustom) {
+      | Some(onCustom) => onCustom(payload)
+      | None => ()
+      };
+    };
+
+    let handleMedia = (payload: StoreJson.json) => {
+      emitEvent(StoreEvents.MediaEvent(payload));
+      switch (Schema.onMedia) {
+      | Some(onMedia) => onMedia(payload)
+      | None => ()
+      };
+    };
+
+    let handleConnectionError = (message: string) => {
+      emitEvent(StoreEvents.ConnectionError(message));
+      switch (Schema.onError) {
+      | Some(onError) => onError(~dispatch=safeDispatch)(message)
+      | None => ()
+      };
+    };
+
     let handleQueryResult = (~queriesConfig: option(queriesConfig(state)), ~channel: string, ~rows: array(StoreJson.json), ()) => {
       switch (queriesConfig) {
       | Some(config) =>
@@ -1321,6 +1354,9 @@ module Synced = {
               ~onPatch=handlePatch,
               ~onSnapshot=handleSnapshot,
               ~onAck=handleAck,
+              ~onCustom=handleCustom,
+              ~onMedia=handleMedia,
+              ~onError=handleConnectionError,
               multiplexed,
             );
           Controller.setConnectionHandle(Some(multiplexed));

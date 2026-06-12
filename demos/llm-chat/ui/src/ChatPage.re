@@ -27,17 +27,21 @@ let handleSend =
       sendPromptMutation: UseMutation.mutation_result(LlmChatStore.send_prompt_payload),
       prompt,
       setDraft,
-      setIsStreaming,
+      _setIsStreaming,
     ) => {
   let threadId =
     switch (store.state.current_thread_id) {
     | Some(id) => id
     | None => ""
-    };
+  };
   if (String.length(prompt) > 0 && String.length(threadId) > 0) {
-    let _ = sendPromptMutation.mutate({thread_id: threadId, prompt});
+    let _ =
+      sendPromptMutation.mutate({
+        message_id: UUID.make(),
+        thread_id: threadId,
+        prompt,
+      });
     setDraft(_ => "");
-    setIsStreaming(_ => true);
   };
 };
 
@@ -203,22 +207,36 @@ module View = {
                   ~decode=Melange_json.Primitives.string_of_json,
                 );
               switch (eventKind) {
+              | Some("stream_started") =>
+                setStreamingText(_ => "");
+                setIsStreaming(_ => true);
               | Some("token_received") =>
                 let token =
                   StoreJson.optionalField(
                     ~json,
                     ~fieldName="token",
                     ~decode=Melange_json.Primitives.string_of_json,
-                  );
+                );
                 switch (token) {
-                | Some(t) => setStreamingText(prev => prev ++ t)
+                | Some(t) =>
+                  setIsStreaming(_ => true);
+                  setStreamingText(prev => prev ++ t)
                 | None => ()
                 };
               | Some("stream_complete") =>
                 setIsStreaming(_ => false);
               | Some("stream_error") =>
+                let error =
+                  StoreJson.optionalField(
+                    ~json,
+                    ~fieldName="error",
+                    ~decode=Melange_json.Primitives.string_of_json,
+                  );
                 setIsStreaming(_ => false);
-                setStreamingText(_ => "");
+                switch (error) {
+                | Some(message) => setStreamingText(_ => "Error: " ++ message)
+                | None => setStreamingText(_ => "Error: stream failed")
+                };
               | _ => ()
               }
             | _ => ()
@@ -399,7 +417,7 @@ module View = {
                   />
                   <button
                     id="send-button"
-                    disabled=isStreaming
+                    disabled={isStreaming || sendPromptMutation.loading}
                     onClick={_ =>
                       handleSend(
                         store,

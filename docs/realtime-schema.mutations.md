@@ -66,15 +66,29 @@ The framework transparently handles idempotency, so mutations only need to expre
 
 ```ocaml
 | Ok "send_prompt" ->
-    require_thread request thread_id (fun () ->
-      let message_id = UUID.make () in
+    require_thread db thread_id (fun () ->
+      let message_id = client_message_id in
       let assistant_message_id = UUID.make () in
       let* () =
         RealtimeSchema.Mutations.AddMessage.exec
           db
           (message_id, thread_id, "user", prompt)
       in
-      Lwt.async (fun () -> stream_ollama ~broadcast_fn ~request ~thread_id ~assistant_message_id ());
+      let* message_rows =
+        RealtimeSchema.Queries.GetMessages.collect
+          db
+          RealtimeSchema.Queries.GetMessages.caqti_type
+          thread_id
+      in
+      let messages_json = message_rows_to_json message_rows in
+      Lwt.async (fun () ->
+        stream_ollama
+          ~broadcast_fn
+          ~with_background_db
+          ~thread_id
+          ~assistant_message_id
+          ~messages_json
+          ());
       Lwt.return (Ack (Ok ())))
 ```
 

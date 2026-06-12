@@ -101,19 +101,36 @@ let resolve_subscription request selection =
        | None ->
            Lwt.return_some thread_id)
 
-let stream_event_json ~event fields =
+let ollama_url () =
+  match Sys.getenv_opt "LLM_CHAT_OLLAMA_URL" with
+  | Some value when String.length value > 0 -> value
+  | _ -> "http://localhost:11434/api/chat"
+
+let ollama_model () =
+  match Sys.getenv_opt "LLM_CHAT_OLLAMA_MODEL" with
+  | Some value when String.length value > 0 -> value
+  | _ -> "llama3.1"
+
+let stream_event_json ~channel ~event fields =
   Yojson.Basic.to_string
     (`Assoc
       [ ("type", `String "custom");
+        ("channel", `String channel);
         ("payload", `Assoc (("event", `String event) :: fields)) ])
 
 let broadcast_stream_event ~broadcast_fn ~thread_id ~event fields =
-  let message = stream_event_json ~event fields in
+  let message = stream_event_json ~channel:thread_id ~event fields in
   broadcast_fn thread_id (fun ~channel:_ _ -> message)
 
-let finalize_assistant_message ~request ~thread_id ~assistant_message_id ~full_response =
+let broadcast_stream_error ~broadcast_fn ~thread_id ~assistant_message_id error =
+  broadcast_stream_event ~broadcast_fn ~thread_id ~event:"stream_error"
+    [ ("thread_id", `String thread_id);
+      ("message_id", `String assistant_message_id);
+      ("error", `String error) ]
+
+let finalize_assistant_message ~with_background_db ~thread_id ~assistant_message_id ~full_response =
   if String.length full_response > 0 then
-    Dream.sql request (fun db ->
+    with_background_db (fun db ->
       let* () =
         RealtimeSchema.Mutations.AddMessage.exec
           db
@@ -122,105 +139,120 @@ let finalize_assistant_message ~request ~thread_id ~assistant_message_id ~full_r
       touch_thread_updated_at db thread_id)
   else Lwt.return_unit
 
-let stream_ollama ~broadcast_fn ~request ~thread_id ~assistant_message_id () =
-  let* message_rows =
-    Dream.sql request (fun db ->
-      RealtimeSchema.Queries.GetMessages.collect
-        db
-        RealtimeSchema.Queries.GetMessages.caqti_type
-        thread_id)
-  in
-  let messages_json =
-    List.map
-      (fun (row : RealtimeSchema.Queries.GetMessages.row) ->
-         `Assoc [("role", `String row.role); ("content", `String row.content)])
-      message_rows
-  in
+let message_rows_to_json rows =
+  List.map
+    (fun (row : RealtimeSchema.Queries.GetMessages.row) ->
+       `Assoc [("role", `String row.role); ("content", `String row.content)])
+    rows
+
+let stream_ollama ~broadcast_fn ~with_background_db ~thread_id ~assistant_message_id ~messages_json () =
   let ollama_body =
     Yojson.Safe.to_string
       (`Assoc
-        [ ("model", `String "llama3.1");
+        [ ("model", `String (ollama_model ()));
           ("messages", `List messages_json);
           ("stream", `Bool true) ])
   in
-  let* (_resp, resp_body) =
-    Lwt.catch
-      (fun () ->
-         Cohttp_lwt_unix.Client.post
-           ~body:(Cohttp_lwt.Body.of_string ollama_body)
-           ~headers:(Cohttp.Header.of_list [("Content-Type", "application/json")])
-           (Uri.of_string "http://localhost:11434/api/chat"))
-      (fun exn ->
-         let* () =
-           broadcast_stream_event ~broadcast_fn ~thread_id ~event:"stream_error"
-             [ ("thread_id", `String thread_id);
-               ("message_id", `String assistant_message_id);
-               ("error", `String (Printexc.to_string exn)) ]
-         in
-         Lwt.fail exn)
-  in
-  let body_stream = Cohttp_lwt.Body.to_stream resp_body in
-  let ndjson_parser = NdjsonParser.make () in
-  let all_tokens = ref [] in
   let* () =
     broadcast_stream_event ~broadcast_fn ~thread_id ~event:"stream_started"
       [ ("thread_id", `String thread_id);
         ("message_id", `String assistant_message_id) ]
   in
+  let* response =
+    Lwt.catch
+      (fun () ->
+         let* response =
+           Cohttp_lwt_unix.Client.post
+             ~body:(Cohttp_lwt.Body.of_string ollama_body)
+             ~headers:(Cohttp.Header.of_list [("Content-Type", "application/json")])
+             (Uri.of_string (ollama_url ()))
+         in
+         Lwt.return (Ok response))
+      (fun exn ->
+         Lwt.return (Error (Printexc.to_string exn)))
+  in
+  match response with
+  | Error error ->
+      broadcast_stream_error ~broadcast_fn ~thread_id ~assistant_message_id error
+  | Ok (resp, resp_body) ->
+  let status_code = Cohttp.Response.status resp |> Cohttp.Code.code_of_status in
+  if status_code < 200 || status_code >= 300 then
+    let* body = Cohttp_lwt.Body.to_string resp_body in
+    let error =
+      Printf.sprintf "Ollama request failed with HTTP %d: %s" status_code body
+    in
+    broadcast_stream_error ~broadcast_fn ~thread_id ~assistant_message_id error
+  else
+  let body_stream = Cohttp_lwt.Body.to_stream resp_body in
+  let ndjson_parser = NdjsonParser.make () in
+  let all_tokens = ref [] in
   let rec read_loop () =
     let* chunk = Lwt_stream.get body_stream in
     match chunk with
     | None ->
-        let* () =
+        let full_response = String.concat "" (List.rev !all_tokens) in
+        if String.length full_response = 0 then
+          broadcast_stream_error ~broadcast_fn ~thread_id ~assistant_message_id
+            "Ollama stream completed without any response tokens"
+        else
+          let* () =
+            finalize_assistant_message ~with_background_db ~thread_id ~assistant_message_id ~full_response
+          in
           broadcast_stream_event ~broadcast_fn ~thread_id ~event:"stream_complete"
             [ ("thread_id", `String thread_id);
               ("message_id", `String assistant_message_id) ]
-        in
-        let full_response = String.concat "" (List.rev !all_tokens) in
-        finalize_assistant_message ~request ~thread_id ~assistant_message_id ~full_response
     | Some chunk ->
-        let* () =
-          (try
-             let jsons = NdjsonParser.feed ndjson_parser chunk in
-             let tokens = ref [] in
-             Array.iter
-               (fun json ->
-                  match json with
-                  | `Assoc fields ->
-                      (match List.assoc_opt "done" fields with
-                       | Some (`Bool true) -> ()
-                       | _ ->
-                           (match List.assoc_opt "message" fields with
-                            | Some (`Assoc msg_fields) ->
-                                (match List.assoc_opt "content" msg_fields with
-                                 | Some (`String text) when String.length text > 0 ->
-                                     tokens := text :: !tokens;
-                                     all_tokens := text :: !all_tokens
-                                 | _ -> ())
-                            | _ -> ()))
-                  | _ -> ())
-               jsons;
-             Lwt_list.iter_s
-               (fun text ->
-                  broadcast_stream_event ~broadcast_fn ~thread_id
-                    ~event:"token_received"
-                    [ ("thread_id", `String thread_id);
-                      ("message_id", `String assistant_message_id);
-                      ("token", `String text) ])
-               (List.rev !tokens)
-           with _ -> Lwt.return_unit)
-        in
-        read_loop ()
+        (try
+           let jsons = NdjsonParser.feed ndjson_parser chunk in
+           let tokens = ref [] in
+           let upstream_error = ref None in
+           Array.iter
+             (fun json ->
+                match json with
+                | `Assoc fields ->
+                    (match List.assoc_opt "error" fields with
+                     | Some (`String error) -> upstream_error := Some error
+                     | _ ->
+                         (match List.assoc_opt "done" fields with
+                          | Some (`Bool true) -> ()
+                          | _ ->
+                              (match List.assoc_opt "message" fields with
+                               | Some (`Assoc msg_fields) ->
+                                   (match List.assoc_opt "content" msg_fields with
+                                    | Some (`String text) when String.length text > 0 ->
+                                        tokens := text :: !tokens;
+                                        all_tokens := text :: !all_tokens
+                                    | _ -> ())
+                               | _ -> ())))
+                | _ -> ())
+             jsons;
+           match !upstream_error with
+           | Some error ->
+               broadcast_stream_error ~broadcast_fn ~thread_id ~assistant_message_id error
+           | None ->
+               let* () =
+                 Lwt_list.iter_s
+                   (fun text ->
+                      broadcast_stream_event ~broadcast_fn ~thread_id
+                        ~event:"token_received"
+                        [ ("thread_id", `String thread_id);
+                          ("message_id", `String assistant_message_id);
+                          ("token", `String text) ])
+                   (List.rev !tokens)
+               in
+               read_loop ()
+         with exn ->
+           broadcast_stream_error ~broadcast_fn ~thread_id ~assistant_message_id
+             (Printexc.to_string exn))
   in
   read_loop ()
 
-let require_thread request thread_id f =
+let require_thread db thread_id f =
   let* thread =
-    Dream.sql request (fun db ->
-      RealtimeSchema.Queries.GetThread.find_opt
-        db
-        RealtimeSchema.Queries.GetThread.caqti_type
-        thread_id)
+    RealtimeSchema.Queries.GetThread.find_opt
+      db
+      RealtimeSchema.Queries.GetThread.caqti_type
+      thread_id
   in
   match thread with
   | None -> Lwt.return (Ack (Error ("Thread not found: " ^ thread_id)))
@@ -237,7 +269,9 @@ let validate_mutation request action_json =
        let action_opt =
          match kind with
          | "send_prompt" ->
-             Some (LlmChatStore.SendPrompt { LlmChatStore.thread_id = ""; LlmChatStore.prompt = "" })
+             Some
+               (LlmChatStore.SendPrompt
+                  { LlmChatStore.message_id = ""; thread_id = ""; prompt = "" })
          | "delete_thread" -> Some (LlmChatStore.DeleteThread "")
          | "select_thread" -> Some (LlmChatStore.SelectThread "")
          | "create_new_thread" ->
@@ -286,7 +320,7 @@ let validate_mutation request action_json =
       | Caqti_error.Exn error -> Lwt.return (Error (Caqti_error.show error))
       | exn -> Lwt.return (Error (Printexc.to_string exn)))
 
-let handle_mutation broadcast_fn request ~db ~action_id ~mutation_name:_ action =
+let handle_mutation with_background_db broadcast_fn request ~db ~action_id ~mutation_name:_ action =
   let open Mutation_json in
   let kind =
     match assoc "kind" action with
@@ -308,8 +342,12 @@ let handle_mutation broadcast_fn request ~db ~action_id ~mutation_name:_ action 
                     match required_string "prompt" payload with
                     | Error error -> Lwt.return (Ack (Error error))
                     | Ok prompt ->
-                        require_thread request thread_id (fun () ->
-                          let message_id = UUID.make () in
+                        require_thread db thread_id (fun () ->
+                          let message_id =
+                            match required_string "message_id" payload with
+                            | Ok id -> id
+                            | Error _ -> UUID.make ()
+                          in
                           let assistant_message_id = UUID.make () in
                           Lwt.catch
                             (fun () ->
@@ -319,18 +357,22 @@ let handle_mutation broadcast_fn request ~db ~action_id ~mutation_name:_ action 
                                    (message_id, thread_id, "user", prompt)
                                in
                                let* () = touch_thread_updated_at db thread_id in
+                               let* message_rows =
+                                 RealtimeSchema.Queries.GetMessages.collect
+                                   db
+                                   RealtimeSchema.Queries.GetMessages.caqti_type
+                                   thread_id
+                               in
+                               let messages_json = message_rows_to_json message_rows in
                                let () =
                                  Lwt.async (fun () ->
                                    Lwt.catch
                                      (fun () ->
-                                        stream_ollama ~broadcast_fn ~request ~thread_id
-                                          ~assistant_message_id ())
+                                        stream_ollama ~broadcast_fn ~with_background_db ~thread_id
+                                          ~assistant_message_id ~messages_json ())
                                      (fun exn ->
-                                        broadcast_stream_event ~broadcast_fn ~thread_id
-                                          ~event:"stream_error"
-                                          [ ("thread_id", `String thread_id);
-                                            ("message_id", `String assistant_message_id);
-                                            ("error", `String (Printexc.to_string exn)) ]))
+                                        broadcast_stream_error ~broadcast_fn ~thread_id
+                                          ~assistant_message_id (Printexc.to_string exn)))
                                in
                                Lwt.return (Ack (Ok ())))
                             (function
@@ -405,6 +447,21 @@ let () =
   in
   let doc_root = Server_builder.doc_root builder in
   let db_uri = Option.get (Server_builder.db_uri builder) in
+  let background_pool =
+    match Caqti_lwt_unix.connect_pool (Uri.of_string db_uri) with
+    | Ok pool -> pool
+    | Error error -> failwith (Caqti_error.show error)
+  in
+  let with_background_db f =
+    let* result =
+      Caqti_lwt_unix.Pool.use
+        (fun db ->
+           let* () = f db in
+           Lwt.return (Ok ()))
+        background_pool
+    in
+    Caqti_lwt.or_fail result
+  in
   let adapter =
     Adapter.pack
       (module Pgnotify_adapter : Adapter.S with type t = Pgnotify_adapter.t)
@@ -416,7 +473,7 @@ let () =
     ~resolve_subscription
     ~load_snapshot:get_config_json
     ~dispatch_mutation
-    ~handle_mutation
+    ~handle_mutation:(handle_mutation with_background_db)
     ~validate_mutation
   |> Server_builder.with_routes [
     Dream.get "/static/**" (Dream.static doc_root);

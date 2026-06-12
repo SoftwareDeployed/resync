@@ -6,6 +6,7 @@ type state = Model.t;
 type subscription = RealtimeSubscription.t;
 
 type send_prompt_payload = {
+  message_id: string,
   thread_id: string,
   prompt: string,
 };
@@ -68,6 +69,7 @@ let actionJson = (~kind, ~fill) =>
 
 let sendPromptPayloadJson = (payload: send_prompt_payload) =>
   StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "message_id", payload.message_id);
     StoreJson.Object.setString(dict, "thread_id", payload.thread_id);
     StoreJson.Object.setString(dict, "prompt", payload.prompt);
   });
@@ -125,6 +127,13 @@ let action_of_json = json => {
   switch (kind) {
   | "send_prompt" =>
     SendPrompt({
+      message_id:
+        switch (
+          StoreJson.optionalField(~json=payload, ~fieldName="message_id", ~decode=string_of_json)
+        ) {
+        | Some(id) => id
+        | None => UUID.make()
+        },
       thread_id:
         StoreJson.requiredField(~json=payload, ~fieldName="thread_id", ~decode=string_of_json),
       prompt:
@@ -218,7 +227,7 @@ let reduce = (~state: state, ~action: action) => {
         state.messages->Js.Array.concat(
           ~other=[|
             {
-              Model.Message.id: "local-" ++ string_of_float(updatedAt),
+              Model.Message.id: payload.message_id,
               thread_id: payload.thread_id,
               role: "user",
               content: payload.prompt,
