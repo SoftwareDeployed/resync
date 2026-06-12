@@ -232,7 +232,8 @@ module Multiplexed = {
           RealtimeClient.selectFrameString(channel, updatedAt),
         );
       }
-    | _ => connect(t)
+    | Some(_) => ()
+    | None => connect(t)
     };
 
     {channel, id};
