@@ -224,9 +224,12 @@ module MockOllama = {
               let _ = response->write(mockResponseChunk("Mock assistant saw "));
               let _ = response->write(mockResponseChunk(prompt));
               setTimeout(() => {
-                let _ = response->endString("{\"done\":true}\n");
-                ();
-              }, 80);
+                let _ = response->write(mockResponseChunk(" while streaming"));
+                setTimeout(() => {
+                  let _ = response->endString("{\"done\":true}\n");
+                  ();
+                }, 300);
+              }, 250);
             });
           ();
         });
