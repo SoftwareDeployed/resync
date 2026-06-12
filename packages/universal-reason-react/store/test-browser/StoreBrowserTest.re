@@ -137,6 +137,13 @@ let loadedSignalContains = (signal, expected) =>
   | Error(_) => false
   };
 
+let errorSignalContains = (signal, expected) =>
+  switch (signal->signalValue) {
+  | Error(message) => message == expected
+  | Loading
+  | Loaded(_) => false
+  };
+
 let testQueryCacheHydrateUpdatesExistingSignal = () => {
   let cache = QueryCache.make();
   let key = makeKey(~channel="hydrate-channel", ~paramsHash="first");
@@ -155,12 +162,31 @@ let testQueryCacheHydrateUpdatesExistingSignal = () => {
   );
 };
 
+let testQueryCacheHydrateUpdatesExistingSignalWithError = () => {
+  let cache = QueryCache.make();
+  let key = makeKey(~channel="hydrate-error-channel", ~paramsHash="first");
+  let signal = QueryCache.getSignal(~t=cache, ~key);
+
+  QueryCache.hydrate(
+    ~t=cache,
+    ~jsonStr="{\"hydrate-error-channel:first\":{\"_tag\":\"Error\",\"message\":\"query failed\"}}",
+  );
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache hydrate updates existing signal with error",
+    errorSignalContains(signal, "query failed")
+    && errorSignalContains(QueryCache.getSignal(~t=cache, ~key), "query failed"),
+    ~details="error hydration replaced the signal instead of updating it",
+  );
+};
+
 let run = () => {
   let launchOptions = Playwright.makeLaunchOptions(~headless=true, ());
   let browserRef = ref(None);
   let serverRef = ref(None);
 
   testQueryCacheHydrateUpdatesExistingSignal()
+  |> then_(_ => testQueryCacheHydrateUpdatesExistingSignalWithError())
   |> then_(_ => StoreTestServer.start())
   |> then_(server => {
        serverRef := Some(server);
