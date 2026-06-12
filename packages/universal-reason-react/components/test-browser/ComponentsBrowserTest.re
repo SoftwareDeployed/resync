@@ -10,7 +10,7 @@ let testScriptJsonEscape = () => {
     escaped->includes("</script") == false
     && escaped->includes("\\u003C/script\\u003E"),
     ~details="Escaped JSON still contained a raw script terminator: " ++ escaped,
-  );
+  )
 };
 
 let run = () => {
