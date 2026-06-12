@@ -13,6 +13,43 @@ type result('row) = {
   error: option(string),
 };
 
+let decodeErrorMessage = "Failed to decode query result";
+
+let hookResultOfData = (data: query_result('row)): result('row) => {
+  let loading =
+    switch (data) {
+    | Loading => true
+    | Loaded(_)
+    | Error(_) => false
+    };
+  let error =
+    switch (data) {
+    | Error(msg) => Some(msg)
+    | Loading
+    | Loaded(_) => None
+    };
+
+  {data, loading, error};
+};
+
+let decodeQueryResult =
+    (
+      type p,
+      type r,
+      module Q: QueryModule with type params = p and type row = r,
+      rawResult: query_result(StoreJson.json),
+    )
+    : query_result(r) => {
+  switch (rawResult) {
+  | Loading => Loading
+  | Loaded(jsonRows) =>
+    try(Loaded(jsonRows->Js.Array.map(~f=Q.decodeRow))) {
+    | _ => Error(decodeErrorMessage)
+    }
+  | Error(msg) => Error(msg)
+  };
+};
+
 // Global query cache (client-side)
 let queryCacheRef: ref(option(QueryCache.t)) = ref(None);
 
@@ -124,6 +161,23 @@ let useQuerySignal = (~cache, ~key, ~channel) => {
   signal;
 };
 
+[@platform js]
+let useRawQueryResult =
+    (
+      type p,
+      type r,
+      module Q: QueryModule with type params = p and type row = r,
+      params: p,
+    ) => {
+  let channel = Q.channel(params);
+  let paramsHash = Q.paramsHash(params);
+  let key = makeKey(~channel, ~paramsHash);
+
+  let cache = getQueryCache();
+  let signal = useQuerySignal(~cache, ~key, ~channel);
+  signal->Tilia.Core.lift;
+};
+
 // Main useQuery hook - JS version (client-side)
 [@platform js]
 let useQuery =
@@ -134,43 +188,9 @@ let useQuery =
       params: p,
       (),
     ) => {
-  let channel = Q.channel(params);
-  let paramsHash = Q.paramsHash(params);
-  let key = makeKey(~channel, ~paramsHash);
-
-  let cache = getQueryCache();
-  let signal = useQuerySignal(~cache, ~key, ~channel);
-  let currentResult = signal->Tilia.Core.lift;
-
-  switch (currentResult) {
-  | Loading => {
-      data: Loading,
-      loading: true,
-      error: None,
-    }
-  | Loaded(jsonRows) =>
-    try({
-      let decodedRows = jsonRows->Js.Array.map(~f=Q.decodeRow);
-      {
-        data: Loaded(decodedRows),
-        loading: false,
-        error: None,
-      };
-    }) {
-    | _ =>
-      let message = "Failed to decode query result";
-      {
-        data: Error(message),
-        loading: false,
-        error: Some(message),
-      }
-    };
-  | Error(msg) => {
-      data: Error(msg),
-      loading: false,
-      error: Some(msg),
-    }
-  };
+  useRawQueryResult((module Q), params)
+  |> decodeQueryResult((module Q))
+  |> hookResultOfData;
 };
 
 // Main useQuery hook - Native version (server-side SSR)
@@ -238,30 +258,13 @@ let useQuery =
             Loaded(rows_)
           }
         ) {
-        | _ => Error("Failed to decode query result")
+        | _ => Error(decodeErrorMessage)
         }
       | None => Loading
       }
     | None => Loading
     };
-
-  let loading =
-    switch (data) {
-    | Loading => true
-    | _ => false
-    };
-
-  let error =
-    switch (data) {
-    | Error(msg) => Some(msg)
-    | _ => None
-    };
-
-  {
-    data,
-    loading,
-    error,
-  };
+  hookResultOfData(data);
 };
 
 // Helper to check if query is loading
@@ -273,13 +276,7 @@ let useIsQueryLoading =
       module Q: QueryModule with type params = p and type row = r,
       params: p,
     ) => {
-  let channel = Q.channel(params);
-  let paramsHash = Q.paramsHash(params);
-  let key = makeKey(~channel, ~paramsHash);
-
-  let cache = getQueryCache();
-  let signal = useQuerySignal(~cache, ~key, ~channel);
-  switch (signal->Tilia.Core.lift) {
+  switch (useRawQueryResult((module Q), params)) {
   | Loading => true
   | Loaded(_)
   | Error(_) => false
