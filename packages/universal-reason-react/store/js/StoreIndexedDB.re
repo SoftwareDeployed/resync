@@ -49,7 +49,7 @@ let openDbJs = (name: string) => {
 };
 
 [@platform native]
-let openDbJs = (_name: string) => Js.Promise.resolve(Obj.magic(()));
+let openDbJs = (_name: string) => Js.Promise.resolve(());
 
 /* Get state record by scope key */
 [@platform js]
