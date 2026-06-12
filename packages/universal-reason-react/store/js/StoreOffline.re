@@ -61,6 +61,22 @@ module MakeStoreContext = (Runtime: StoreContextRuntime) => {
   let useStore = () => React.useContext(context);
 };
 
+module StoreBroadcast = {
+  type channel = BroadcastChannel.t;
+
+  let openChannel = (name: string) => BroadcastChannel.make(name);
+
+  let postMessage = (channel: channel, message: string) =>
+    BroadcastChannel.postMessage(channel, message);
+
+  [@platform js]
+  let setHandler = (channel: channel, handler: string => unit) =>
+    BroadcastChannel.setOnmessage(channel, event => handler(event##data));
+
+  [@platform native]
+  let setHandler = (_channel, _handler) => ();
+};
+
 module Local = {
   type queriesConfig('state) = {
     applyQueryResult: (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
@@ -103,31 +119,11 @@ module Local = {
     let lifecycle = StoreRuntimeLifecycle.make(~storeName=Schema.storeName, ());
     StoreRuntimeLifecycle.markConnectionNotApplicable(lifecycle);
 
-    type broadcast_channel = BroadcastChannel.t;
+    type broadcast_channel = StoreBroadcast.channel;
 
     /* Cache adapter instantiation based on Schema.cache selection */
     module IDBCache = StoreCache.IndexedDB(Schema);
     module NoOpCache = StoreCache.NoCache(Schema);
-
-    [@platform js]
-    let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
-
-    [@platform native]
-    let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
-
-    [@platform js]
-    let postBroadcastMessage = (channel: broadcast_channel, message: string) =>
-      BroadcastChannel.postMessage(channel, message);
-
-    [@platform native]
-    let postBroadcastMessage = (_channel, _message) => ();
-
-    [@platform js]
-    let setBroadcastHandler = (channel: broadcast_channel, handler: string => unit) =>
-      BroadcastChannel.setOnmessage(channel, event => handler(event##data));
-
-    [@platform native]
-    let setBroadcastHandler = (_channel, _handler) => ();
 
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
@@ -170,7 +166,7 @@ module Local = {
       | Client =>
         switch (channelRef.contents) {
         | Some(channel) =>
-          postBroadcastMessage(
+          StoreBroadcast.postMessage(
             channel,
             StoreJson.stringify(
               json => json,
@@ -295,9 +291,9 @@ module Local = {
                   ),
                 );
                 let channel =
-                  openBroadcastChannel("resync.store." ++ Schema.storeName);
+                  StoreBroadcast.openChannel("resync.store." ++ Schema.storeName);
                 channelRef := Some(channel);
-                setBroadcastHandler(channel, message => {
+                StoreBroadcast.setHandler(channel, message => {
                   switch (StoreJson.tryParse(message)) {
                   | Some(json) =>
                     let scopeKey =
@@ -411,27 +407,7 @@ module Local = {
 module Synced = {
   type queriesConfig('state) = Local.queriesConfig('state);
 
-  type broadcast_channel = BroadcastChannel.t;
-
-  [@platform js]
-  let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
-
-  [@platform native]
-  let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
-
-  [@platform js]
-  let postBroadcastMessage = (channel: broadcast_channel, message: string) =>
-    BroadcastChannel.postMessage(channel, message);
-
-  [@platform native]
-  let postBroadcastMessage = (_channel, _message) => ();
-
-  [@platform js]
-  let setBroadcastHandler = (channel: broadcast_channel, handler: string => unit) =>
-    BroadcastChannel.setOnmessage(channel, event => handler(event##data));
-
-  [@platform native]
-  let setBroadcastHandler = (_channel, _handler) => ();
+  type broadcast_channel = StoreBroadcast.channel;
 
   [@platform js]
   external setTimeout: (unit => unit, int) => int = "setTimeout";
@@ -761,7 +737,7 @@ module Synced = {
       | Client =>
         switch (Controller.getBroadcastChannel()) {
         | Some(channel) =>
-          postBroadcastMessage(
+          StoreBroadcast.postMessage(
             channel,
             StoreJson.stringify(
               json => json,
@@ -782,7 +758,7 @@ module Synced = {
       | Client =>
         switch (Controller.getBroadcastChannel()) {
         | Some(channel) =>
-          postBroadcastMessage(
+          StoreBroadcast.postMessage(
             channel,
             StoreJson.stringify(
               json => json,
@@ -1372,9 +1348,9 @@ module Synced = {
                   ),
                 );
                 let channel =
-                  openBroadcastChannel("resync.store." ++ Schema.storeName);
+                  StoreBroadcast.openChannel("resync.store." ++ Schema.storeName);
                 Controller.setBroadcastChannel(Some(channel));
-                setBroadcastHandler(channel, message => {
+                StoreBroadcast.setHandler(channel, message => {
                   switch (StoreJson.tryParse(message)) {
                   | Some(json) =>
                     let messageType =
