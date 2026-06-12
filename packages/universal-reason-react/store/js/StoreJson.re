@@ -1,7 +1,7 @@
 type json = Melange_json.t;
 
-let rawOfJson = (json: json): Melange_json.t => (Obj.magic(json): Melange_json.t);
-let jsonOfRaw = (json: Melange_json.t): json => Obj.magic(json);
+let rawOfJson = (json: json): Melange_json.t => json;
+let jsonOfRaw = (json: Melange_json.t): json => json;
 
 let listOfArray = (items: array('a)): list('a) => {
   let rec loop = (index, acc) =>
