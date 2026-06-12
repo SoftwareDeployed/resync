@@ -276,6 +276,8 @@ type t = store;
 module Context = StoreDef.Context;
 ```
 
+The runtime export also includes store-scoped hooks. `useQuery((module Query), params, ())` subscribes through the shared query cache and returns the store with loaded rows applied. `useMutation((module Mutation), ())` returns a mutation handle whose `dispatch(params)` and `mutate(params)` fields are aliases that return `Js.Promise.t(unit)`.
+
 ### `StoreBuilder.buildSynced`
 
 Use this for realtime state such as `todo-multiplayer`, ecommerce inventory, or the LLM chat demo.

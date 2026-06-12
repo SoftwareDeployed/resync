@@ -385,7 +385,11 @@ module Context = StoreDef.Context;
 - `let serializeState: state => string`: Serialize for SSR
 - `let serializeSnapshot: state => string`: Serialize for snapshot
 - `let dispatch: action => unit`: Dispatch a typed action
+- `let useQuery((module Query), params, ())`: Subscribe to an SSR-hydrated query and return the store after applying loaded rows
+- `let useMutation((module Mutation), ())`: Create a store-scoped mutation handle; `result.dispatch(params)` and `result.mutate(params)` are aliases that return `Js.Promise.t(unit)`
+- `let useIsQueryLoading((module Query), params)`: Reactive loading helper backed by `useQuery`
 - `module Context`: React context for store access
+- `module Hooks`: Nested `useQuery`, `useMutation`, and `useIsQueryLoading` exports for component-local opens
 - `module Events`: Event listener module
 
 ### StoreBuilder.buildSynced
