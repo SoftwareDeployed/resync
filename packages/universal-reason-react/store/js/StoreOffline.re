@@ -112,6 +112,31 @@ module Local = {
     };
   };
 
+  let replaceLoadedQueryResultListener = (
+    ~listenerIdRef: ref(option(QueryCache.loaded_result_listener_id)),
+    ~queriesConfig: option(queriesConfig('state)),
+    ~confirmedStateRef: ref('state),
+    ~refreshOptimisticState: unit => unit,
+    (),
+  ) => {
+    switch (listenerIdRef.contents) {
+    | Some(listenerId) => QueryCache.unlistenLoadedResults(listenerId)
+    | None => ()
+    };
+    listenerIdRef := Some(
+      QueryCache.listenLoadedResults((~channel, ~rows) =>
+        applyLoadedQueryResult(
+          ~queriesConfig,
+          ~confirmedStateRef,
+          ~refreshOptimisticState,
+          ~channel,
+          ~rows,
+          (),
+        )
+      ),
+    );
+  };
+
   module type Schema = {
     type state;
     type action;
@@ -309,21 +334,12 @@ module Local = {
             ~mount=
               actions => {
                 sourceRef := Some(actions);
-                switch (queryResultListenerIdRef.contents) {
-                | Some(listenerId) => QueryCache.unlistenLoadedResults(listenerId)
-                | None => ()
-                };
-                queryResultListenerIdRef := Some(
-                  QueryCache.listenLoadedResults((~channel, ~rows) =>
-                    applyLoadedQueryResult(
-                      ~queriesConfig=Schema.queries,
-                      ~confirmedStateRef,
-                      ~refreshOptimisticState,
-                      ~channel,
-                      ~rows,
-                      (),
-                    )
-                  ),
+                replaceLoadedQueryResultListener(
+                  ~listenerIdRef=queryResultListenerIdRef,
+                  ~queriesConfig=Schema.queries,
+                  ~confirmedStateRef,
+                  ~refreshOptimisticState,
+                  (),
                 );
                 let channel =
                   StoreBroadcast.openChannel("resync.store." ++ Schema.storeName);
@@ -1471,21 +1487,12 @@ module Synced = {
             ~mount=
               actions => {
                 sourceRef := Some(actions);
-                switch (queryResultListenerIdRef.contents) {
-                | Some(listenerId) => QueryCache.unlistenLoadedResults(listenerId)
-                | None => ()
-                };
-                queryResultListenerIdRef := Some(
-                  QueryCache.listenLoadedResults((~channel, ~rows) =>
-                    Local.applyLoadedQueryResult(
-                      ~queriesConfig=Schema.queries,
-                      ~confirmedStateRef,
-                      ~refreshOptimisticState,
-                      ~channel,
-                      ~rows,
-                      (),
-                    )
-                  ),
+                Local.replaceLoadedQueryResultListener(
+                  ~listenerIdRef=queryResultListenerIdRef,
+                  ~queriesConfig=Schema.queries,
+                  ~confirmedStateRef,
+                  ~refreshOptimisticState,
+                  (),
                 );
                 let channel =
                   StoreBroadcast.openChannel("resync.store." ++ Schema.storeName);
