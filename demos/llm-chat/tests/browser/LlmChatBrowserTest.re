@@ -863,14 +863,11 @@ let runDbCreateSyncScenario = (~browser, ~baseUrl) => {
             |> then_(countAfter => {
                  let before = int_of_string(countBefore);
                  let after_ = int_of_string(countAfter);
-                 if (after_ > before) {
-                   Js.log("[PASS] DB create sync: thread appeared in UI");
-                 } else {
-                   Js.log(
-                     "[INFO] DB create sync: thread did not appear in UI (expected due to subscription model limitation - new thread notifications go to the new thread's channel, not the current thread's channel)"
-                   );
-                 };
-                 resolve();
+                 BrowserTestUtils.assertTrue(
+                   ~label="DB create sync: thread appeared in UI",
+                   after_ > before,
+                   ~details="Before: " ++ countBefore ++ ", After: " ++ countAfter,
+                 );
                })
           })
      )
