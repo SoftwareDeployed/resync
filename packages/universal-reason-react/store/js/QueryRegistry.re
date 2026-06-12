@@ -42,6 +42,13 @@ let registry_key: Lwt.key(query_registry) = Lwt.new_key();
 let sync_registry_ref: ref(option(query_registry)) = ref(None);
 
 [@platform native]
+let current_registry = () =>
+  switch (Lwt.get(registry_key)) {
+  | Some(registry) => Some(registry)
+  | None => sync_registry_ref^
+  };
+
+[@platform native]
 let lwtIterArraySerial = (items: array('a), f: 'a => Lwt.t(unit)) => {
   let rec loop = index =>
     if (index >= Array.length(items)) {
@@ -97,12 +104,7 @@ let register_query =
       ~decode,
     )
     : option(array('a)) => {
-  let registry_opt =
-    switch (Lwt.get(registry_key)) {
-    | Some(r) => Some(r)
-    | None => sync_registry_ref^
-    };
-  switch (registry_opt) {
+  switch (current_registry()) {
   | None => None
   | Some(registry) =>
     switch (Hashtbl.find_opt(registry.results, key)) {
@@ -131,6 +133,13 @@ let register_query =
     }
   };
 };
+
+[@platform native]
+let find_result = (~key: string): option(Yojson.Safe.t) =>
+  switch (current_registry()) {
+  | Some(registry) => Hashtbl.find_opt(registry.results, key)
+  | None => None
+  };
 
 [@platform native]
 let execute_queries = () => {
@@ -277,6 +286,9 @@ let register_query =
       ~decode as _,
     ) =>
   None;
+
+[@platform js]
+let find_result = (~key as _) => None;
 
 [@platform js]
 let execute_queries = () => ();

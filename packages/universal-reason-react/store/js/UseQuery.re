@@ -233,36 +233,26 @@ let useQuery =
       ~decode=json => Q.decodeRow(StoreJson.ofSafe(json)),
     );
 
-  // Get result from registry if available
-  let registry_opt =
-    switch (Lwt.get(QueryRegistry.registry_key)) {
-    | Some(r) => Some(r)
-    | None => QueryRegistry.sync_registry_ref^
-    };
   let data =
-    switch (registry_opt) {
-    | Some(registry) =>
-      switch (Hashtbl.find_opt(registry.results, key)) {
-      | Some(json) =>
-        try(
-          {
-            let storeJson = StoreJson.ofSafe(json);
-            let rows_ =
-              switch (
-                StoreJson.tryDecode(
-                  Melange_json.Of_json.array(rowJson => Q.decodeRow(rowJson)),
-                  storeJson,
-                )
-              ) {
-              | Some(rows) => rows
-              | None => [|Q.decodeRow(storeJson)|]
-              };
-            Loaded(rows_)
-          }
-        ) {
-        | _ => Error(decodeErrorMessage)
+    switch (QueryRegistry.find_result(~key)) {
+    | Some(json) =>
+      try(
+        {
+          let storeJson = StoreJson.ofSafe(json);
+          let rows_ =
+            switch (
+              StoreJson.tryDecode(
+                Melange_json.Of_json.array(rowJson => Q.decodeRow(rowJson)),
+                storeJson,
+              )
+            ) {
+            | Some(rows) => rows
+            | None => [|Q.decodeRow(storeJson)|]
+            };
+          Loaded(rows_)
         }
-      | None => Loading
+      ) {
+      | _ => Error(decodeErrorMessage)
       }
     | None => Loading
     };
