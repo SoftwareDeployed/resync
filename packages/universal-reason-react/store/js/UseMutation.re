@@ -37,6 +37,14 @@ let make =
   let (loading, setLoading) = React.useState(() => false);
   let (error, setError) = React.useState(() => None);
   let pendingCountRef = React.useRef(0);
+  let mountedRef = React.useRef(true);
+
+  React.useEffect0(() => {
+    mountedRef.current = true;
+    Some(() => {
+      mountedRef.current = false;
+    });
+  });
 
   let errorMessage = (error: Js.Promise.error) => {
     let exn = Js.Exn.anyToExnInternal(error);
@@ -56,14 +64,18 @@ let make =
 
   let beginMutation = () => {
     pendingCountRef.current = pendingCountRef.current + 1;
-    setLoading(_ => true);
-    setError(_ => None);
+    if (mountedRef.current) {
+      setLoading(_ => true);
+      setError(_ => None);
+    };
   };
 
   let finishMutation = () => {
     let nextCount = pendingCountRef.current - 1;
     pendingCountRef.current = if (nextCount < 0) {0} else {nextCount};
-    setLoading(_ => pendingCountRef.current > 0);
+    if (mountedRef.current) {
+      setLoading(_ => pendingCountRef.current > 0);
+    };
   };
 
   // Client: Delegate to the dispatch callback supplied by the runtime.
@@ -83,7 +95,9 @@ let make =
        })
     |> Js.Promise.catch(error => {
          finishMutation();
-         setError(_ => Some(errorMessage(error)));
+         if (mountedRef.current) {
+           setError(_ => Some(errorMessage(error)));
+         };
          Js.Promise.reject(Js.Exn.anyToExnInternal(error));
        });
   };
