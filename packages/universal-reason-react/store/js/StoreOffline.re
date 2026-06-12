@@ -147,20 +147,21 @@ module Local = {
 
   let replaceLoadedQueryResultListener = (
     ~listenerIdRef: ref(option(QueryCache.loaded_result_listener_id)),
+    ~queryCache: QueryCache.t,
     ~queriesConfig: option(queriesConfig('state)),
     ~confirmedStateRef: ref('state),
     ~refreshOptimisticState: unit => unit,
     (),
   ) => {
     switch (listenerIdRef.contents) {
-    | Some(listenerId) => QueryCache.unlistenLoadedResults(listenerId)
+    | Some(listenerId) => QueryCache.unlistenLoadedResults(~t=queryCache, listenerId)
     | None => ()
     };
     listenerIdRef :=
       switch (queriesConfig) {
       | Some(config) =>
         Some(
-          QueryCache.listenLoadedResults(loadedResult =>
+          QueryCache.listenLoadedResults(~t=queryCache, loadedResult =>
             applyLoadedQueryResult(
               ~queriesConfig=config,
               ~confirmedStateRef,
@@ -375,6 +376,7 @@ module Local = {
                 sourceRef := Some(actions);
                 replaceLoadedQueryResultListener(
                   ~listenerIdRef=queryResultListenerIdRef,
+                  ~queryCache=UseQuery.getQueryCache(),
                   ~queriesConfig=Schema.queries,
                   ~confirmedStateRef,
                   ~refreshOptimisticState,
@@ -1568,6 +1570,7 @@ module Synced = {
                 sourceRef := Some(actions);
                 Local.replaceLoadedQueryResultListener(
                   ~listenerIdRef=queryResultListenerIdRef,
+                  ~queryCache=UseQuery.getQueryCache(),
                   ~queriesConfig=Schema.queries,
                   ~confirmedStateRef,
                   ~refreshOptimisticState,

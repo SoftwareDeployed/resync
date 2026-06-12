@@ -181,7 +181,8 @@ let testQueryCacheHydrateUpdatesExistingSignalWithError = () => {
 };
 
 let testNoQueryConfigDoesNotRegisterLoadedResultListener = () => {
-  let beforeCount = QueryCache.InternalForTests.loadedResultListenerCount();
+  let cache = UseQuery.getQueryCache();
+  let beforeCount = QueryCache.InternalForTests.loadedResultListenerCount(~t=cache);
   let listenerIdRef = ref(None);
   let confirmedStateRef = ref(0);
   let refreshCount = ref(0);
@@ -192,15 +193,17 @@ let testNoQueryConfigDoesNotRegisterLoadedResultListener = () => {
 
   StoreOffline.Local.replaceLoadedQueryResultListener(
     ~listenerIdRef,
+    ~queryCache=cache,
     ~queriesConfig=Some(queriesConfig),
     ~confirmedStateRef,
     ~refreshOptimisticState,
     (),
   );
 
-  let registeredCount = QueryCache.InternalForTests.loadedResultListenerCount();
+  let registeredCount = QueryCache.InternalForTests.loadedResultListenerCount(~t=cache);
   StoreOffline.Local.replaceLoadedQueryResultListener(
     ~listenerIdRef,
+    ~queryCache=cache,
     ~queriesConfig=None,
     ~confirmedStateRef,
     ~refreshOptimisticState,
@@ -210,10 +213,42 @@ let testNoQueryConfigDoesNotRegisterLoadedResultListener = () => {
   BrowserTestUtils.assertTrue(
     ~label="No query config avoids loaded-result listeners",
     registeredCount == beforeCount + 1
-    && QueryCache.InternalForTests.loadedResultListenerCount() == beforeCount
+    && QueryCache.InternalForTests.loadedResultListenerCount(~t=cache) == beforeCount
     && listenerIdRef.contents == None
     && refreshCount.contents == 0,
     ~details="no-query stores kept a global loaded-result listener",
+  );
+};
+
+let testLoadedResultListenersAreCacheScoped = () => {
+  let globalCache = UseQuery.getQueryCache();
+  let isolatedCache = QueryCache.make();
+  let key = makeKey(~channel="isolated-channel", ~paramsHash="first");
+  let notifiedByIsolatedCache = ref(false);
+  let notifiedByGlobalCache = ref(false);
+  let listenerId =
+    QueryCache.listenLoadedResults(~t=globalCache, loadedResult => {
+      switch (loadedResult.QueryCache.channel) {
+      | "isolated-channel" => notifiedByGlobalCache := true
+      | _ => ()
+      };
+    });
+
+  QueryCache.hydrate(
+    ~t=isolatedCache,
+    ~jsonStr="{\"" ++ key ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"isolated\"]}}",
+  );
+  notifiedByIsolatedCache := notifiedByGlobalCache.contents;
+  QueryCache.hydrate(
+    ~t=globalCache,
+    ~jsonStr="{\"" ++ key ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"global\"]}}",
+  );
+  QueryCache.unlistenLoadedResults(~t=globalCache, listenerId);
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache loaded-result listeners are cache-scoped",
+    !notifiedByIsolatedCache.contents && notifiedByGlobalCache.contents,
+    ~details="an isolated QueryCache emitted loaded rows to the global cache listener",
   );
 };
 
@@ -259,6 +294,7 @@ let run = () => {
   testQueryCacheHydrateUpdatesExistingSignal()
   |> then_(_ => testQueryCacheHydrateUpdatesExistingSignalWithError())
   |> then_(_ => testNoQueryConfigDoesNotRegisterLoadedResultListener())
+  |> then_(_ => testLoadedResultListenersAreCacheScoped())
   |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
   |> then_(_ => StoreTestServer.start())
   |> then_(server => {

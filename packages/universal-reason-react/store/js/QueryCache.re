@@ -10,24 +10,12 @@ type loaded_result = {
 type loaded_result_listener = loaded_result => unit;
 type loaded_result_listener_id = StoreEvents.listener_id;
 
-let loadedResultListenersRef: StoreEvents.callback_registry(loaded_result) = ref([||]);
-
-let notifyLoadedResult = (~channel: string, ~rows: array(StoreJson.json)) => {
+let notifyLoadedResult =
+    (~registry: StoreEvents.callback_registry(loaded_result), ~channel: string, ~rows: array(StoreJson.json)) => {
   StoreEvents.Callback.emit(
-    ~registry=loadedResultListenersRef,
+    ~registry,
     {channel, rows},
   );
-};
-
-let listenLoadedResults = (listener: loaded_result_listener): loaded_result_listener_id =>
-  StoreEvents.Callback.listen(~registry=loadedResultListenersRef, listener);
-
-let unlistenLoadedResults = (listenerId: loaded_result_listener_id) =>
-  StoreEvents.Callback.unlisten(~registry=loadedResultListenersRef, listenerId);
-
-module InternalForTests = {
-  let loadedResultListenerCount = () =>
-    Array.length(loadedResultListenersRef.contents);
 };
 
 let decodeJsonRows = (json: StoreJson.json): option(array(StoreJson.json)) =>
@@ -53,6 +41,7 @@ type t = {
   entries: Js.Dict.t(cache_entry),
   mutable eventUrl: string,
   mutable baseUrl: string,
+  loadedResultListenersRef: StoreEvents.callback_registry(loaded_result),
 };
 
 // Platform-specific implementations
@@ -61,6 +50,7 @@ let make = () => {
   entries: Js.Dict.empty(),
   eventUrl: "",
   baseUrl: "",
+  loadedResultListenersRef: ref([||]),
 };
 
 [@platform native]
@@ -68,6 +58,18 @@ let make = () => {
   entries: Js.Dict.empty(),
   eventUrl: "",
   baseUrl: "",
+  loadedResultListenersRef: ref([||]),
+};
+
+let listenLoadedResults = (~t: t, listener: loaded_result_listener): loaded_result_listener_id =>
+  StoreEvents.Callback.listen(~registry=t.loadedResultListenersRef, listener);
+
+let unlistenLoadedResults = (~t: t, listenerId: loaded_result_listener_id) =>
+  StoreEvents.Callback.unlisten(~registry=t.loadedResultListenersRef, listenerId);
+
+module InternalForTests = {
+  let loadedResultListenerCount = (~t: t) =>
+    Array.length(t.loadedResultListenersRef.contents);
 };
 
 [@platform js]
@@ -119,6 +121,7 @@ let getSignal = (~t: t, ~key: query_key): Tilia.Core.signal(query_result(StoreJs
 
 let setEntryResult =
     (
+      ~t: t,
       ~entry: cache_entry,
       ~channel: string,
       ~result: query_result(StoreJson.json),
@@ -128,7 +131,7 @@ let setEntryResult =
   entry.setSignal(result);
   entry.lastUpdated = lastUpdated;
   switch (result) {
-  | Loaded(rows) => notifyLoadedResult(~channel, ~rows)
+  | Loaded(rows) => notifyLoadedResult(~registry=t.loadedResultListenersRef, ~channel, ~rows)
   | Loading
   | Error(_) => ()
   };
@@ -193,6 +196,7 @@ let subscribe =
                   | None => Error("Failed to decode snapshot data")
                   };
                 setEntryResult(
+                  ~t,
                   ~entry,
                   ~channel,
                   ~result,
@@ -372,6 +376,7 @@ let hydrate = (~t: t, ~jsonStr: string): unit => {
     ~f=(~key, ~result) => {
       let entry = getOrCreateEntry(~t, ~key, ());
       setEntryResult(
+        ~t,
         ~entry,
         ~channel=channelOfKey(key),
         ~result,
