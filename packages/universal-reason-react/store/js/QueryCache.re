@@ -154,13 +154,14 @@ let subscribe =
             ~updatedAt=entry.lastUpdated,
             ~onPatch=
               (~payload as _: StoreJson.json, ~timestamp: float) => {
+                let previousUpdatedAt = entry.lastUpdated;
                 entry.lastUpdated = timestamp;
                 let _ =
                   switch (entry.subscriptionHandle) {
                   | Some(handle) =>
                     RealtimeClient.Socket.sendFrame(
                       ~handle,
-                      ~frame=RealtimeClient.selectFrameString(channel, timestamp),
+                      ~frame=RealtimeClient.selectFrameString(channel, previousUpdatedAt),
                     )
                   | None => false
                   };
