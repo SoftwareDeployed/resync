@@ -37,48 +37,10 @@ module TestProvider = {
 
 let json = _ => Json.parse("{}");
 
-let localSchema: Frp.Local.schema(state, action, store) = {
-  storeName: "frp-local-test",
+let schema: StoreBuilder.schemaConfig(state, action, store) = {
   emptyState: state,
   reduce: (~state, ~action as _) => state,
-  state_of_json: _ => state,
-  state_to_json: json,
-  action_of_json: _ => Inc,
-  action_to_json: json,
   makeStore,
-  scopeKeyOfState: _ => "default",
-  timestampOfState: _ => 0.0,
-  stateElementId: None,
-};
-
-let syncedSchema: Frp.Synced.schema(state, action, store) = {
-  storeName: "frp-synced-test",
-  emptyState: state,
-  reduce: (~state, ~action as _) => state,
-  state_of_json: _ => state,
-  state_to_json: json,
-  action_of_json: _ => Inc,
-  action_to_json: json,
-  makeStore,
-  scopeKeyOfState: _ => "default",
-  timestampOfState: _ => 0.0,
-  setTimestamp: (~state, ~timestamp as _) => state,
-  stateElementId: None,
-};
-
-let crudSchema: Frp.Crud.schema(state, action, store) = {
-  storeName: "frp-crud-test",
-  emptyState: state,
-  reduce: (~state, ~action as _) => state,
-  state_of_json: _ => state,
-  state_to_json: json,
-  action_of_json: _ => Inc,
-  action_to_json: json,
-  makeStore,
-  scopeKeyOfState: _ => "default",
-  timestampOfState: _ => 0.0,
-  setTimestamp: (~state, ~timestamp as _) => state,
-  stateElementId: None,
 };
 
 let transport: StoreBuilder.Sync.transportConfig(state, string) = {
@@ -87,21 +49,6 @@ let transport: StoreBuilder.Sync.transportConfig(state, string) = {
   eventUrl: "",
   baseUrl: "",
 };
-
-let customStrategy: StoreBuilder.Sync.customStrategy(state, string) =
-  StoreBuilder.Sync.custom(
-    ~decodePatch=_ => None,
-    ~updateOfPatch=(_patch, state) => state,
-  );
-
-let crudStrategy: StoreBuilder.Sync.crudStrategy(state, row) =
-  StoreBuilder.Sync.crud(
-    ~table="items",
-    ~decodeRow=_ => {id: ""},
-    ~getId=row => row.id,
-    ~getItems=_ => [||],
-    ~setItems=(state, _rows) => state,
-  );
 
 let streamsWithPrefix = (prefix): StoreRuntimeTypes.streamsConfig(string, stream_event, streaming_state) => {
   decodeStreamEvent: _ => None,
@@ -157,41 +104,152 @@ let assertAppliesStream = (~label, streams, expected) => {
   Alcotest.check(Alcotest.string, label ++ " text", expected, next.text);
 };
 
+let withBaseJson = builder =>
+  builder
+  |> StoreBuilder.withJson(
+       ~state_of_json=_ => state,
+       ~state_to_json=json,
+       ~action_of_json=_ => Inc,
+       ~action_to_json=json,
+     );
+
+let withOptionalGuardTree = (~guardTree, builder) =>
+  switch (guardTree) {
+  | Some(guardTree) => builder |> StoreBuilder.withGuardTree(~guardTree)
+  | None => builder
+  };
+
+let withOptionalQueries = (~applyQueryResult, builder) =>
+  switch (applyQueryResult) {
+  | Some(applyQueryResult) =>
+    builder |> StoreBuilder.withQueries(~applyQueryResult)
+  | None => builder
+  };
+
+let makeBasePipeline = (~guardTree=?, ()) =>
+  StoreBuilder.make()
+  |> StoreBuilder.withSchema(schema)
+  |> withOptionalGuardTree(~guardTree);
+
+let localInput = (~guardTree=?, ~applyQueryResult=?, ()) =>
+  makeBasePipeline(~guardTree?, ())
+  |> withBaseJson
+  |> withOptionalQueries(~applyQueryResult)
+  |> StoreBuilder.withLocalPersistence(
+       ~storeName="frp-local-test",
+       ~scopeKeyOfState=_ => "default",
+       ~timestampOfState=_ => 0.0,
+       ~stateElementId=None,
+       (),
+     );
+
+let syncedInput = (~guardTree=?, ~applyQueryResult=?, ()) =>
+  makeBasePipeline(~guardTree?, ())
+  |> withBaseJson
+  |> withOptionalQueries(~applyQueryResult)
+  |> StoreBuilder.withSync(
+       ~transport,
+       ~decodePatch=(_json: StoreJson.json): option(string) => None,
+       ~updateOfPatch=(_patch: string, state) => state,
+       ~setTimestamp=(~state, ~timestamp as _) => state,
+       ~storeName="frp-synced-test",
+       ~scopeKeyOfState=_ => "default",
+       ~timestampOfState=_ => 0.0,
+       ~emptyStreamingState=(),
+       ~stateElementId=None,
+       (),
+     );
+
+let streamingInput = (~streams, ()) =>
+  makeBasePipeline()
+  |> withBaseJson
+  |> StoreBuilder.withSync(
+       ~transport,
+       ~decodePatch=(_json: StoreJson.json): option(string) => None,
+       ~updateOfPatch=(_patch: string, state) => state,
+       ~setTimestamp=(~state, ~timestamp as _) => state,
+       ~storeName="frp-synced-streaming-test",
+       ~scopeKeyOfState=_ => "default",
+       ~timestampOfState=_ => 0.0,
+       ~streams=Some(streams),
+       ~stateElementId=None,
+       (),
+     );
+
+let crudInput = (~guardTree=?, ~applyQueryResult=?, ()) =>
+  makeBasePipeline(~guardTree?, ())
+  |> withBaseJson
+  |> withOptionalQueries(~applyQueryResult)
+  |> StoreBuilder.withSyncCrud(
+       ~transport,
+       ~setTimestamp=(~state, ~timestamp as _) => state,
+       ~storeName="frp-crud-test",
+       ~scopeKeyOfState=_ => "default",
+       ~timestampOfState=_ => 0.0,
+       ~table="items",
+       ~decodeRow=_ => {id: ""},
+       ~getId=row => row.id,
+       ~getItems=_ => [||],
+       ~setItems=(state, _rows) => state,
+       ~stateElementId=None,
+       (),
+     );
+
+let buildLocal = input => {
+  let _ = StoreBuilder.buildLocal(input);
+  ();
+};
+
+let buildSynced = input => {
+  let _ = StoreBuilder.buildSynced(input);
+  ();
+};
+
+let buildCrud = input => {
+  let _ = StoreBuilder.buildCrud(input);
+  ();
+};
+
+let assertStreamingInputAppliesStream = (~label, ~input, expected) => {
+  switch (input.StoreBuilder.streams) {
+  | Some(streams) => assertAppliesStream(~label, streams, expected)
+  | None => Alcotest.fail(label ++ " did not preserve streams config")
+  };
+};
+
 let suite =
   (
-    "StoreFrp",
+    "StoreBuilder",
     [
-      Alcotest.test_case("local make preserves guard tree", `Quick, () => {
-        let config = Frp.Local.make(~guardTree, localSchema);
-        assertBlocks(~label="local make", config.guardTree);
+      Alcotest.test_case("buildLocal pipeline preserves guard tree", `Quick, () => {
+        let input = localInput(~guardTree, ());
+        assertBlocks(~label="buildLocal pipeline", input.guardTree);
+        buildLocal(input);
       }),
-      Alcotest.test_case("synced withGuardTree preserves guard tree", `Quick, () => {
-        let config =
-          Frp.Synced.make(~transport, ~strategy=customStrategy, syncedSchema)
-          |> Frp.Synced.withGuardTree(~guardTree);
-        assertBlocks(~label="synced withGuardTree", config.guardTree);
+      Alcotest.test_case("buildSynced pipeline preserves guard tree", `Quick, () => {
+        let input = syncedInput(~guardTree, ());
+        assertBlocks(~label="buildSynced pipeline", input.guardTree);
+        buildSynced(input);
       }),
-      Alcotest.test_case("crud withGuardTree preserves guard tree", `Quick, () => {
-        let config =
-          Frp.Crud.make(~transport, ~strategy=crudStrategy, crudSchema)
-          |> Frp.Crud.withGuardTree(~guardTree);
-        assertBlocks(~label="crud withGuardTree", config.guardTree);
+      Alcotest.test_case("buildCrud pipeline preserves guard tree", `Quick, () => {
+        let input = crudInput(~guardTree, ());
+        assertBlocks(~label="buildCrud pipeline", input.guardTree);
+        buildCrud(input);
       }),
-      Alcotest.test_case("local make preserves queries config", `Quick, () => {
-        let config = Frp.Local.make(~applyQueryResult, localSchema);
-        assertAppliesQueryResult(~label="local make", config.queries);
+      Alcotest.test_case("buildLocal pipeline preserves queries config", `Quick, () => {
+        let input = localInput(~applyQueryResult, ());
+        assertAppliesQueryResult(~label="buildLocal pipeline", input.queries);
+        buildLocal(input);
       }),
-      Alcotest.test_case("synced withQueries preserves queries config", `Quick, () => {
-        let config =
-          Frp.Synced.make(~transport, ~strategy=customStrategy, syncedSchema)
-          |> Frp.Synced.withQueries(~applyQueryResult);
-        assertAppliesQueryResult(~label="synced withQueries", config.queries);
+      Alcotest.test_case("buildSynced pipeline preserves queries config", `Quick, () => {
+        let input = syncedInput(~applyQueryResult, ());
+        assertAppliesQueryResult(~label="buildSynced pipeline", input.queries);
+        buildSynced(input);
       }),
-      Alcotest.test_case("crud withQueries preserves queries config", `Quick, () => {
-        let config =
-          Frp.Crud.make(~transport, ~strategy=crudStrategy, crudSchema)
-          |> Frp.Crud.withQueries(~applyQueryResult);
-        assertAppliesQueryResult(~label="crud withQueries", config.queries);
+      Alcotest.test_case("buildCrud pipeline preserves queries config", `Quick, () => {
+        let input = crudInput(~applyQueryResult, ());
+        assertAppliesQueryResult(~label="buildCrud pipeline", input.queries);
+        buildCrud(input);
       }),
       Alcotest.test_case("native withCreatedProvider creates provider", `Quick, () => {
         let result =
@@ -208,30 +266,26 @@ let suite =
           result.store.state.count,
         );
       }),
-      Alcotest.test_case("synced streaming make preserves streams config", `Quick, () => {
-        let config =
-          Frp.Synced.Streaming.make(
-            ~transport,
-            ~strategy=customStrategy,
-            ~streams,
-            syncedSchema,
-          );
-        assertAppliesStream(~label="synced streaming make", config.streams, "token");
+      Alcotest.test_case("buildSynced streaming pipeline preserves streams config", `Quick, () => {
+        let input = streamingInput(~streams, ());
+        assertStreamingInputAppliesStream(
+          ~label="buildSynced streaming pipeline",
+          ~input,
+          "token",
+        );
+        buildSynced(input);
       }),
-      Alcotest.test_case("synced streaming withStreams replaces streams config", `Quick, () => {
-        let config =
-          Frp.Synced.Streaming.make(
-            ~transport,
-            ~strategy=customStrategy,
-            ~streams,
-            syncedSchema,
-          )
-          |> Frp.Synced.Streaming.withStreams(~streams=prefixedStreams);
+      Alcotest.test_case("buildSynced streaming pipeline accepts replacement streams", `Quick, () => {
+        let input = streamingInput(~streams=prefixedStreams, ());
         assertAppliesStream(
-          ~label="synced streaming withStreams",
-          config.streams,
+          ~label="buildSynced streaming replacement",
+          switch (input.StoreBuilder.streams) {
+          | Some(streams) => streams
+          | None => Alcotest.fail("buildSynced streaming replacement did not preserve streams config")
+          },
           "prefix:token",
         );
+        buildSynced(input);
       }),
     ],
   );
