@@ -82,6 +82,13 @@ let rec iterAssoc = (entries: list((string, Yojson.Safe.t)), f) =>
   };
 
 [@platform native]
+let isLoadedResult = fields =>
+  switch (assocOpt("_tag", fields)) {
+  | Some(`String("Loaded")) => true
+  | _ => false
+  };
+
+[@platform native]
 let with_registry = (~db, ~f, ()) => {
   let f: unit => Lwt.t('a) = f;
   let registry = {
@@ -234,9 +241,13 @@ let setup_registry_from_json = (~jsonStr: string): unit => {
     iterAssoc(entries, ((key, value)) => {
       switch (value) {
       | `Assoc(fields) =>
-        switch (assocOpt("data", fields)) {
-        | Some(data) => Hashtbl.replace(results, key, data)
-        | None => ()
+        if (isLoadedResult(fields)) {
+          switch (assocOpt("data", fields)) {
+          | Some(data) => Hashtbl.replace(results, key, data)
+          | None => ()
+          };
+        } else {
+          ();
         }
       | _ => ()
       };

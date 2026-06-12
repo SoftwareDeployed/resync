@@ -38,6 +38,20 @@ let suite =
                 "missing data entry should be ignored"
                 false
                 (has_result "thread:missing")));
+      Alcotest.test_case "setup_registry_from_json ignores non-loaded data payloads" `Quick
+        (fun () ->
+          with_sync_registry_reset (fun () ->
+              QueryRegistry.setup_registry_from_json
+                ~jsonStr:
+                  {|{"thread:error-data":{"_tag":"Error","data":["bad"]},"thread:loading-data":{"_tag":"Loading","data":["bad"]}}|};
+              Alcotest.(check bool)
+                "error result with data should not hydrate"
+                false
+                (has_result "thread:error-data");
+              Alcotest.(check bool)
+                "loading result with data should not hydrate"
+                false
+                (has_result "thread:loading-data")));
       Alcotest.test_case "with_serialized restores previous registry after success" `Quick
         (fun () ->
           with_sync_registry_reset (fun () ->
