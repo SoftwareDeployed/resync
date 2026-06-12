@@ -260,7 +260,7 @@ module Local = {
       switch%platform (Runtime.platform) {
       | Client =>
         let _ =
-          StoreRuntimeLifecycle.trackPersistence(lifecycle, Cache.setState(
+          StoreRuntimeLifecycle.trackPersistenceOp(lifecycle, () => Cache.setState(
               ~storeName=Schema.storeName,
               {
                 scopeKey: Schema.scopeKeyOfState(state),
@@ -955,7 +955,7 @@ module Synced = {
       switch%platform (Runtime.platform) {
       | Client =>
         let _ =
-          StoreRuntimeLifecycle.trackPersistence(lifecycle, cacheSetState({
+          StoreRuntimeLifecycle.trackPersistenceOp(lifecycle, () => cacheSetState({
               scopeKey: Schema.scopeKeyOfState(state),
               state,
               timestamp: Schema.timestampOfState(state),

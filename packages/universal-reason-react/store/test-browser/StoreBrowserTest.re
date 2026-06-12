@@ -340,6 +340,67 @@ let testWhenIdleWaitsForPendingActionSettlement = () => {
      );
 };
 
+let testPersistenceOpsRunInOrder = () => {
+  let lifecycle = StoreRuntimeLifecycle.make(~storeName="browser-persistence", ());
+  let _ = StoreRuntimeLifecycle.trackBoot(lifecycle, resolve());
+  let startedRef = ref([||]);
+  let appendStarted = label =>
+    startedRef := startedRef.contents->Js.Array.concat(~other=[|label|]);
+  let firstResolveRef: ref(option(unit => unit)) = ref(None);
+
+  let _first =
+    StoreRuntimeLifecycle.trackPersistenceOp(lifecycle, () => {
+      appendStarted("first");
+      Js.Promise.make((~resolve, ~reject as _) => {
+        let resolveFirst = () => {
+          let unitValue = ();
+          resolve(. unitValue);
+        };
+        firstResolveRef := Some(resolveFirst);
+      });
+    });
+  let secondResolved = ref(false);
+  let second =
+    StoreRuntimeLifecycle.trackPersistenceOp(lifecycle, () => {
+      appendStarted("second");
+      resolve();
+    })
+    |> then_(_ => {
+         secondResolved := true;
+         resolve();
+       });
+
+  BrowserTestUtils.sleep(20)
+  |> then_(_ => {
+       let status = StoreRuntimeLifecycle.status(lifecycle);
+       BrowserTestUtils.assertTrue(
+         ~label="StoreRuntimeLifecycle queues persistence operations",
+         Array.length(startedRef.contents) == 1
+         && startedRef.contents[0] == "first"
+         && status.pendingPersistence == 2
+         && !secondResolved.contents,
+         ~details="second persistence operation started before the first resolved",
+       );
+     })
+  |> then_(_ => {
+       switch (firstResolveRef.contents) {
+       | Some(resolveFirst) => resolveFirst()
+       | None => ()
+       };
+       second;
+     })
+  |> then_(_ =>
+       BrowserTestUtils.assertTrue(
+         ~label="StoreRuntimeLifecycle drains queued persistence operations",
+         Array.length(startedRef.contents) == 2
+         && startedRef.contents[0] == "first"
+         && startedRef.contents[1] == "second"
+         && StoreRuntimeLifecycle.status(lifecycle).idle,
+         ~details="queued persistence operations did not drain in order",
+       )
+     );
+};
+
 let testPrunableAckedActionIdsHandleMalformedUuid = () => {
   let records: array(StoreActionLedger.t) = [|
     {
@@ -410,6 +471,7 @@ let run = () => {
   |> then_(_ => testRealtimeClientKeepsStatesPerUrl())
   |> then_(_ => testHydratedProvidersPreserveOuterToInnerOrder())
   |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
+  |> then_(_ => testPersistenceOpsRunInOrder())
   |> then_(_ => testPrunableAckedActionIdsHandleMalformedUuid())
   |> then_(_ => testPrunableAckedActionIdsHandleCurrentUuidTimestamp())
   |> then_(_ => StoreTestServer.start())

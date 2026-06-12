@@ -87,7 +87,7 @@ let trackBoot = (lifecycle: t, bootPromise: Js.Promise.t('a)): Js.Promise.t('a) 
   guarded;
 };
 
-let trackPersistence = (lifecycle: t, op: Js.Promise.t('a)): Js.Promise.t('a) => {
+let trackPersistenceOp = (lifecycle: t, op: unit => Js.Promise.t('a)): Js.Promise.t('a) => {
   lifecycle.pendingPersistenceRef := lifecycle.pendingPersistenceRef^ + 1;
   notifySubscribers(lifecycle);
   let onDone = () => {
@@ -95,23 +95,34 @@ let trackPersistence = (lifecycle: t, op: Js.Promise.t('a)): Js.Promise.t('a) =>
       lifecycle.pendingPersistenceRef^ > 0 ? lifecycle.pendingPersistenceRef^ - 1 : 0;
     notifySubscribers(lifecycle);
   };
-  let wrapped =
-    Js.Promise.then_(
-      result => {
-        onDone();
-        Js.Promise.resolve(result);
-      },
-      op,
-    )
-    |> Js.Promise.catch(_err => {
-         onDone();
-         Js.Promise.reject(Failure("StoreRuntimeLifecycle trackPersistence failed"));
-       });
   let chained =
-    lifecycle.persistenceQueueRef^ |> Js.Promise.then_(() => wrapped);
-  lifecycle.persistenceQueueRef := chained |> Js.Promise.then_(_ => Js.Promise.resolve());
-  wrapped;
+    lifecycle.persistenceQueueRef^
+    |> Js.Promise.then_(() =>
+         try({
+           op()
+           |> Js.Promise.then_(result => {
+                onDone();
+                Js.Promise.resolve(result);
+              })
+           |> Js.Promise.catch(_err => {
+                onDone();
+                Js.Promise.reject(Failure("StoreRuntimeLifecycle trackPersistenceOp failed"));
+              })
+         }) {
+         | _err =>
+           onDone();
+           Js.Promise.reject(Failure("StoreRuntimeLifecycle trackPersistenceOp failed"))
+         }
+       );
+  lifecycle.persistenceQueueRef :=
+    chained
+    |> Js.Promise.then_(_ => Js.Promise.resolve())
+    |> Js.Promise.catch(_ => Js.Promise.resolve());
+  chained;
 };
+
+let trackPersistence = (lifecycle: t, op: Js.Promise.t('a)): Js.Promise.t('a) =>
+  trackPersistenceOp(lifecycle, () => op);
 
 
 let markActionPending = (lifecycle: t, actionId: string) => {
