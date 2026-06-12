@@ -268,11 +268,10 @@ let useIsQueryLoading =
       module Q: QueryModule with type params = p and type row = r,
       params: p,
     ) => {
-  switch (useRawQueryResult((module Q), params)) {
-  | Loading => true
-  | Loaded(_)
-  | Error(_) => false
-  };
+  let result =
+    useRawQueryResult((module Q), params)
+    |> hookResultOfData;
+  result.loading;
 };
 
 [@platform native]
