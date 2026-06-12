@@ -288,9 +288,9 @@ module Multiplexed = {
 
 [@platform native]
 module Multiplexed = {
-  type t;
+  type t = unit;
   type subscription_handle = { channel: string, id: int };
-  let make = (~eventUrl as _, ~baseUrl as _) => Obj.magic();
+  let make = (~eventUrl as _, ~baseUrl as _) => ();
   let subscribe =
       (
         ~channel as _,
