@@ -4,6 +4,7 @@
 open QueryRegistryTypes;
 
 type loaded_result = {
+  key: query_key,
   channel: string,
   rows: array(StoreJson.json),
 };
@@ -11,10 +12,15 @@ type loaded_result_listener = loaded_result => unit;
 type loaded_result_listener_id = StoreEvents.listener_id;
 
 let notifyLoadedResult =
-    (~registry: StoreEvents.callback_registry(loaded_result), ~channel: string, ~rows: array(StoreJson.json)) => {
+    (
+      ~registry: StoreEvents.callback_registry(loaded_result),
+      ~key: query_key,
+      ~channel: string,
+      ~rows: array(StoreJson.json),
+    ) => {
   StoreEvents.Callback.emit(
     ~registry,
-    {channel, rows},
+    {key, channel, rows},
   );
 };
 
@@ -131,7 +137,13 @@ let setEntryResult =
   entry.setSignal(result);
   entry.lastUpdated = lastUpdated;
   switch (result) {
-  | Loaded(rows) => notifyLoadedResult(~registry=t.loadedResultListenersRef, ~channel, ~rows)
+  | Loaded(rows) =>
+    notifyLoadedResult(
+      ~registry=t.loadedResultListenersRef,
+      ~key=entry.key,
+      ~channel,
+      ~rows,
+    )
   | Loading
   | Error(_) => ()
   };
@@ -362,7 +374,7 @@ let forEachLoadedResult = (~jsonStr: string, ~f: loaded_result_listener): unit =
     ~jsonStr,
     ~f=(~key, ~result) =>
       switch (result) {
-      | Loaded(rows) => f({channel: channelOfKey(key), rows})
+      | Loaded(rows) => f({key, channel: channelOfKey(key), rows})
       | Loading
       | Error(_) => ()
       },

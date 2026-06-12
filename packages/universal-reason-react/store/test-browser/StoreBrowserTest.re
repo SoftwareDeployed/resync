@@ -263,6 +263,49 @@ let testLoadedResultListenersAreCacheScoped = () => {
   );
 };
 
+let testLoadedResultListenersPreserveQueryKey = () => {
+  let cache = QueryCache.make();
+  let firstKey = makeKey(~channel="same-channel", ~paramsHash="first");
+  let secondKey = makeKey(~channel="same-channel", ~paramsHash="second");
+  let firstSeen = ref(false);
+  let secondSeen = ref(false);
+  let sameChannelCount = ref(0);
+  let listenerId =
+    QueryCache.listenLoadedResults(~t=cache, loadedResult => {
+      if (loadedResult.QueryCache.channel == "same-channel") {
+        sameChannelCount := sameChannelCount.contents + 1;
+      };
+      if (loadedResult.QueryCache.key == firstKey) {
+        firstSeen := true;
+      };
+      if (loadedResult.QueryCache.key == secondKey) {
+        secondSeen := true;
+      };
+    });
+
+  QueryCache.hydrate(
+    ~t=cache,
+    ~jsonStr=
+      "{"
+      ++ "\""
+      ++ firstKey
+      ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"first\"]},"
+      ++ "\""
+      ++ secondKey
+      ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"second\"]}"
+      ++ "}",
+  );
+  QueryCache.unlistenLoadedResults(~t=cache, listenerId);
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache loaded-result listeners preserve query keys",
+    firstSeen.contents
+    && secondSeen.contents
+    && sameChannelCount.contents == 2,
+    ~details="same-channel query results could not be distinguished by key",
+  );
+};
+
 let testRealtimeClientKeepsStatesPerUrl = () => {
   RealtimeClient.Socket.InternalForTests.resetStates();
   RealtimeClient.Socket.InternalForTests.touchState(
@@ -468,6 +511,7 @@ let run = () => {
   |> then_(_ => testQueryCacheHydrateUpdatesExistingSignalWithError())
   |> then_(_ => testNoQueryConfigDoesNotRegisterLoadedResultListener())
   |> then_(_ => testLoadedResultListenersAreCacheScoped())
+  |> then_(_ => testLoadedResultListenersPreserveQueryKey())
   |> then_(_ => testRealtimeClientKeepsStatesPerUrl())
   |> then_(_ => testHydratedProvidersPreserveOuterToInnerOrder())
   |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
