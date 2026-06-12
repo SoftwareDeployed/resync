@@ -9,12 +9,12 @@ let scopeKeyOfState = (state: state) => switch (state.list) { | Some(list) => li
 let timestampOfState = (state: state) => switch (state.list) { | Some(list) => list.updated_at | None => 0.0 };
 let setTimestamp = (~state: state, ~timestamp: float) => switch (state.list) {
   | Some(list) => {...state, list: Some({...list, updated_at: timestamp})} | None => state };
-let emptyPayload = () => Melange_json.declassify(`Assoc([]));
+let emptyPayload = () => StoreJson.Dict.to_json(json => json, Js.Dict.empty());
 let customAction_to_json = (~action) => {
   let dict = Js.Dict.empty();
   Js.Dict.set(dict, "kind", string_to_json(switch (action) { | FailServerMutation => "fail_server_mutation" | FailClientMutation => "fail_client_mutation" }));
   Js.Dict.set(dict, "payload", emptyPayload());
-  Melange_json.declassify(`Assoc(Array.to_list(Js.Dict.entries(dict))));
+  StoreJson.Dict.to_json(json => json, dict);
 };
 let state_of_json = Model.of_json;
 let state_to_json = Model.to_json;
