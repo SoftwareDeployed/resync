@@ -452,17 +452,19 @@ let withSync = (
   ~scopeKeyOfState: 'state => string,
   ~timestampOfState: 'state => float,
   ~streams: option(StoreRuntimeTypes.streamsConfig('patch, 'stream_event, 'streaming_state))=None,
+  ~emptyStreamingState: option('streaming_state)=?,
   ~hooks: option(Sync.hooks('action))=?,
   ~stateElementId: option(string)=None,
   _,
   builder: queriesBuilder('state, 'action, 'store),
 ): synced_input('state, 'action, 'store, 'subscription, 'patch, 'stream_event, 'streaming_state) => {
   let emptyStreamingState =
-    switch (streams) {
-    | Some({emptyStreamingState, _}) => emptyStreamingState
-    | None =>
+    switch (streams, emptyStreamingState) {
+    | (Some({emptyStreamingState, _}), _) => emptyStreamingState
+    | (None, Some(emptyStreamingState)) => emptyStreamingState
+    | (None, None) =>
       Js.Exn.raiseError(
-        "StoreBuilder.withSync requires ~streams with an emptyStreamingState; use withSyncCrud for non-streaming CRUD stores.",
+        "StoreBuilder.withSync requires ~streams=Some(...) or an explicit ~emptyStreamingState for non-streaming synced stores.",
       )
     };
   {
