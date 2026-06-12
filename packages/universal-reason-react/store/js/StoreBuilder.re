@@ -290,16 +290,6 @@ module Sync = {
     crud: crudConfig('row, 'state),
   };
 
-  let defaultHooks = (): hooks('action) => {
-    onActionError: None,
-    onActionAck: None,
-    onCustom: None,
-    onMedia: None,
-    onError: None,
-    onOpen: None,
-    onMultiplexedHandle: None,
-  };
-
   let defaultOnActionError = (_message: string) => ();
 
   let hooks =
@@ -322,6 +312,8 @@ module Sync = {
     onOpen,
     onMultiplexedHandle,
   };
+
+  let defaultHooks = (): hooks('action) => hooks(());
 
   let custom = (~decodePatch, ~updateOfPatch): customStrategy('state, 'patch) => {
     decodePatch,
