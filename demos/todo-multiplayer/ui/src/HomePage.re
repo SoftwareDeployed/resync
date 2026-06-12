@@ -80,7 +80,7 @@ let make =
       let text = String.trim(newTodoText);
       if (String.length(text) > 0) {
         let _ =
-          addTodoMutation.dispatch({
+          addTodoMutation.mutate({
             id: UUID.make(),
             list_id: listId,
             text,
@@ -91,7 +91,7 @@ let make =
 
     let handleToggleTodo = (id: string, completed: bool) => {
       let _ =
-        setTodoCompletedMutation.dispatch({
+        setTodoCompletedMutation.mutate({
           id,
           completed: !completed,
         });
@@ -100,7 +100,7 @@ let make =
 
     let handleRemoveTodo = (id: string) => {
       Js.Console.log(id);
-      let _ = removeTodoMutation.dispatch({ id: id });
+      let _ = removeTodoMutation.mutate({ id: id });
       ();
     };
 
@@ -116,7 +116,7 @@ let make =
             className="share-button"
             type_="button"
             onClick={_ => {
-              let _ = failServerMutation.dispatch();
+              let _ = failServerMutation.mutate();
               ();
             }}>
             {React.string("Fail Query")}
