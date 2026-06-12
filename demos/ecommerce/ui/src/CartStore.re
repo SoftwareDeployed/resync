@@ -54,11 +54,6 @@ let normalizeItems = items =>
   | _ => defaultItems
   };
 
-let emptyState: state = {
-  items: defaultItems,
-  updated_at: 0.0,
-};
-
 let itemCountOfItems = items =>
   items
   ->Js.Dict.keys
@@ -175,29 +170,6 @@ let action_of_json = json => {
   };
 };
 
-let reduce = (~state: state, ~action: action) => {
-  let updated_at = Js.Date.now();
-  switch (action) {
-  | SetItemQuantity(input) => {
-      items:
-        setItemQuantity(
-          copyItems(state.items),
-          ~inventoryId=input.inventory_id,
-          ~quantity=input.quantity,
-        ),
-      updated_at,
-    }
-  | RemoveItem(inventoryId) => {
-      items: removeItemById(state.items, inventoryId),
-      updated_at,
-    }
-  | ClearCart => {
-      items: defaultItems,
-      updated_at,
-    }
-  };
-};
-
 /* ============================================================================
    Pipeline Builder API
    ============================================================================ */
@@ -206,8 +178,32 @@ module StoreDef =
   (val StoreBuilder.buildLocal(
     StoreBuilder.make()
     |> StoreBuilder.withSchema({
-         emptyState,
-         reduce,
+         emptyState: {
+           items: defaultItems,
+           updated_at: 0.0,
+         },
+         reduce: (~state: state, ~action: action) => {
+           let updated_at = Js.Date.now();
+           switch (action) {
+           | SetItemQuantity(input) => {
+               items:
+                 setItemQuantity(
+                   copyItems(state.items),
+                   ~inventoryId=input.inventory_id,
+                   ~quantity=input.quantity,
+                 ),
+               updated_at,
+             }
+           | RemoveItem(inventoryId) => {
+               items: removeItemById(state.items, inventoryId),
+               updated_at,
+             }
+           | ClearCart => {
+               items: defaultItems,
+               updated_at,
+             }
+           };
+         },
          makeStore:
            (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
            state:
