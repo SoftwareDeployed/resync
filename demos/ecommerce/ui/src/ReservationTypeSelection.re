@@ -15,7 +15,7 @@ let make =
     };
     <div className="my-auto">
       {main_store.period_list
-       |> Array.map((period: Model.Pricing.period) =>
+       ->Js.Array.map(~f=(period: Model.Pricing.period) =>
             switch (PeriodList.Unit.tFromJs(period.unit)) {
             | None => React.null
             | Some(unit) =>

@@ -70,7 +70,7 @@ let make =
     <Card
       className="border-none shadow-none shadow-transparent m-0 p-0 place-content-start grid lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-1 gap-4">
       {items_by_unit
-       |> Array.map((item: Model.InventoryItem.t) =>
+       ->Js.Array.map(~f=(item: Model.InventoryItem.t) =>
              <InventoryItem key={item.id} item />
            )
        |> React.array}

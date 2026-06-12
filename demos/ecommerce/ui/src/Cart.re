@@ -30,7 +30,7 @@ module Contents = {
       } else {
         <ul className="m-2 flex flex-col gap-2">
           {cart_ids
-           |> Array.map(cart_id =>
+           ->Js.Array.map(~f=cart_id =>
                 switch (cart_store.state.items->Js.Dict.get(cart_id)) {
                 | None => React.null
                 | Some(cart_item) =>

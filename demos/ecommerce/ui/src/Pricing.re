@@ -11,7 +11,7 @@ let make = (~period_list: Model.Pricing.period_list) => {
 
   let list_items =
     period_list
-    |> Array.map((p: Model.Pricing.period) => {
+    ->Js.Array.map(~f=(p: Model.Pricing.period) => {
          <React.Fragment key={key_for_period(p)}>
            <div className="border-1 border-black/30 p-1">
              <p className="text-left text-sm"> {React.string(p.label)} </p>
