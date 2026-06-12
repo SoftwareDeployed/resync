@@ -741,6 +741,10 @@ module Synced = {
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
     let queryResultListenerIdRef: ref(option(string)) = ref(None);
     let streamingRef: ref(Schema.streaming_state) = ref(Schema.emptyStreamingState);
+    [@platform js]
+    let streamingRevisionRef = ref(0);
+    [@platform js]
+    let streamingRevisionSignal = Tilia.Core.signal(0);
     let suppressPublishRef: ref(bool) = ref(false);
     let replayInProgressRef: ref(bool) = ref(false);
     let replayNeededRef: ref(bool) = ref(false);
@@ -769,6 +773,21 @@ module Synced = {
 
     /* Emit through the controller for stable snapshot and queued dispatch */
     let emitEvent = (event: store_event) => Controller.emit(event);
+
+    [@platform js]
+    let notifyStreamingChanged = () => {
+      let (_signal, setStreamingRevisionSignal) = streamingRevisionSignal;
+      streamingRevisionRef := streamingRevisionRef.contents + 1;
+      setStreamingRevisionSignal(streamingRevisionRef.contents);
+    };
+
+    [@platform native]
+    let notifyStreamingChanged = () => ();
+
+    let updateStreamingState = reducer => {
+      streamingRef := reducer(streamingRef.contents);
+      notifyStreamingChanged();
+    };
 
     let broadcastOptimisticAction = (record: StoreActionLedger.t) =>
       switch%platform (Runtime.platform) {
@@ -1277,7 +1296,7 @@ module Synced = {
         /* Reconcile streaming state after confirmed patch */
         switch (Schema.streams) {
         | Some({reconcilePatch, _}) =>
-          streamingRef := reconcilePatch(patch, streamingRef.contents);
+          updateStreamingState(streaming => reconcilePatch(patch, streaming));
         | None => ()
         };
       | None => ()
@@ -1289,7 +1308,7 @@ module Synced = {
       | Some({decodeStreamEvent, reduceStream, _}) =>
         switch (decodeStreamEvent(payload)) {
         | Some(event) =>
-          streamingRef := reduceStream(streamingRef.contents, event)
+          updateStreamingState(streaming => reduceStream(streaming, event))
         | None => ()
         }
       | None => ()
@@ -1526,12 +1545,9 @@ module Synced = {
 
     [@platform js]
     let useStreaming = () => {
-      let (_, setRevision) = React.useState(() => 0);
-      React.useEffect0(() => {
-        let listenerId =
-          Events.listen(_event => setRevision(revision => revision + 1));
-        Some(() => Events.unlisten(listenerId));
-      });
+      Tilia.React.useTilia();
+      let (signal, _setSignal) = streamingRevisionSignal;
+      let _ = signal->Tilia.Core.lift;
       streamingRef.contents;
     };
 
