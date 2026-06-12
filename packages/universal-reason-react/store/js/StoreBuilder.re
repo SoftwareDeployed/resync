@@ -138,7 +138,11 @@ module Bootstrap = {
     element: React.element,
   };
 
+  let hydrateQueryCache = () =>
+    UseQuery.hydrateCacheFromDom(~cacheId="query-cache", ());
+
   let withHydratedProvider = (~hydrateStore, ~provider, ~children) => {
+    hydrateQueryCache();
     let store = hydrateStore();
     let element =
       React.createElement(
@@ -149,6 +153,7 @@ module Bootstrap = {
   };
 
   let withHydratedProviders = (~stores, ~children) => {
+    hydrateQueryCache();
     let hydratedStores = stores->Js.Array.map(~f=((_, hydrate, _)) => hydrate());
     let element =
       stores

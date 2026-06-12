@@ -845,7 +845,7 @@ let withHydratedProvider:
   => {store: 'store, element: React.element};
 ```
 
-Hydrates a store and wraps children with its provider. Returns a record with both the store and the wrapped element.
+Hydrates the default SSR query cache script, hydrates a store, and wraps children with its provider. Returns a record with both the store and the wrapped element.
 
 **Example:**
 ```reason
@@ -869,7 +869,7 @@ let withHydratedProviders:
   => {stores: array('store), element: React.element};
 ```
 
-Hydrates multiple stores and wraps children with nested providers. Stores are hydrated in order, with the first store as the outermost provider.
+Hydrates the default SSR query cache script, hydrates multiple stores, and wraps children with nested providers. Stores are hydrated in order, with the first store as the outermost provider.
 
 **Example:**
 ```reason

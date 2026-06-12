@@ -5,9 +5,6 @@ let%browser_only _ =
   | Some(domNode) =>
     let store = TodoStore.hydrateStore();
 
-    // Hydrate query cache from SSR data before rendering
-    UseQuery.hydrateCacheFromDom(~cacheId="query-cache", ());
-
     // Create client-side serverState with empty serializedQueries
     let serverState: Routes.serverState = {store, serializedQueries: ""};
 

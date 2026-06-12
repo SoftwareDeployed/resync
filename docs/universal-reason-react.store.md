@@ -207,7 +207,7 @@ See `docs/API_REFERENCE.md` for the complete signatures.
 
 ## Bootstrap Helpers
 
-`StoreBuilder.Bootstrap` removes repeated provider/hydration ceremony from app entrypoints.
+`StoreBuilder.Bootstrap` removes repeated provider/hydration ceremony from app entrypoints. Hydrated-provider helpers also hydrate the default SSR query cache script (`id="query-cache"`) before rendering.
 
 - `withHydratedProvider` for one store
 - `withHydratedProviders` for nested stores
