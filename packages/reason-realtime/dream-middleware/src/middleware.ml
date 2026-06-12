@@ -189,11 +189,21 @@ let ack_message ~channel ~action_id ~status ?error () =
 
 let record_exception_and_ack_error t request ~mutation_name ~action_id exn =
   let msg = Printexc.to_string exn in
-  let* _ =
-    t.use_db request (fun db ->
-      let (module Action_store : Action_store.S) = t.action_store in
-      let* _ = Action_store.record_failed db ~mutation_name ~action_id ~msg in
-      Lwt.return (Ack (Ok ())))
+  let* () =
+    Lwt.catch
+      (fun () ->
+         let* _ =
+           t.use_db request (fun db ->
+             let (module Action_store : Action_store.S) = t.action_store in
+             let* _ = Action_store.record_failed db ~mutation_name ~action_id ~msg in
+             Lwt.return (Ack (Ok ())))
+         in
+         Lwt.return_unit)
+      (fun record_exn ->
+         Printf.eprintf
+           "[ws] failed to record mutation exception for %s.%s: %s\n%!"
+           mutation_name action_id (Printexc.to_string record_exn);
+         Lwt.return_unit)
   in
   Lwt.return (Ack (Error msg))
 

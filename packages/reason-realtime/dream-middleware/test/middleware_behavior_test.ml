@@ -183,6 +183,45 @@ let suite =
     let payload = Middleware.ack_message ~channel:"" ~action_id:"fail-1" ~status:"error" ~error:"bad" () in
     if !call_count = 1 && !sent = [ payload; payload ] then ()
     else Alcotest.fail "Expected handler called once and two error acks");
+  Alcotest.test_case "mutation db exception still acks when failure recording fails" `Quick (fun () ->
+    let adapter = Fake_adapter.create () in
+    let db_call_count = ref 0 in
+    let use_db _request _callback =
+      incr db_call_count;
+      if !db_call_count = 1 then
+        Lwt.fail (Failure "primary db unavailable")
+      else
+        Lwt.fail (Failure "failure recording unavailable")
+    in
+    let runtime = make_runtime ~use_db adapter in
+    let sent = ref [] in
+    let _ =
+      Lwt_main.run
+        (Middleware.handle_message_with_io runtime request []
+           "{\"type\":\"mutation\",\"actionId\":\"db-error-1\",\"action\":{\"kind\":\"noop\"}}"
+           ~send:(fun message ->
+             sent := message :: !sent;
+             Lwt.return_unit)
+           ~close:(fun () -> Lwt.return_unit)
+           ~subscribe:(fun _ -> Lwt.return_some "c")
+           ~unsubscribe:(fun _channel -> Lwt.return_unit))
+    in
+    let payload =
+      Middleware.ack_message
+        ~channel:""
+        ~action_id:"db-error-1"
+        ~status:"error"
+        ~error:"Failure(\"primary db unavailable\")"
+        ()
+    in
+    Alcotest.(check int)
+      "primary and recording DB callbacks both ran"
+      2
+      !db_call_count;
+    Alcotest.(check (list string))
+      "mutation should settle with the original DB error"
+      [payload]
+      !sent);
   Alcotest.test_case "mutation NoAck allows retry" `Quick (fun () ->
     let adapter = Fake_adapter.create () in
     let call_count = ref 0 in
