@@ -1273,10 +1273,12 @@ module Synced = {
                     switch (ledgerRecord) {
                     | Some(r: StoreActionLedger.t) =>
                       let action = Schema.action_of_json(r.action);
-                      confirmedStateRef := Schema.reduce(
+                      let nextConfirmedState = Schema.reduce(
                         ~state=confirmedStateRef.contents,
                         ~action,
                       );
+                      confirmedStateRef := nextConfirmedState;
+                      persistConfirmedState(~broadcast=true, nextConfirmedState);
                     | None => ()
                     };
                     /* Ack ordering contract: the action ledger status is updated
