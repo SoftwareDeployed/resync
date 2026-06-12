@@ -301,7 +301,7 @@ module CustomSyncedFixture = {
   let reduce = (~state: state, ~action: action) => {
     switch (action) {
     | SendMessage(msg) => {
-        messages: Js.Array.concat(~other=[|msg|], state.messages),
+        messages: state.messages->Js.Array.concat(~other=[|msg|]),
         updated_at: Js.Date.now(),
       }
     };
@@ -410,7 +410,7 @@ module CustomSyncedFixture = {
       ~updateOfPatch=(patch, state) => {
         switch (patch) {
         | AddMessage(msg) => {
-            messages: Js.Array.concat(~other=[|msg|], state.messages),
+            messages: state.messages->Js.Array.concat(~other=[|msg|]),
             updated_at: Js.Date.now(),
           }
         }
