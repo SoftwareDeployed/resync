@@ -134,82 +134,84 @@ let action_of_json = json => {
 };
 
 /* ============================================================================
-   Pipeline Builder API
+   FRP Local Store API
    ============================================================================ */
 
-module StoreDef =
-  (val StoreBuilder.buildLocal(
-    StoreBuilder.make()
-    |> StoreBuilder.withSchema({
-         emptyState: {
-           todos: [||],
-           updated_at: 0.0,
-         },
-         reduce: (~state: state, ~action: action) => {
-           let updated_at = Js.Date.now();
-           switch (action) {
-           | AddTodo(todo) => {
-               todos:
-                 StoreCrud.upsert(
-                   ~getId=(item: todo) => item.id,
-                   state.todos,
-                   todo,
-                 ),
-               updated_at,
-             }
-           | SetTodoCompleted(input) => {
-               todos:
-                 state.todos->Js.Array.map(
-                   ~f=(item: todo) =>
-                     item.id == input.id ? {...item, completed: input.completed} : item,
-                 ),
-               updated_at,
-             }
-           | RemoveTodo(id) => {
-               todos:
-                 StoreCrud.remove(
-                   ~getId=(item: todo) => item.id,
-                   state.todos,
-                   id,
-                 ),
-               updated_at,
-             }
-           };
-         },
-         makeStore:
-           (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-           state:
-             StoreBuilder.current(
-               ~derive?,
-               ~client=state,
-               ~server=() => state,
-               (),
-             ),
-           completed_count:
-             StoreBuilder.derived(
-               ~derive?,
-               ~client=store => completedCount(store.state.todos),
-               ~server=() => completedCount(state.todos),
-               (),
-             ),
-           total_count:
-             StoreBuilder.derived(
-               ~derive?,
-               ~client=store => Array.length(store.state.todos),
-               ~server=() => Array.length(state.todos),
-               (),
-             ),
-         },
-       })
-    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-    |> StoreBuilder.withLocalPersistence(
-         ~storeName,
-         ~scopeKeyOfState = (_state: state) => "default",
-         ~timestampOfState = (state: state) => state.updated_at,
-         ~stateElementId=None,
-         (),
-       ),
-  ));
+module StoreDef = StoreFrp.Local.Build({
+  type nonrec state = state;
+  type nonrec action = action;
+  type nonrec store = store;
+
+  let config =
+    StoreFrp.Local.make({
+      storeName,
+      emptyState: {
+        todos: [||],
+        updated_at: 0.0,
+      },
+      reduce: (~state: state, ~action: action) => {
+        let updated_at = Js.Date.now();
+        switch (action) {
+        | AddTodo(todo) => {
+            todos:
+              StoreCrud.upsert(
+                ~getId=(item: todo) => item.id,
+                state.todos,
+                todo,
+              ),
+            updated_at,
+          }
+        | SetTodoCompleted(input) => {
+            todos:
+              state.todos->Js.Array.map(
+                ~f=(item: todo) =>
+                  item.id == input.id ? {...item, completed: input.completed} : item,
+              ),
+            updated_at,
+          }
+        | RemoveTodo(id) => {
+            todos:
+              StoreCrud.remove(
+                ~getId=(item: todo) => item.id,
+                state.todos,
+                id,
+              ),
+            updated_at,
+          }
+        };
+      },
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+        state:
+          StoreBuilder.current(
+            ~derive?,
+            ~client=state,
+            ~server=() => state,
+            (),
+          ),
+        completed_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => completedCount(store.state.todos),
+            ~server=() => completedCount(state.todos),
+            (),
+          ),
+        total_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => Array.length(store.state.todos),
+            ~server=() => Array.length(state.todos),
+            (),
+          ),
+      },
+      scopeKeyOfState: (_state: state) => "default",
+      timestampOfState: (state: state) => state.updated_at,
+      stateElementId: None,
+    });
+});
 
 include (
   StoreDef:
