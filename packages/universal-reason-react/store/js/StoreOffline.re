@@ -31,6 +31,29 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
   };
 };
 
+module type StoreContextRuntime = {
+  type t;
+  let empty: t;
+};
+
+module MakeStoreContext = (Runtime: StoreContextRuntime) => {
+  let context = React.createContext(Runtime.empty);
+
+  module Provider = {
+    type props = Js.t({. value: Runtime.t, children: React.element});
+    let makeProps = (~value, ~children, ()) => {
+      "value": value,
+      "children": children,
+    };
+    [@platform js]
+    let make = React.Context.provider(context);
+    [@platform native]
+    let make = (props: props) => React.Context.provider(context)(props);
+  };
+
+  let useStore = () => React.useContext(context);
+};
+
 module Local = {
   type queriesConfig('state) = {
     applyQueryResult: (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
@@ -339,23 +362,10 @@ module Local = {
         StoreEvents.Events.unlisten(~registry=listenersRef, listenerId);
     };
 
-    module Context = {
-      let context = React.createContext(empty);
-
-      module Provider = {
-        type props = Js.t({. value: t, children: React.element});
-        let makeProps = (~value, ~children, ()) => {
-          "value": value,
-          "children": children,
-        };
-        [@platform js]
-        let make = React.Context.provider(context);
-        [@platform native]
-        let make = (props: props) => React.Context.provider(context)(props);
-      };
-
-      let useStore = () => React.useContext(context);
-    };
+    module Context = MakeStoreContext({
+      type nonrec t = t;
+      let empty = empty;
+    });
 
     let runtimeDispatch = dispatch;
     module HookRuntime = {
@@ -1420,23 +1430,10 @@ module Synced = {
       let unlisten = (listenerId: listener_id) => Controller.unsubscribe(listenerId);
     };
 
-    module Context = {
-      let context = React.createContext(empty);
-
-      module Provider = {
-        type props = Js.t({. value: t, children: React.element});
-        let makeProps = (~value, ~children, ()) => {
-          "value": value,
-          "children": children,
-        };
-        [@platform js]
-        let make = React.Context.provider(context);
-        [@platform native]
-        let make = (props: props) => React.Context.provider(context)(props);
-      };
-
-      let useStore = () => React.useContext(context);
-    };
+    module Context = MakeStoreContext({
+      type nonrec t = t;
+      let empty = empty;
+    });
 
     let runtimeDispatch = dispatch;
     module HookRuntime = {
