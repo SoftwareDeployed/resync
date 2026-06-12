@@ -325,34 +325,46 @@ let result_of_json = (json: StoreJson.json): query_result(StoreJson.json) => {
   };
 };
 
-let forEachLoadedResult = (~jsonStr: string, ~f: loaded_result_listener): unit => {
+let forEachSerializedResult =
+    (
+      ~jsonStr: string,
+      ~f:
+        (
+          ~key: query_key,
+          ~result: query_result(StoreJson.json),
+        ) =>
+        unit,
+    )
+    : unit => {
   switch (StoreJson.tryParse(jsonStr)) {
   | Some(json) =>
     let dict = StoreJson.Dict.of_json(x => x, json);
     let entries = Js.Dict.entries(dict);
     for (i in 0 to Array.length(entries) - 1) {
       let (key, resultJson) = entries[i];
-      switch (result_of_json(resultJson)) {
-      | Loaded(rows) => f(~channel=channelOfKey(key), ~rows)
-      | Loading
-      | Error(_) => ()
-      };
+      f(~key, ~result=result_of_json(resultJson));
     };
   | None => ()
   };
 };
 
+let forEachLoadedResult = (~jsonStr: string, ~f: loaded_result_listener): unit =>
+  forEachSerializedResult(
+    ~jsonStr,
+    ~f=(~key, ~result) =>
+      switch (result) {
+      | Loaded(rows) => f(~channel=channelOfKey(key), ~rows)
+      | Loading
+      | Error(_) => ()
+      },
+  );
+
 // Hydrate cache from SSR-serialized JSON
 [@platform js]
 let hydrate = (~t: t, ~jsonStr: string): unit => {
-  switch (StoreJson.tryParse(jsonStr)) {
-  | Some(json) =>
-    // Parse as object/dict using StoreJson.Dict module
-    let dict = StoreJson.Dict.of_json(x => x, json);
-    let entries = Js.Dict.entries(dict);
-    for (i in 0 to Array.length(entries) - 1) {
-      let (key, resultJson) = entries[i];
-      let result = result_of_json(resultJson);
+  forEachSerializedResult(
+    ~jsonStr,
+    ~f=(~key, ~result) => {
       let (signal, setSignal) = Tilia.Core.signal(result);
       let entry = {
         key,
@@ -369,9 +381,8 @@ let hydrate = (~t: t, ~jsonStr: string): unit => {
       | Loading
       | Error(_) => ()
       };
-    };
-  | None => ()
-  };
+    },
+  );
 };
 
 [@platform native]
