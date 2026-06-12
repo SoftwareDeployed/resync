@@ -55,7 +55,7 @@ let suite =
             Json.parse
               {|{"type":"patch","table":"items","action":"INSERT","data":{"id":"1","name":"a"}}|}
           in
-          let decoder = Patch.compose [ items_decoder ] in
+          let decoder = Patch.compose [| items_decoder |] in
           match decoder json with
           | Some (ItemsPatch (Crud.Upsert { id = "1"; name = "a" })) -> ()
           | Some _ -> Alcotest.fail "Wrong patch decoded"
@@ -63,7 +63,7 @@ let suite =
       Alcotest.test_case "compose with multiple decoders tries them in order" `Quick
         (fun () ->
           let json = Json.parse {|{"other":"matched"}|} in
-          let decoder = Patch.compose [ items_decoder; other_decoder ] in
+          let decoder = Patch.compose [| items_decoder; other_decoder |] in
           match decoder json with
           | Some (OtherPatch "matched") -> ()
           | Some _ -> Alcotest.fail "Wrong patch decoded"
@@ -71,7 +71,7 @@ let suite =
       Alcotest.test_case "compose returns None when no decoder matches" `Quick
         (fun () ->
           let json = Json.parse {|{"unknown":"value"}|} in
-          let decoder = Patch.compose [ items_decoder; other_decoder ] in
+          let decoder = Patch.compose [| items_decoder; other_decoder |] in
           match decoder json with
           | None -> ()
           | Some _ -> Alcotest.fail "Should return None when no decoder matches");

@@ -9,8 +9,20 @@ let flatMap = (optionValue, mapper) =>
   | None => None
   };
 
-let compose = (decoders: list(decoder('patch))): decoder('patch) =>
-  json => decoders |> List.find_map(decoder => decoder(json));
+let compose = (decoders: array(decoder('patch))): decoder('patch) =>
+  json => {
+    let rec loop = index =>
+      if (index >= Array.length(decoders)) {
+        None;
+      } else {
+        switch (decoders[index](json)) {
+        | Some(_) as decoded => decoded
+        | None => loop(index + 1)
+        };
+      };
+
+    loop(0);
+  };
 
 module Pg = {
   type event('row) =

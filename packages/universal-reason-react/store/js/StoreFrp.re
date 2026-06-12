@@ -273,7 +273,7 @@ module Crud = {
       let encodeSubscription = Input.config.transport.encodeSubscription;
       let eventUrl = Input.config.transport.eventUrl;
       let baseUrl = Input.config.transport.baseUrl;
-      let decodePatch = Store.Patch.compose([crudPatch]);
+      let decodePatch = Store.Patch.compose([|crudPatch|]);
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
       let streams = None;
       let emptyStreamingState = ();

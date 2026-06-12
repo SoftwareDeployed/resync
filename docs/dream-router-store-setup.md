@@ -196,13 +196,13 @@ module StoreDef =
            | None => state
            },
          ~decodePatch=
-           StorePatch.compose([
+           StorePatch.compose([|
              StoreCrud.decodePatch(
                ~table=RealtimeSchema.table_name("inventory"),
                ~decodeRow=Model.InventoryItem.of_json,
                (),
              ),
-           ]),
+           |]),
          ~updateOfPatch=
            StoreCrud.updateOfPatch(
              ~getId=(item: Model.InventoryItem.t) => item.id,
@@ -334,13 +334,13 @@ Use `StoreCrud.patch('row)` as your patch type and `StoreCrud.decodePatch`/`Stor
 type patch = StoreCrud.patch(MyItem.t);
 
 let decodePatch =
-  StorePatch.compose([
+  StorePatch.compose([|
     StoreCrud.decodePatch(
       ~table=RealtimeSchema.table_name("items"),
       ~decodeRow=MyItem.of_json,
       (),
     ),
-  ]);
+  |]);
 
 let updateOfPatch = StoreCrud.updateOfPatch(
   ~getId=(item: MyItem.t) => item.id,

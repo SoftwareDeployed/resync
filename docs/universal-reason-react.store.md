@@ -495,13 +495,13 @@ Use `StoreCrud` for standard table-backed patch handling.
 type patch = StoreCrud.patch(MyRow.t);
 
 let decodePatch =
-  StorePatch.compose([
+  StorePatch.compose([|
     StoreCrud.decodePatch(
       ~table=RealtimeSchema.table_name("items"),
       ~decodeRow=MyRow.of_json,
       (),
     ),
-  ]);
+  |]);
 
 let updateOfPatch =
   StoreCrud.updateOfPatch(

@@ -870,7 +870,7 @@ let buildCrud =
       let encodeSubscription = input.persistence.transport.encodeSubscription;
       let eventUrl = input.persistence.transport.eventUrl;
       let baseUrl = input.persistence.transport.baseUrl;
-      let decodePatch = StorePatch.compose([crudPatch]);
+      let decodePatch = StorePatch.compose([|crudPatch|]);
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
       let streams = None;
       let emptyStreamingState = ();

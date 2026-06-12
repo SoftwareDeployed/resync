@@ -1041,7 +1041,7 @@ Creates a derived value with SSR/hydration support.
 #### `StorePatch.compose`
 
 ```reason
-let compose: list(decoder('a)) => StoreJson.json => option('a);
+let compose: array(decoder('a)) => StoreJson.json => option('a);
 ```
 
 Composes multiple patch decoders.
