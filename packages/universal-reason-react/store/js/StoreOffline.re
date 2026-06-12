@@ -74,8 +74,11 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
       with type params = p and type action = Runtime.action,
     (),
   ) => {
-    let result = mutation((module M), ());
-    result.mutate;
+    UseMutation.makeFn(
+      (module M),
+      ~onDispatch=params => Runtime.dispatchForMutation(M.toAction(params)),
+      (),
+    );
   };
 };
 
