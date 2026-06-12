@@ -2,7 +2,10 @@ open Tilia.React;
 
 [@platform js]
 let drawVideoFrame = (canvas: Dom.element, dataUrl: string) => {
-  let ctx = Obj.magic(Webapi.Canvas.CanvasElement.getContext2d(canvas));
+  let ctx =
+    MediaBindings.canvasRenderingContext2dOfDom(
+      Webapi.Canvas.CanvasElement.getContext2d(canvas),
+    );
   let htmlImage = Webapi.Dom.HtmlImageElement.make();
   Webapi.Dom.HtmlImageElement.addLoadEventListener(_event => {
     let nextWidth = Webapi.Dom.HtmlImageElement.width(htmlImage);
@@ -13,7 +16,12 @@ let drawVideoFrame = (canvas: Dom.element, dataUrl: string) => {
     if (Webapi.Canvas.CanvasElement.height(canvas) != nextHeight) {
       Webapi.Canvas.CanvasElement.setHeight(canvas, nextHeight);
     };
-    MediaBindings.drawImage(ctx, Obj.magic(htmlImage), 0, 0);
+    MediaBindings.drawImage(
+      ctx,
+      MediaBindings.imageOfHtmlImage(htmlImage),
+      0,
+      0,
+    );
   }, htmlImage);
   Webapi.Dom.HtmlImageElement.setSrc(htmlImage, dataUrl);
 };
@@ -42,8 +50,11 @@ let getInputValue = _event => "";
 let scrollToBottom = elOpt => {
   switch (elOpt) {
   | Some(el) =>
-    let el = Obj.magic(el);
-    el##scrollTop #= el##scrollHeight;
+    let scrollEl = MediaBindings.scrollElementOfDom(el);
+    MediaBindings.setScrollTop(
+      scrollEl,
+      MediaBindings.scrollHeight(scrollEl),
+    );
   | None => ()
   };
 };

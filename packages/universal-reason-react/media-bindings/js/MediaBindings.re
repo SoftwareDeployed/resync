@@ -19,6 +19,22 @@ type float32Array;
 type arrayBuffer;
 type dataView;
 type uint8Array;
+type scrollElement;
+
+[@platform native]
+let canvasRenderingContext2dOfDom = (_ctx: 'ctx) => Obj.magic();
+
+[@platform native]
+let imageOfHtmlImage = (_image: 'image) => Obj.magic();
+
+[@platform native]
+let scrollElementOfDom = (_element: 'element) => Obj.magic();
+
+[@platform native]
+let scrollHeight = (_element: scrollElement) => 0.0;
+
+[@platform native]
+let setScrollTop = (_element: scrollElement, _value: float) => ();
 
 [@platform native]
 let mediaDevices = (_navigator: navigator) => Obj.magic();
@@ -182,6 +198,16 @@ let setInterval = (_callback: unit => unit, _delay: int) => 0;
 [@platform native]
 let clearInterval = (_intervalId: int) => ();
 
+[@platform js]
+external canvasRenderingContext2dOfDom: 'ctx => canvasRenderingContext2d = "%identity";
+[@platform js]
+external imageOfHtmlImage: 'image => image = "%identity";
+[@platform js]
+external scrollElementOfDom: 'element => scrollElement = "%identity";
+[@platform js]
+[@mel.get] external scrollHeight: scrollElement => float = "scrollHeight";
+[@platform js]
+[@mel.set] external setScrollTop: (scrollElement, float) => unit = "scrollTop";
 [@platform js]
 [@mel.get] external mediaDevices: navigator => mediaDevices = "mediaDevices";
 [@platform js]
