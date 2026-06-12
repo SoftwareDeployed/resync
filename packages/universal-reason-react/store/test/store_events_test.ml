@@ -167,4 +167,36 @@ let suite =
             "Dispatch should execute after emit, not during"
             true
             (!during_emit = false && !after_emit = true));
+      Alcotest.test_case "listener exception still clears emitting and drains queued dispatches" `Quick
+        (fun () ->
+          let state = StoreControllerHelpers.makeEmissionState () in
+          let dispatch_executed = ref false in
+          let listener (_ : string StoreEvents.store_event) =
+            StoreControllerHelpers.queueDispatch state (fun () ->
+              dispatch_executed := true);
+            raise (Failure "boom")
+          in
+          let listeners : (string * (string StoreEvents.store_event -> unit)) array =
+            [| ("id", listener) |]
+          in
+          let raised =
+            try
+              StoreControllerHelpers.emitWithQueuedDispatch state listeners StoreEvents.Open;
+              false
+            with
+            | Failure message when String.equal message "boom" -> true
+            | _ -> false
+          in
+          Alcotest.(check bool)
+            "Original listener exception should still be raised"
+            true
+            raised;
+          Alcotest.(check bool)
+            "isEmitting should be false after failed emit"
+            false
+            (StoreControllerHelpers.isEmitting state);
+          Alcotest.(check bool)
+            "Queued dispatch should drain after failed emit"
+            true
+            !dispatch_executed);
     ] )

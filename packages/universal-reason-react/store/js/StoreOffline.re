@@ -648,16 +648,25 @@ module Synced = {
       toDrain->Js.Array.forEach(~f=fn => fn());
     };
 
+    let finishEmit = () => {
+      isEmittingRef := false;
+      drainPendingDispatches();
+    };
+
     let emit = (event: store_event) => {
       /* Capture stable snapshot of listeners before iteration.
          listen/unlisten during emit affect subsequent batches only. */
       let snapshot = listenersRef.contents;
       isEmittingRef := true;
 
-      snapshot->Js.Array.forEach(~f=((_, listener)) => listener(event));
-
-      isEmittingRef := false;
-      drainPendingDispatches();
+      try({
+        snapshot->Js.Array.forEach(~f=((_, listener)) => listener(event));
+        finishEmit();
+      }) {
+      | error =>
+        finishEmit();
+        raise(error);
+      };
     };
   };
 

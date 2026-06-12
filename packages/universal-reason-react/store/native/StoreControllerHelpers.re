@@ -1,6 +1,6 @@
-/* StoreControllerHelpers: extracted pure helpers for SyncController ordering semantics.
-   These are used by both production StoreOffline and tests to ensure ordering
-   contracts are tested against real runtime logic. */
+/* StoreControllerHelpers: pure mirrors of SyncController ordering semantics.
+   Native tests use these helpers to pin production StoreOffline's ordering
+   contracts without depending on browser-only runtime state. */
 
 /* Ordering helper for ack/failure handling: returns the continuation sequence
    that enforces ledger-before-event ordering.
@@ -42,6 +42,17 @@ let applyAckOrdering = (
      state.pending_dispatches->Js.Array.concat(~other=[|dispatch_fn|]);
  };
 
+ let drainPendingDispatches = (state: emission_state) => {
+   let to_drain = state.pending_dispatches;
+   state.pending_dispatches = [||];
+   to_drain->Js.Array.forEach(~f=fn => fn());
+ };
+
+ let finishEmit = (state: emission_state) => {
+   state.is_emitting = false;
+   drainPendingDispatches(state);
+ };
+
  /* Core emit with queued dispatch ordering.
     Contract: listeners fire during emission (is_emitting=true),
     nested dispatches are queued, then drained after emission ends.
@@ -51,18 +62,19 @@ let applyAckOrdering = (
    state: emission_state,
    listeners: array((string, 'a => unit)),
    event: 'a,
- ) => {
-   let snapshot = listeners;
-   state.is_emitting = true;
+) => {
+  let snapshot = listeners;
+  state.is_emitting = true;
 
-   snapshot->Js.Array.forEach(~f=((_, listener)) => listener(event));
-
-   state.is_emitting = false;
-   /* Drain pending dispatches in FIFO order */
-   let to_drain = state.pending_dispatches;
-   state.pending_dispatches = [||];
-   to_drain->Js.Array.forEach(~f=fn => fn());
- };
+  try({
+    snapshot->Js.Array.forEach(~f=((_, listener)) => listener(event));
+    finishEmit(state);
+  }) {
+  | error =>
+    finishEmit(state);
+    raise(error);
+  };
+};
 
  /* Helper to check if a dispatch would be queued or immediate */
  let shouldQueueDispatch = (state: emission_state) => state.is_emitting;
