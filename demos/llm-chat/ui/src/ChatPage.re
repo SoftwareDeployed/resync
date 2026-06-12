@@ -21,59 +21,84 @@ let handleInputChange = (setDraft, event) => {
 let handleInputChange = (_setDraft, _event) => ();
 
 [@platform js]
-let handleSend = (store: LlmChatStore.t, prompt, setDraft, setIsStreaming) => {
+let handleSend =
+    (
+      store: LlmChatStore.t,
+      sendPromptMutation: UseMutation.mutation_result(LlmChatStore.send_prompt_payload),
+      prompt,
+      setDraft,
+      setIsStreaming,
+    ) => {
   let threadId =
     switch (store.state.current_thread_id) {
     | Some(id) => id
     | None => ""
     };
   if (String.length(prompt) > 0 && String.length(threadId) > 0) {
-    LlmChatStore.dispatch(
-      SendPrompt({
-        thread_id: threadId,
-        prompt,
-      }),
-    );
+    let _ = sendPromptMutation.mutate({thread_id: threadId, prompt});
     setDraft(_ => "");
     setIsStreaming(_ => true);
   };
 };
 
 [@platform native]
-let handleSend = (_store, _prompt, _setDraft, _setIsStreaming) =>
+let handleSend = (_store, _sendPromptMutation, _prompt, _setDraft, _setIsStreaming) =>
   ();
 
-let onThreadClick = (_router: UniversalRouter.routerApi, threadId, _event) => {
-  LlmChatStore.dispatch(SelectThread(threadId));
+let onThreadClick =
+    (
+      _router: UniversalRouter.routerApi,
+      selectThreadMutation: UseMutation.mutation_result(string),
+      threadId,
+      _event,
+    ) => {
+  let _ = selectThreadMutation.mutate(threadId);
   ReasonReactRouter.push("/" ++ threadId);
 };
 
-let onNewChatClick = (router: UniversalRouter.routerApi, _event) => {
+let onNewChatClick =
+    (
+      createThreadMutation: UseMutation.mutation_result(LlmChatStore.create_thread_payload),
+      router: UniversalRouter.routerApi,
+      _event,
+    ) => {
   let uuid = UUID.make();
-  LlmChatStore.dispatch(
-    CreateNewThread({id: uuid, title: "New Chat"}),
-  );
+  let _ = createThreadMutation.mutate({id: uuid, title: "New Chat"});
   router.push("/" ++ uuid);
 };
 
-let onDeleteThread = (_router: UniversalRouter.routerApi, threadId, event) => {
+let onDeleteThread =
+    (
+      _router: UniversalRouter.routerApi,
+      deleteThreadMutation: UseMutation.mutation_result(string),
+      threadId,
+      event,
+    ) => {
   React.Event.Mouse.stopPropagation(event);
   React.Event.Mouse.preventDefault(event);
-  LlmChatStore.dispatch(DeleteThread(threadId));
+  let _ = deleteThreadMutation.mutate(threadId);
 };
 
 [@platform js]
-let handleKeyDown = (store, draft, setDraft, setIsStreaming, event) => {
+let handleKeyDown =
+    (
+      store,
+      sendPromptMutation: UseMutation.mutation_result(LlmChatStore.send_prompt_payload),
+      draft,
+      setDraft,
+      setIsStreaming,
+      event,
+    ) => {
   let key = React.Event.Keyboard.key(event);
   let shift = React.Event.Keyboard.shiftKey(event);
   if (key == "Enter" && !shift) {
     React.Event.Keyboard.preventDefault(event);
-    handleSend(store, draft, setDraft, setIsStreaming);
+    handleSend(store, sendPromptMutation, draft, setDraft, setIsStreaming);
   };
 };
 
 [@platform native]
-let handleKeyDown = (_store, _draft, _setDraft, _setIsStreaming, _event) =>
+let handleKeyDown = (_store, _sendPromptMutation, _draft, _setDraft, _setIsStreaming, _event) =>
   ();
 
 let hasConfirmedAssistantMessage = (~messages, ~content) =>
@@ -141,12 +166,22 @@ module View = {
   let make =
     leaf(() => {
       useTilia();
+      module Hooks = LlmChatStore.Hooks;
+      open Hooks;
       let store = LlmChatStore.Context.useStore();
       let router = UniversalRouter.useRouter();
       let pathname = UniversalRouter.usePathname();
       let (isStreaming, setIsStreaming) = React.useState(() => false);
       let (draft, setDraft) = React.useState(() => "");
       let (streamingText, setStreamingText) = React.useState(() => "");
+      let sendPromptMutation =
+        useMutation((module LlmChatStore.Mutations.SendPrompt), ());
+      let createThreadMutation =
+        useMutation((module LlmChatStore.Mutations.CreateNewThread), ());
+      let selectThreadMutation =
+        useMutation((module LlmChatStore.Mutations.SelectThread), ());
+      let deleteThreadMutation =
+        useMutation((module LlmChatStore.Mutations.DeleteThread), ());
 
       let messages = store.state.messages;
       let threads = store.state.threads;
@@ -233,7 +268,7 @@ module View = {
           <button
             className="new-thread-button"
             id="new-thread-button"
-            onClick={event => onNewChatClick(router, event)}>
+            onClick={event => onNewChatClick(createThreadMutation, router, event)}>
             {React.string("New Chat")}
           </button>
           {threads
@@ -249,14 +284,18 @@ module View = {
                    "thread-item" ++ (isActive ? " thread-item--active" : "")
                  }
                  id={"thread-item-" ++ thread.id}
-                 onClick={event => onThreadClick(router, thread.id, event)}>
+                 onClick={event =>
+                   onThreadClick(router, selectThreadMutation, thread.id, event)
+                 }>
                  <span className="thread-item-title">
                    {React.string(thread.title)}
                  </span>
                   <button
                     id={"delete-thread-" ++ thread.id}
                     className="thread-delete-button"
-                    onClick={event => onDeleteThread(router, thread.id, event)}>
+                    onClick={event =>
+                      onDeleteThread(router, deleteThreadMutation, thread.id, event)
+                    }>
                     <Lucide.IconTrash size=14 />
                   </button>
                </div>;
@@ -349,6 +388,7 @@ module View = {
                       event =>
                         handleKeyDown(
                           store,
+                          sendPromptMutation,
                           draft,
                           setDraft,
                           setIsStreaming,
@@ -360,7 +400,15 @@ module View = {
                   <button
                     id="send-button"
                     disabled=isStreaming
-                    onClick={_ => handleSend(store, draft, setDraft, setIsStreaming)}>
+                    onClick={_ =>
+                      handleSend(
+                        store,
+                        sendPromptMutation,
+                        draft,
+                        setDraft,
+                        setIsStreaming,
+                      )
+                    }>
                     {React.string("Send")}
                   </button>
                </div>

@@ -142,6 +142,54 @@ let action_of_json = json => {
   };
 };
 
+module Mutations = {
+  module SendPrompt = {
+    type params = send_prompt_payload;
+    type nonrec action = action;
+    let name = "send_prompt";
+    let encodeParams = (params: params) =>
+      StoreJson.Object.make(dict => {
+        StoreJson.Object.setString(dict, "thread_id", params.thread_id);
+        StoreJson.Object.setString(dict, "prompt", params.prompt);
+      });
+    let toAction = params => SendPrompt(params);
+  };
+
+  module CreateNewThread = {
+    type params = create_thread_payload;
+    type nonrec action = action;
+    let name = "create_new_thread";
+    let encodeParams = (params: params) =>
+      StoreJson.Object.make(dict => {
+        StoreJson.Object.setString(dict, "id", params.id);
+        StoreJson.Object.setString(dict, "title", params.title);
+      });
+    let toAction = params => CreateNewThread(params);
+  };
+
+  module SelectThread = {
+    type params = string;
+    type nonrec action = action;
+    let name = "select_thread";
+    let encodeParams = (thread_id: string) =>
+      StoreJson.Object.make(dict =>
+        StoreJson.Object.setString(dict, "thread_id", thread_id)
+      );
+    let toAction = thread_id => SelectThread(thread_id);
+  };
+
+  module DeleteThread = {
+    type params = string;
+    type nonrec action = action;
+    let name = "delete_thread";
+    let encodeParams = (thread_id: string) =>
+      StoreJson.Object.make(dict =>
+        StoreJson.Object.setString(dict, "thread_id", thread_id)
+      );
+    let toAction = thread_id => DeleteThread(thread_id);
+  };
+};
+
 let reduce = (~state: state, ~action: action) => {
   let updatedAt = Js.Date.now();
   let withTimestamp = nextState => setTimestamp(~state=nextState, ~timestamp=updatedAt);
@@ -469,3 +517,4 @@ include (
 type t = store;
 
 module Context = StoreDef.Context;
+module Hooks = StoreDef.Hooks;
