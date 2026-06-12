@@ -349,6 +349,13 @@ let onActionErrorOrDefault = (hooks: Sync.hooks('action)) =>
   | None => Sync.defaultOnActionError
   };
 
+let validateOfGuardTree = (guardTree: option(GuardTree.t('state, 'action))) =>
+  switch (guardTree) {
+  | Some(tree) =>
+    Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
+  | None => None
+  };
+
 type syncPersistence('state, 'subscription) = {
   storeName: string,
   scopeKeyOfState: 'state => string,
@@ -771,12 +778,7 @@ let buildLocal =
       let action_of_json = input.json.action_of_json;
       let action_to_json = input.json.action_to_json;
       let makeStore = input.schema.makeStore;
-      let validate =
-        switch (input.guardTree) {
-        | Some(tree) =>
-          Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
-        | None => None
-        };
+      let validate = validateOfGuardTree(input.guardTree);
       let queries = input.queries;
       let cache = `IndexedDB;
     });
@@ -836,12 +838,7 @@ let buildSynced =
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onMultiplexedHandle = hooks.onMultiplexedHandle;
-      let validate =
-        switch (input.guardTree) {
-        | Some(tree) =>
-          Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
-        | None => None
-        };
+      let validate = validateOfGuardTree(input.guardTree);
       let queries = input.queries;
       let cache = `IndexedDB;
     });
@@ -904,12 +901,7 @@ let buildCrud =
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onMultiplexedHandle = hooks.onMultiplexedHandle;
-      let validate =
-        switch (input.guardTree) {
-        | Some(tree) =>
-          Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
-        | None => None
-        };
+      let validate = validateOfGuardTree(input.guardTree);
       let queries = input.queries;
       let cache = `IndexedDB;
     });
