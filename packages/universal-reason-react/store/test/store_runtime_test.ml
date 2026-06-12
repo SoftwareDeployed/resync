@@ -5,6 +5,7 @@ let () =
     ; Store_events_behavior_test.suite
     ; Store_runtime_behavior_test.suite
     ; Store_runtime_lifecycle_test.suite
+    ; Store_frp_test.suite
     ; Store_crud_test.suite
     ; Store_patch_test.suite
     ; Store_source_test.suite

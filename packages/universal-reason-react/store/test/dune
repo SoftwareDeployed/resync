@@ -6,6 +6,7 @@
     store_events_behavior_test
     store_runtime_behavior_test
     store_runtime_lifecycle_test
+    store_frp_test
     store_crud_test
     store_patch_test
     store_source_test
