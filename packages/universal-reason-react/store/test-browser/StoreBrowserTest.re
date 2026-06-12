@@ -181,7 +181,7 @@ let testQueryCacheHydrateUpdatesExistingSignalWithError = () => {
 };
 
 let testNoQueryConfigDoesNotRegisterLoadedResultListener = () => {
-  let beforeCount = QueryCache.loadedResultListenerCount();
+  let beforeCount = QueryCache.InternalForTests.loadedResultListenerCount();
   let listenerIdRef = ref(None);
   let confirmedStateRef = ref(0);
   let refreshCount = ref(0);
@@ -198,7 +198,7 @@ let testNoQueryConfigDoesNotRegisterLoadedResultListener = () => {
     (),
   );
 
-  let registeredCount = QueryCache.loadedResultListenerCount();
+  let registeredCount = QueryCache.InternalForTests.loadedResultListenerCount();
   StoreOffline.Local.replaceLoadedQueryResultListener(
     ~listenerIdRef,
     ~queriesConfig=None,
@@ -210,7 +210,7 @@ let testNoQueryConfigDoesNotRegisterLoadedResultListener = () => {
   BrowserTestUtils.assertTrue(
     ~label="No query config avoids loaded-result listeners",
     registeredCount == beforeCount + 1
-    && QueryCache.loadedResultListenerCount() == beforeCount
+    && QueryCache.InternalForTests.loadedResultListenerCount() == beforeCount
     && listenerIdRef.contents == None
     && refreshCount.contents == 0,
     ~details="no-query stores kept a global loaded-result listener",
