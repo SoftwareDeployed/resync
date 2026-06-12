@@ -122,23 +122,29 @@ let setItemQuantity = (items: items, ~inventoryId, ~quantity) =>
     nextItems;
   };
 
+let actionJson = (~kind, ~fill) => {
+  let dict = Js.Dict.empty();
+  dict->Js.Dict.set("kind", string_to_json(kind));
+  fill(dict);
+  StoreJson.Dict.to_json(json => json, dict);
+};
+
 let action_to_json = action =>
   switch (action) {
   | SetItemQuantity(input) =>
-    StoreJson.parse(
-      "{\"kind\":\"set_item_quantity\",\"inventory_id\":"
-      ++ string_to_json(input.inventory_id)->Melange_json.to_string
-      ++ ",\"quantity\":"
-      ++ int_to_json(input.quantity)->Melange_json.to_string
-      ++ "}",
+    actionJson(
+      ~kind="set_item_quantity",
+      ~fill=dict => {
+        dict->Js.Dict.set("inventory_id", string_to_json(input.inventory_id));
+        dict->Js.Dict.set("quantity", int_to_json(input.quantity));
+      },
     )
   | RemoveItem(id) =>
-    StoreJson.parse(
-      "{\"kind\":\"remove_item\",\"inventory_id\":"
-      ++ string_to_json(id)->Melange_json.to_string
-      ++ "}",
+    actionJson(
+      ~kind="remove_item",
+      ~fill=dict => dict->Js.Dict.set("inventory_id", string_to_json(id)),
     )
-  | ClearCart => StoreJson.parse("{\"kind\":\"clear_cart\"}")
+  | ClearCart => actionJson(~kind="clear_cart", ~fill=_dict => ())
   };
 
 let action_of_json = json => {

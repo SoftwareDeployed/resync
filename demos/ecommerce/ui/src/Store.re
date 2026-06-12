@@ -19,13 +19,48 @@ type store = {
 
 let emptyConfig: config = Model.SSR.empty;
 
-let action_to_json = _action => StoreJson.parse("{\"kind\":\"noop\"}");
+let action_to_json = _action => {
+  let dict = Js.Dict.empty();
+  dict->Js.Dict.set("kind", Melange_json.Primitives.string_to_json("noop"));
+  StoreJson.Dict.to_json(json => json, dict);
+};
 
 let action_of_json = _json => Noop;
 
 let reduce = (~state: config, ~action: action) => {
   let _ = action;
   state;
+};
+
+let hasPeriodUnit = (periods: array(Model.Pricing.period), unit) => {
+  let rec loop = index =>
+    if (index >= Array.length(periods)) {
+      false;
+    } else if (periods[index].unit == unit) {
+      true;
+    } else {
+      loop(index + 1);
+    };
+
+  loop(0);
+};
+
+let appendUniquePeriod = (periods, period: Model.Pricing.period) =>
+  if (hasPeriodUnit(periods, period.unit)) {
+    periods;
+  } else {
+    Js.Array.concat(~other=[|period|], periods);
+  };
+
+let appendUniquePeriods = (periods, periodList) => {
+  let rec loop = (index, nextPeriods) =>
+    if (index >= Array.length(periodList)) {
+      nextPeriods;
+    } else {
+      loop(index + 1, appendUniquePeriod(nextPeriods, periodList[index]));
+    };
+
+  loop(0, periods);
 };
 
 let project = (config: config): projections => {
@@ -35,28 +70,16 @@ let project = (config: config): projections => {
     | Some(premise) => premise.id
     },
   period_list:
-    config.inventory
-    |> Array.to_list
-    |> List.map((inv: Model.InventoryItem.t) => Array.to_list(inv.period_list))
-    |> List.concat
-    |> List.fold_left(
-         (periods: list(Model.Pricing.period), period: Model.Pricing.period) => {
-           let current_unit = period.unit;
-           if (
-             List.exists(
-               (existing: Model.Pricing.period) => existing.unit == current_unit,
-               periods,
-             )
-           ) {
-             periods;
-           } else {
-             [period, ...periods];
-           };
-         },
-         []: list(Model.Pricing.period),
-       )
-    |> List.rev
-    |> Array.of_list,
+    {
+      let rec loop = (index, periods) =>
+        if (index >= Array.length(config.inventory)) {
+          periods;
+        } else {
+          loop(index + 1, appendUniquePeriods(periods, config.inventory[index].period_list));
+        };
+
+      loop(0, [||]);
+    },
 };
 
 let setTimestamp = (~state: config, ~timestamp: float) =>
