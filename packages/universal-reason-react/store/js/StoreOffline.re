@@ -31,6 +31,20 @@ module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
   };
 };
 
+let jsonObject = fill => {
+  let dict: Js.Dict.t(StoreJson.json) = Js.Dict.empty();
+  fill(dict);
+  StoreJson.Dict.to_json(json => json, dict);
+};
+
+let setJsonField = (dict, key, value) => dict->Js.Dict.set(key, value);
+
+let setStringField = (dict, key, value) =>
+  setJsonField(dict, key, Melange_json.Primitives.string_to_json(value));
+
+let setFloatField = (dict, key, value) =>
+  setJsonField(dict, key, Melange_json.Primitives.float_to_json(value));
+
 module Local = {
   type queriesConfig('state) = {
     applyQueryResult: (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
@@ -144,21 +158,11 @@ module Local = {
             channel,
             StoreJson.stringify(
               json => json,
-              StoreJson.parse(
-                "{\"scopeKey\":"
-                ++ Melange_json.Primitives.string_to_json(
-                     Schema.scopeKeyOfState(state),
-                   )
-                   ->Melange_json.to_string
-                ++ ",\"timestamp\":"
-                ++ Melange_json.Primitives.float_to_json(
-                     Schema.timestampOfState(state),
-                   )
-                   ->Melange_json.to_string
-                ++ ",\"state\":"
-                ++ StoreJson.stringify(Schema.state_to_json, state)
-                ++ "}",
-              ),
+              jsonObject(dict => {
+                setStringField(dict, "scopeKey", Schema.scopeKeyOfState(state));
+                setFloatField(dict, "timestamp", Schema.timestampOfState(state));
+                setJsonField(dict, "state", Schema.state_to_json(state));
+              }),
             ),
           )
         | None => ()
@@ -756,15 +760,11 @@ module Synced = {
             channel,
             StoreJson.stringify(
               json => json,
-              StoreJson.parse(
-                "{\"type\":\"optimistic_action\",\"scopeKey\":"
-                ++ Melange_json.Primitives.string_to_json(record.scopeKey)
-                   ->Melange_json.to_string
-                ++ ",\"actionId\":"
-                ++ Melange_json.Primitives.string_to_json(record.id)
-                   ->Melange_json.to_string
-                ++ "}",
-              ),
+              jsonObject(dict => {
+                setStringField(dict, "type", "optimistic_action");
+                setStringField(dict, "scopeKey", record.scopeKey);
+                setStringField(dict, "actionId", record.id);
+              }),
             ),
           )
         | None => ()
@@ -781,21 +781,12 @@ module Synced = {
             channel,
             StoreJson.stringify(
               json => json,
-              StoreJson.parse(
-                "{\"type\":\"confirmed_state\",\"scopeKey\":"
-                ++ Melange_json.Primitives.string_to_json(
-                     Schema.scopeKeyOfState(state),
-                   )
-                   ->Melange_json.to_string
-                ++ ",\"timestamp\":"
-                ++ Melange_json.Primitives.float_to_json(
-                     Schema.timestampOfState(state),
-                   )
-                   ->Melange_json.to_string
-                ++ ",\"state\":"
-                ++ StoreJson.stringify(Schema.state_to_json, state)
-                ++ "}",
-              ),
+              jsonObject(dict => {
+                setStringField(dict, "type", "confirmed_state");
+                setStringField(dict, "scopeKey", Schema.scopeKeyOfState(state));
+                setFloatField(dict, "timestamp", Schema.timestampOfState(state));
+                setJsonField(dict, "state", Schema.state_to_json(state));
+              }),
             ),
           )
         | None => ()
