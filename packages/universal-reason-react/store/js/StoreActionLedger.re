@@ -84,18 +84,24 @@ let updateStatus = (~storeName: string, ~id: string, ~status: status, ~error: op
 let deleteByIds = (~storeName: string, ~ids: array(string), ()) =>
   StoreIndexedDB.deleteActions(~name=storeName, ~ids, ());
 
+let compareByEnqueuedAt = (a: t, b: t) =>
+  if (a.enqueuedAt < b.enqueuedAt) {
+    (-1);
+  } else if (a.enqueuedAt > b.enqueuedAt) {
+    1;
+  } else {
+    0;
+  };
+
 [@platform js]
 let sortByEnqueuedAt: array(t) => array(t) = records => {
-  // Create a copy using slice, then sort
   let copy = Js.Array.slice(~start=0, ~end_=Array.length(records), records);
-  Js.Array.sortInPlaceWith(
-    ~f=(a: t, b: t) =>
-      if (a.enqueuedAt < b.enqueuedAt) { (-1) }
-      else if (a.enqueuedAt > b.enqueuedAt) { 1 }
-      else { 0 },
-    copy
-  );
+  Js.Array.sortInPlaceWith(~f=compareByEnqueuedAt, copy);
 };
 
 [@platform native]
-let sortByEnqueuedAt = records => records;
+let sortByEnqueuedAt: array(t) => array(t) = records => {
+  let copy = Array.copy(records);
+  Array.stable_sort(compareByEnqueuedAt, copy);
+  copy;
+};

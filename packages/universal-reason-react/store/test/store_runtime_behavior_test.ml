@@ -314,6 +314,26 @@ let suite =
             (Printf.sprintf "Expected '%s' but got '%s'" expected result)
             expected
             result);
+      Alcotest.test_case "replayActions sorts out-of-order resumable records" `Quick
+        (fun () ->
+          let records =
+            [|
+              make_record ~id:"late" ~status:"pending" ~enqueued_at:3000.0;
+              make_record ~id:"early" ~status:"syncing" ~enqueued_at:1000.0;
+              make_record ~id:"middle" ~status:"pending" ~enqueued_at:2000.0;
+            |]
+          in
+          let result =
+            StoreRuntimeHelpers.replayActions
+              ~reduce:(fun acc (record : StoreActionLedger.t) ->
+                acc ^ ":" ^ record.id)
+              ~confirmed:"start"
+              ~records
+          in
+          Alcotest.(check string)
+            "Resumable records should replay by enqueue timestamp"
+            "start:early:middle:late"
+            result);
       Alcotest.test_case "replayActions is deterministic given same input" `Quick
         (fun () ->
           let records =

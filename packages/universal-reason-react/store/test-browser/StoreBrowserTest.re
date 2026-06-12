@@ -151,7 +151,7 @@ let testQueryCacheHydrateUpdatesExistingSignal = () => {
 
   QueryCache.hydrate(
     ~t=cache,
-    ~jsonStr="{\"hydrate-channel:first\":{\"_tag\":\"Loaded\",\"data\":[\"hydrated\"]}}",
+    ~jsonStr="{\"" ++ key ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"hydrated\"]}}",
   );
 
   BrowserTestUtils.assertTrue(
@@ -169,7 +169,7 @@ let testQueryCacheHydrateUpdatesExistingSignalWithError = () => {
 
   QueryCache.hydrate(
     ~t=cache,
-    ~jsonStr="{\"hydrate-error-channel:first\":{\"_tag\":\"Error\",\"message\":\"query failed\"}}",
+    ~jsonStr="{\"" ++ key ++ "\":{\"_tag\":\"Error\",\"message\":\"query failed\"}}",
   );
 
   BrowserTestUtils.assertTrue(
