@@ -675,6 +675,25 @@ module Synced = {
     /* Cache adapter instantiation based on Schema.cache selection */
     module IDBCache = StoreCache.IndexedDB(Schema);
     module NoOpCache = StoreCache.NoCache(Schema);
+    module Cache =
+      (val (
+        switch (Schema.cache) {
+        | `IndexedDB =>
+          (
+            module IDBCache:
+              StoreCache.Adapter
+                with type state = state
+                and type action = action
+          )
+        | `None =>
+          (
+            module NoOpCache:
+              StoreCache.Adapter
+                with type state = state
+                and type action = action
+          )
+        }
+      ));
 
     /* Bridge helpers: convert between typed cache adapter records and
        StoreActionLedger.t (= StoreIndexedDB.action_record) so that
@@ -699,49 +718,23 @@ module Synced = {
       error: record.error,
     };
 
-    /* Dispatch cache adapter calls based on Schema.cache selection */
     let cacheGetState = (~scopeKey, ()) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.getState(~storeName=Schema.storeName, ~scopeKey, ())
-      | `None => NoOpCache.getState(~storeName=Schema.storeName, ~scopeKey, ())
-      };
+      Cache.getState(~storeName=Schema.storeName, ~scopeKey, ());
 
     let cacheSetState = (record: StoreCache.state_record(state)) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.setState(~storeName=Schema.storeName, record)
-      | `None => NoOpCache.setState(~storeName=Schema.storeName, record)
-      };
+      Cache.setState(~storeName=Schema.storeName, record);
 
     let cacheGetAction = (~id, ()) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.getAction(~storeName=Schema.storeName, ~id, ())
-      | `None => NoOpCache.getAction(~storeName=Schema.storeName, ~id, ())
-      };
+      Cache.getAction(~storeName=Schema.storeName, ~id, ());
 
     let cachePutAction = (record: StoreCache.action_record(action)) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.putAction(~storeName=Schema.storeName, record)
-      | `None => NoOpCache.putAction(~storeName=Schema.storeName, record)
-      };
+      Cache.putAction(~storeName=Schema.storeName, record);
 
     let cacheGetActionsByScope = (~scopeKey, ()) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.getActionsByScope(~storeName=Schema.storeName, ~scopeKey, ())
-      | `None =>
-        NoOpCache.getActionsByScope(~storeName=Schema.storeName, ~scopeKey, ())
-      };
+      Cache.getActionsByScope(~storeName=Schema.storeName, ~scopeKey, ());
 
     let cacheDeleteActions = (~ids, ()) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.deleteActions(~storeName=Schema.storeName, ~ids, ())
-      | `None => NoOpCache.deleteActions(~storeName=Schema.storeName, ~ids, ())
-      };
+      Cache.deleteActions(~storeName=Schema.storeName, ~ids, ());
 
     /* Hydration and source state stay outside the controller */
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
