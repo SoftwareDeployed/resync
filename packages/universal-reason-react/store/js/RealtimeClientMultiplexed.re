@@ -309,6 +309,15 @@ module Multiplexed = {
     };
   };
 
+  let sendFrame = (~frame: string, t: t) => {
+    switch (t.websocketRef.contents) {
+    | Some(ws) when ws->WebSocket.readyState == 1 =>
+      ws->WebSocket.send_string(frame);
+      true;
+    | _ => false
+    };
+  };
+
   let subscribe =
       (
         ~channel: string,
@@ -450,5 +459,6 @@ module Multiplexed = {
   };
   let unsubscribe = (_t, _handle) => ();
   let sendAction = (~actionId as _, ~action as _, _t) => false;
+  let sendFrame = (~frame as _, _t) => false;
   let dispose = _t => ();
 };

@@ -30,13 +30,13 @@ let make_runtime
   ?(resolve_subscription = fun _request selection -> Lwt.return_some selection)
   ?(load_snapshot = fun _request channel ->
     Lwt.return (Printf.sprintf "{\"channel\":\"%s\"}" channel))
-  ?handle_mutation ?handle_media ?(action_store = (module In_memory_action_store : Action_store.S))
+  ?handle_mutation ?handle_mutation_without_db ?handle_media ?(action_store = (module In_memory_action_store : Action_store.S))
   ?(use_db = fun _request callback ->
     callback Test_db.unused)
   adapter_state =
   let packed = Adapter.pack (module Fake_adapter) adapter_state in
   Middleware.create ~adapter:packed ~resolve_subscription ~load_snapshot
-  ?handle_mutation ?handle_media ~action_store ~use_db ()
+  ?handle_mutation ?handle_mutation_without_db ?handle_media ~action_store ~use_db ()
 
 let suite =
   ( "middleware websocket behavior", [
@@ -213,6 +213,54 @@ let suite =
     in
     if !received_db then ()
     else Alcotest.fail "Expected handler to receive db module");
+  Alcotest.test_case "mutation without db skips use_db and dedupes action id" `Quick
+    (fun () ->
+      let adapter = Fake_adapter.create () in
+      let call_count = ref 0 in
+      let db_called = ref false in
+      let handle_mutation_without_db _broadcast _request ~action_id:_ ~mutation_name:_ _action =
+        incr call_count;
+        Lwt.return (Mutation_result.Ack (Ok ()))
+      in
+      let use_db _request _callback =
+        db_called := true;
+        Lwt.return (Mutation_result.Ack (Error "db should not be used"))
+      in
+      let runtime =
+        make_runtime ~handle_mutation_without_db ~use_db adapter
+      in
+      let sent = ref [] in
+      let run_once () =
+        Middleware.handle_message_with_io runtime request []
+          "{\"type\":\"mutation\",\"actionId\":\"nodbless-1\",\"action\":{\"kind\":\"noop\"}}"
+          ~send:(fun message ->
+            sent := message :: !sent;
+            Lwt.return_unit)
+          ~close:(fun () -> Lwt.return_unit)
+          ~subscribe:(fun channel -> Lwt.return_some channel)
+          ~unsubscribe:(fun _channel -> Lwt.return_unit)
+      in
+      let _ = Lwt_main.run (run_once ()) in
+      let _ = Lwt_main.run (run_once ()) in
+      let payload =
+        Middleware.ack_message
+          ~channel:""
+          ~action_id:"nodbless-1"
+          ~status:"ok"
+          ()
+      in
+      Alcotest.(check bool)
+        "no-db mutation should not call use_db"
+        false
+        !db_called;
+      Alcotest.(check int)
+        "no-db handler should run once for duplicate action id"
+        1
+        !call_count;
+      Alcotest.(check (list string))
+        "duplicate no-db mutation should replay ok ack"
+        [payload; payload]
+        !sent);
   Alcotest.test_case "invalid mutation sends error ack" `Quick (fun () ->
     let adapter = Fake_adapter.create () in
     let runtime = make_runtime adapter in

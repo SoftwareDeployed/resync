@@ -18,13 +18,12 @@ let setHandle = (handle: option(RealtimeClientMultiplexed.Multiplexed.t)) => {
   handleRef := handle;
 };
 
-let sendActionJson = action => {
+let sendFrameJson = frame => {
   switch (handleRef.contents) {
   | Some(handle) =>
     let _ =
-      RealtimeClientMultiplexed.Multiplexed.sendAction(
-        ~actionId="",
-        ~action,
+      RealtimeClientMultiplexed.Multiplexed.sendFrame(
+        ~frame=StoreJson.stringify(json => json, frame),
         handle,
       );
     ()
@@ -32,7 +31,7 @@ let sendActionJson = action => {
   };
 };
 
-let mediaAction = (~roomId, ~peerId, ~dataField, ~data) =>
+let mediaFrame = (~roomId, ~peerId, ~dataField, ~data) =>
   StoreJson.Object.make(dict => {
     StoreJson.Object.setString(dict, "type", "media");
     StoreJson.Object.setJson(
@@ -54,7 +53,7 @@ let sendMediaFrame = (roomId, peerId, frameData) => {
     ()
   | _ =>
     lastFrameSent := Some(frameData);
-    sendActionJson(mediaAction(
+    sendFrameJson(mediaFrame(
       ~roomId,
       ~peerId,
       ~dataField="frame_data",
@@ -64,7 +63,7 @@ let sendMediaFrame = (roomId, peerId, frameData) => {
 };
 
 let sendMediaAudio = (roomId, peerId, chunkData) => {
-  sendActionJson(mediaAction(
+  sendFrameJson(mediaFrame(
     ~roomId,
     ~peerId,
     ~dataField="chunk_data",

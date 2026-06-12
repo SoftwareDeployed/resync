@@ -67,6 +67,7 @@ let with_middleware
     ~resolve_subscription
     ~load_snapshot
     ?handle_mutation
+    ?handle_mutation_without_db
     ?dispatch_mutation
     ?validate_mutation
     ?handle_media
@@ -77,7 +78,8 @@ let with_middleware
   | Some adapter ->
       let middleware =
         Middleware.create ~adapter ~resolve_subscription ~load_snapshot
-          ?handle_mutation ?dispatch_mutation ?validate_mutation ?handle_media ?handle_disconnect ()
+          ?handle_mutation ?handle_mutation_without_db ?dispatch_mutation
+          ?validate_mutation ?handle_media ?handle_disconnect ()
       in
       { t with middleware = Some (Middleware.route "_events" middleware) }
 

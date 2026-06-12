@@ -58,7 +58,8 @@ type action =
   | SendMessage(send_message_payload)
   | ReceiveMessage(Model.ChatMessage.t)
   | ResetJoinStatus
-  | JoinRoomAcknowledged;
+  | JoinRoomAcknowledged
+  | Noop;
 
 type store = {
   room_id: string,
@@ -171,6 +172,8 @@ let action_to_json = action =>
   | ResetJoinStatus =>
     noopActionJson()
   | JoinRoomAcknowledged =>
+    noopActionJson()
+  | Noop =>
     noopActionJson()
   };
 
@@ -363,11 +366,8 @@ let action_of_json = json => {
           ~decode=string_of_json,
         ),
     })
-  | _ =>
-    JoinRoom({
-      room_id: "",
-      peer_id: "",
-    })
+  | "noop" => Noop
+  | _ => Noop
   };
 };
 
@@ -453,8 +453,9 @@ let reduce = (~state: state, ~action: action) => {
       created_at: updated_at,
       peers:
         switch (state.room) {
-        | Some(room) when room.id == payload.room_id => room.peers
-        | _ => [||]
+        | Some(room) when room.id == payload.room_id =>
+          upsertPeer(room.peers, {id: payload.peer_id, joined_at: updated_at})
+        | _ => [|{id: payload.peer_id, joined_at: updated_at}|]
         },
     };
     {
@@ -640,6 +641,7 @@ let reduce = (~state: state, ~action: action) => {
       is_joined: true,
       updated_at,
     }
+  | Noop => state
   };
 };
 
@@ -804,7 +806,8 @@ module StoreDef =
              | ToggleVideo(_)
              | ToggleAudio(_)
              | ResetJoinStatus
-             | JoinRoomAcknowledged => None
+             | JoinRoomAcknowledged
+             | Noop => None
              | patch => Some(patch)
              }
            };
@@ -825,6 +828,11 @@ module StoreDef =
          }),
          ~hooks=StoreBuilder.Sync.hooks(
            ~onActionError=onActionError,
+           ~onActionAck=(~dispatch, ~action, ~actionId as _actionId) =>
+             switch (action) {
+             | JoinRoom(_) => dispatch(JoinRoomAcknowledged)
+             | _ => ()
+             },
            ~onError=(~dispatch) => message => {
              Js.Console.error("[VideoChatStore] Server error: " ++ message);
              dispatch(ResetJoinStatus);
