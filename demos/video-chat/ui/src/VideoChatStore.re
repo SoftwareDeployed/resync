@@ -795,15 +795,40 @@ module StoreDef =
              | None => None
              };
            | _ =>
-             switch (action_of_json(json)) {
-             | JoinRoom(_)
-             | LeaveRoom(_)
-             | ToggleVideo(_)
-             | ToggleAudio(_)
-             | ResetJoinStatus
-             | JoinRoomAcknowledged
-             | Noop => None
-             | patch => Some(patch)
+             let decodeActionPatch = actionJson =>
+               switch (StoreJson.tryDecode(action_of_json, actionJson)) {
+               | Some(
+                   JoinRoom(_)
+                   | LeaveRoom(_)
+                   | ToggleVideo(_)
+                   | ToggleAudio(_)
+                   | ResetJoinStatus
+                   | JoinRoomAcknowledged
+                   | Noop,
+                 ) =>
+                 None
+               | Some(patch) => Some(patch)
+               | None => None
+               };
+             let decodeOuterPatch = () => decodeActionPatch(json);
+             switch (
+               StoreJson.optionalField(
+                 ~json,
+                 ~fieldName="payload",
+                 ~decode=value => value,
+               )
+             ) {
+             | Some(payload) =>
+               switch (StoreJson.decodeEmbedded(~decode=value => value, payload)) {
+               | Some(payloadJson) =>
+                 let decodedPayloadPatch = decodeActionPatch(payloadJson);
+                 switch (decodedPayloadPatch) {
+                 | Some(_) => decodedPayloadPatch
+                 | None => decodeOuterPatch()
+                 };
+               | None => decodeOuterPatch()
+               }
+             | None => decodeOuterPatch()
              }
            };
          },

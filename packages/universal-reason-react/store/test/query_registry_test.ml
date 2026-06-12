@@ -38,6 +38,16 @@ let setup_previous_registry () =
   QueryRegistry.setup_registry_from_json
     ~jsonStr:{|{"previous":{"_tag":"Loaded","data":"ok"}}|}
 
+let empty_lwt_registry () =
+  {
+    QueryRegistry.state = QueryRegistry.Collecting;
+    queries = Hashtbl.create 8;
+    ordered_keys = [||];
+    results = Hashtbl.create 8;
+    errors = Hashtbl.create 8;
+    db_connection = None;
+  }
+
 let suite =
   ( "QueryRegistry",
     [
@@ -182,6 +192,25 @@ let suite =
               | None ->
                   Alcotest.fail
                     "cached loaded rows should decode through register_query"));
+      Alcotest.test_case "register_query treats hydrated errors as cache hits" `Quick
+        (fun () ->
+          with_sync_registry_reset (fun () ->
+              QueryRegistry.setup_registry_from_json
+                ~jsonStr:
+                  {|{"thread:error":{"_tag":"Error","message":"bad"}}|};
+              let rows = register_cached_string_query "thread:error" in
+              Alcotest.(check bool)
+                "no cached rows returned"
+                true
+                (Option.is_none rows);
+              Alcotest.(check int)
+                "error cache hit should not register query"
+                0
+                (QueryRegistry.registered_query_count ());
+              Alcotest.(check string)
+                "error preserved"
+                "bad"
+                (error_message "thread:error")));
       Alcotest.test_case "setup_registry_from_json ignores non-loaded data payloads" `Quick
         (fun () ->
           with_sync_registry_reset (fun () ->
@@ -200,6 +229,34 @@ let suite =
                 "loading result with data should not hydrate"
                 false
                 (has_result "thread:loading-data")));
+      Alcotest.test_case
+        "setup_registry_from_json updates active Lwt registry and clears sync fallback"
+        `Quick
+        (fun () ->
+          with_sync_registry_reset (fun () ->
+              setup_previous_registry ();
+              let observed_loaded, observed_previous, sync_cleared =
+                Lwt_main.run
+                  (let registry = empty_lwt_registry () in
+                   Lwt.with_value QueryRegistry.registry_key (Some registry)
+                     (fun () ->
+                       QueryRegistry.setup_registry_from_json
+                         ~jsonStr:
+                           {|{"thread:one":{"_tag":"Loaded","data":["row-one"]}}|};
+                       Lwt.return
+                         ( has_result "thread:one",
+                           has_result "previous",
+                           Option.is_none !(QueryRegistry.sync_registry_ref) )))
+              in
+              Alcotest.(check bool)
+                "active Lwt registry should receive loaded data"
+                true observed_loaded;
+              Alcotest.(check bool)
+                "sync fallback should be hidden"
+                false observed_previous;
+              Alcotest.(check bool)
+                "sync fallback should be cleared"
+                true sync_cleared));
       Alcotest.test_case "with_serialized restores previous registry after success" `Quick
         (fun () ->
           with_sync_registry_reset (fun () ->

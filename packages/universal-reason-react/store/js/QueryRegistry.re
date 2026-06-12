@@ -51,6 +51,39 @@ let current_registry = () =>
   };
 
 [@platform native]
+let copyRegistry = (~target, ~source) => {
+  target.state = source.state;
+  target.queries = source.queries;
+  target.ordered_keys = source.ordered_keys;
+  target.results = source.results;
+  target.errors = source.errors;
+};
+
+[@platform native]
+let clearRegistry = registry => {
+  registry.state = Collecting;
+  registry.queries = Hashtbl.create(8);
+  registry.ordered_keys = [||];
+  registry.results = Hashtbl.create(8);
+  registry.errors = Hashtbl.create(8);
+};
+
+[@platform native]
+let withScopedRegistry = (~registry, ~f) => {
+  let previousRegistry = sync_registry_ref^;
+  sync_registry_ref := None;
+  try({
+    let result = Lwt.with_value(registry_key, Some(registry), f);
+    sync_registry_ref := previousRegistry;
+    result;
+  }) {
+  | error =>
+    sync_registry_ref := previousRegistry;
+    raise(error);
+  };
+};
+
+[@platform native]
 let lwtIterArraySerial = (items: array('a), f: 'a => Lwt.t(unit)) => {
   let rec loop = index =>
     if (index >= Array.length(items)) {
@@ -145,7 +178,7 @@ let with_registry = (~db, ~f, ()) => {
     errors: Hashtbl.create(8),
     db_connection: Some(db),
   };
-  Lwt.with_value(registry_key, Some(registry), f);
+  withScopedRegistry(~registry, ~f);
 };
 
 [@platform native]
@@ -165,7 +198,9 @@ let register_query =
     switch (Hashtbl.find_opt(registry.results, key)) {
     | Some(json) => decodeRows(~decode, json)
     | None =>
-      if (Hashtbl.mem(registry.queries, key)) {
+      if (Hashtbl.mem(registry.errors, key)) {
+        None;
+      } else if (Hashtbl.mem(registry.queries, key)) {
         None;
       } else {
         registry.ordered_keys =
@@ -371,11 +406,8 @@ let setup_registry_from_json = (~jsonStr: string): unit => {
   let registry = registryFromSerialized(~jsonStr);
   switch (Lwt.get(registry_key)) {
   | Some(currentRegistry) =>
-    currentRegistry.state = registry.state;
-    currentRegistry.queries = registry.queries;
-    currentRegistry.ordered_keys = registry.ordered_keys;
-    currentRegistry.results = registry.results;
-    currentRegistry.errors = registry.errors;
+    copyRegistry(~target=currentRegistry, ~source=registry);
+    sync_registry_ref := None;
   | None => sync_registry_ref := Some(registry)
   };
 };
@@ -383,28 +415,23 @@ let setup_registry_from_json = (~jsonStr: string): unit => {
 [@platform native]
 let clear_registry = () => {
   sync_registry_ref := None;
+  switch (Lwt.get(registry_key)) {
+  | Some(registry) => clearRegistry(registry)
+  | None => ()
+  };
 };
 
 // Create a temporary registry from QueryCache-format JSON and run f inside it
 [@platform native]
 let with_serialized = (~jsonStr: string, ~f: unit => 'a, ()): 'a => {
-  let previousRegistry = sync_registry_ref^;
-  setup_registry_from_json(~jsonStr);
-  try({
-    let result = f();
-    sync_registry_ref := previousRegistry;
-    result;
-  }) {
-  | error =>
-    sync_registry_ref := previousRegistry;
-    raise(error);
-  };
+  let registry = registryFromSerialized(~jsonStr);
+  withScopedRegistry(~registry, ~f);
 };
 
 [@platform native]
 let with_serialized_lwt = (~jsonStr: string, ~f: unit => Lwt.t('a), ()): Lwt.t('a) => {
   let registry = registryFromSerialized(~jsonStr);
-  Lwt.with_value(registry_key, Some(registry), f);
+  withScopedRegistry(~registry, ~f);
 };
 
 // JS-only: Client stubs (full implementation in QueryCache.re)
