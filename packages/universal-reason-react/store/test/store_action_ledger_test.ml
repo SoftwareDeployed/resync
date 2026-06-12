@@ -59,6 +59,23 @@ let suite =
           match StoreActionLedger.statusOfString "unknown" with
           | StoreActionLedger.Pending -> ()
           | _ -> Alcotest.fail "statusOfString unknown should default to Pending");
+      Alcotest.test_case "terminal statuses reject later acks" `Quick (fun () ->
+          Alcotest.(check bool)
+            "pending accepts ack"
+            true
+            (StoreActionLedger.shouldAcceptAck StoreActionLedger.Pending);
+          Alcotest.(check bool)
+            "syncing accepts ack"
+            true
+            (StoreActionLedger.shouldAcceptAck StoreActionLedger.Syncing);
+          Alcotest.(check bool)
+            "acked rejects ack"
+            false
+            (StoreActionLedger.shouldAcceptAck StoreActionLedger.Acked);
+          Alcotest.(check bool)
+            "failed rejects ack"
+            false
+            (StoreActionLedger.shouldAcceptAck StoreActionLedger.Failed));
       Alcotest.test_case "action record has required fields" `Quick (fun () ->
           let record : StoreActionLedger.t =
             {

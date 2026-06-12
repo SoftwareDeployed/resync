@@ -26,6 +26,16 @@ let statusOfString = status =>
   | _ => Pending
   };
 
+let isTerminalStatus = status =>
+  switch (status) {
+  | Acked
+  | Failed => true
+  | Pending
+  | Syncing => false
+  };
+
+let shouldAcceptAck = status => !isTerminalStatus(status);
+
 let make = (~id: string, ~scopeKey: string, ~action: StoreJson.json, ()) : t => {
   id,
   scopeKey,

@@ -757,6 +757,16 @@ module Synced = {
     let cacheDeleteActions = (~ids, ()) =>
       Cache.deleteActions(~storeName=Schema.storeName, ~ids, ());
 
+    let shouldAcceptAckForCacheRecord =
+        (cacheRecord: option(StoreCache.action_record(action))) =>
+      switch (cacheRecord) {
+      | Some(record) =>
+        StoreActionLedger.shouldAcceptAck(
+          StoreActionLedger.statusOfString(record.status),
+        )
+      | None => true
+      };
+
     /* Hydration and source state stay outside the controller */
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
@@ -1190,55 +1200,60 @@ module Synced = {
         let _ = 
           Js.Promise.then_(
             cacheRecord => {
-              let ledgerRecord =
-                Option.map(ledgerRecordOfCache, cacheRecord);
-              let persistPromise =
-                switch (cacheRecord) {
-                | Some(record) =>
-                  cachePutAction({
-                    ...record,
-                    status: StoreActionLedger.statusToString(Acked),
-                  })
-                | None => Js.Promise.resolve()
-                };
-              Js.Promise.then_(
-                _ => {
-                  /* Apply acked action to confirmed state so subsequent
-                     optimistic rebuilds include its effect. */
-                  switch (ledgerRecord) {
-                  | Some(r: StoreActionLedger.t) =>
-                    let action = Schema.action_of_json(r.action);
-                    confirmedStateRef := Schema.reduce(
-                      ~state=confirmedStateRef.contents,
-                      ~action,
-                    );
-                  | None => ()
+              if (shouldAcceptAckForCacheRecord(cacheRecord)) {
+                StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
+                let ledgerRecord =
+                  Option.map(ledgerRecordOfCache, cacheRecord);
+                let persistPromise =
+                  switch (cacheRecord) {
+                  | Some(record) =>
+                    cachePutAction({
+                      ...record,
+                      status: StoreActionLedger.statusToString(Acked),
+                    })
+                  | None => Js.Promise.resolve()
                   };
-                  /* Ack ordering contract: the action ledger status is updated
-                     before ActionAcked listeners or legacy callbacks run. */
-                  emitEvent(
-                    StoreEvents.ActionAcked({
-                      actionId,
-                      action: actionOptionOfRecord(ledgerRecord),
-                    }),
-                  );
-                  switch (ledgerRecord) {
-                  | Some(r: StoreActionLedger.t) =>
-                    switch (Schema.onActionAck) {
-                    | Some(onActionAck) =>
-                      onActionAck(
-                        ~dispatch=safeDispatch,
-                        ~action=Schema.action_of_json(r.action),
-                        ~actionId,
-                      )
+                Js.Promise.then_(
+                  _ => {
+                    /* Apply acked action to confirmed state so subsequent
+                       optimistic rebuilds include its effect. */
+                    switch (ledgerRecord) {
+                    | Some(r: StoreActionLedger.t) =>
+                      let action = Schema.action_of_json(r.action);
+                      confirmedStateRef := Schema.reduce(
+                        ~state=confirmedStateRef.contents,
+                        ~action,
+                      );
                     | None => ()
-                    }
-                  | None => ()
-                  };
-                  Js.Promise.resolve();
-                },
-                persistPromise,
-              );
+                    };
+                    /* Ack ordering contract: the action ledger status is updated
+                       before ActionAcked listeners or legacy callbacks run. */
+                    emitEvent(
+                      StoreEvents.ActionAcked({
+                        actionId,
+                        action: actionOptionOfRecord(ledgerRecord),
+                      }),
+                    );
+                    switch (ledgerRecord) {
+                    | Some(r: StoreActionLedger.t) =>
+                      switch (Schema.onActionAck) {
+                      | Some(onActionAck) =>
+                        onActionAck(
+                          ~dispatch=safeDispatch,
+                          ~action=Schema.action_of_json(r.action),
+                          ~actionId,
+                        )
+                      | None => ()
+                      }
+                    | None => ()
+                    };
+                    Js.Promise.resolve();
+                  },
+                  persistPromise,
+                );
+              } else {
+                Js.Promise.resolve();
+              };
             },
             cacheGetAction(~id=actionId, ()),
           );
@@ -1253,35 +1268,40 @@ module Synced = {
         let _ =
           Js.Promise.then_(
             cacheRecord => {
-              let ledgerRecord =
-                Option.map(ledgerRecordOfCache, cacheRecord);
-              let persistPromise =
-                switch (cacheRecord) {
-                | Some(record) =>
-                  cachePutAction({
-                    ...record,
-                    status: StoreActionLedger.statusToString(Failed),
-                    error: Some(message),
-                  })
-                | None => Js.Promise.resolve()
-                };
-              Js.Promise.then_(
-                _ => {
-                  refreshOptimisticState();
-                  /* Failure ordering contract: emit ActionFailed only after the
-                     ledger status reflects the failed action. */
-                  emitEvent(
-                    StoreEvents.ActionFailed({
-                      actionId,
-                      action: actionOptionOfRecord(ledgerRecord),
-                      message,
-                    }),
-                  );
-                  Schema.onActionError(message);
-                  Js.Promise.resolve();
-                },
-                persistPromise,
-              );
+              if (shouldAcceptAckForCacheRecord(cacheRecord)) {
+                StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
+                let ledgerRecord =
+                  Option.map(ledgerRecordOfCache, cacheRecord);
+                let persistPromise =
+                  switch (cacheRecord) {
+                  | Some(record) =>
+                    cachePutAction({
+                      ...record,
+                      status: StoreActionLedger.statusToString(Failed),
+                      error: Some(message),
+                    })
+                  | None => Js.Promise.resolve()
+                  };
+                Js.Promise.then_(
+                  _ => {
+                    refreshOptimisticState();
+                    /* Failure ordering contract: emit ActionFailed only after the
+                       ledger status reflects the failed action. */
+                    emitEvent(
+                      StoreEvents.ActionFailed({
+                        actionId,
+                        action: actionOptionOfRecord(ledgerRecord),
+                        message,
+                      }),
+                    );
+                    Schema.onActionError(message);
+                    Js.Promise.resolve();
+                  },
+                  persistPromise,
+                );
+              } else {
+                Js.Promise.resolve();
+              };
             },
             cacheGetAction(~id=actionId, ()),
           );
