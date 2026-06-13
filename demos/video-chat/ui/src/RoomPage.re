@@ -2,7 +2,10 @@ open Tilia.React;
 
 [@platform js]
 let drawVideoFrame = (canvas: Dom.element, dataUrl: string) => {
-  let ctx = Obj.magic(Webapi.Canvas.CanvasElement.getContext2d(canvas));
+  let ctx =
+    MediaBindings.canvasRenderingContext2dOfDom(
+      Webapi.Canvas.CanvasElement.getContext2d(canvas),
+    );
   let htmlImage = Webapi.Dom.HtmlImageElement.make();
   Webapi.Dom.HtmlImageElement.addLoadEventListener(_event => {
     let nextWidth = Webapi.Dom.HtmlImageElement.width(htmlImage);
@@ -13,7 +16,12 @@ let drawVideoFrame = (canvas: Dom.element, dataUrl: string) => {
     if (Webapi.Canvas.CanvasElement.height(canvas) != nextHeight) {
       Webapi.Canvas.CanvasElement.setHeight(canvas, nextHeight);
     };
-    MediaBindings.drawImage(ctx, Obj.magic(htmlImage), 0, 0);
+    MediaBindings.drawImage(
+      ctx,
+      MediaBindings.imageOfHtmlImage(htmlImage),
+      0,
+      0,
+    );
   }, htmlImage);
   Webapi.Dom.HtmlImageElement.setSrc(htmlImage, dataUrl);
 };
@@ -42,8 +50,11 @@ let getInputValue = _event => "";
 let scrollToBottom = elOpt => {
   switch (elOpt) {
   | Some(el) =>
-    let el = Obj.magic(el);
-    el##scrollTop #= el##scrollHeight;
+    let scrollEl = MediaBindings.scrollElementOfDom(el);
+    MediaBindings.setScrollTop(
+      scrollEl,
+      MediaBindings.scrollHeight(scrollEl),
+    );
   | None => ()
   };
 };
@@ -59,16 +70,35 @@ module View = {
         ~params: UniversalRouter.Params.t,
         ~searchParams: UniversalRouter.SearchParams.t,
       ) => {
+      module Hooks = VideoChatStore.Hooks;
+      open Hooks;
       let _searchParams: UniversalRouter.SearchParams.t = searchParams;
       let roomId = UniversalRouter.Params.find("roomId", params);
       let roomIdValue = Option.value(roomId, ~default="");
       let store = VideoChatStore.Context.useStore();
       let router = UniversalRouter.useRouter();
+      let joinRoomFn =
+        useMutation((module VideoChatStore.Mutations.JoinRoom), ());
+      let leaveRoomFn =
+        useMutation((module VideoChatStore.Mutations.LeaveRoom), ());
+      let toggleVideoFn =
+        useMutation((module VideoChatStore.Mutations.ToggleVideo), ());
+      let toggleAudioFn =
+        useMutation((module VideoChatStore.Mutations.ToggleAudio), ());
+      let sendMessageFn =
+        useMutation((module VideoChatStore.Mutations.SendMessage), ());
 
       let localVideoRef = React.useRef(None);
       let remoteCanvasRef = React.useRef(None);
       let captureRef = React.useRef(None);
       let remotePeerRef = React.useRef(None);
+      let storeRef = React.useRef(store);
+      let roomIdValueRef = React.useRef(roomIdValue);
+      let joinRoomFnRef = React.useRef(joinRoomFn);
+
+      storeRef.current = store;
+      roomIdValueRef.current = roomIdValue;
+      joinRoomFnRef.current = joinRoomFn;
 
       let releaseCapture = () => {
         switch (captureRef.current) {
@@ -133,6 +163,15 @@ module View = {
               | Some(data) => playAudioChunk(data)
               | None => ()
               };
+            | Reconnect =>
+              let currentStore = storeRef.current;
+              let currentRoomId = roomIdValueRef.current;
+              if (currentRoomId != "" && currentStore.state.is_joined) {
+                let payload =
+                  VideoChatStore.joinRoomPayload(currentStore, currentRoomId);
+                let _ = joinRoomFnRef.current(payload);
+                ();
+              };
             | _ => ()
             }
           });
@@ -149,7 +188,9 @@ module View = {
               Js.Global.setTimeout(
                 ~f=
                   () => {
-                    let peerId = VideoChatStore.joinRoom(store, roomIdValue);
+                    let payload = VideoChatStore.joinRoomPayload(store, roomIdValue);
+                    let _ = joinRoomFn(payload);
+                    let peerId = payload.peer_id;
                     Js.Console.log2("Joined room with peerId:", peerId);
                   },
                 500,
@@ -158,7 +199,12 @@ module View = {
             Some(
               () => {
                 Js.Global.clearTimeout(timeoutId);
-                VideoChatStore.leaveRoom(store);
+                switch (VideoChatStore.leaveRoomPayload(store)) {
+                | Some(payload) =>
+                  let _ = leaveRoomFn(payload);
+                  ()
+                | None => ()
+                };
               },
             );
           },
@@ -211,7 +257,12 @@ module View = {
 
       let leaveRoom = () => {
         releaseCapture();
-        VideoChatStore.leaveRoom(store);
+        switch (VideoChatStore.leaveRoomPayload(store)) {
+        | Some(payload) =>
+          let _ = leaveRoomFn(payload);
+          ()
+        | None => ()
+        };
         router.push("/");
       };
 
@@ -221,7 +272,12 @@ module View = {
         | Some(capture) => MediaCapture.setVideoEnabled(capture, nextEnabled)
         | None => ()
         };
-        VideoChatStore.toggleVideo(store, nextEnabled);
+        switch (VideoChatStore.toggleVideoPayload(store, nextEnabled)) {
+        | Some(payload) =>
+          let _ = toggleVideoFn(payload);
+          ()
+        | None => ()
+        };
       };
 
       let toggleAudio = () => {
@@ -230,7 +286,12 @@ module View = {
         | Some(capture) => MediaCapture.setAudioEnabled(capture, nextEnabled)
         | None => ()
         };
-        VideoChatStore.toggleAudio(store, nextEnabled);
+        switch (VideoChatStore.toggleAudioPayload(store, nextEnabled)) {
+        | Some(payload) =>
+          let _ = toggleAudioFn(payload);
+          ()
+        | None => ()
+        };
       };
 
       let hasRemotePeer =
@@ -245,7 +306,12 @@ module View = {
 
       let handleSendMessage = () => {
         if (chatText != "") {
-          VideoChatStore.sendMessage(store, chatText);
+          switch (VideoChatStore.sendMessagePayload(store, chatText)) {
+          | Some(payload) =>
+            let _ = sendMessageFn(payload);
+            ()
+          | None => ()
+          };
           setChatText(_ => "");
         };
       };

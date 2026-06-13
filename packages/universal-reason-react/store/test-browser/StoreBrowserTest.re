@@ -1,4 +1,19 @@
 open Js.Promise;
+open QueryRegistryTypes;
+
+[@mel.get]
+external signalValue: Tilia.Core.signal('a) => 'a = "value";
+
+type providerProps('store) = Js.t({. value: 'store, children: React.element});
+[@mel.get]
+external elementProps: React.element => providerProps('store) = "props";
+[@mel.get]
+external propValue: providerProps('store) => 'store = "value";
+[@mel.get]
+external propChildren: providerProps('store) => React.element = "children";
+
+let testProvider = (props: providerProps(string)): React.element =>
+  propChildren(props);
 
 /* Cleanup helper for browser and server resources */
 let cleanup = (~browser, ~server) => {
@@ -66,15 +81,18 @@ let testHydrationConflict = (~page) => {
   )
   |> then_(_ => page->Playwright.goto("http://127.0.0.1:8090/"))
   |> then_(_ => page->Playwright.waitForSelector(".todo-container"))
-  |> then_(_ => BrowserTestUtils.bodyText(page))
-  |> then_(text =>
+  |> then_(_ => BrowserTestUtils.textOrEmpty(page, ".todo-list"))
+  |> then_(listText =>
        /* IDB state should win because timestamp 5000.0 > SSR's 0.0 */
-       BrowserTestUtils.assertContains(~label="Hydration conflict: IDB state wins", ~expected="IDB wins over SSR", text)
-       |> then_(_ => BrowserTestUtils.assertContains(~label="Hydration conflict: IDB stats correct", ~expected="1 of 1 completed", text))
-       /* SSR todos should NOT be present — this proves wholesale swap, not merge */
-       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Learn ReasonML", text))
-       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Build an app", text))
-       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Deploy to production", text))
+    BrowserTestUtils.assertContains(~label="Hydration conflict: IDB state wins", ~expected="IDB wins over SSR", listText)
+       /* SSR todos should NOT be present in the rendered list — this proves wholesale swap, not merge */
+       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Learn ReasonML", listText))
+       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Build an app", listText))
+       |> then_(_ => BrowserTestUtils.assertNotContains(~label="Hydration conflict: SSR todos replaced", ~unexpected="Deploy to production", listText))
+     )
+  |> then_(_ => BrowserTestUtils.textOrEmpty(page, ".todo-stats"))
+  |> then_(statsText =>
+       BrowserTestUtils.assertContains(~label="Hydration conflict: IDB stats correct", ~expected="1 of 1 completed", statsText)
      );
 };
 
@@ -116,12 +134,774 @@ let testCrossTabBroadcast = (~browser) => {
      );
 };
 
+let testOptionalQueryHooksPreserveHookOrder = (~browser) => {
+  let url =
+    "file://"
+    ++ Playwright.cwd()
+    ++ "/packages/universal-reason-react/store/test-browser/generated/StoreHookOrderApp.html";
+
+  browser
+  ->Playwright.newPage
+  |> then_(page => {
+       let pageErrors = ref([||]);
+       let appendError = message =>
+         pageErrors := pageErrors.contents->Js.Array.concat(~other=[|message|]);
+       Playwright.onPageError(page, "pageerror", appendError);
+       Playwright.onConsole(page, "console", message => {
+         if (Playwright.type_(message) == "error") {
+           appendError(Playwright.text(message));
+         };
+       });
+
+       page
+       ->Playwright.goto(url)
+       |> then_(_ => page->Playwright.waitForSelector("text=enabled"))
+       |> then_(_ =>
+            BrowserTestUtils.assertTrue(
+              ~label="Optional query hooks preserve hook order when params toggle from None to Some",
+              Array.length(pageErrors.contents) == 0,
+              ~details=Array.length(pageErrors.contents) > 0 ? pageErrors.contents[0] : "page reported no completion",
+            )
+          )
+     });
+};
+
+let rec waitForExactText = (~page, ~selector, ~expected, ~label, ~attemptsLeft) =>
+  BrowserTestUtils.textOrEmpty(page, selector)
+  |> then_(text =>
+       if (text == expected) {
+         BrowserTestUtils.assertTrue(
+           ~label,
+           true,
+           ~details="expected text observed",
+         );
+       } else if (attemptsLeft <= 0) {
+         BrowserTestUtils.assertTrue(
+           ~label,
+           false,
+           ~details=
+             "expected "
+             ++ expected
+             ++ " in "
+             ++ selector
+             ++ ", got "
+             ++ text,
+         );
+       } else {
+         BrowserTestUtils.sleep(20)
+         |> then_(_ =>
+              waitForExactText(
+                ~page,
+                ~selector,
+                ~expected,
+                ~label,
+                ~attemptsLeft=attemptsLeft - 1,
+              )
+            );
+       }
+     );
+
+let testUseMutationResultBrowserState = (~browser) => {
+  let url =
+    "file://"
+    ++ Playwright.cwd()
+    ++ "/packages/universal-reason-react/store/test-browser/generated/StoreMutationHookApp.html";
+
+  browser
+  ->Playwright.newPage
+  |> then_(page =>
+       page
+       ->Playwright.goto(url)
+       |> then_(_ => page->Playwright.waitForSelector("#mutation-hook-app"))
+       |> then_(_ => page->Playwright.click("#mutation-rerender"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-stable",
+              ~expected="yes",
+              ~label="useMutationResult keeps mutate identity stable across rerender",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-fn-stable",
+              ~expected="yes",
+              ~label="useMutation keeps mutation function identity stable across rerender",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#mutation-success"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-loading",
+              ~expected="loading",
+              ~label="useMutationResult exposes loading while mutation is pending",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-completed",
+              ~expected="1",
+              ~label="useMutationResult resolves successful mutation promise",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-loading",
+              ~expected="idle",
+              ~label="useMutationResult clears loading after mutation settles",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#mutation-failure"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-error",
+              ~expected="none",
+              ~label="useMutationResult clears stale error before a new mutation",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-loading",
+              ~expected="loading",
+              ~label="useMutationResult tracks loading for rejected mutation",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-error",
+              ~expected="boom",
+              ~label="useMutationResult exposes rejected mutation error",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-loading",
+              ~expected="idle",
+              ~label="useMutationResult clears loading after rejected mutation settles",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-calls",
+              ~expected="2",
+              ~label="useMutationResult dispatches each mutation once",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#mutation-fn-success"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-fn-completed",
+              ~expected="1",
+              ~label="useMutation function resolves successful mutation promise",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-fn-calls",
+              ~expected="1",
+              ~label="useMutation function dispatches mutation once",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#mutation-fn-last-param",
+              ~expected="fn-ok",
+              ~label="useMutation function forwards typed params",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-count",
+              ~expected="0",
+              ~label="store-scoped mutation fixture starts from empty local state",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-query-loading",
+              ~expected="not-loading",
+              ~label="store-scoped useQuery returns a skipped query result",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-query-store-count",
+              ~expected="0",
+              ~label="store-scoped useQueryStore returns the reactive store",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#scoped-mutation-rerender"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-fn-stable",
+              ~expected="yes",
+              ~label="store-scoped useMutation keeps function identity stable",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-result-stable",
+              ~expected="yes",
+              ~label="store-scoped useMutationResult keeps mutate identity stable",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#scoped-mutation-fn-success"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-fn-completed",
+              ~expected="1",
+              ~label="store-scoped useMutation resolves successful dispatch",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-count",
+              ~expected="2",
+              ~label="store-scoped useMutation dispatch updates local FRP state",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#scoped-mutation-result-success"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-result-completed",
+              ~expected="1",
+              ~label="store-scoped useMutationResult resolves successful dispatch",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-count",
+              ~expected="5",
+              ~label="store-scoped useMutationResult dispatch updates local FRP state",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-query-store-count",
+              ~expected="5",
+              ~label="store-scoped useQueryStore stays reactive after mutations",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ => page->Playwright.click("#scoped-mutation-blocked"))
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-error",
+              ~expected="blocked",
+              ~label="store-scoped useMutationResult exposes guard-denied dispatch error",
+              ~attemptsLeft=25,
+            )
+          )
+       |> then_(_ =>
+            waitForExactText(
+              ~page,
+              ~selector="#scoped-mutation-count",
+              ~expected="5",
+              ~label="store-scoped guard-denied dispatch does not mutate local state",
+              ~attemptsLeft=25,
+            )
+          )
+     );
+};
+
+let loadedSignalContains = (signal, expected) =>
+  switch (signal->signalValue) {
+  | Loaded(rows) =>
+    Array.length(rows) == 1
+    && switch (
+         StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rows[0])
+       ) {
+       | Some(value) => value == expected
+       | None => false
+       }
+  | Loading
+  | Error(_) => false
+  };
+
+let errorSignalContains = (signal, expected) =>
+  switch (signal->signalValue) {
+  | Error(message) => message == expected
+  | Loading
+  | Loaded(_) => false
+  };
+
+let testQueryCacheHydrateUpdatesExistingSignal = () => {
+  let cache = QueryCache.make();
+  let key = makeKey(~channel="hydrate-channel", ~paramsHash="first");
+  let signal = QueryCache.getSignal(~t=cache, ~key);
+
+  QueryCache.hydrate(
+    ~t=cache,
+    ~jsonStr="{\"" ++ key ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"hydrated\"]}}",
+  );
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache hydrate updates existing signal",
+    loadedSignalContains(signal, "hydrated")
+    && loadedSignalContains(QueryCache.getSignal(~t=cache, ~key), "hydrated"),
+    ~details="hydration replaced the signal instead of updating it",
+  );
+};
+
+let testQueryCacheHydrateUpdatesExistingSignalWithError = () => {
+  let cache = QueryCache.make();
+  let key = makeKey(~channel="hydrate-error-channel", ~paramsHash="first");
+  let signal = QueryCache.getSignal(~t=cache, ~key);
+
+  QueryCache.hydrate(
+    ~t=cache,
+    ~jsonStr="{\"" ++ key ++ "\":{\"_tag\":\"Error\",\"message\":\"query failed\"}}",
+  );
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache hydrate updates existing signal with error",
+    errorSignalContains(signal, "query failed")
+    && errorSignalContains(QueryCache.getSignal(~t=cache, ~key), "query failed"),
+    ~details="error hydration replaced the signal instead of updating it",
+  );
+};
+
+let testNoQueryConfigDoesNotRegisterLoadedResultListener = () => {
+  let cache = UseQuery.getQueryCache();
+  let beforeCount = QueryCache.InternalForTests.loadedResultListenerCount(~t=cache);
+  let listenerIdRef = ref(None);
+  let confirmedStateRef = ref(0);
+  let refreshCount = ref(0);
+  let refreshOptimisticState = () => refreshCount := refreshCount.contents + 1;
+  let queriesConfig: StoreOffline.Local.queriesConfig(int) = {
+    applyQueryResult: (~state, ~channel as _, ~rows as _) => state + 1,
+  };
+
+  StoreOffline.Local.replaceLoadedQueryResultListener(
+    ~listenerIdRef,
+    ~queryCache=cache,
+    ~queriesConfig=Some(queriesConfig),
+    ~confirmedStateRef,
+    ~refreshOptimisticState,
+    (),
+  );
+
+  let registeredCount = QueryCache.InternalForTests.loadedResultListenerCount(~t=cache);
+  StoreOffline.Local.replaceLoadedQueryResultListener(
+    ~listenerIdRef,
+    ~queryCache=cache,
+    ~queriesConfig=None,
+    ~confirmedStateRef,
+    ~refreshOptimisticState,
+    (),
+  );
+
+  BrowserTestUtils.assertTrue(
+    ~label="No query config avoids loaded-result listeners",
+    registeredCount == beforeCount + 1
+    && QueryCache.InternalForTests.loadedResultListenerCount(~t=cache) == beforeCount
+    && listenerIdRef.contents == None
+    && refreshCount.contents == 0,
+    ~details="no-query stores kept a global loaded-result listener",
+  );
+};
+
+let testLoadedResultListenersAreCacheScoped = () => {
+  let globalCache = UseQuery.getQueryCache();
+  let isolatedCache = QueryCache.make();
+  let key = makeKey(~channel="isolated-channel", ~paramsHash="first");
+  let notifiedByIsolatedCache = ref(false);
+  let notifiedByGlobalCache = ref(false);
+  let listenerId =
+    QueryCache.listenLoadedResults(~t=globalCache, loadedResult => {
+      switch (loadedResult.QueryCache.channel) {
+      | "isolated-channel" => notifiedByGlobalCache := true
+      | _ => ()
+      };
+    });
+
+  QueryCache.hydrate(
+    ~t=isolatedCache,
+    ~jsonStr="{\"" ++ key ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"isolated\"]}}",
+  );
+  notifiedByIsolatedCache := notifiedByGlobalCache.contents;
+  QueryCache.hydrate(
+    ~t=globalCache,
+    ~jsonStr="{\"" ++ key ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"global\"]}}",
+  );
+  QueryCache.unlistenLoadedResults(~t=globalCache, listenerId);
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache loaded-result listeners are cache-scoped",
+    !notifiedByIsolatedCache.contents && notifiedByGlobalCache.contents,
+    ~details="an isolated QueryCache emitted loaded rows to the global cache listener",
+  );
+};
+
+let testLoadedResultListenersPreserveQueryKey = () => {
+  let cache = QueryCache.make();
+  let firstKey = makeKey(~channel="same-channel", ~paramsHash="first");
+  let secondKey = makeKey(~channel="same-channel", ~paramsHash="second");
+  let firstSeen = ref(false);
+  let secondSeen = ref(false);
+  let sameChannelCount = ref(0);
+  let listenerId =
+    QueryCache.listenLoadedResults(~t=cache, loadedResult => {
+      if (loadedResult.QueryCache.channel == "same-channel") {
+        sameChannelCount := sameChannelCount.contents + 1;
+      };
+      if (loadedResult.QueryCache.key == firstKey) {
+        firstSeen := true;
+      };
+      if (loadedResult.QueryCache.key == secondKey) {
+        secondSeen := true;
+      };
+    });
+
+  QueryCache.hydrate(
+    ~t=cache,
+    ~jsonStr=
+      "{"
+      ++ "\""
+      ++ firstKey
+      ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"first\"]},"
+      ++ "\""
+      ++ secondKey
+      ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"second\"]}"
+      ++ "}",
+  );
+  QueryCache.unlistenLoadedResults(~t=cache, listenerId);
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache loaded-result listeners preserve query keys",
+    firstSeen.contents
+    && secondSeen.contents
+    && sameChannelCount.contents == 2,
+    ~details="same-channel query results could not be distinguished by key",
+  );
+};
+
+let testQueryCacheAllowsSameOriginTransport = () =>
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache allows same-origin transport",
+    QueryCache.InternalForTests.shouldUseTransport(
+      ~eventUrl="/_events",
+      ~baseUrl="",
+    )
+    && QueryCache.InternalForTests.shouldUseTransport(
+         ~eventUrl="/_events",
+         ~baseUrl="http://127.0.0.1:8080",
+       )
+    && QueryCache.InternalForTests.shouldUseTransport(
+         ~eventUrl="",
+         ~baseUrl="http://127.0.0.1:8080",
+       ) == false,
+    ~details="same-origin query cache subscriptions required an unnecessary base URL",
+  );
+
+let testQueryCacheErrorsUncachedQueryWithoutTransport = () => {
+  let cache = QueryCache.make();
+  let key = makeKey(~channel="uncached-channel", ~paramsHash="first");
+  let signal = QueryCache.getSignal(~t=cache, ~key);
+  let (_signal, unsubscribe) =
+    QueryCache.subscribe(
+      ~t=cache,
+      ~key,
+      ~channel="uncached-channel",
+      (),
+    );
+  unsubscribe();
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache errors uncached query without transport",
+    errorSignalContains(
+      signal,
+      QueryCache.uninitializedTransportMessage,
+    ),
+    ~details="uncached query stayed loading forever without initialized transport",
+  );
+};
+
+let testQueryCacheKeepsHydratedQueryWithoutTransport = () => {
+  let cache = QueryCache.make();
+  let key = makeKey(~channel="hydrated-without-transport", ~paramsHash="first");
+  let signal = QueryCache.getSignal(~t=cache, ~key);
+  QueryCache.hydrate(
+    ~t=cache,
+    ~jsonStr="{\"" ++ key ++ "\":{\"_tag\":\"Loaded\",\"data\":[\"hydrated\"]}}",
+  );
+  let (_signal, unsubscribe) =
+    QueryCache.subscribe(
+      ~t=cache,
+      ~key,
+      ~channel="hydrated-without-transport",
+      (),
+    );
+  unsubscribe();
+
+  BrowserTestUtils.assertTrue(
+    ~label="QueryCache keeps hydrated query without transport",
+    loadedSignalContains(signal, "hydrated"),
+    ~details="missing transport overwrote SSR-hydrated query data",
+  );
+};
+
+let testRealtimeClientKeepsStatesPerUrl = () => {
+  RealtimeClient.Socket.InternalForTests.resetStates();
+  RealtimeClient.Socket.InternalForTests.touchState(
+    ~eventUrl="/_events",
+    ~baseUrl="http://one.test",
+  );
+  RealtimeClient.Socket.InternalForTests.touchState(
+    ~eventUrl="/_events",
+    ~baseUrl="http://two.test",
+  );
+  RealtimeClient.Socket.InternalForTests.touchState(
+    ~eventUrl="/_events",
+    ~baseUrl="http://one.test",
+  );
+  let count = RealtimeClient.Socket.InternalForTests.activeStateCount();
+  RealtimeClient.Socket.InternalForTests.resetStates();
+
+  BrowserTestUtils.assertTrue(
+    ~label="RealtimeClient keeps websocket states per URL",
+    count == 2 && RealtimeClient.Socket.InternalForTests.activeStateCount() == 0,
+    ~details="different event/base URLs reused one global websocket state",
+  );
+};
+
+let testHydratedProvidersPreserveOuterToInnerOrder = () => {
+  let result =
+    StoreBuilder.Bootstrap.withHydratedProviders(
+      ~stores=[|
+        ("outer", () => "outer", testProvider),
+        ("inner", () => "inner", testProvider),
+      |],
+      ~children=React.null,
+    );
+  let outerProps = elementProps(result.element);
+  let innerProps = elementProps(propChildren(outerProps));
+
+  BrowserTestUtils.assertTrue(
+    ~label="Bootstrap.withHydratedProviders preserves provider order",
+    propValue(outerProps) == "outer" && propValue(innerProps) == "inner",
+    ~details="withHydratedProviders wrapped the last provider as the outermost provider",
+  );
+};
+
+let testWhenIdleWaitsForPendingActionSettlement = () => {
+  let lifecycle = StoreRuntimeLifecycle.make(~storeName="browser-lifecycle", ());
+  let _ = StoreRuntimeLifecycle.trackBoot(lifecycle, resolve());
+  StoreRuntimeLifecycle.markActionPending(lifecycle, "pending-action");
+
+  let resolved = ref(false);
+  let idlePromise =
+    StoreRuntimeLifecycle.whenIdle(~timeout=1000, lifecycle)
+    |> then_(_ => {
+         resolved := true;
+         resolve();
+       });
+
+  BrowserTestUtils.sleep(20)
+  |> then_(_ =>
+       BrowserTestUtils.assertTrue(
+         ~label="StoreRuntimeLifecycle.whenIdle waits for pending actions",
+         !resolved.contents,
+         ~details="whenIdle resolved before the pending action settled",
+       )
+     )
+  |> then_(_ => {
+       StoreRuntimeLifecycle.markActionSettled(lifecycle, "pending-action");
+       idlePromise;
+     })
+  |> then_(_ =>
+       BrowserTestUtils.assertTrue(
+         ~label="StoreRuntimeLifecycle.whenIdle resolves after pending actions settle",
+         resolved.contents,
+         ~details="whenIdle did not resolve after the pending action settled",
+       )
+     );
+};
+
+let testPersistenceOpsRunInOrder = () => {
+  let lifecycle = StoreRuntimeLifecycle.make(~storeName="browser-persistence", ());
+  let _ = StoreRuntimeLifecycle.trackBoot(lifecycle, resolve());
+  let startedRef = ref([||]);
+  let appendStarted = label =>
+    startedRef := startedRef.contents->Js.Array.concat(~other=[|label|]);
+  let firstResolveRef: ref(option(unit => unit)) = ref(None);
+
+  let _first =
+    StoreRuntimeLifecycle.trackPersistenceOp(lifecycle, () => {
+      appendStarted("first");
+      Js.Promise.make((~resolve, ~reject as _) => {
+        let resolveFirst = () => {
+          let unitValue = ();
+          resolve(. unitValue);
+        };
+        firstResolveRef := Some(resolveFirst);
+      });
+    });
+  let secondResolved = ref(false);
+  let second =
+    StoreRuntimeLifecycle.trackPersistenceOp(lifecycle, () => {
+      appendStarted("second");
+      resolve();
+    })
+    |> then_(_ => {
+         secondResolved := true;
+         resolve();
+       });
+
+  BrowserTestUtils.sleep(20)
+  |> then_(_ => {
+       let status = StoreRuntimeLifecycle.status(lifecycle);
+       BrowserTestUtils.assertTrue(
+         ~label="StoreRuntimeLifecycle queues persistence operations",
+         Array.length(startedRef.contents) == 1
+         && startedRef.contents[0] == "first"
+         && status.pendingPersistence == 2
+         && !secondResolved.contents,
+         ~details="second persistence operation started before the first resolved",
+       );
+     })
+  |> then_(_ => {
+       switch (firstResolveRef.contents) {
+       | Some(resolveFirst) => resolveFirst()
+       | None => ()
+       };
+       second;
+     })
+  |> then_(_ =>
+       BrowserTestUtils.assertTrue(
+         ~label="StoreRuntimeLifecycle drains queued persistence operations",
+         Array.length(startedRef.contents) == 2
+         && startedRef.contents[0] == "first"
+         && startedRef.contents[1] == "second"
+         && StoreRuntimeLifecycle.status(lifecycle).idle,
+         ~details="queued persistence operations did not drain in order",
+       )
+     );
+};
+
+let testPrunableAckedActionIdsHandleMalformedUuid = () => {
+  let records: array(StoreActionLedger.t) = [|
+    {
+      id: "legacy-action-id",
+      scopeKey: "default",
+      action: StoreJson.parse("\"noop\""),
+      status: "acked",
+      enqueuedAt: 1000.0,
+      retryCount: 0,
+      error: None,
+    },
+  |];
+  let result =
+    StoreRuntimeHelpers.getPrunableAckedActionIds(
+      ~confirmedTimestamp=2000.0,
+      ~records,
+    );
+
+  BrowserTestUtils.assertTrue(
+    ~label="StoreRuntimeHelpers prunes malformed acked action ids without throwing",
+    Array.length(result) == 1 && result[0] == "legacy-action-id",
+    ~details="malformed UUIDv7 action ids broke the browser action-ledger pruning path",
+  );
+};
+
+let testPrunableAckedActionIdsHandleCurrentUuidTimestamp = () => {
+  let actionId = "019ebb8d-9185-74d6-a7b7-ed347907b650";
+  let records: array(StoreActionLedger.t) = [|
+    {
+      id: actionId,
+      scopeKey: "default",
+      action: StoreJson.parse("\"noop\""),
+      status: "acked",
+      enqueuedAt: 1781263077765.0,
+      retryCount: 0,
+      error: None,
+    },
+  |];
+  let before =
+    StoreRuntimeHelpers.getPrunableAckedActionIds(
+      ~confirmedTimestamp=1781263077000.0,
+      ~records,
+    );
+  let after =
+    StoreRuntimeHelpers.getPrunableAckedActionIds(
+      ~confirmedTimestamp=1781263078000.0,
+      ~records,
+    );
+
+  BrowserTestUtils.assertTrue(
+    ~label="StoreRuntimeHelpers parses current UUIDv7 timestamps for pruning",
+    Array.length(before) == 0
+    && Array.length(after) == 1
+    && after[0] == actionId,
+    ~details="current UUIDv7 timestamps collapsed to zero in the browser pruning path",
+  );
+};
+
 let run = () => {
   let launchOptions = Playwright.makeLaunchOptions(~headless=true, ());
   let browserRef = ref(None);
   let serverRef = ref(None);
 
-  StoreTestServer.start()
+  testQueryCacheHydrateUpdatesExistingSignal()
+  |> then_(_ => testQueryCacheHydrateUpdatesExistingSignalWithError())
+  |> then_(_ => testNoQueryConfigDoesNotRegisterLoadedResultListener())
+  |> then_(_ => testLoadedResultListenersAreCacheScoped())
+  |> then_(_ => testLoadedResultListenersPreserveQueryKey())
+  |> then_(_ => testQueryCacheAllowsSameOriginTransport())
+  |> then_(_ => testQueryCacheErrorsUncachedQueryWithoutTransport())
+  |> then_(_ => testQueryCacheKeepsHydratedQueryWithoutTransport())
+  |> then_(_ => testRealtimeClientKeepsStatesPerUrl())
+  |> then_(_ => testHydratedProvidersPreserveOuterToInnerOrder())
+  |> then_(_ => testWhenIdleWaitsForPendingActionSettlement())
+  |> then_(_ => testPersistenceOpsRunInOrder())
+  |> then_(_ => testPrunableAckedActionIdsHandleMalformedUuid())
+  |> then_(_ => testPrunableAckedActionIdsHandleCurrentUuidTimestamp())
+  |> then_(_ => StoreTestServer.start())
   |> then_(server => {
        serverRef := Some(server);
        Playwright.chromium->Playwright.launch(launchOptions);
@@ -134,16 +914,19 @@ let run = () => {
             testBasicFlow(~page, ~baseUrl="http://127.0.0.1:8090")
             |> then_(_ => {
                  Js.log("Basic flow test passed. Starting hydration conflict test...");
+                 resolve();
                })
             |> then_(_ => browser->Playwright.newPage)
             |> then_(page2 =>
                  testHydrationConflict(~page=page2)
-                 |> then_(_ => page2->Playwright.close)
                )
             |> then_(_ => {
                  Js.log("Hydration conflict test passed. Starting cross-tab broadcast test...");
+                 resolve();
                })
             |> then_(_ => testCrossTabBroadcast(~browser))
+            |> then_(_ => testOptionalQueryHooksPreserveHookOrder(~browser))
+            |> then_(_ => testUseMutationResultBrowserState(~browser))
             |> then_(_ => browser->Playwright.close)
           )
      })
@@ -153,7 +936,7 @@ let run = () => {
      )
   |> catch(error =>
        cleanup(~browser=browserRef.contents, ~server=serverRef.contents)
-       |> then_(_ => reject(Obj.magic(error)))
+       |> then_(_ => BrowserTestUtils.rejectPromiseError(error))
      );
 };
 

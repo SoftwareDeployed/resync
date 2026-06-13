@@ -4,7 +4,7 @@ let suite =
   ( "action_store",
     [
       Alcotest.test_case "in_memory guard allows first call" `Quick (fun () ->
-          let m = (Obj.magic () : (module Caqti_lwt.CONNECTION)) in
+          let m = Test_db.unused in
           let called = ref false in
           let callback () =
             called := true;
@@ -19,7 +19,7 @@ let suite =
           | Mutation_result.Ack (Ok ()) when !called -> ()
           | _ -> Alcotest.fail "Expected callback to run and return Ok");
       Alcotest.test_case "in_memory guard blocks duplicate ok" `Quick (fun () ->
-          let m = (Obj.magic () : (module Caqti_lwt.CONNECTION)) in
+          let m = Test_db.unused in
           let called = ref 0 in
           let callback () =
             incr called;
@@ -39,7 +39,7 @@ let suite =
           | Mutation_result.Ack (Ok ()) when !called = 1 -> ()
           | _ -> Alcotest.fail "Expected duplicate to return Ok without running callback");
       Alcotest.test_case "in_memory guard records failure" `Quick (fun () ->
-          let m = (Obj.magic () : (module Caqti_lwt.CONNECTION)) in
+          let m = Test_db.unused in
           let result =
             Lwt_main.run
               (In_memory_action_store.with_guard m ~mutation_name:"m1" ~action_id:"a3"
@@ -54,7 +54,7 @@ let suite =
           | Mutation_result.Ack (Error "bad"), Mutation_result.Ack (Error "bad") -> ()
           | _ -> Alcotest.fail "Expected failure to be recorded and replayed");
       Alcotest.test_case "in_memory guard NoAck leaves no entry" `Quick (fun () ->
-          let m = (Obj.magic () : (module Caqti_lwt.CONNECTION)) in
+          let m = Test_db.unused in
           let called = ref 0 in
           let callback () =
             incr called;
@@ -74,7 +74,7 @@ let suite =
           | Mutation_result.NoAck when !called = 2 -> ()
           | _ -> Alcotest.fail "Expected NoAck to not record entry");
       Alcotest.test_case "record_failed marks failed" `Quick (fun () ->
-          let m = (Obj.magic () : (module Caqti_lwt.CONNECTION)) in
+          let m = Test_db.unused in
           let result =
             Lwt_main.run
               (In_memory_action_store.record_failed m ~mutation_name:"m1"

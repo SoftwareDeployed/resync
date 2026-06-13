@@ -21,7 +21,7 @@ let parseChunk = (chunk: string, ~buffer: ref(string)) : array(event) => {
         (acc, String.sub(raw, start, len - start))
       } else {
         let block = String.sub(raw, start, idx^ - start);
-        findBoundaries(idx^ + 2, Js.Array.concat(~other=[|block|], acc));
+        findBoundaries(idx^ + 2, acc->Js.Array.concat(~other=[|block|]));
       };
     };
   };
@@ -30,7 +30,7 @@ let parseChunk = (chunk: string, ~buffer: ref(string)) : array(event) => {
   buffer := remainder;
 
   blocks
-  |> Js.Array.map(~f=(block => {
+  ->Js.Array.map(~f=(block => {
        let lines =
          if (String.length(block) == 0) {
            [||]
@@ -45,7 +45,7 @@ let parseChunk = (chunk: string, ~buffer: ref(string)) : array(event) => {
                  incr(idx);
                };
                let line = String.sub(block, start, idx^ - start);
-               let newAcc = Js.Array.concat(~other=[|line|], acc);
+               let newAcc = acc->Js.Array.concat(~other=[|line|]);
                if (idx^ < len && block.[idx^] == '\n') {
                  splitLines(idx^ + 1, newAcc);
                } else {
@@ -95,7 +95,7 @@ let parseChunk = (chunk: string, ~buffer: ref(string)) : array(event) => {
              let value = String.sub(line, valueStart, String.length(line) - valueStart);
 
              if (field == "data") {
-               dataLines := Js.Array.concat(~other=[|value|], dataLines^);
+               dataLines := (dataLines^)->Js.Array.concat(~other=[|value|]);
              } else if (field == "event") {
                eventRef := Some(value);
              } else if (field == "id") {
@@ -124,5 +124,5 @@ let parseChunk = (chunk: string, ~buffer: ref(string)) : array(event) => {
          data: joinData(0, ""),
        };
      }))
-  |> Js.Array.filter(~f=(evt => String.length(evt.data) > 0));
+  ->Js.Array.filter(~f=(evt => String.length(evt.data) > 0));
 };

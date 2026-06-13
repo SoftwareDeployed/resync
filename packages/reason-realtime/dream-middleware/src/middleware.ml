@@ -27,8 +27,17 @@ type broadcast_fn = string -> (channel:string -> string -> string) -> unit Lwt.t
 type handle_mutation =
   broadcast_fn -> Dream.request -> db:(module Caqti_lwt.CONNECTION) -> action_id:string -> mutation_name:string -> Yojson.Basic.t -> Mutation_result.t Lwt.t
 
+type handle_mutation_without_db =
+  broadcast_fn -> Dream.request -> action_id:string -> mutation_name:string -> Yojson.Basic.t -> Mutation_result.t Lwt.t
+
 type dispatch_mutation =
   (module Caqti_lwt.CONNECTION) -> mutation_name:string -> Yojson.Basic.t -> (unit, string) result Lwt.t option
+
+type in_memory_action_status =
+  [ `Ok
+  | `Failed of string
+  | `InProgress of Mutation_result.t Lwt.t
+  ]
 
 type t = {
   adapter : Adapter.packed;
@@ -37,14 +46,16 @@ type t = {
   action_store : (module Action_store.S);
   use_db : Dream.request -> ((module Caqti_lwt.CONNECTION) -> Mutation_result.t Lwt.t) -> Mutation_result.t Lwt.t;
   handle_mutation : handle_mutation option;
+  handle_mutation_without_db : handle_mutation_without_db option;
   dispatch_mutation : dispatch_mutation option;
   validate_mutation : (Dream.request -> Yojson.Basic.t -> (unit, string) result Lwt.t) option;
   handle_media : (broadcast_fn -> Dream.request -> string -> string -> (unit, string) result Lwt.t) option;
   handle_disconnect : (broadcast_fn -> string -> unit Lwt.t) option;
   channels : (string, subscriber list) Hashtbl.t;
+  in_memory_actions : (string, in_memory_action_status) Hashtbl.t;
 }
 
-let create ~adapter ~resolve_subscription ~load_snapshot ?handle_mutation ?dispatch_mutation ?validate_mutation ?handle_media ?handle_disconnect ?(action_store = (module Sql_action_store : Action_store.S)) ?(use_db = Dream.sql) () =
+let create ~adapter ~resolve_subscription ~load_snapshot ?handle_mutation ?handle_mutation_without_db ?dispatch_mutation ?validate_mutation ?handle_media ?handle_disconnect ?(action_store = (module Sql_action_store : Action_store.S)) ?(use_db = Dream.sql) () =
   {
     adapter;
     resolve_subscription;
@@ -52,11 +63,13 @@ let create ~adapter ~resolve_subscription ~load_snapshot ?handle_mutation ?dispa
     action_store;
     use_db;
     handle_mutation;
+    handle_mutation_without_db;
     dispatch_mutation;
     validate_mutation;
     handle_media;
     handle_disconnect;
     channels = Hashtbl.create 32;
+    in_memory_actions = Hashtbl.create 128;
   }
 
 let log_stats t =
@@ -68,21 +81,6 @@ let log_stats t =
     last_log_time := now;
     message_count := 0
   end
-
-let create ~adapter ~resolve_subscription ~load_snapshot ?handle_mutation ?dispatch_mutation ?validate_mutation ?handle_media ?handle_disconnect ?(action_store = (module Sql_action_store : Action_store.S)) ?(use_db = Dream.sql) () =
-  {
-    adapter;
-    resolve_subscription;
-    load_snapshot;
-    action_store;
-    use_db;
-    handle_mutation;
-    dispatch_mutation;
-    validate_mutation;
-    handle_media;
-    handle_disconnect;
-    channels = Hashtbl.create 32;
-  }
 
 let make_broadcast_fn t target wrap =
   let wrapped = wrap ~channel:target "" in
@@ -134,6 +132,40 @@ let run_mutation_handler t request ~action_id ~mutation_name action db =
   in
   Action_store.with_guard db ~mutation_name ~action_id run_dispatch_or_handler
 
+let in_memory_action_key ~mutation_name ~action_id =
+  mutation_name ^ ":" ^ action_id
+
+let with_in_memory_action_guard t ~mutation_name ~action_id callback =
+  let key = in_memory_action_key ~mutation_name ~action_id in
+  match Hashtbl.find_opt t.in_memory_actions key with
+  | Some `Ok -> Lwt.return (Ack (Ok ()))
+  | Some (`Failed msg) -> Lwt.return (Ack (Error msg))
+  | Some (`InProgress promise) -> promise
+  | None ->
+      let promise, wake = Lwt.wait () in
+      Hashtbl.replace t.in_memory_actions key (`InProgress promise);
+      Lwt.async (fun () ->
+        Lwt.catch
+          (fun () ->
+             let* result = callback () in
+             (match result with
+              | Ack (Ok ()) -> Hashtbl.replace t.in_memory_actions key `Ok
+              | Ack (Error msg) -> Hashtbl.replace t.in_memory_actions key (`Failed msg)
+              | NoAck -> Hashtbl.remove t.in_memory_actions key);
+             Lwt.wakeup_later wake result;
+             Lwt.return_unit)
+          (fun exn ->
+             let msg = Printexc.to_string exn in
+             let result = Ack (Error msg) in
+             Hashtbl.replace t.in_memory_actions key (`Failed msg);
+             Lwt.wakeup_later wake result;
+             Lwt.return_unit));
+      promise
+
+let run_mutation_without_db_handler t request ~action_id ~mutation_name action handler =
+  with_in_memory_action_guard t ~mutation_name ~action_id (fun () ->
+    handler (make_broadcast_fn t) request ~action_id ~mutation_name action)
+
 let json_string value = Yojson.Basic.to_string value
 
 let wrap_patch ~channel message =
@@ -163,6 +195,44 @@ let ack_message ~channel ~action_id ~status ?error () =
     | None -> fields
   in
   `Assoc fields |> json_string
+
+let record_exception_and_ack_error t request ~mutation_name ~action_id exn =
+  let msg = Printexc.to_string exn in
+  let* () =
+    Lwt.catch
+      (fun () ->
+         let* _ =
+           t.use_db request (fun db ->
+             let (module Action_store : Action_store.S) = t.action_store in
+             let* _ = Action_store.record_failed db ~mutation_name ~action_id ~msg in
+             Lwt.return (Ack (Ok ())))
+         in
+         Lwt.return_unit)
+      (fun record_exn ->
+         Printf.eprintf
+           "[ws] failed to record mutation exception for %s.%s: %s\n%!"
+           mutation_name action_id (Printexc.to_string record_exn);
+         Lwt.return_unit)
+  in
+  Lwt.return (Ack (Error msg))
+
+let run_mutation_with_guard t request ~action_id ~mutation_name action =
+  match t.dispatch_mutation, t.handle_mutation, t.handle_mutation_without_db with
+  | None, None, Some handler ->
+      run_mutation_without_db_handler t request ~action_id ~mutation_name action handler
+  | _ ->
+      Lwt.catch
+        (fun () -> t.use_db request (run_mutation_handler t request ~action_id ~mutation_name action))
+        (record_exception_and_ack_error t request ~mutation_name ~action_id)
+
+let send_mutation_result ~send ~channel ~action_id current_channels = function
+  | Ack (Ok ()) ->
+      let* () = send (ack_message ~channel ~action_id ~status:"ok" ()) in
+      Lwt.return current_channels
+  | Ack (Error error) ->
+      let* () = send (ack_message ~channel ~action_id ~status:"error" ~error ()) in
+      Lwt.return current_channels
+  | NoAck -> Lwt.return current_channels
 
 let pong_message = `Assoc [ ("type", `String "pong") ] |> json_string
 
@@ -296,8 +366,6 @@ let assoc_json key = function
 
 let handle_json_message_with_io t request current_channels json ~send ~close
     ~subscribe ~unsubscribe =
-  incr message_count;
-  log_stats t;
   let msg_type = assoc_string "type" json in
   Printf.eprintf "[ws] message type: %s\n%!" (match msg_type with Some t -> t | None -> "unknown");
   let get_channel () = match current_channels with ch :: _ -> ch | [] -> "" in
@@ -341,12 +409,18 @@ let handle_json_message_with_io t request current_channels json ~send ~close
           | None ->
               let* () =
                 send
-                  (ack_message ~channel ~action_id:"" ~status:"error"
+                  (ack_message ~channel ~action_id ~status:"error"
                      ~error:"Invalid mutation frame: missing kind" ())
               in
               let* () = close () in
               Lwt.return current_channels
           | Some mutation_name -> (
+              let run_and_ack () =
+                let* result =
+                  run_mutation_with_guard t request ~action_id ~mutation_name action
+                in
+                send_mutation_result ~send ~channel ~action_id current_channels result
+              in
               match t.validate_mutation with
               | Some validate ->
                   let* validation = validate request action in
@@ -354,57 +428,20 @@ let handle_json_message_with_io t request current_channels json ~send ~close
                   | Error error ->
                       let* () = send (ack_message ~channel ~action_id ~status:"error" ~error ()) in
                       Lwt.return current_channels
-                  | Ok () ->
-                      let* result =
-                         Lwt.catch
-                           (fun () -> t.use_db request (run_mutation_handler t request ~action_id ~mutation_name action))
-                           (fun exn ->
-                              let msg = Printexc.to_string exn in
-                              let* _ =
-                                t.use_db request (fun db ->
-                                  let (module Action_store : Action_store.S) = t.action_store in
-                                  let* _ = Action_store.record_failed db ~mutation_name ~action_id ~msg in
-                                  Lwt.return (Ack (Ok ())))
-                              in
-                              Lwt.return (Ack (Error msg)))
-                       in
-                       (match result with
-                        | Ack (Ok ()) ->
-                            let* () = send (ack_message ~channel ~action_id ~status:"ok" ()) in
-                            Lwt.return current_channels
-                        | Ack (Error error) ->
-                            let* () = send (ack_message ~channel ~action_id ~status:"error" ~error ()) in
-                            Lwt.return current_channels
-                         | NoAck -> Lwt.return current_channels)
-                   )
-               | None ->
-                  let* result =
-                         Lwt.catch
-                           (fun () -> t.use_db request (run_mutation_handler t request ~action_id ~mutation_name action))
-                           (fun exn ->
-                              let msg = Printexc.to_string exn in
-                              let* _ =
-                                t.use_db request (fun db ->
-                                  let (module Action_store : Action_store.S) = t.action_store in
-                                  let* _ = Action_store.record_failed db ~mutation_name ~action_id ~msg in
-                                  Lwt.return (Ack (Ok ())))
-                              in
-                              Lwt.return (Ack (Error msg)))
-                       in
-                       (match result with
-                        | Ack (Ok ()) ->
-                            let* () = send (ack_message ~channel ~action_id ~status:"ok" ()) in
-                            Lwt.return current_channels
-                        | Ack (Error error) ->
-                            let* () = send (ack_message ~channel ~action_id ~status:"error" ~error ()) in
-                            Lwt.return current_channels
-                         | NoAck -> Lwt.return current_channels)
+                  | Ok () -> run_and_ack ()
+                  )
+               | None -> run_and_ack ()
                  )
          )
       | _ ->
+          let action_id =
+            match assoc_string "actionId" json with
+            | Some action_id -> action_id
+            | None -> ""
+          in
           let* () =
             send
-              (ack_message ~channel:(get_channel ()) ~action_id:"" ~status:"error"
+              (ack_message ~channel:(get_channel ()) ~action_id ~status:"error"
                  ~error:"Invalid mutation frame" ())
           in
           let* () = close () in

@@ -18,9 +18,13 @@ This guide ties the stream package, the Dream middleware, and the store runtime 
 The llm-chat demo shows the shape of custom realtime events:
 
 ```reason
-let stream_event_json ~event fields =
+let stream_event_json ~channel ~event fields =
   Yojson.Basic.to_string
-    (`Assoc [("type", `String "custom"); ("payload", `Assoc (("event", `String event) :: fields))]);
+    (`Assoc [
+      ("type", `String "custom");
+      ("channel", `String channel);
+      ("payload", `Assoc (("event", `String event) :: fields))
+    ]);
 ```
 
 It uses that helper to broadcast `stream_started`, `token_received`, `stream_complete`, and `stream_error` events while the NDJSON stream is being read.

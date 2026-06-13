@@ -54,22 +54,18 @@ let normalizeItems = items =>
   | _ => defaultItems
   };
 
-let emptyState: state = {
-  items: defaultItems,
-  updated_at: 0.0,
-};
-
 let itemCountOfItems = items =>
-  Array.fold_left(
-    (count, inventoryId) =>
+  items
+  ->Js.Dict.keys
+  ->Js.Array.reduce(
+      ~init=0,
+      ~f=(count, inventoryId) =>
       count
       + switch (items->Js.Dict.get(inventoryId)) {
         | Some((cartItem: CartItem.t)) => cartItem.quantity
         | None => 0
         },
-    0,
-    items->Js.Dict.keys,
-  );
+    );
 
 let itemCount = (state: state) => itemCountOfItems(state.items);
 
@@ -77,7 +73,7 @@ let copyItems = (items: items) => {
   let nextItems = Js.Dict.empty();
   items
   ->Js.Dict.keys
-  ->Belt.Array.forEach(key =>
+  ->Js.Array.forEach(~f=key =>
       switch (items->Js.Dict.get(key)) {
       | Some(item) => nextItems->Js.Dict.set(key, item)
       | None => ()
@@ -90,7 +86,7 @@ let removeItemById = (items: items, inventoryId: string) => {
   let nextItems = Js.Dict.empty();
   items
   ->Js.Dict.keys
-  ->Belt.Array.forEach(key =>
+  ->Js.Array.forEach(~f=key =>
       if (key != inventoryId) {
         switch (items->Js.Dict.get(key)) {
         | Some(item) => nextItems->Js.Dict.set(key, item)
@@ -122,23 +118,29 @@ let setItemQuantity = (items: items, ~inventoryId, ~quantity) =>
     nextItems;
   };
 
+let actionJson = (~kind, ~fill) => {
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    fill(dict);
+  });
+};
+
 let action_to_json = action =>
   switch (action) {
   | SetItemQuantity(input) =>
-    StoreJson.parse(
-      "{\"kind\":\"set_item_quantity\",\"inventory_id\":"
-      ++ string_to_json(input.inventory_id)->Melange_json.to_string
-      ++ ",\"quantity\":"
-      ++ int_to_json(input.quantity)->Melange_json.to_string
-      ++ "}",
+    actionJson(
+      ~kind="set_item_quantity",
+      ~fill=dict => {
+        StoreJson.Object.setString(dict, "inventory_id", input.inventory_id);
+        StoreJson.Object.setInt(dict, "quantity", input.quantity);
+      },
     )
   | RemoveItem(id) =>
-    StoreJson.parse(
-      "{\"kind\":\"remove_item\",\"inventory_id\":"
-      ++ string_to_json(id)->Melange_json.to_string
-      ++ "}",
+    actionJson(
+      ~kind="remove_item",
+      ~fill=dict => StoreJson.Object.setString(dict, "inventory_id", id),
     )
-  | ClearCart => StoreJson.parse("{\"kind\":\"clear_cart\"}")
+  | ClearCart => actionJson(~kind="clear_cart", ~fill=_dict => ())
   };
 
 let action_of_json = json => {
@@ -168,66 +170,69 @@ let action_of_json = json => {
   };
 };
 
-let reduce = (~state: state, ~action: action) => {
-  let updated_at = Js.Date.now();
-  switch (action) {
-  | SetItemQuantity(input) => {
-      items:
-        setItemQuantity(
-          copyItems(state.items),
-          ~inventoryId=input.inventory_id,
-          ~quantity=input.quantity,
-        ),
-      updated_at,
-    }
-  | RemoveItem(inventoryId) => {
-      items: removeItemById(state.items, inventoryId),
-      updated_at,
-    }
-  | ClearCart => {
-      items: defaultItems,
-      updated_at,
-    }
-  };
-};
-
 /* ============================================================================
-   Pipeline Builder API
+   FRP Local Store API
    ============================================================================ */
 
-module StoreDef =
-  (val StoreBuilder.buildLocal(
-    StoreBuilder.make()
-    |> StoreBuilder.withSchema({
-         emptyState,
-         reduce,
-         makeStore:
-           (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-           state:
-             StoreBuilder.current(
-               ~derive?,
-               ~client=state,
-               ~server=() => state,
-               (),
-             ),
-           item_count:
-             StoreBuilder.derived(
-               ~derive?,
-               ~client=store => itemCount(store.state),
-               ~server=() => itemCount(state),
-               (),
-             ),
-         },
-       })
-    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-    |> StoreBuilder.withLocalPersistence(
-         ~storeName,
-         ~scopeKeyOfState = (_state: state) => "default",
-         ~timestampOfState = (state: state) => state.updated_at,
-         ~stateElementId=Some(stateElementId),
-         (),
-       ),
-  ));
+module StoreDef = StoreFrp.Local.Build({
+  type nonrec state = state;
+  type nonrec action = action;
+  type nonrec store = store;
+
+  let config =
+    StoreFrp.Local.make({
+      storeName,
+      emptyState: {
+        items: defaultItems,
+        updated_at: 0.0,
+      },
+      reduce: (~state: state, ~action: action) => {
+        let updated_at = Js.Date.now();
+        switch (action) {
+        | SetItemQuantity(input) => {
+            items:
+              setItemQuantity(
+                copyItems(state.items),
+                ~inventoryId=input.inventory_id,
+                ~quantity=input.quantity,
+              ),
+            updated_at,
+          }
+        | RemoveItem(inventoryId) => {
+            items: removeItemById(state.items, inventoryId),
+            updated_at,
+          }
+        | ClearCart => {
+            items: defaultItems,
+            updated_at,
+          }
+        };
+      },
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+        state:
+          StoreBuilder.current(
+            ~derive?,
+            ~client=state,
+            ~server=() => state,
+            (),
+          ),
+        item_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => itemCount(store.state),
+            ~server=() => itemCount(state),
+            (),
+          ),
+      },
+      scopeKeyOfState: (_state: state) => "default",
+      timestampOfState: (state: state) => state.updated_at,
+      stateElementId: Some(stateElementId),
+    });
+});
 
 include (
   StoreDef:

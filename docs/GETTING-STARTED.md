@@ -302,29 +302,37 @@ let setTimestamp = (~state, ~timestamp) =>
   | None => state
   };
 
+let actionJson = (~kind, ~fill) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    StoreJson.Object.setJson(dict, "payload", StoreJson.Object.make(fill));
+  });
+
 /* Action serialization for websocket transport */
 let action_to_json = action =>
   switch (action) {
   | AddTodo(payload) =>
-    StoreJson.parse(
-      {j|{"kind":"add_todo","payload":{"id":"|j}
-      ++ payload.id
-      ++ {j|","list_id":"|j}
-      ++ payload.list_id
-      ++ {j|","text":"|j}
-      ++ payload.text
-      ++ {j|"}}|j}
+    actionJson(
+      ~kind="add_todo",
+      ~fill=dict => {
+        StoreJson.Object.setString(dict, "id", payload.id);
+        StoreJson.Object.setString(dict, "list_id", payload.list_id);
+        StoreJson.Object.setString(dict, "text", payload.text);
+      },
     )
   | SetTodoCompleted(payload) =>
-    StoreJson.parse(
-      {j|{"kind":"set_todo_completed","payload":{"id":"|j}
-      ++ payload.id
-      ++ {j|","completed":|j}
-      ++ string_of_bool(payload.completed)
-      ++ {j|}}|j}
+    actionJson(
+      ~kind="set_todo_completed",
+      ~fill=dict => {
+        StoreJson.Object.setString(dict, "id", payload.id);
+        StoreJson.Object.setBool(dict, "completed", payload.completed);
+      },
     )
   | RemoveTodo(id) =>
-    StoreJson.parse({j|{"kind":"remove_todo","payload":{"id":"|j} ++ id ++ {j|"}}|j})
+    actionJson(
+      ~kind="remove_todo",
+      ~fill=dict => StoreJson.Object.setString(dict, "id", id),
+    )
   };
 
 let action_of_json = json => {
@@ -425,19 +433,31 @@ module StoreDef =
       ~getId=(todo: Model.Todo.t) => todo.id,
       ~getItems=(state: state) => state.todos,
       ~setItems=(state, items) => {...state, todos: items},
-      ~hooks={
-        StoreBuilder.Sync.onActionError: Some(message => Js.log("Action error: " ++ message)),
-        onActionAck: None,
-        onCustom: None,
-        onMedia: None,
-        onError: None,
-        onOpen: None,
-        onConnectionHandle: None,
-      },
+      ~hooks=StoreBuilder.Sync.hooks(
+        ~onActionError=message => Js.log("Action error: " ++ message),
+        (),
+      ),
       ~stateElementId=Some("initial-store"),
       ()
     ),
   ));
+
+module Mutations = {
+  module AddTodo = {
+    include RealtimeSchema.Mutations.AddTodo;
+    type nonrec action = action;
+  };
+
+  module SetTodoCompleted = {
+    include RealtimeSchema.Mutations.SetTodoCompleted;
+    type nonrec action = action;
+  };
+
+  module RemoveTodo = {
+    include RealtimeSchema.Mutations.RemoveTodo;
+    type nonrec action = action;
+  };
+};
 
 /* Re-export public interface */
 include (
@@ -450,23 +470,38 @@ include (
 
 type t = store;
 module Context = StoreDef.Context;
+module Hooks = StoreDef.Hooks;
+```
 
-/* Action dispatchers */
-let addTodo = (store: t, text: string) => {
-  let list_id = switch (store.state.list) {
-  | Some(list) => list.id
-  | None => store.list_id
+Use store-scoped mutation hooks in components, so writes follow the same Convex-style path as queries:
+
+```reason
+open Store.Hooks;
+
+[@react.component]
+let make = (~list_id: string, ~text: string, ~id: string, ~completed: bool) => {
+  let addTodo = useMutation((module Store.Mutations.AddTodo), ());
+  let setTodoCompleted =
+    useMutation((module Store.Mutations.SetTodoCompleted), ());
+  let removeTodo = useMutation((module Store.Mutations.RemoveTodo), ());
+
+  let onAddTodo = () => {
+    let _ = addTodo({id: UUID.make(), list_id, text});
+    ();
   };
-  dispatch(AddTodo({id: UUID.make(), list_id, text}));
+
+  let onSetTodoCompleted = () => {
+    let _ = setTodoCompleted({id, completed});
+    ();
+  };
+
+  let onRemoveTodo = () => {
+    let _ = removeTodo({id});
+    ();
+  };
+
+  React.null;
 };
-
-let toggleTodo = (store: t, id: string) =>
-  switch (Js.Array.find(~f=(todo: Model.Todo.t) => todo.id == id, store.state.todos)) {
-  | Some(todo) => dispatch(SetTodoCompleted({id, completed: !todo.completed}))
-  | None => ()
-  };
-
-let removeTodo = (_store: t, id: string) => dispatch(RemoveTodo(id));
 ```
 
 ### Key Points
@@ -474,7 +509,8 @@ let removeTodo = (_store: t, id: string) => dispatch(RemoveTodo(id));
 1. **`buildCrud`** creates a synced store with automatic patch handling
 2. **`StoreCrud.upsert`/`remove`** update arrays optimistically
 3. **`withSyncCrud`** configures websocket transport and table mapping
-4. **`StoreBuilder.Crud.totalCount`/`filteredCount`** compute derived state
+4. **`StoreDef.Hooks.useStreaming`/`useQuery`/`useQueryStore`/`useMutation`** provide the component API
+5. **`StoreBuilder.Crud.totalCount`/`filteredCount`** compute derived state
 
 ---
 

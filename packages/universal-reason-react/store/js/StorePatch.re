@@ -9,8 +9,20 @@ let flatMap = (optionValue, mapper) =>
   | None => None
   };
 
-let compose = (decoders: list(decoder('patch))): decoder('patch) =>
-  json => decoders |> List.find_map(decoder => decoder(json));
+let compose = (decoders: array(decoder('patch))): decoder('patch) =>
+  json => {
+    let rec loop = index =>
+      if (index >= Array.length(decoders)) {
+        None;
+      } else {
+        switch (decoders[index](json)) {
+        | Some(_) as decoded => decoded
+        | None => loop(index + 1)
+        };
+      };
+
+    loop(0);
+  };
 
 module Pg = {
   type event('row) =
@@ -18,34 +30,22 @@ module Pg = {
     | Update('row)
     | Delete(string);
 
-  let field = (json, key) => {
-    let rawJson = (Obj.magic(json): Melange_json.t);
-    switch (Melange_json.classify(rawJson)) {
-    | `Assoc(entries) =>
-      entries
-      |> List.find_map(((entryKey, value)) =>
-           entryKey == key ? Some(Obj.magic(value)) : None
-         )
-    | _ => None
-    };
-  };
-
   let decode = (~table, ~decodeRow, json): option(event('row)) =>
     switch (
-      flatMap(field(json, "type"), StoreJson.tryDecode(string_of_json)),
-      flatMap(field(json, "table"), StoreJson.tryDecode(string_of_json)),
-      flatMap(field(json, "action"), StoreJson.tryDecode(string_of_json)),
+      flatMap(StoreJson.field(json, "type"), StoreJson.tryDecode(string_of_json)),
+      flatMap(StoreJson.field(json, "table"), StoreJson.tryDecode(string_of_json)),
+      flatMap(StoreJson.field(json, "action"), StoreJson.tryDecode(string_of_json)),
     ) {
     | (Some("patch"), Some(patchTable), Some(action)) when patchTable == table =>
       switch (action) {
       | "INSERT" =>
-        flatMap(field(json, "data"), StoreJson.tryDecode(decodeRow))
+        flatMap(StoreJson.field(json, "data"), StoreJson.tryDecode(decodeRow))
         |> Option.map(inserted => Insert(inserted))
       | "UPDATE" =>
-        flatMap(field(json, "data"), StoreJson.tryDecode(decodeRow))
+        flatMap(StoreJson.field(json, "data"), StoreJson.tryDecode(decodeRow))
         |> Option.map(updated => Update(updated))
       | "DELETE" =>
-        flatMap(field(json, "id"), StoreJson.tryDecode(string_of_json))
+        flatMap(StoreJson.field(json, "id"), StoreJson.tryDecode(string_of_json))
         |> Option.map(deletedId => Delete(deletedId))
       | _ => None
       }

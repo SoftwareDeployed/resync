@@ -1,6 +1,6 @@
 open Store
 
-let dummy_json : Json.json = Obj.magic "action"
+let dummy_json : Json.json = Json.parse "\"action\""
 
 let make_record ~id ~status ~enqueued_at : StoreActionLedger.t =
   {
@@ -12,6 +12,11 @@ let make_record ~id ~status ~enqueued_at : StoreActionLedger.t =
     retryCount = 0;
     error = None;
   }
+
+let uuid_v7_at_1000ms = "00000000-03e8-7000-8000-000000000000"
+let uuid_v7_at_2000ms = "00000000-07d0-7000-8000-000000000000"
+let uuid_v7_at_3000ms = "00000000-0bb8-7000-8000-000000000000"
+let uuid_v7_current_time = "019ebb8d-9185-74d6-a7b7-ed347907b650"
 
 let int_float_pair = Alcotest.pair Alcotest.int (Alcotest.float 0.0)
 
@@ -176,6 +181,40 @@ let suite =
             "Should use initial when equal"
             (100, 1000.0)
             result);
+      Alcotest.test_case "validateAction allows when no validator is configured" `Quick
+        (fun () ->
+          match
+            StoreRuntimeHelpers.validateAction ~state:10 ~action:5 ~validate:None
+          with
+          | StoreRuntimeTypes.Allow -> ()
+          | StoreRuntimeTypes.Deny reason ->
+              Alcotest.fail ("Expected allow, got deny: " ^ reason));
+      Alcotest.test_case "validateAction returns validator deny reason" `Quick
+        (fun () ->
+          let validate ~state ~action =
+            if action > state then StoreRuntimeTypes.Deny "too large"
+            else StoreRuntimeTypes.Allow
+          in
+          match
+            StoreRuntimeHelpers.validateAction ~state:10 ~action:11
+              ~validate:(Some validate)
+          with
+          | StoreRuntimeTypes.Deny "too large" -> ()
+          | StoreRuntimeTypes.Deny reason ->
+              Alcotest.fail ("Unexpected deny reason: " ^ reason)
+          | StoreRuntimeTypes.Allow -> Alcotest.fail "Expected deny");
+      Alcotest.test_case "validateAction returns validator allow" `Quick (fun () ->
+          let validate ~state ~action =
+            if action > state then StoreRuntimeTypes.Deny "too large"
+            else StoreRuntimeTypes.Allow
+          in
+          match
+            StoreRuntimeHelpers.validateAction ~state:10 ~action:9
+              ~validate:(Some validate)
+          with
+          | StoreRuntimeTypes.Allow -> ()
+          | StoreRuntimeTypes.Deny reason ->
+              Alcotest.fail ("Expected allow, got deny: " ^ reason));
       Alcotest.test_case "filterResumableRecords includes Pending" `Quick (fun () ->
           let records =
             [|
@@ -184,7 +223,7 @@ let suite =
             |]
           in
           let result = StoreRuntimeHelpers.filterResumableRecords records in
-          Alcotest.(check int) "Should find one resumable" 1 (List.length result));
+          Alcotest.(check int) "Should find one resumable" 1 (Array.length result));
       Alcotest.test_case "filterResumableRecords includes Syncing" `Quick (fun () ->
           let records =
             [|
@@ -193,32 +232,94 @@ let suite =
             |]
           in
           let result = StoreRuntimeHelpers.filterResumableRecords records in
-          Alcotest.(check int) "Should find one resumable" 1 (List.length result));
+          Alcotest.(check int) "Should find one resumable" 1 (Array.length result));
       Alcotest.test_case "filterResumableRecords excludes Acked" `Quick (fun () ->
           let records =
             [| make_record ~id:"r1" ~status:"acked" ~enqueued_at:1000.0 |]
           in
           let result = StoreRuntimeHelpers.filterResumableRecords records in
-          Alcotest.(check int) "Should not include acked" 0 (List.length result));
+          Alcotest.(check int) "Should not include acked" 0 (Array.length result));
       Alcotest.test_case "filterResumableRecords excludes Failed" `Quick (fun () ->
           let records =
             [| make_record ~id:"r1" ~status:"failed" ~enqueued_at:1000.0 |]
           in
           let result = StoreRuntimeHelpers.filterResumableRecords records in
-          Alcotest.(check int) "Should not include failed" 0 (List.length result));
-      Alcotest.test_case "getPendingActionIds returns array" `Quick (fun () ->
+          Alcotest.(check int) "Should not include failed" 0 (Array.length result));
+      Alcotest.test_case "getPrunableAckedActionIds returns only acked ids at or before confirmed timestamp" `Quick (fun () ->
           let records =
             [|
-              make_record ~id:"acked-1" ~status:"acked" ~enqueued_at:1000.0;
-              make_record ~id:"pending-1" ~status:"pending" ~enqueued_at:2000.0;
+              make_record ~id:uuid_v7_at_1000ms ~status:"acked" ~enqueued_at:1000.0;
+              make_record ~id:uuid_v7_at_2000ms ~status:"acked" ~enqueued_at:2000.0;
+              make_record ~id:uuid_v7_at_3000ms ~status:"acked" ~enqueued_at:3000.0;
+              make_record ~id:"pending-legacy-id" ~status:"pending" ~enqueued_at:1000.0;
             |]
           in
           let result =
-            StoreRuntimeHelpers.getPendingActionIds
+            StoreRuntimeHelpers.getPrunableAckedActionIds
               ~confirmedTimestamp:2000.0
               ~records
           in
-          Alcotest.(check bool) "Should return array" true (Array.length result >= 0));
+          Alcotest.(check (array string))
+            "Should prune acked actions whose UUID timestamp is covered by confirmed state"
+            [| uuid_v7_at_1000ms; uuid_v7_at_2000ms |]
+            result);
+      Alcotest.test_case "getPrunableAckedActionIds handles current UUIDv7 timestamps" `Quick
+        (fun () ->
+          let records =
+            [|
+              make_record ~id:uuid_v7_current_time ~status:"acked"
+                ~enqueued_at:1781263077765.0;
+            |]
+          in
+          let before =
+            StoreRuntimeHelpers.getPrunableAckedActionIds
+              ~confirmedTimestamp:1781263077000.0
+              ~records
+          in
+          let after =
+            StoreRuntimeHelpers.getPrunableAckedActionIds
+              ~confirmedTimestamp:1781263078000.0
+              ~records
+          in
+          Alcotest.(check (array string))
+            "Current UUIDv7 timestamps should not collapse below confirmed state"
+            [||]
+            before;
+          Alcotest.(check (array string))
+            "Current UUIDv7 timestamps should prune after confirmed state catches up"
+            [| uuid_v7_current_time |]
+            after);
+      Alcotest.test_case "getPrunableAckedActionIds treats malformed acked ids as oldest" `Quick
+        (fun () ->
+          let records =
+            [|
+              make_record ~id:"legacy-action-id" ~status:"acked" ~enqueued_at:1000.0;
+              make_record ~id:uuid_v7_at_3000ms ~status:"acked" ~enqueued_at:3000.0;
+            |]
+          in
+          let result =
+            StoreRuntimeHelpers.getPrunableAckedActionIds
+              ~confirmedTimestamp:2000.0
+              ~records
+          in
+          Alcotest.(check (array string))
+            "Malformed acked action ids should not block pruning"
+            [| "legacy-action-id" |]
+            result);
+      Alcotest.test_case "shouldApplyScopeGeneration rejects stale scope work" `Quick
+        (fun () ->
+          Alcotest.(check bool)
+            "current generation should apply"
+            true
+            (StoreRuntimeHelpers.shouldApplyScopeGeneration
+               ~startedGeneration:3
+               ~currentGeneration:3);
+          Alcotest.(check bool)
+            "stale generation should not apply"
+            false
+            (StoreRuntimeHelpers.shouldApplyScopeGeneration
+               ~startedGeneration:2
+               ~currentGeneration:3));
       Alcotest.test_case "rejectStaleCacheResult returns true when cached is older" `Quick
         (fun () ->
           let current = (100, 2000.0) in
@@ -279,6 +380,26 @@ let suite =
           Alcotest.(check string)
             (Printf.sprintf "Expected '%s' but got '%s'" expected result)
             expected
+            result);
+      Alcotest.test_case "replayActions sorts out-of-order resumable records" `Quick
+        (fun () ->
+          let records =
+            [|
+              make_record ~id:"late" ~status:"pending" ~enqueued_at:3000.0;
+              make_record ~id:"early" ~status:"syncing" ~enqueued_at:1000.0;
+              make_record ~id:"middle" ~status:"pending" ~enqueued_at:2000.0;
+            |]
+          in
+          let result =
+            StoreRuntimeHelpers.replayActions
+              ~reduce:(fun acc (record : StoreActionLedger.t) ->
+                acc ^ ":" ^ record.id)
+              ~confirmed:"start"
+              ~records
+          in
+          Alcotest.(check string)
+            "Resumable records should replay by enqueue timestamp"
+            "start:early:middle:late"
             result);
       Alcotest.test_case "replayActions is deterministic given same input" `Quick
         (fun () ->
@@ -362,7 +483,7 @@ let alcobar_suite =
             StoreRuntimeHelpers.replayActions
               ~reduce:(fun acc _ -> acc + 1)
               ~confirmed:0
-              ~records:(Array.of_list resumable)
+              ~records:resumable
           in
-          Alcobar.check_eq replayed (List.length resumable));
+          Alcobar.check_eq replayed (Array.length resumable));
     ] )

@@ -11,9 +11,9 @@ type t = {
   readyRejectRef: ref(option(unit => unit)),
   persistenceQueueRef: ref(Js.Promise.t(unit)),
   pendingPersistenceRef: ref(int),
-  pendingActionsRef: ref(int),
+  pendingActionIdsRef: ref(array(string)),
   connectionRef: ref(StoreRuntimeTypes.connection_status),
-  statusListenersRef: ref(array((string, StoreRuntimeTypes.status => unit))),
+  statusListenersRef: StoreEvents.callback_registry(StoreRuntimeTypes.status),
 };
 
 [@platform js]
@@ -37,22 +37,27 @@ let make = (~storeName, ()) => {
     readyRejectRef: rejectRef,
     persistenceQueueRef: ref(Js.Promise.resolve()),
     pendingPersistenceRef: ref(0),
-    pendingActionsRef: ref(0),
+    pendingActionIdsRef: ref([||]),
     connectionRef: ref(StoreRuntimeTypes.NotApplicable),
     statusListenersRef: ref([||]),
   };
 };
 
-let notifySubscribers = (lifecycle: t) => {
-  let currentStatus: StoreRuntimeTypes.status = {
+let currentStatus = (lifecycle: t): StoreRuntimeTypes.status => {
+  let pendingActions = Array.length(lifecycle.pendingActionIdsRef^);
+  {
     ready: lifecycle.readyResolveRef^ == None,
-    idle: lifecycle.readyResolveRef^ == None && lifecycle.pendingPersistenceRef^ == 0 && lifecycle.pendingActionsRef^ == 0,
+    idle: lifecycle.readyResolveRef^ == None && lifecycle.pendingPersistenceRef^ == 0 && pendingActions == 0,
     connection: lifecycle.connectionRef^,
     pendingPersistence: lifecycle.pendingPersistenceRef^,
-    pendingActions: lifecycle.pendingActionsRef^,
+    pendingActions,
   };
-  (lifecycle.statusListenersRef^)->Js.Array.forEach(~f=((_, callback)) =>
-    callback(currentStatus)
+};
+
+let notifySubscribers = (lifecycle: t) => {
+  StoreEvents.Callback.emit(
+    ~registry=lifecycle.statusListenersRef,
+    currentStatus(lifecycle),
   );
 };
 
@@ -82,7 +87,7 @@ let trackBoot = (lifecycle: t, bootPromise: Js.Promise.t('a)): Js.Promise.t('a) 
   guarded;
 };
 
-let trackPersistence = (lifecycle: t, op: Js.Promise.t('a)): Js.Promise.t('a) => {
+let trackPersistenceOp = (lifecycle: t, op: unit => Js.Promise.t('a)): Js.Promise.t('a) => {
   lifecycle.pendingPersistenceRef := lifecycle.pendingPersistenceRef^ + 1;
   notifySubscribers(lifecycle);
   let onDone = () => {
@@ -90,34 +95,51 @@ let trackPersistence = (lifecycle: t, op: Js.Promise.t('a)): Js.Promise.t('a) =>
       lifecycle.pendingPersistenceRef^ > 0 ? lifecycle.pendingPersistenceRef^ - 1 : 0;
     notifySubscribers(lifecycle);
   };
-  let wrapped =
-    Js.Promise.then_(
-      result => {
-        onDone();
-        Js.Promise.resolve(result);
-      },
-      op,
-    )
-    |> Js.Promise.catch(_err => {
-         onDone();
-         Js.Promise.reject(Failure("StoreRuntimeLifecycle trackPersistence failed"));
-       });
   let chained =
-    lifecycle.persistenceQueueRef^ |> Js.Promise.then_(() => wrapped);
-  lifecycle.persistenceQueueRef := chained |> Js.Promise.then_(_ => Js.Promise.resolve());
-  wrapped;
+    lifecycle.persistenceQueueRef^
+    |> Js.Promise.then_(() =>
+         try({
+           op()
+           |> Js.Promise.then_(result => {
+                onDone();
+                Js.Promise.resolve(result);
+              })
+           |> Js.Promise.catch(_err => {
+                onDone();
+                Js.Promise.reject(Failure("StoreRuntimeLifecycle trackPersistenceOp failed"));
+              })
+         }) {
+         | _err =>
+           onDone();
+           Js.Promise.reject(Failure("StoreRuntimeLifecycle trackPersistenceOp failed"))
+         }
+       );
+  lifecycle.persistenceQueueRef :=
+    chained
+    |> Js.Promise.then_(_ => Js.Promise.resolve())
+    |> Js.Promise.catch(_ => Js.Promise.resolve());
+  chained;
 };
 
+let trackPersistence = (lifecycle: t, op: Js.Promise.t('a)): Js.Promise.t('a) =>
+  trackPersistenceOp(lifecycle, () => op);
 
-let markActionPending = (lifecycle: t, _actionId: string) => {
-  lifecycle.pendingActionsRef := lifecycle.pendingActionsRef^ + 1;
-  notifySubscribers(lifecycle);
+
+let markActionPending = (lifecycle: t, actionId: string) => {
+  if (!(lifecycle.pendingActionIdsRef^)->Js.Array.some(~f=id => id == actionId)) {
+    lifecycle.pendingActionIdsRef :=
+      (lifecycle.pendingActionIdsRef^)->Js.Array.concat(~other=[|actionId|]);
+    notifySubscribers(lifecycle);
+  };
 };
 
-let markActionSettled = (lifecycle: t, _actionId: string) => {
-  lifecycle.pendingActionsRef :=
-    lifecycle.pendingActionsRef^ > 0 ? lifecycle.pendingActionsRef^ - 1 : 0;
-  notifySubscribers(lifecycle);
+let markActionSettled = (lifecycle: t, actionId: string) => {
+  let pending =
+    (lifecycle.pendingActionIdsRef^)->Js.Array.filter(~f=id => id != actionId);
+  if (Array.length(pending) != Array.length(lifecycle.pendingActionIdsRef^)) {
+    lifecycle.pendingActionIdsRef := pending;
+    notifySubscribers(lifecycle);
+  };
 };
 
 let markConnectionWaiting = (lifecycle: t) => {
@@ -161,65 +183,63 @@ let whenReady = (~timeout: int=10000, lifecycle: t): Js.Promise.t(unit) =>
     ();
   });
 
-let rec whenIdle = (~timeout: int=10000, lifecycle: t): Js.Promise.t(unit) =>
+let whenIdle = (~timeout: int=10000, lifecycle: t): Js.Promise.t(unit) =>
   Js.Promise.make((~resolve, ~reject) => {
     let settled = ref(false);
-    let _ = whenReady(~timeout, lifecycle) |> Js.Promise.then_(() =>
-      lifecycle.persistenceQueueRef^ |> Js.Promise.then_(() =>
-        if (lifecycle.pendingActionsRef^ > 0) {
-          Js.Promise.resolve() |> Js.Promise.then_(() => {
-            if (!settled.contents) {
-              let _ =
-                whenIdle(~timeout, lifecycle)
-                |> Js.Promise.then_(() => { settled := true; let unitValue = (); resolve(. unitValue); Js.Promise.resolve(); })
-                |> Js.Promise.catch(_err => { settled := true; reject(. Failure("StoreRuntimeLifecycle whenIdle failed")); Js.Promise.resolve(); });
-              ();
-            };
-            Js.Promise.resolve();
-          });
-        } else {
-          settled := true;
-          let unitValue = ();
-          resolve(. unitValue);
-          Js.Promise.resolve();
-        }
-      )
-    ) |> Js.Promise.catch(_err => {
-      settled := true;
-      reject(. Failure("StoreRuntimeLifecycle whenIdle failed"));
-      Js.Promise.resolve();
-    });
+    let listenerIdRef: ref(option(StoreEvents.listener_id)) = ref(None);
+    let cleanup = () =>
+      switch (listenerIdRef.contents) {
+      | Some(listenerId) =>
+        StoreEvents.Callback.unlisten(
+          ~registry=lifecycle.statusListenersRef,
+          listenerId,
+        );
+        listenerIdRef := None;
+      | None => ()
+      };
+    let resolveIfIdle = (status: StoreRuntimeTypes.status) => {
+      if (!settled.contents && status.idle) {
+        settled := true;
+        cleanup();
+        let unitValue = ();
+        resolve(. unitValue);
+      };
+    };
+    let _ =
+      whenReady(~timeout, lifecycle)
+      |> Js.Promise.then_(() => {
+           let listenerId =
+             StoreEvents.Callback.listen(
+               ~registry=lifecycle.statusListenersRef,
+               status => resolveIfIdle(status),
+             );
+           listenerIdRef := Some(listenerId);
+           resolveIfIdle(currentStatus(lifecycle));
+           Js.Promise.resolve();
+         })
+      |> Js.Promise.catch(_err => {
+           if (!settled.contents) {
+             settled := true;
+             cleanup();
+             reject(. Failure("StoreRuntimeLifecycle whenIdle failed"));
+           };
+           Js.Promise.resolve();
+         });
     setTimeout(() => {
       if (!settled.contents) {
         settled := true;
+        cleanup();
         reject(. Failure("StoreRuntimeLifecycle.whenIdle timed out after " ++ string_of_int(timeout) ++ "ms"));
       };
     }, timeout);
     ();
   });
 
-let status = (lifecycle: t): StoreRuntimeTypes.status => {
-  let ready = lifecycle.readyResolveRef^ == None;
-  let idle = ready && lifecycle.pendingPersistenceRef^ == 0 && lifecycle.pendingActionsRef^ == 0;
-  {
-    ready,
-    idle,
-    connection: lifecycle.connectionRef^,
-    pendingPersistence: lifecycle.pendingPersistenceRef^,
-    pendingActions: lifecycle.pendingActionsRef^,
-  };
-};
+let status = (lifecycle: t): StoreRuntimeTypes.status => currentStatus(lifecycle);
 
-let subscribeStatus = (lifecycle: t, callback: StoreRuntimeTypes.status => unit): string => {
-  let listenerId = UUID.make();
-  lifecycle.statusListenersRef :=
-    Js.Array.concat(~other=[|(listenerId, callback)|], lifecycle.statusListenersRef^);
-  listenerId;
-};
+let subscribeStatus =
+    (lifecycle: t, callback: StoreRuntimeTypes.status => unit): StoreEvents.listener_id =>
+  StoreEvents.Callback.listen(~registry=lifecycle.statusListenersRef, callback);
 
-let unsubscribeStatus = (lifecycle: t, listenerId: string) => {
-  lifecycle.statusListenersRef :=
-    (lifecycle.statusListenersRef^)->Js.Array.filter(~f=((currentId, _)) =>
-      currentId != listenerId
-    );
-};
+let unsubscribeStatus = (lifecycle: t, listenerId: StoreEvents.listener_id) =>
+  StoreEvents.Callback.unlisten(~registry=lifecycle.statusListenersRef, listenerId);

@@ -75,13 +75,17 @@ let run = () => {
          |> then_(text =>
            BrowserTestUtils.assertContains(~label="Optimistic add visible immediately", ~expected="Realtime browser test todo", text)
          )
-         /* Note: IDB persistence check skipped due to WebSocket timing race condition in test environment.
-            The optimistic update passes, but PostgreSQL patches arrive after connection closes.
-            Production environments handle this correctly through automatic reconnect. */
          |> then_(_ => BrowserTestUtils.sleep(500))
          |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
          |> then_(text =>
            BrowserTestUtils.assertContains(~label="Todo appears in UI", ~expected="Realtime browser test todo", text)
+         )
+         |> then_(_ =>
+           BrowserTestUtils.waitForIDBContent(
+             page,
+             ~dbName="todo-multiplayer",
+             ~expectedText="Realtime browser test todo",
+           )
          )
          |> then_(_ => page->Playwright.click("text=Fail Query"))
          |> then_(_ => page->Playwright.waitForSelector("text=Server failure test todo"))
@@ -89,14 +93,24 @@ let run = () => {
          |> then_(text =>
            BrowserTestUtils.assertContains(~label="Optimistic fail-server todo appears", ~expected="Server failure test todo", text)
          )
-         |> then_(_ => BrowserTestUtils.waitForBodyNotContains(page, ~unexpectedText="Server failure test todo"))
-         |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
-         |> then_(text =>
-           BrowserTestUtils.assertNotContains(~label="Optimistic fail-server todo rolled back", ~unexpected="Server failure test todo", text)
-         )
-         |> then_(_ => page->Playwright.reload)
+          |> then_(_ => BrowserTestUtils.waitForBodyNotContains(page, ~unexpectedText="Server failure test todo"))
+          |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+          |> then_(text =>
+            BrowserTestUtils.assertNotContains(~label="Optimistic fail-server todo rolled back", ~unexpected="Server failure test todo", text)
+          )
+          |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+          |> then_(text =>
+            BrowserTestUtils.assertContains(~label="Original todo still visible after rollback", ~expected="Realtime browser test todo", text)
+          )
+          |> then_(_ => page->Playwright.reload)
          |> then_(_ => page->Playwright.waitForSelector(".todo-container"))
-         /* Note: IDB cache replay check skipped due to WebSocket timing race condition in test environment */
+         |> then_(_ =>
+           BrowserTestUtils.waitForIDBContent(
+             page,
+             ~dbName="todo-multiplayer",
+             ~expectedText="Realtime browser test todo",
+           )
+         )
          |> then_(_ => BrowserTestUtils.sleep(500))
          |> then_(_ => page->Playwright.waitForSelector("text=Realtime browser test todo"))
          |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
@@ -115,7 +129,7 @@ let run = () => {
      )
   |> catch(error =>
        cleanup(~browser=browserRef.contents, ~server=serverRef.contents)
-       |> then_(_ => reject(Obj.magic(error)))
+       |> then_(_ => BrowserTestUtils.rejectPromiseError(error))
      );
 };
 

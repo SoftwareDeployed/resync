@@ -273,7 +273,7 @@ module Impl = {
       [React.JSX.string("aria-hidden", "ariaHidden", "true")];
     };
 
-    let children = Array.map(renderChild, iconNode)->Array.to_list;
+    let children = iconNode->Js.Array.map(~f=renderChild)->Array.to_list;
     React.createElement("svg", props, children);
   };
 };
@@ -442,7 +442,7 @@ module Impl = {
         ~title?,
         (),
       );
-    let children = Array.map(renderChild, iconNode);
+    let children = iconNode->Js.Array.map(~f=renderChild);
     ReactDOM.createDOMElementVariadic("svg", ~props, children);
   };
 };

@@ -139,7 +139,7 @@ let run = () => {
       )
    |> catch(error =>
         cleanup(~browser=browserRef.contents, ~server=serverRef.contents)
-        |> then_(_ => reject(Obj.magic(error)))
+        |> then_(_ => BrowserTestUtils.rejectPromiseError(error))
       );
 };
 

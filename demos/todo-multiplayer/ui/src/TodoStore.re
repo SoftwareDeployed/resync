@@ -1,198 +1,174 @@
-open Melange_json.Primitives;
-
-[@deriving json]
+type customAction = | FailServerMutation | FailClientMutation;
+type action = RealtimeSchema.MutationActions.action(customAction);
 type state = Model.t;
-
 type subscription = RealtimeSubscription.t;
+type store = { list_id: string, state, completed_count: int, total_count: int };
 
-type add_todo_payload = {
-  id: string,
-  list_id: string,
-  text: string,
-};
-
-type set_todo_completed_payload = {
-  id: string,
-  completed: bool,
-};
-
-type action =
-  | AddTodo(add_todo_payload)
-  | SetTodoCompleted(set_todo_completed_payload)
-  | RemoveTodo(string)
-  | FailServerMutation
-  | FailClientMutation;
-
-type store = {
-  list_id: string,
-  state: state,
-  completed_count: int,
-  total_count: int,
-};
-
-let emptyState: state = {
-  todos: [||],
-  list: None,
-};
-
-let scopeKeyOfState = (state: state) =>
-  switch (state.list) {
-  | Some(list) => list.id
-  | None => "default"
+module Mutations = {
+  module AddTodo = {
+    include RealtimeSchema.Mutations.AddTodo;
+    type nonrec action = action;
   };
 
-let timestampOfState = (state: state) =>
-  switch (state.list) {
-  | Some(list) => list.updated_at
-  | None => 0.0
+  module SetTodoCompleted = {
+    include RealtimeSchema.Mutations.SetTodoCompleted;
+    type nonrec action = action;
   };
 
-let setTimestamp = (~state: state, ~timestamp: float) =>
-  switch (state.list) {
-  | Some(list) => {
-      ...state,
-      list: Some({...list, updated_at: timestamp}),
-    }
-  | None => state
+  module RemoveTodo = {
+    include RealtimeSchema.Mutations.RemoveTodo;
+    type nonrec action = action;
   };
 
-let action_to_json = action =>
-  switch (action) {
-  | AddTodo(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"add_todo\",\"payload\":{\"id\":"
-      ++ string_to_json(payload.id)->Melange_json.to_string
-      ++ ",\"list_id\":"
-      ++ string_to_json(payload.list_id)->Melange_json.to_string
-      ++ ",\"text\":"
-      ++ string_to_json(payload.text)->Melange_json.to_string
-      ++ "}}",
-    )
-  | SetTodoCompleted(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"set_todo_completed\",\"payload\":{\"id\":"
-      ++ string_to_json(payload.id)->Melange_json.to_string
-      ++ ",\"completed\":"
-      ++ bool_to_json(payload.completed)->Melange_json.to_string
-      ++ "}}",
-    )
-  | RemoveTodo(id) =>
-    StoreJson.parse(
-      "{\"kind\":\"remove_todo\",\"payload\":{\"id\":"
-      ++ string_to_json(id)->Melange_json.to_string
-      ++ "}}",
-    )
-  | FailServerMutation =>
-    StoreJson.parse("{\"kind\":\"fail_server_mutation\",\"payload\":{}}")
-  | FailClientMutation =>
-    StoreJson.parse("{\"kind\":\"fail_client_mutation\",\"payload\":{}}")
+  module FailServer = {
+    type params = unit;
+    type nonrec action = action;
+    let toAction = (_: unit) =>
+      RealtimeSchema.MutationActions.Custom(FailServerMutation);
   };
+};
 
-let action_of_json = json => {
-  let kind =
-    StoreJson.requiredField(~json, ~fieldName="kind", ~decode=string_of_json);
-  let payload =
-    StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
-  switch (kind) {
-  | "add_todo" =>
-    AddTodo({
-      id: StoreJson.requiredField(~json=payload, ~fieldName="id", ~decode=string_of_json),
-      list_id:
-        StoreJson.requiredField(~json=payload, ~fieldName="list_id", ~decode=string_of_json),
-      text: StoreJson.requiredField(~json=payload, ~fieldName="text", ~decode=string_of_json),
-    })
-  | "set_todo_completed" =>
-    SetTodoCompleted({
-      id: StoreJson.requiredField(~json=payload, ~fieldName="id", ~decode=string_of_json),
-      completed:
-        StoreJson.requiredField(~json=payload, ~fieldName="completed", ~decode=bool_of_json),
-    })
-  | "remove_todo" =>
-    RemoveTodo(
-      StoreJson.requiredField(~json=payload, ~fieldName="id", ~decode=string_of_json),
-    )
+let emptyState: state = {todos: [||], list: None};
+let emptyPayload = () => StoreJson.Object.make(_dict => ());
+let customAction_to_json = (~action) => {
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", switch (action) { | FailServerMutation => "fail_server_mutation" | FailClientMutation => "fail_client_mutation" });
+    StoreJson.Object.setJson(dict, "payload", emptyPayload());
+  });
+};
+let customAction_of_json = (~kind, ~payload as _payload) => switch (kind) {
   | "fail_server_mutation" => FailServerMutation
   | _ => FailClientMutation
-  };
 };
-
-let reduce = (~state: state, ~action: action) => {
-  let updatedAt = Js.Date.now();
-  let withTimestamp = nextState => setTimestamp(~state=nextState, ~timestamp=updatedAt);
-  switch (action) {
-  | AddTodo(payload) =>
-    withTimestamp({
-      ...state,
-      todos:
-        StoreCrud.upsert(
-          ~getId=(item: Model.Todo.t) => item.id,
-          state.todos,
-          {
-            id: payload.id,
-            list_id: payload.list_id,
-            text: payload.text,
-            completed: false,
-          },
-        ),
-    })
-  | SetTodoCompleted(payload) =>
-    withTimestamp({
-      ...state,
-      todos:
-        Js.Array.map(
-          ~f=(item: Model.Todo.t) =>
-            item.id == payload.id ? {...item, completed: payload.completed} : item,
-          state.todos,
-        ),
-    })
-  | RemoveTodo(id) =>
-    withTimestamp({
-      ...state,
-      todos: StoreCrud.remove(~getId=(item: Model.Todo.t) => item.id, state.todos, id),
-    })
-  | FailServerMutation =>
-    switch (state.list) {
-    | Some(list) =>
-      withTimestamp({
-        ...state,
-        todos:
-          StoreCrud.upsert(
-            ~getId=(item: Model.Todo.t) => item.id,
-            state.todos,
-            {id: "fail-server-test", list_id: list.id, text: "Server failure test todo", completed: false},
-          ),
-      })
-    | None => state
-    }
-  | FailClientMutation => state
-  };
-};
-
 [@platform js]
 let onActionError = message => Sonner.showError(message);
-
 [@platform native]
 let onActionError = _message => ();
+let applyQueryResult = (~state: state, ~channel: string, ~rows: array(StoreJson.json)) => {
+  switch (channel) {
+  | "get_list_info" =>
+    if (Array.length(rows) > 0) {
+      {...state, list: Some(Model.TodoList.of_json(rows[0]))};
+    } else {
+      state;
+    }
+  | "get_list" =>
+    let todos = rows->Js.Array.map(~f=Model.Todo.of_json);
+    {...state, todos}
+  | _ => state
+  };
+};
 
-/* ============================================================================
-   New Grouped API (Task 4/6) - Using Synced.DefineCrud
-   ============================================================================ */
+let setListTimestamp = (~state: state, ~timestamp: float) =>
+  switch (state.list) {
+  | Some(list) => {...state, list: Some({...list, updated_at: timestamp})}
+  | None => state
+  };
 
 module StoreDef =
   (val StoreBuilder.buildCrud(
     StoreBuilder.make()
     |> StoreBuilder.withSchema({
          emptyState,
-         reduce,
+         reduce: (~state: state, ~action: action) => {
+           let ts = Js.Date.now();
+           let withTimestamp = state => setListTimestamp(~state, ~timestamp=ts);
+           switch (action) {
+           | RealtimeSchema.MutationActions.AddTodo(p) =>
+             withTimestamp({
+               ...state,
+               todos: StoreCrud.upsert(
+                 ~getId=(i: Model.Todo.t) => i.id,
+                 state.todos,
+                 {
+                   id: p.id,
+                   list_id: p.list_id,
+                   text: p.text,
+                   completed: false,
+                   created_at: Js.Date.now(),
+                 },
+               ),
+             })
+           | RealtimeSchema.MutationActions.SetTodoCompleted(p) =>
+             withTimestamp({
+               ...state,
+               todos:
+                 state.todos->Js.Array.map(~f=(item: Model.Todo.t) =>
+                   item.id == p.id ? {...item, completed: p.completed} : item
+                 ),
+             })
+           | RealtimeSchema.MutationActions.RemoveTodo(id) =>
+             withTimestamp({
+               ...state,
+               todos:
+                 StoreCrud.remove(
+                   ~getId=(i: Model.Todo.t) => i.id,
+                   state.todos,
+                   id,
+                 ),
+             })
+           | RealtimeSchema.MutationActions.CreateList(id) =>
+             withTimestamp({
+               ...state,
+               list: Some({id, name: "My Todo List", updated_at: ts}),
+             })
+           | RealtimeSchema.MutationActions.RenameList(p) =>
+             switch (state.list) {
+             | Some(_list) =>
+               withTimestamp({
+                 ...state,
+                 list: Some({id: p.id, name: p.name, updated_at: ts}),
+               })
+             | None => state
+             }
+           | RealtimeSchema.MutationActions.Custom(FailServerMutation) =>
+             switch (state.list) {
+             | Some(list) =>
+               withTimestamp({
+                 ...state,
+                 todos: StoreCrud.upsert(
+                   ~getId=(i: Model.Todo.t) => i.id,
+                   state.todos,
+                   {
+                     id: "fail-server-test",
+                     list_id: list.id,
+                     text: "Server failure test todo",
+                     completed: false,
+                     created_at: Js.Date.now(),
+                   },
+                 ),
+               })
+             | None => state
+             }
+           | RealtimeSchema.MutationActions.Custom(FailClientMutation) => state
+           };
+         },
          makeStore:
            (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+           let listId =
+             switch (state.list) {
+             | Some(list) => list.id
+             | None => ""
+             };
            {
              list_id:
-               switch (state.list) {
-               | Some(list) => list.id
-               | None => ""
-               },
-             state,
+               StoreBuilder.derived(
+                 ~derive?,
+                 ~client=(store: store) =>
+                   switch (store.state.list) {
+                   | Some(list) => list.id
+                   | None => ""
+                   },
+                 ~server=() => listId,
+                 (),
+               ),
+             state:
+               StoreBuilder.current(
+                 ~derive?,
+                 ~client=state,
+                 ~server=() => state,
+                 (),
+               ),
              completed_count:
                StoreBuilder.Crud.filteredCount(
                  ~derive?,
@@ -209,75 +185,56 @@ module StoreDef =
            };
          },
        })
-    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withJson(
+         ~state_of_json=Model.of_json,
+         ~state_to_json=Model.to_json,
+         ~action_of_json=
+           RealtimeSchema.MutationActions.action_of_json(
+             ~custom_of_json=customAction_of_json,
+           ),
+         ~action_to_json=
+           RealtimeSchema.MutationActions.action_to_json(
+             ~custom_to_json=customAction_to_json,
+           ),
+       )
+    |> StoreBuilder.withQueries(~applyQueryResult)
     |> StoreBuilder.withSyncCrud(
-         ~storeName = "todo-multiplayer",
-         ~scopeKeyOfState,
-         ~timestampOfState,
-         ~setTimestamp,
-         ~transport = {
-           subscriptionOfState: (state: state): option(subscription) =>
-             switch (state.list) {
-             | Some(list) => Some(RealtimeSubscription.list(list.id))
-             | None => None
-             },
+         ~transport={
+           subscriptionOfState:
+             (state: state): option(subscription) =>
+               switch (state.list) {
+               | Some(list) => Some(RealtimeSubscription.list(list.id))
+               | None => None
+               },
            encodeSubscription: RealtimeSubscription.encode,
            eventUrl: Constants.event_url,
            baseUrl: Constants.base_url,
          },
+         ~setTimestamp=setListTimestamp,
+         ~storeName="todo-multiplayer",
+         ~scopeKeyOfState=
+           (state: state) =>
+             switch (state.list) {
+             | Some(list) => list.id
+             | None => "default"
+             },
+         ~timestampOfState=
+           (state: state) =>
+             switch (state.list) {
+             | Some(list) => list.updated_at
+             | None => 0.0
+             },
          ~table=RealtimeSchema.table_name("todos"),
          ~decodeRow=Model.Todo.of_json,
          ~getId=(todo: Model.Todo.t) => todo.id,
          ~getItems=(state: state) => state.todos,
          ~setItems=(state: state, items) => {...state, todos: items},
-  ~hooks={
-    StoreBuilder.Sync.onActionError: Some(onActionError),
-    onActionAck: None,
-    onCustom: None,
-    onMedia: None,
-    onError: None,
-    onOpen: None,
-    onMultiplexedHandle: None,
-  },
+         ~hooks=Store.Sync.hooks(~onActionError=onActionError, ()),
          ~stateElementId=Some("initial-store"),
          (),
-       ),
+       )
   ));
-
-/* Re-export with the same interface as before */
-include (
-  StoreDef:
-    StoreBuilder.Runtime.Exports
-      with type state := state
-      and type action := action
-      and type t := store
-);
-
+include (StoreDef: StoreBuilder.Runtime.Exports with type state := state and type action := action and type t := store);
 type t = store;
-
 module Context = StoreDef.Context;
-
-let addTodo = (store: t, text: string) => {
-  let list_id =
-    switch (store.state.list) {
-    | Some(list) => list.id
-    | None => store.list_id
-    };
-  dispatch(AddTodo({
-    id: UUID.make(),
-    list_id,
-    text,
-  }));
-};
-
-let toggleTodo = (store: t, id: string) =>
-  switch (Js.Array.find(~f=(todo: Model.Todo.t) => todo.id == id, store.state.todos)) {
-  | Some(todo) => dispatch(SetTodoCompleted({id, completed: !todo.completed}))
-  | None => ()
-  };
-
-let removeTodo = (_store: t, id: string) => dispatch(RemoveTodo(id));
-
-let failServerMutation = (_store: t) => dispatch(FailServerMutation);
-
-let failClientMutation = (_store: t) => dispatch(FailClientMutation);
+module Hooks = StoreDef.Hooks;

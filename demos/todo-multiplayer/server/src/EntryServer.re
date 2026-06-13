@@ -33,67 +33,106 @@ let isUuid = (value: string) => {
   };
 };
 
-let getServerState = (context: UniversalRouterDream.serverContext(TodoStore.t)) => {
-  let UniversalRouterDream.{basePath, request} = context;
-  if (String.length(basePath) <= 1) {
+// Use the serverState type from Routes
+module RoutesServerState = {
+  type t = Routes.serverState;
+};
+
+let getServerState = (context: UniversalRouterDream.serverContext(Routes.serverState)) => {
+  let UniversalRouterDream.{basePath, request, params} = context;
+  if (basePath != "/") {
     Lwt.return(UniversalRouterDream.NotFound);
   } else {
-    let listId = String.sub(basePath, 1, String.length(basePath) - 1);
-    if (!isUuid(listId)) {
-      Lwt.return(UniversalRouterDream.NotFound);
-    } else {
-      let* listInfo =
-        Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
-          RealtimeSchema.Queries.GetListInfo.find_opt(
-            (module Db),
-            RealtimeSchema.Queries.GetListInfo.caqti_type,
-            listId,
-          )
-        );
-      switch (listInfo) {
-      | None => Lwt.return(UniversalRouterDream.NotFound)
-      | Some(listRow) =>
-        let* todoRows =
-          Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
-            RealtimeSchema.Queries.GetList.collect(
-              (module Db),
-              RealtimeSchema.Queries.GetList.caqti_type,
-              listId,
-            )
+    // Extract listId from params (set by router when basePath="/")
+    switch (UniversalRouter.Params.find("listId", params)) {
+    | None => Lwt.return(UniversalRouterDream.NotFound)
+    | Some(listId) =>
+      if (!isUuid(listId)) {
+        Lwt.return(UniversalRouterDream.NotFound);
+      } else {
+        // Create store with emptyState (queries will populate it)
+        let emptyStore = TodoStore.createStore(TodoStore.emptyState);
+
+        // Pre-render pass: collect queries using QueryRegistry
+        let serializedState = TodoStore.serializeState(emptyStore.state);
+        // Create a dummy serverState for pre-render (queries not yet collected)
+        let prerenderServerState: Routes.serverState = {store: emptyStore, serializedQueries: ""};
+        // Pre-render with basePath="/" so router matches :listId correctly
+        let prerenderApp =
+          <UniversalRouter
+            router=Routes.router
+            state=prerenderServerState
+            basePath="/"
+            serverPathname={context.pathname}
+            serverSearch={context.search}
+          />;
+        let prerenderDocument =
+          UniversalRouter.renderDocument(
+            ~router=Routes.router,
+            ~children=prerenderApp,
+            ~basePath="/",
+            ~pathname={context.pathname},
+            ~search={context.search},
+            ~serializedState,
+            ~state=prerenderServerState,
+            (),
           );
-        let todos =
-          List.map(
-            (row: RealtimeSchema.Queries.GetList.row) =>
-              ({Model.Todo.id: row.id, list_id: row.list_id, text: row.text, completed: row.completed}: Model.Todo.t),
-            todoRows,
-          );
-        let list =
-          Some((
-            {Model.TodoList.id: listRow.id, name: listRow.name, updated_at: listRow.updated_at}: Model.TodoList.t
-          ));
-        let config: Model.t = {
-          todos: Array.of_list(todos),
-          list,
-        };
-        let store = TodoStore.createStore(config);
-        Lwt.return(UniversalRouterDream.State(store));
+        let prerenderElement =
+          <TodoStore.Context.Provider value=emptyStore>
+            prerenderDocument
+          </TodoStore.Context.Provider>;
+
+        // Run pre-render within QueryRegistry to collect and execute queries
+        let* (store, serializedQueries) =
+          Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) => {
+            QueryRegistry.with_registry(
+              ~db=(module Db),
+              ~f=() => {
+                // First pass: render to collect queries
+                let _html = ReactDOM.renderToString(prerenderElement);
+                // Execute all registered queries
+                let* () = QueryRegistry.execute_queries();
+                // Apply query results to state
+                let updatedState = QueryRegistry.get_loaded_results()->Js.Array.reduce(
+                  ~f=(state: TodoStore.state, result) =>
+                    TodoStore.applyQueryResult(
+                      ~state,
+                      ~channel=result.QueryRegistryTypes.channel,
+                      ~rows=result.QueryRegistryTypes.rows,
+                    ),
+                  ~init=TodoStore.emptyState,
+                );
+                // Create store with query-populated state
+                let store = TodoStore.createStore(updatedState);
+                // Serialize query cache for client hydration
+                let serialized = QueryRegistry.serialize_for_cache();
+                Lwt.return((store, serialized));
+              },
+              (),
+            );
+          });
+
+        let serverState: Routes.serverState = {store, serializedQueries};
+        Lwt.return(UniversalRouterDream.State(serverState));
       };
     };
   };
 };
 
-let render = (~context, ~serverState: TodoStore.t, ()) => {
-  let store = serverState;
-  let serializedState = TodoStore.serializeState(serverState.state);
+let render = (~context, ~serverState: Routes.serverState, ()) => {
+  let store = serverState.store;
+  let serializedQueries = serverState.serializedQueries;
+  let serializedState = TodoStore.serializeState(store.state);
   let UniversalRouterDream.{
     basePath,
     pathname: serverPathname,
     search: serverSearch,
   } = context;
+
   let app =
     <UniversalRouter
       router=Routes.router
-      state=store
+      state=serverState
       basePath
       serverPathname
       serverSearch
@@ -106,7 +145,8 @@ let render = (~context, ~serverState: TodoStore.t, ()) => {
       ~pathname=serverPathname,
       ~search=serverSearch,
       ~serializedState,
-      ~state=store,
+      ~serializedQueries,
+      ~state=serverState,
       (),
     );
   <TodoStore.Context.Provider value=store>
@@ -114,10 +154,21 @@ let render = (~context, ~serverState: TodoStore.t, ()) => {
   </TodoStore.Context.Provider>;
 };
 
+let withRenderContext = (resolvedServerState, renderResponse) => {
+  let serverState: Routes.serverState =
+    UniversalRouterDream.resolvedState(resolvedServerState);
+  QueryRegistry.with_serialized_lwt(
+    ~jsonStr=serverState.serializedQueries,
+    ~f=renderResponse,
+    (),
+  );
+};
+
 let app =
   UniversalRouterDream.app(
     ~router=Routes.router,
     ~getServerState,
     ~render,
+    ~withRenderContext,
     (),
   );

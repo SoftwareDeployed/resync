@@ -115,7 +115,7 @@ module IndexedDB =
 
   let getActionsByScope = (~storeName, ~scopeKey, ()) =>
     Js.Promise.then_(
-      results => Js.Promise.resolve(Array.map(mapActionRecord, results)),
+      results => Js.Promise.resolve(results->Js.Array.map(~f=mapActionRecord)),
       StoreIndexedDB.getActionsByScope(~name=storeName, ~scopeKey, ()),
     );
 

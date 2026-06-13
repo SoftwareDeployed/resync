@@ -1,10 +1,17 @@
 (library
  (name store_browser_test)
- (modules StoreBrowserTest StoreTestServer)
+ (modules StoreBrowserTest StoreHookOrderApp StoreMutationHookApp StoreTestServer)
  (wrapped false)
- (libraries melange.js playwright_js)
+ (libraries reason-react melange.dom melange.js playwright_js universal_reason_react_store_js)
  (modes melange)
- (preprocess (pps server-reason-react.ppx -melange server-reason-react.browser_ppx -js melange.ppx)))
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -melange
+   server-reason-react.browser_ppx
+   -js
+   melange.ppx
+   reason-react-ppx)))
 
 (melange.emit
  (target dist)
@@ -15,9 +22,62 @@
  (libraries store_browser_test))
 
 (rule
+ (target StoreHookOrderApp.bundle.js)
+ (deps
+  (package resync)
+  (:entrypoint dist/packages/universal-reason-react/store/test-browser/StoreHookOrderApp.mjs))
+ (mode
+  (promote
+   (until-clean)
+   (into generated)))
+ (alias store-browser-tests)
+ (action
+  (system "node -e \"require('esbuild').buildSync({entryPoints:['%{entrypoint}'],bundle:true,format:'iife',platform:'browser',outfile:'%{target}'})\"")))
+
+(rule
+ (target StoreHookOrderApp.html)
+ (mode
+  (promote
+   (until-clean)
+   (into generated)))
+ (alias store-browser-tests)
+ (action
+   (write-file %{target} "<!doctype html><html><body><div id=\"root\"></div><script src=\"./StoreHookOrderApp.bundle.js\"></script></body></html>")))
+
+(rule
+ (target StoreMutationHookApp.bundle.js)
+ (deps
+  (package resync)
+  (:entrypoint dist/packages/universal-reason-react/store/test-browser/StoreMutationHookApp.mjs))
+ (mode
+  (promote
+   (until-clean)
+   (into generated)))
+ (alias store-browser-tests)
+ (action
+  (system "node -e \"require('esbuild').buildSync({entryPoints:['%{entrypoint}'],bundle:true,format:'iife',platform:'browser',outfile:'%{target}'})\"")))
+
+(rule
+ (target StoreMutationHookApp.html)
+ (mode
+  (promote
+   (until-clean)
+   (into generated)))
+ (alias store-browser-tests)
+ (action
+  (write-file %{target} "<!doctype html><html><body><div id=\"root\"></div><script src=\"./StoreMutationHookApp.bundle.js\"></script></body></html>")))
+
+(rule
  (targets .build_stamp)
  (deps
-  generated/StoreBrowserTest.mjs)
+  dist/packages/universal-reason-react/store/test-browser/StoreBrowserTest.mjs
+  dist/packages/universal-reason-react/store/test-browser/StoreHookOrderApp.mjs
+  dist/packages/universal-reason-react/store/test-browser/StoreMutationHookApp.mjs
+  dist/packages/universal-reason-react/store/test-browser/StoreTestServer.mjs
+  StoreHookOrderApp.bundle.js
+  StoreHookOrderApp.html
+  StoreMutationHookApp.bundle.js
+  StoreMutationHookApp.html)
  (action
   (with-stdout-to
    .build_stamp

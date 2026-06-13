@@ -1,12 +1,22 @@
+let queriesConfigOfApplyQueryResult = (
+  applyQueryResult: option(
+    (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
+  ),
+): option(StoreBuilder.queriesConfig('state)) =>
+  switch (applyQueryResult) {
+  | Some(applyQueryResult) => Some({applyQueryResult: applyQueryResult})
+  | None => None
+  };
+
 module Local = {
   type schema('state, 'action, 'store) = {
     storeName: string,
     emptyState: 'state,
     reduce: (~state: 'state, ~action: 'action) => 'state,
-    state_of_json: Store.Json.json => 'state,
-    state_to_json: 'state => Store.Json.json,
-    action_of_json: Store.Json.json => 'action,
-    action_to_json: 'action => Store.Json.json,
+    state_of_json: StoreJson.json => 'state,
+    state_to_json: 'state => StoreJson.json,
+    action_of_json: StoreJson.json => 'action,
+    action_to_json: 'action => StoreJson.json,
     makeStore: (~state: 'state, ~derive: Tilia.Core.deriver('store)=?, unit) => 'store,
     scopeKeyOfState: 'state => string,
     timestampOfState: 'state => float,
@@ -15,12 +25,30 @@ module Local = {
 
   type config('state, 'action, 'store) = {
     schema: schema('state, 'action, 'store),
+    guardTree: option(StoreBuilder.GuardTree.t('state, 'action)),
+    queries: option(StoreBuilder.queriesConfig('state)),
     cache: [ | `IndexedDB | `None ],
   };
 
-  let make = (schema: schema('state, 'action, 'store)): config('state, 'action, 'store) => {
+  let make = (
+    ~guardTree=?,
+    ~applyQueryResult=?,
+    schema: schema('state, 'action, 'store),
+  ): config('state, 'action, 'store) => {
     schema,
-    cache: `None,
+    guardTree,
+    queries: queriesConfigOfApplyQueryResult(applyQueryResult),
+    cache: `IndexedDB,
+  };
+
+  let withGuardTree = (~guardTree, config) => {
+    ...config,
+    guardTree: Some(guardTree),
+  };
+
+  let withQueries = (~applyQueryResult, config) => {
+    ...config,
+    queries: Some({applyQueryResult: applyQueryResult}),
   };
 
   let withCache = (cache: [ | `IndexedDB | `None ], config: config('state, 'action, 'store)): config('state, 'action, 'store) => {
@@ -37,10 +65,7 @@ module Local = {
 
   module Build = (Input: BuildInput) => {
     let stateElementId =
-      switch (Input.config.schema.stateElementId) {
-      | Some(id) => id
-      | None => "initial-store"
-      };
+      StoreBuilder.stateElementIdOrDefault(Input.config.schema.stateElementId);
 
     module Schema = {
       type state = Input.state;
@@ -58,7 +83,8 @@ module Local = {
       let action_of_json = Input.config.schema.action_of_json;
       let action_to_json = Input.config.schema.action_to_json;
       let makeStore = Input.config.schema.makeStore;
-      let validate = None;
+      let validate = StoreBuilder.validateOfGuardTree(Input.config.guardTree);
+      let queries = Input.config.queries;
       let cache = Input.config.cache;
     };
 
@@ -71,10 +97,10 @@ module Synced = {
     storeName: string,
     emptyState: 'state,
     reduce: (~state: 'state, ~action: 'action) => 'state,
-    state_of_json: Store.Json.json => 'state,
-    state_to_json: 'state => Store.Json.json,
-    action_of_json: Store.Json.json => 'action,
-    action_to_json: 'action => Store.Json.json,
+    state_of_json: StoreJson.json => 'state,
+    state_to_json: 'state => StoreJson.json,
+    action_of_json: StoreJson.json => 'action,
+    action_to_json: 'action => StoreJson.json,
     makeStore: (~state: 'state, ~derive: Tilia.Core.deriver('store)=?, unit) => 'store,
     scopeKeyOfState: 'state => string,
     timestampOfState: 'state => float,
@@ -87,15 +113,36 @@ module Synced = {
     transport: StoreBuilder.Sync.transportConfig('state, 'sub),
     strategy: StoreBuilder.Sync.customStrategy('state, 'patch),
     hooks: option(StoreBuilder.Sync.hooks('action)),
+    guardTree: option(StoreBuilder.GuardTree.t('state, 'action)),
+    queries: option(StoreBuilder.queriesConfig('state)),
     cache: [ | `IndexedDB | `None ],
   };
 
-  let make = (~transport, ~strategy, ~hooks=?, schema): config('state, 'action, 'store, 'sub, 'patch) => {
+  let make = (
+    ~transport,
+    ~strategy,
+    ~hooks=?,
+    ~guardTree=?,
+    ~applyQueryResult=?,
+    schema,
+  ): config('state, 'action, 'store, 'sub, 'patch) => {
     schema,
     transport,
     strategy,
     hooks,
-    cache: `None,
+    guardTree,
+    queries: queriesConfigOfApplyQueryResult(applyQueryResult),
+    cache: `IndexedDB,
+  };
+
+  let withGuardTree = (~guardTree, config) => {
+    ...config,
+    guardTree: Some(guardTree),
+  };
+
+  let withQueries = (~applyQueryResult, config) => {
+    ...config,
+    queries: Some({applyQueryResult: applyQueryResult}),
   };
 
   let withCache = (cache, config) => {
@@ -114,16 +161,9 @@ module Synced = {
 
   module Build = (Input: BuildInput) => {
     let stateElementId =
-      switch (Input.config.schema.stateElementId) {
-      | Some(id) => id
-      | None => "initial-store"
-      };
+      StoreBuilder.stateElementIdOrDefault(Input.config.schema.stateElementId);
 
-    let hooks =
-      switch (Input.config.hooks) {
-      | Some(h) => h
-      | None => StoreBuilder.Sync.defaultHooks()
-      };
+    let hooks = StoreBuilder.hooksOrDefault(Input.config.hooks);
 
     module Schema = {
       type state = Input.state;
@@ -153,22 +193,134 @@ module Synced = {
       let decodePatch = Input.config.strategy.decodePatch;
       let updateOfPatch = Input.config.strategy.updateOfPatch;
       let streams = None;
-      let onActionError =
-        switch (hooks.onActionError) {
-        | Some(cb) => cb
-        | None => StoreBuilder.Sync.defaultOnActionError
-        };
+      let emptyStreamingState = ();
+      let onActionError = StoreBuilder.onActionErrorOrDefault(hooks);
       let onActionAck = hooks.onActionAck;
       let onCustom = hooks.onCustom;
       let onMedia = hooks.onMedia;
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onMultiplexedHandle = hooks.onMultiplexedHandle;
-      let validate = None;
+      let validate = StoreBuilder.validateOfGuardTree(Input.config.guardTree);
+      let queries = Input.config.queries;
       let cache = Input.config.cache;
     };
 
     include StoreOffline.Synced.Make(Schema);
+  };
+
+  module Streaming = {
+    type config('state, 'action, 'store, 'sub, 'patch, 'stream_event, 'streaming_state) = {
+      schema: schema('state, 'action, 'store),
+      transport: StoreBuilder.Sync.transportConfig('state, 'sub),
+      strategy: StoreBuilder.Sync.customStrategy('state, 'patch),
+      streams: StoreRuntimeTypes.streamsConfig('patch, 'stream_event, 'streaming_state),
+      hooks: option(StoreBuilder.Sync.hooks('action)),
+      guardTree: option(StoreBuilder.GuardTree.t('state, 'action)),
+      queries: option(StoreBuilder.queriesConfig('state)),
+      cache: [ | `IndexedDB | `None ],
+    };
+
+    let make = (
+      ~transport,
+      ~strategy,
+      ~streams,
+      ~hooks=?,
+      ~guardTree=?,
+      ~applyQueryResult=?,
+      schema,
+    ): config('state, 'action, 'store, 'sub, 'patch, 'stream_event, 'streaming_state) => {
+      schema,
+      transport,
+      strategy,
+      streams,
+      hooks,
+      guardTree,
+      queries: queriesConfigOfApplyQueryResult(applyQueryResult),
+      cache: `IndexedDB,
+    };
+
+    let withGuardTree = (~guardTree, config) => {
+      ...config,
+      guardTree: Some(guardTree),
+    };
+
+    let withQueries = (~applyQueryResult, config) => {
+      ...config,
+      queries: Some({applyQueryResult: applyQueryResult}),
+    };
+
+    let withStreams = (~streams, config) => {
+      ...config,
+      streams,
+    };
+
+    let withCache = (cache, config) => {
+      ...config,
+      cache,
+    };
+
+    module type BuildInput = {
+      type state;
+      type action;
+      type store;
+      type subscription;
+      type patch;
+      type stream_event;
+      type streaming_state;
+      let config: config(state, action, store, subscription, patch, stream_event, streaming_state);
+    };
+
+    module Build = (Input: BuildInput) => {
+      let stateElementId =
+        StoreBuilder.stateElementIdOrDefault(Input.config.schema.stateElementId);
+
+      let hooks = StoreBuilder.hooksOrDefault(Input.config.hooks);
+
+      module Schema = {
+        type state = Input.state;
+        type action = Input.action;
+        type store = Input.store;
+        type subscription = Input.subscription;
+        type patch = Input.patch;
+        type stream_event = Input.stream_event;
+        type streaming_state = Input.streaming_state;
+
+        let reduce = Input.config.schema.reduce;
+        let emptyState = Input.config.schema.emptyState;
+        let storeName = Input.config.schema.storeName;
+        let stateElementId = stateElementId;
+        let scopeKeyOfState = Input.config.schema.scopeKeyOfState;
+        let timestampOfState = Input.config.schema.timestampOfState;
+        let setTimestamp = Input.config.schema.setTimestamp;
+        let state_of_json = Input.config.schema.state_of_json;
+        let state_to_json = Input.config.schema.state_to_json;
+        let action_of_json = Input.config.schema.action_of_json;
+        let action_to_json = Input.config.schema.action_to_json;
+        let makeStore = Input.config.schema.makeStore;
+        let subscriptionOfState = Input.config.transport.subscriptionOfState;
+        let encodeSubscription = Input.config.transport.encodeSubscription;
+        let eventUrl = Input.config.transport.eventUrl;
+        let baseUrl = Input.config.transport.baseUrl;
+        let decodePatch = Input.config.strategy.decodePatch;
+        let updateOfPatch = Input.config.strategy.updateOfPatch;
+        let streams = Some(Input.config.streams);
+        let emptyStreamingState =
+          Input.config.streams.StoreRuntimeTypes.emptyStreamingState;
+        let onActionError = StoreBuilder.onActionErrorOrDefault(hooks);
+        let onActionAck = hooks.onActionAck;
+        let onCustom = hooks.onCustom;
+        let onMedia = hooks.onMedia;
+        let onError = hooks.onError;
+        let onOpen = hooks.onOpen;
+        let onMultiplexedHandle = hooks.onMultiplexedHandle;
+        let validate = StoreBuilder.validateOfGuardTree(Input.config.guardTree);
+        let queries = Input.config.queries;
+        let cache = Input.config.cache;
+      };
+
+      include StoreOffline.Synced.Make(Schema);
+    };
   };
 };
 
@@ -177,10 +329,10 @@ module Crud = {
     storeName: string,
     emptyState: 'state,
     reduce: (~state: 'state, ~action: 'action) => 'state,
-    state_of_json: Store.Json.json => 'state,
-    state_to_json: 'state => Store.Json.json,
-    action_of_json: Store.Json.json => 'action,
-    action_to_json: 'action => Store.Json.json,
+    state_of_json: StoreJson.json => 'state,
+    state_to_json: 'state => StoreJson.json,
+    action_of_json: StoreJson.json => 'action,
+    action_to_json: 'action => StoreJson.json,
     makeStore: (~state: 'state, ~derive: Tilia.Core.deriver('store)=?, unit) => 'store,
     scopeKeyOfState: 'state => string,
     timestampOfState: 'state => float,
@@ -193,15 +345,36 @@ module Crud = {
     transport: StoreBuilder.Sync.transportConfig('state, 'sub),
     strategy: StoreBuilder.Sync.crudStrategy('state, 'row),
     hooks: option(StoreBuilder.Sync.hooks('action)),
+    guardTree: option(StoreBuilder.GuardTree.t('state, 'action)),
+    queries: option(StoreBuilder.queriesConfig('state)),
     cache: [ | `IndexedDB | `None ],
   };
 
-  let make = (~transport, ~strategy, ~hooks=?, schema): config('state, 'action, 'store, 'sub, 'row) => {
+  let make = (
+    ~transport,
+    ~strategy,
+    ~hooks=?,
+    ~guardTree=?,
+    ~applyQueryResult=?,
+    schema,
+  ): config('state, 'action, 'store, 'sub, 'row) => {
     schema,
     transport,
     strategy,
     hooks,
-    cache: `None,
+    guardTree,
+    queries: queriesConfigOfApplyQueryResult(applyQueryResult),
+    cache: `IndexedDB,
+  };
+
+  let withGuardTree = (~guardTree, config) => {
+    ...config,
+    guardTree: Some(guardTree),
+  };
+
+  let withQueries = (~applyQueryResult, config) => {
+    ...config,
+    queries: Some({applyQueryResult: applyQueryResult}),
   };
 
   let withCache = (cache, config) => {
@@ -220,26 +393,19 @@ module Crud = {
 
   module Build = (Input: BuildInput) => {
     let stateElementId =
-      switch (Input.config.schema.stateElementId) {
-      | Some(id) => id
-      | None => "initial-store"
-      };
+      StoreBuilder.stateElementIdOrDefault(Input.config.schema.stateElementId);
 
-    let hooks =
-      switch (Input.config.hooks) {
-      | Some(h) => h
-      | None => StoreBuilder.Sync.defaultHooks()
-      };
+    let hooks = StoreBuilder.hooksOrDefault(Input.config.hooks);
 
     let crudPatch =
-      Store.Crud.decodePatch(
+      StoreCrud.decodePatch(
         ~table=Input.config.strategy.crud.table,
         ~decodeRow=Input.config.strategy.crud.decodeRow,
         (),
       );
 
     let crudUpdate =
-      Store.Crud.updateOfPatch(
+      StoreCrud.updateOfPatch(
         ~getId=Input.config.strategy.crud.getId,
         ~getItems=Input.config.strategy.crud.getItems,
         ~setItems=Input.config.strategy.crud.setItems,
@@ -250,7 +416,7 @@ module Crud = {
       type action = Input.action;
       type store = Input.store;
       type subscription = Input.subscription;
-      type patch = Store.Crud.patch(Input.row);
+      type patch = StoreCrud.patch(Input.row);
       type stream_event = unit;
       type streaming_state = unit;
 
@@ -270,21 +436,19 @@ module Crud = {
       let encodeSubscription = Input.config.transport.encodeSubscription;
       let eventUrl = Input.config.transport.eventUrl;
       let baseUrl = Input.config.transport.baseUrl;
-      let decodePatch = Store.Patch.compose([crudPatch]);
+      let decodePatch = StorePatch.compose([|crudPatch|]);
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
       let streams = None;
-      let onActionError =
-        switch (hooks.onActionError) {
-        | Some(cb) => cb
-        | None => StoreBuilder.Sync.defaultOnActionError
-        };
+      let emptyStreamingState = ();
+      let onActionError = StoreBuilder.onActionErrorOrDefault(hooks);
       let onActionAck = hooks.onActionAck;
       let onCustom = hooks.onCustom;
       let onMedia = hooks.onMedia;
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onMultiplexedHandle = hooks.onMultiplexedHandle;
-      let validate = None;
+      let validate = StoreBuilder.validateOfGuardTree(Input.config.guardTree);
+      let queries = Input.config.queries;
       let cache = Input.config.cache;
     };
 

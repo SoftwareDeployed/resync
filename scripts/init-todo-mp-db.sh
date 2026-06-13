@@ -25,3 +25,52 @@ do
     "${psql_cmd[@]}" -f "$file"
   fi
 done
+
+"${psql_cmd[@]}" <<'SQL'
+CREATE TABLE IF NOT EXISTS _resync_actions_create_list (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS _resync_actions_add_todo (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS _resync_actions_set_todo_completed (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS _resync_actions_remove_todo (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS _resync_actions_rename_list (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS _resync_actions_fail_server_mutation (
+  action_id uuid PRIMARY KEY,
+  status text NOT NULL CHECK (status IN ('ok', 'failed')),
+  processed_at timestamptz NOT NULL DEFAULT NOW(),
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version varchar PRIMARY KEY,
+  applied_at timestamp NOT NULL DEFAULT NOW()
+);
+SQL

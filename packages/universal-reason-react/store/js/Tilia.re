@@ -1,15 +1,15 @@
 module Core = {
-  [@mel.module "tilia"] external make: 'a => 'a = "tilia";
-  [@mel.module "tilia"]
+  [@mel.module "tilia/dist/index.mjs"] external make: 'a => 'a = "tilia";
+  [@mel.module "tilia/dist/index.mjs"]
   external source:
     (. 'a, [@mel.uncurried] ((. 'a, 'a => unit) => 'ignored)) => 'a =
     "source";
   type signal('a);
-  [@mel.module "tilia"] external lift: signal('a) => 'a = "lift";
-  [@mel.module "tilia"]
+  [@mel.module "tilia/dist/index.mjs"] external lift: signal('a) => 'a = "lift";
+  [@mel.module "tilia/dist/index.mjs"]
   external signal: 'a => (signal('a), 'a => unit) = "signal";
-  [@mel.module "tilia"] external observe: _ => unit = "observe";
-  [@mel.module "tilia"] external computed: (unit => 'a) => 'a = "computed";
+  [@mel.module "tilia/dist/index.mjs"] external observe: _ => unit = "observe";
+  [@mel.module "tilia/dist/index.mjs"] external computed: (unit => 'a) => 'a = "computed";
   type deriver('p) = {
     /**
    * Return a derived value to be inserted into a tilia object. This is like
@@ -19,7 +19,8 @@ module Core = {
    */
     derived: 'a. ('p => 'a) => 'a,
   };
-  [@mel.module "tilia"] external carve: (deriver('a) => 'a) => 'a = "carve";
+  [@mel.module "tilia/dist/index.mjs"]
+  external carve: (deriver('a) => 'a) => 'a = "carve";
 };
 
 [@platform native]

@@ -1,0 +1,269 @@
+module DecodeFailingQuery = struct
+  type params = string
+  type row = string
+
+  let channel _params = "decode-failing"
+  let paramsHash params = params
+  let decodeRow _json = failwith "bad row"
+  let row_to_json row = Melange_json.Primitives.string_to_json row
+  let execute _db _params = Lwt.return (Ok [||])
+end
+
+module StringQuery = struct
+  type params = string
+  type row = string
+
+  let channel _params = "strings"
+  let paramsHash params = params
+  let decodeRow = Melange_json.Primitives.string_of_json
+  let row_to_json = Melange_json.Primitives.string_to_json
+  let execute _db _params = Lwt.return (Ok [||])
+end
+
+module ExplodingQuery = struct
+  type params = string
+  type row = string
+
+  let channel _params = failwith "channel should not be called"
+  let paramsHash _params = failwith "paramsHash should not be called"
+  let decodeRow = Melange_json.Primitives.string_of_json
+  let row_to_json = Melange_json.Primitives.string_to_json
+  let execute _db _params = Lwt.return (Ok [||])
+end
+
+let string_query_key =
+  QueryRegistryTypes.makeKey ~channel:"strings" ~paramsHash:"params"
+
+let decode_failing_query_key =
+  QueryRegistryTypes.makeKey ~channel:"decode-failing" ~paramsHash:"params"
+
+let with_sync_registry ?(key = decode_failing_query_key) json f =
+  let previous = !(QueryRegistry.sync_registry_ref) in
+  let jsonStr =
+    Yojson.Safe.to_string
+      (`Assoc
+        [
+          ( key,
+            `Assoc [ ("_tag", `String "Loaded"); ("data", json) ] );
+        ])
+  in
+  QueryRegistry.setup_registry_from_json ~jsonStr;
+  Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
+
+let with_error_registry ?(key = string_query_key) message f =
+  let previous = !(QueryRegistry.sync_registry_ref) in
+  let jsonStr =
+    Yojson.Safe.to_string
+      (`Assoc
+        [
+          ( key,
+            `Assoc [ ("_tag", `String "Error"); ("message", `String message) ]
+          );
+        ])
+  in
+  QueryRegistry.setup_registry_from_json ~jsonStr;
+  Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
+
+let with_empty_registry f =
+  let previous = !(QueryRegistry.sync_registry_ref) in
+  QueryRegistry.setup_registry_from_json ~jsonStr:"{}";
+  Fun.protect ~finally:(fun () -> QueryRegistry.sync_registry_ref := previous) f
+
+let loaded_data json key =
+  let open Yojson.Safe.Util in
+  let root = Yojson.Safe.from_string json in
+  match root with
+  | `Assoc _ -> (
+      match member key root with
+      | `Null -> Alcotest.fail ("missing cache key " ^ key)
+      | `Assoc _ as loaded -> (
+          match member "data" loaded with
+          | `Null -> Alcotest.fail ("missing data for " ^ key)
+          | data -> data)
+      | _ -> Alcotest.fail ("expected loaded object for " ^ key))
+  | _ -> Alcotest.fail "serialized cache should be a JSON object"
+
+let with_active_registry_result key json f =
+  let results = Hashtbl.create 8 in
+  Hashtbl.replace results key json;
+  let registry =
+    {
+      QueryRegistry.state = QueryRegistry.Executed;
+      queries = Hashtbl.create 8;
+      ordered_keys = [| key |];
+      results;
+      errors = Hashtbl.create 8;
+      db_connection = None;
+    }
+  in
+  Lwt.with_value QueryRegistry.registry_key (Some registry) f
+
+let suite =
+  ( "UseQuery",
+    [
+      Alcotest.test_case "server cached array rows decode to Loaded" `Quick
+        (fun () ->
+          with_sync_registry
+            ~key:string_query_key
+            (`List [ `String "first"; `String "second" ])
+            (fun () ->
+              let result = UseQuery.useQuery (module StringQuery) "params" () in
+              match result.data with
+              | QueryRegistryTypes.Loaded rows ->
+                  Alcotest.(check int) "row count" 2 (Array.length rows);
+                  Alcotest.(check string) "first row" "first" rows.(0);
+                  Alcotest.(check string) "second row" "second" rows.(1)
+              | QueryRegistryTypes.Loading ->
+                  Alcotest.fail "cached array rows should not stay Loading"
+              | QueryRegistryTypes.Error msg ->
+                  Alcotest.fail ("cached array rows should decode: " ^ msg)));
+      Alcotest.test_case "server decode failure returns Error" `Quick (fun () ->
+          with_sync_registry (`String "not a row") (fun () ->
+              let result =
+                UseQuery.useQuery (module DecodeFailingQuery) "params" ()
+              in
+              match result.data with
+              | QueryRegistryTypes.Error msg ->
+                  Alcotest.(check string)
+                    "decode error"
+                    "Failed to decode query result"
+                    msg
+              | QueryRegistryTypes.Loading ->
+                  Alcotest.fail "decode failure should not stay Loading"
+              | QueryRegistryTypes.Loaded _ ->
+                  Alcotest.fail "decode failure should not return Loaded"));
+      Alcotest.test_case "server cached query error returns Error" `Quick
+        (fun () ->
+          with_error_registry "database unavailable" (fun () ->
+              let result = UseQuery.useQuery (module StringQuery) "params" () in
+              match result.data with
+              | QueryRegistryTypes.Error msg ->
+                  Alcotest.(check string)
+                    "query error"
+                    "database unavailable"
+                    msg
+              | QueryRegistryTypes.Loading ->
+                  Alcotest.fail "cached query error should not stay Loading"
+              | QueryRegistryTypes.Loaded _ ->
+                  Alcotest.fail "cached query error should not return Loaded"));
+      Alcotest.test_case "server serializeCache uses query registry results" `Quick
+        (fun () ->
+          with_active_registry_result
+            string_query_key
+            (`List [ `String "serialized" ])
+            (fun () ->
+              let serialized = UseQuery.serializeCache () in
+              Alcotest.(check string)
+                "serialized loaded rows"
+                {|["serialized"]|}
+                (Yojson.Safe.to_string (loaded_data serialized string_query_key))));
+      Alcotest.test_case "server skipped query is idle and unregistered" `Quick
+        (fun () ->
+          with_empty_registry (fun () ->
+              let result =
+                UseQuery.useQuery (module StringQuery) "params" ~skip:true ()
+              in
+              Alcotest.(check bool)
+                "skipped query is not loading"
+                false result.loading;
+              Alcotest.(check (option string))
+                "skipped query has no error"
+                None result.error;
+              (match result.data with
+              | QueryRegistryTypes.Loading -> ()
+              | QueryRegistryTypes.Loaded _ ->
+                  Alcotest.fail "skipped query should not expose rows"
+              | QueryRegistryTypes.Error msg ->
+                  Alcotest.fail ("skipped query should not error: " ^ msg));
+              Alcotest.(check int)
+                "skipped query should not register"
+                0
+                (QueryRegistry.registered_query_count ());
+              let _ = UseQuery.useQuery (module StringQuery) "params" () in
+              Alcotest.(check int)
+                "unskipped query should register"
+                1
+                (QueryRegistry.registered_query_count ())));
+      Alcotest.test_case "server skipped query avoids channel and hash derivation" `Quick
+        (fun () ->
+          with_empty_registry (fun () ->
+              let result =
+                UseQuery.useQuery (module ExplodingQuery) "params" ~skip:true ()
+              in
+              Alcotest.(check bool)
+                "skipped query is not loading"
+                false result.loading;
+              Alcotest.(check int)
+                "skipped query should not register"
+                0
+                (QueryRegistry.registered_query_count ())));
+      Alcotest.test_case "server optional query skips None without params" `Quick
+        (fun () ->
+          with_empty_registry (fun () ->
+              let result =
+                UseQuery.useQueryOption (module StringQuery) None ()
+              in
+              Alcotest.(check bool)
+                "None query is not loading"
+                false result.loading;
+              Alcotest.(check (option string))
+                "None query has no error"
+                None result.error;
+              (match result.data with
+              | QueryRegistryTypes.Loading -> ()
+              | QueryRegistryTypes.Loaded _ ->
+                  Alcotest.fail "None query should not expose rows"
+              | QueryRegistryTypes.Error msg ->
+                  Alcotest.fail ("None query should not error: " ^ msg));
+              Alcotest.(check int)
+                "None query should not register"
+                0
+                (QueryRegistry.registered_query_count ());
+              let _ =
+                UseQuery.useQueryOption
+                  (module StringQuery)
+                  (Some("params"))
+                  ()
+              in
+              Alcotest.(check int)
+                "Some query should register"
+                1
+                (QueryRegistry.registered_query_count ())));
+      Alcotest.test_case
+        "server optional loading helper skips without query derivation"
+        `Quick
+        (fun () ->
+          with_empty_registry (fun () ->
+              let loading =
+                UseQuery.useIsQueryLoadingOption
+                  (module ExplodingQuery)
+                  None
+              in
+              Alcotest.(check bool) "skipped query is not loading" false loading;
+              Alcotest.(check int)
+                "skipped loading check should not register"
+                0
+                (QueryRegistry.registered_query_count ());
+              let hooks_loading =
+                Hooks.useIsQueryLoadingOption
+                  (module StringQuery)
+                  (Some "params")
+              in
+              Alcotest.(check bool)
+                "uncached hook loading check is loading"
+                true hooks_loading;
+              Alcotest.(check int)
+                "unskipped loading check should register"
+                1
+                (QueryRegistry.registered_query_count ())));
+      Alcotest.test_case "server loading helper reads cached loaded result" `Quick
+        (fun () ->
+          with_sync_registry
+            ~key:string_query_key
+            (`List [ `String "ready" ])
+            (fun () ->
+              Alcotest.(check bool)
+                "cached loaded result is not loading"
+                false
+                (UseQuery.useIsQueryLoading (module StringQuery) "params")));
+    ] )

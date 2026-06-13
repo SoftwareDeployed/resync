@@ -1,10 +1,23 @@
 open Js.Promise;
 
+[@mel.send]
+external includes: (string, string) => bool = "includes";
+
+let testScriptJsonEscape = () => {
+  let escaped = ScriptJsonEscape.escape("{\"value\":\"</script><div>&\"}");
+  BrowserTestUtils.assertTrue(
+    ~label="Script JSON escaping removes raw script terminator",
+    escaped->includes("</script") == false
+    && escaped->includes("\\u003C/script\\u003E"),
+    ~details="Escaped JSON still contained a raw script terminator: " ++ escaped,
+  )
+};
+
 let run = () => {
   let launchOptions = Playwright.makeLaunchOptions(~headless=true, ());
 
-  Playwright.chromium
-  ->Playwright.launch(launchOptions)
+  testScriptJsonEscape()
+  |> then_(_ => Playwright.chromium->Playwright.launch(launchOptions))
   |> then_(browser =>
        browser
        ->Playwright.newPage

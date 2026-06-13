@@ -1,5 +1,7 @@
 open Realtime_schema_types
 open Realtime_schema_utils
+open Ppxlib
+open Ast_builder.Default
 
 let indent block =
   block
@@ -7,138 +9,205 @@ let indent block =
   |> List.map (fun line -> if trim line = "" then "" else "  " ^ line)
   |> String.concat "\n"
 
-let string_list_literal values =
-  values
-  |> List.map (fun value -> Printf.sprintf "%S" value)
-  |> String.concat "; "
-  |> Printf.sprintf "[%s]"
+(* AST-building helper functions using Ast_builder *)
+let estring_of_string ~loc s = pexp_constant ~loc (Pconst_string (s, loc, None))
+
+let eint_of_int ~loc n = pexp_constant ~loc (Pconst_integer (string_of_int n, None))
+
+let eident_of_string ~loc s = pexp_ident ~loc (Located.mk ~loc (Lident s))
+
+let lid_of_strings ~loc = function
+  | [s] -> Located.mk ~loc (Lident s)
+  | xs ->
+      let rec make = function
+        | [] -> assert false
+        | [x] -> Lident x
+        | x :: ys -> Ldot (make ys, x)
+      in
+      Located.mk ~loc (make (List.rev xs))
+
+let epath_of_strings ~loc parts = pexp_ident ~loc (lid_of_strings ~loc parts)
+
+let mpath_of_strings ~loc parts = pmod_ident ~loc (lid_of_strings ~loc parts)
+
+let econstr_ast ~loc name arg = pexp_construct ~loc (Located.mk ~loc (Lident name)) arg
+
+let enone_ast ~loc = econstr_ast ~loc "None" None
+
+let esome_ast ~loc expr = econstr_ast ~loc "Some" (Some expr)
+
+let ebool_ast ~loc value = econstr_ast ~loc (string_of_bool value) None
+
+let platform_attribute ~loc platform_name =
+  attribute ~loc ~name:(Located.mk ~loc "platform")
+    ~payload:(PStr [pstr_eval ~loc (eident_of_string ~loc platform_name) []])
+
+let native_value_binding ~loc name expr =
+  let vb = value_binding ~loc ~pat:(pvar ~loc name) ~expr in
+  let vb = {vb with pvb_attributes = [platform_attribute ~loc "native"]} in
+  pstr_value ~loc Nonrecursive [vb]
+
+let db_connection_pattern ~loc =
+  ppat_constraint ~loc (ppat_unpack ~loc (Located.mk ~loc (Some "Db")))
+    (ptyp_package ~loc (Located.mk ~loc (Ldot (Lident "Caqti_lwt", "CONNECTION")), []))
+
+let string_concat_ast ~loc left right =
+  pexp_apply ~loc (eident_of_string ~loc "^") [(Nolabel, left); (Nolabel, right)]
+
+let concat_strings_ast ~loc exprs =
+  match exprs with
+  | [] -> estring_of_string ~loc ""
+  | first :: rest -> List.fold_left (string_concat_ast ~loc) first rest
+
+let concat_with_separator_ast ~loc separator exprs =
+  match exprs with
+  | [] -> estring_of_string ~loc ""
+  | first :: rest ->
+      List.fold_left
+        (fun acc expr -> concat_strings_ast ~loc [acc; estring_of_string ~loc separator; expr])
+        first rest
+
+let json_assoc_expr ~loc fields_expr = pexp_variant ~loc "Assoc" (Some fields_expr)
+
+let json_identity_fun_ast ~loc =
+  pexp_fun ~loc Nolabel None (pvar ~loc "json") (eident_of_string ~loc "json")
+
+let store_json_dict_to_json_ast ~loc dict_expr =
+  pexp_apply ~loc (epath_of_strings ~loc ["StoreJson"; "Dict"; "to_json"])
+    [(Nolabel, json_identity_fun_ast ~loc); (Nolabel, dict_expr)]
+
+let caqti_type_expr_for_columns_ast ~loc ~type_name (columns : (string * sql_type) list) =
+  match columns with
+  | [] -> epath_of_strings ~loc ["Caqti_type"; "unit"]
+  | _ ->
+      let field_names = List.map (fun (name, _) -> sanitize_identifier name) columns in
+      let record_body =
+        pexp_record ~loc
+          (List.map
+             (fun name -> (Located.mk ~loc (Lident name), eident_of_string ~loc name))
+             field_names)
+          None
+      in
+      let product_fn =
+        List.fold_right
+          (fun name body -> pexp_fun ~loc Nolabel None (pvar ~loc name) body)
+          field_names record_body
+      in
+      let product_expr =
+        pexp_apply ~loc (epath_of_strings ~loc ["Caqti_type"; "product"])
+          [(Nolabel, product_fn)]
+      in
+      let proj_exprs =
+        columns
+        |> List.map (fun (name, sql_type) ->
+               let caqti_ctor =
+                 match sql_type with
+                 | Uuid | Varchar | Text | Json | Jsonb | Custom _ ->
+                     epath_of_strings ~loc ["Caqti_type"; "string"]
+                 | Int -> epath_of_strings ~loc ["Caqti_type"; "int"]
+                 | Bigint -> epath_of_strings ~loc ["Caqti_type"; "int64"]
+                 | Boolean -> epath_of_strings ~loc ["Caqti_type"; "bool"]
+                 | Timestamp | Timestamptz -> epath_of_strings ~loc ["Caqti_type"; "float"]
+               in
+               pexp_apply ~loc (epath_of_strings ~loc ["Caqti_type"; "proj"])
+                 [ (Nolabel, caqti_ctor);
+                   ( Nolabel,
+                     pexp_fun ~loc Nolabel None
+                       (ppat_constraint ~loc (pvar ~loc "r")
+                          (ptyp_constr ~loc (Located.mk ~loc (Lident type_name)) []))
+                       (pexp_field ~loc (eident_of_string ~loc "r")
+                          (Located.mk ~loc (Lident (sanitize_identifier name)))) ) ])
+      in
+      let projection_chain =
+        List.fold_right
+          (fun proj acc -> pexp_apply ~loc (eident_of_string ~loc "@@") [(Nolabel, proj); (Nolabel, acc)])
+          proj_exprs (epath_of_strings ~loc ["Caqti_type"; "proj_end"])
+      in
+      pexp_apply ~loc (eident_of_string ~loc "@@")
+        [(Nolabel, product_expr); (Nolabel, projection_chain)]
+
+let elident_of_strings ~loc = function
+  | [s] -> Lident s
+  | xs ->
+      let rec make = function
+        | [] -> assert false
+        | [x] -> Lident x
+        | x :: ys -> Ldot (make ys, x)
+      in
+      make (List.rev xs)
+
+let elident_of_mods ~loc mods name =
+  List.fold_right (fun a b -> Ldot (b, a)) mods (Lident name)
+
+let eunit_ast ~loc = pexp_construct ~loc (Located.mk ~loc (Lident "()")) None
+
+let eapply_ast ~loc func args = pexp_apply ~loc func args
+
+let elist_ast ~loc exprs = pexp_array ~loc exprs
+
+let elist_of_exprs ~loc exprs =
+  let rec make_list = function
+    | [] -> pexp_construct ~loc (Located.mk ~loc (Lident "[]")) None
+    | x :: xs ->
+        pexp_construct ~loc (Located.mk ~loc (Lident "::"))
+          (Some (pexp_tuple ~loc [x; make_list xs]))
+  in
+  make_list exprs
+
+let rlab ~loc name = Located.mk ~loc (Lident name)
 
 let sql_string_literal value = Printf.sprintf "'%s'" (quote_sql_literal value)
 
-let rec ocaml_of_sql_type = function
-  | Uuid -> "Uuid"
-  | Varchar -> "Varchar"
-  | Text -> "Text"
-  | Int -> "Int"
-  | Bigint -> "Bigint"
-  | Boolean -> "Boolean"
-  | Timestamp -> "Timestamp"
-  | Timestamptz -> "Timestamptz"
-  | Json -> "Json"
-  | Jsonb -> "Jsonb"
-  | Custom value -> Printf.sprintf "Custom %S" value
+let caqti_type_of_ocaml_type_ast ~loc = function
+  | "string" -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "string")))
+  | "int" -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "int")))
+  | "int64" -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "int64")))
+  | "bool" -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "bool")))
+  | "float" -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "float")))
+  | _ -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "string")))
 
-let ocaml_of_foreign_key = function
-  | None -> "None"
-  | Some foreign_key ->
-      Printf.sprintf
-        "Some { column = %S; referenced_table = %S; referenced_column = %S }"
-        foreign_key.column foreign_key.referenced_table foreign_key.referenced_column
+let caqti_type_constructor_of_sql_type_ast ~loc = function
+  | Uuid | Varchar | Text | Json | Jsonb | Custom _ -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "string")))
+  | Int -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "int")))
+  | Bigint -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "int64")))
+  | Boolean -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "bool")))
+  | Timestamp | Timestamptz -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "float")))
 
-let ocaml_of_broadcast_channel = function
-  | None -> "None"
-  | Some (Column value) -> Printf.sprintf "Some (Column %S)" value
-  | Some (Computed value) -> Printf.sprintf "Some (Computed %S)" value
-  | Some (Conditional value) -> Printf.sprintf "Some (Conditional %S)" value
-  | Some (Subquery value) -> Printf.sprintf "Some (Subquery %S)" value
-
-let ocaml_of_broadcast_parent = function
-  | None -> "None"
-  | Some parent ->
-      Printf.sprintf
-        "Some { parent_table = %S; query_name = %S }"
-        parent.parent_table parent.query_name
-
-let ocaml_of_broadcast_to_views = function
-  | None -> "None"
-  | Some config ->
-      Printf.sprintf
-        "Some { view_table = %S; channel_column = %S }"
-        config.view_table config.channel_column
-
-let column_record_literal (column : column) =
-  Printf.sprintf
-    "{ name = %S; sql_type = %s; sql_type_raw = %S; nullable = %b; primary_key = %b; default = %s; foreign_key = %s; definition_sql = %S }"
-    column.name (ocaml_of_sql_type column.sql_type) column.sql_type_raw column.nullable
-    column.primary_key
-    (match column.default with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
-    (ocaml_of_foreign_key column.foreign_key)
-    column.definition_sql
-
-let table_record_literal (table : table) =
-  let columns_literal =
-    table.columns |> List.map column_record_literal |> String.concat "; " |> Printf.sprintf "[%s]"
-  in
-  Printf.sprintf
-    "{ name = %S; columns = %s; id_column = %s; composite_key = %s; broadcast_channel = %s; broadcast_parent = %s; broadcast_to_views = %s; create_sql = %S; source_file = %S }"
-    table.name columns_literal
-    (match table.id_column with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
-    (string_list_literal table.composite_key)
-    (ocaml_of_broadcast_channel table.broadcast_channel)
-    (ocaml_of_broadcast_parent table.broadcast_parent)
-    (ocaml_of_broadcast_to_views table.broadcast_to_views)
-    table.create_sql table.source_file
-
-let string_of_handler = function Sql -> "Sql" | Ocaml -> "Ocaml"
-
-let caqti_type_of_ocaml_type = function
-  | "string" -> "Caqti_type.string"
-  | "int" -> "Caqti_type.int"
-  | "int64" -> "Caqti_type.int64"
-  | "bool" -> "Caqti_type.bool"
-  | "float" -> "Caqti_type.float"
-  | _ -> "Caqti_type.string"
-
-let caqti_type_constructor_of_sql_type = function
-  | Uuid | Varchar | Text | Json | Jsonb | Custom _ -> "Caqti_type.string"
-  | Int -> "Caqti_type.int"
-  | Bigint -> "Caqti_type.int64"
-  | Boolean -> "Caqti_type.bool"
-  | Timestamp | Timestamptz -> "Caqti_type.float"
-
-let mutation_param_type_expr params =
-  let type_of_param p = caqti_type_of_ocaml_type p.ocaml_type in
+let mutation_param_type_expr_ast ~loc params =
+  let type_of_param p = caqti_type_of_ocaml_type_ast ~loc p.ocaml_type in
   match params with
-  | [] -> "Caqti_type.unit"
+  | [] -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "unit")))
   | [ p ] -> type_of_param p
-  | [ p1; p2 ] -> Printf.sprintf "Caqti_type.t2 %s %s" (type_of_param p1) (type_of_param p2)
-  | [ p1; p2; p3 ] -> Printf.sprintf "Caqti_type.t3 %s %s %s" (type_of_param p1) (type_of_param p2) (type_of_param p3)
-  | [ p1; p2; p3; p4 ] ->
-      Printf.sprintf "Caqti_type.t4 %s %s %s %s" (type_of_param p1) (type_of_param p2) (type_of_param p3) (type_of_param p4)
-  | [ p1; p2; p3; p4; p5 ] ->
-      Printf.sprintf "Caqti_type.t5 %s %s %s %s %s"
-        (type_of_param p1) (type_of_param p2) (type_of_param p3) (type_of_param p4) (type_of_param p5)
-  | _ -> "Caqti_type.unit"
+  | [ p1; p2 ] -> pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "t2")))) [(Nolabel, type_of_param p1); (Nolabel, type_of_param p2)]
+  | [ p1; p2; p3 ] -> pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "t3")))) [(Nolabel, type_of_param p1); (Nolabel, type_of_param p2); (Nolabel, type_of_param p3)]
+  | [ p1; p2; p3; p4 ] -> pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "t4")))) [(Nolabel, type_of_param p1); (Nolabel, type_of_param p2); (Nolabel, type_of_param p3); (Nolabel, type_of_param p4)]
+  | [ p1; p2; p3; p4; p5 ] -> pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "t5")))) [(Nolabel, type_of_param p1); (Nolabel, type_of_param p2); (Nolabel, type_of_param p3); (Nolabel, type_of_param p4); (Nolabel, type_of_param p5)]
+  | _ -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "unit")))
 
-let params_literal params =
-  params
-  |> List.map (fun param ->
-         Printf.sprintf
-           "{ index = %d; column_ref = %s; payload_key = %s; ocaml_type = %S; sql_type = %S }"
-           param.index
-           (match param.column_ref with
-           | None -> "None"
+let params_literal_ast ~loc params =
+  let param_to_record_expr param =
+    let fields =
+      [
+        (rlab ~loc "index", pexp_constant ~loc (Pconst_integer (string_of_int param.index, None)));
+        (rlab ~loc "column_ref",
+          (match param.column_ref with
+           | None -> enone_ast ~loc
            | Some (table_name, column_name) ->
-               Printf.sprintf "Some (%S, %S)" table_name column_name)
-           (match param.payload_key with None -> "None" | Some key -> Printf.sprintf "Some %S" key)
-           param.ocaml_type param.sql_type)
-  |> String.concat "; "
-  |> Printf.sprintf "[%s]"
-
-let query_record_literal (query : query) =
-  let json_columns_literal = string_list_literal query.json_columns in
-  Printf.sprintf
-    "{ name = %S; sql = %S; source_file = %S; cache_key = %s; return_table = %s; json_columns = %s; params_metadata = %s; handler = %s }"
-    query.name query.sql query.source_file
-    (match query.cache_key with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
-    (match query.return_table with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
-    json_columns_literal (params_literal query.params) (string_of_handler query.handler)
-
-let mutation_record_literal (mutation : mutation) =
-  Printf.sprintf
-    "{ name = %S; sql = %S; source_file = %S; params_metadata = %s; handler = %s }"
-    mutation.name mutation.sql mutation.source_file
-    (params_literal mutation.params) (string_of_handler mutation.handler)
+             esome_ast ~loc
+               (pexp_tuple ~loc
+                  [ pexp_constant ~loc (Pconst_string (table_name, loc, None));
+                    pexp_constant ~loc (Pconst_string (column_name, loc, None)) ])));
+        (rlab ~loc "payload_key",
+          (match param.payload_key with
+           | None -> enone_ast ~loc
+           | Some key -> esome_ast ~loc (pexp_constant ~loc (Pconst_string (key, loc, None)))));
+        (rlab ~loc "ocaml_type", pexp_constant ~loc (Pconst_string (param.ocaml_type, loc, None)));
+        (rlab ~loc "sql_type", pexp_constant ~loc (Pconst_string (param.sql_type, loc, None)));
+      ]
+    in
+    pexp_record ~loc fields None
+  in
+  elist_of_exprs ~loc (List.map param_to_record_expr params)
 
 let ocaml_type_string_of_sql_type sql_type =
   match ocaml_type_of_sql_type sql_type with
@@ -149,41 +218,6 @@ let ocaml_type_string_of_sql_type sql_type =
   | "float" -> "float"
   | "Yojson.Safe.t" -> "Yojson.Safe.t"
   | other -> other
-
-let column_type_annotation (column : column) =
-  ocaml_type_string_of_sql_type column.sql_type
-
-let record_type_declaration (table : table) =
-  let fields =
-    table.columns
-    |> List.map (fun (column : column) -> Printf.sprintf "  %s : %s;" (sanitize_identifier column.name) (column_type_annotation column))
-    |> String.concat "\n"
-  in
-  Printf.sprintf "type %s = {\n%s\n}" (type_name_of_table table.name) fields
-
-let caqti_type_for_columns ~type_name (columns : (string * sql_type) list) =
-  match columns with
-  | [] -> "let caqti_type = Caqti_type.unit"
-  | _ ->
-      let field_names = List.map (fun (name, _) -> sanitize_identifier name) columns in
-      let constructor_args = String.concat " " field_names in
-      let record_body =
-        field_names
-        |> List.map (fun name -> Printf.sprintf "%s = %s;" name name)
-        |> String.concat " "
-      in
-      let proj_chain =
-        columns
-        |> List.map (fun (name, sql_type) ->
-               Printf.sprintf "    @@ Caqti_type.proj %s (fun (r : %s) -> r.%s)"
-                 (caqti_type_constructor_of_sql_type sql_type)
-                 type_name
-                 (sanitize_identifier name))
-        |> String.concat "\n"
-      in
-      Printf.sprintf
-        "let caqti_type =\n    Caqti_type.product(fun %s -> { %s })\n%s\n    @@ Caqti_type.proj_end [@@platform native]"
-        constructor_args record_body proj_chain
 
 let ocaml_type_to_json_fn ocaml_type =
   match ocaml_type with
@@ -209,88 +243,20 @@ let string_conversion_fn ocaml_type =
   | "float" | "Float" | "Timestamp" | "Timestamptz" -> "string_of_float"
   | _ -> ""
 
-let params_type_declaration (params : query_param list) =
+let encode_params_code_ast ~loc (params : query_param list) =
   match params with
-  | [] -> "type params = unit"
+  | [] ->
+      pstr_value ~loc Nonrecursive
+        [ value_binding ~loc ~pat:(pvar ~loc "encodeParams")
+            ~expr:(pexp_fun ~loc Nolabel None (ppat_construct ~loc (Located.mk ~loc (Lident "()")) None)
+                     (epath_of_strings ~loc ["Melange_json"; "Primitives"; "unit_to_json"] |> fun fn ->
+                      pexp_apply ~loc fn [(Nolabel, eunit_ast ~loc)])) ]
   | _ ->
-  let fields =
-    params
-    |> List.map (fun (param : query_param) ->
-      let field_name =
-        match param.payload_key with
-        | Some key -> sanitize_identifier key
-        | None -> Printf.sprintf "param_%d" param.index
+      let dict_binding =
+        value_binding ~loc ~pat:(pvar ~loc "dict")
+          ~expr:(pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "empty"]) [(Nolabel, eunit_ast ~loc)])
       in
-      Printf.sprintf " %s : %s;" field_name param.ocaml_type)
-    |> String.concat "\n"
-  in
-  Printf.sprintf "type params = {\n%s\n}" fields
-
-let encode_params_code (params : query_param list) =
-  match params with
-  | [] -> "let encodeParams () = Melange_json.Primitives.unit_to_json ()"
-  | _ ->
-  let dict_entries =
-    params
-    |> List.map (fun (param : query_param) ->
-      let field_name =
-        match param.payload_key with
-        | Some key -> sanitize_identifier key
-        | None -> Printf.sprintf "param_%d" param.index
-      in
-      let json_fn = ocaml_type_to_json_fn param.ocaml_type in
-      Printf.sprintf "Js.Dict.set dict %S (Melange_json.Primitives.%s p.%s);"
-        field_name json_fn field_name)
-    |> String.concat "\n "
-  in
-    Printf.sprintf
-    "let encodeParams (p: params) =\n let dict = Js.Dict.empty () in\n %s\n Melange_json.declassify (`Assoc (Array.to_list (Js.Dict.entries dict)))"
-    dict_entries
-
-let params_hash_code (params : query_param list) =
-  match params with
-  | [] -> "let paramsHash () = \"\""
-  | [param] ->
-  let field_name =
-    match param.payload_key with
-    | Some key -> sanitize_identifier key
-    | None -> Printf.sprintf "param_%d" param.index
-  in
-  let string_conv = string_conversion_fn param.ocaml_type in
-  if string_conv = "" then
-    Printf.sprintf "let paramsHash (p: params) = p.%s" field_name
-  else
-    Printf.sprintf "let paramsHash (p: params) = %s(p.%s)" string_conv field_name
-  | _ ->
-  let hash_parts =
-    params
-    |> List.map (fun (param : query_param) ->
-      let field_name =
-        match param.payload_key with
-        | Some key -> sanitize_identifier key
-        | None -> Printf.sprintf "param_%d" param.index
-      in
-      let string_conv = string_conversion_fn param.ocaml_type in
-      if string_conv = "" then
-        Printf.sprintf "p.%s" field_name
-      else
-        Printf.sprintf "%s(p.%s)" string_conv field_name)
-    |> String.concat " ^ \":\" ^ "
-  in
-  Printf.sprintf "let paramsHash (p: params) = %s" hash_parts
-
-let caqti_param_expr (params : query_param list) =
-  match params with
-  | [] -> "()"
-  | [ param ] ->
-      let field_name =
-        match param.payload_key with
-        | Some key -> sanitize_identifier key
-        | None -> Printf.sprintf "param_%d" param.index
-      in
-      Printf.sprintf "p.%s" field_name
-  | params ->
-      let fields =
+      let set_calls =
         params
         |> List.map (fun (param : query_param) ->
                let field_name =
@@ -298,288 +264,938 @@ let caqti_param_expr (params : query_param list) =
                  | Some key -> sanitize_identifier key
                  | None -> Printf.sprintf "param_%d" param.index
                in
-               Printf.sprintf "p.%s" field_name)
-        |> String.concat ", "
+               let json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_to_json_fn param.ocaml_type] in
+               pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "set"])
+                 [ (Nolabel, eident_of_string ~loc "dict");
+                   (Nolabel, estring_of_string ~loc field_name);
+                   ( Nolabel,
+                     pexp_apply ~loc json_fn
+                       [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "p") (Located.mk ~loc (Lident field_name))) ] ) ])
       in
-      Printf.sprintf "(%s)" fields
+      let body =
+        List.fold_right
+          (fun call acc -> pexp_sequence ~loc call acc)
+          set_calls
+          (store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict"))
+      in
+      pstr_value ~loc Nonrecursive
+        [ value_binding ~loc ~pat:(pvar ~loc "encodeParams")
+            ~expr:(pexp_fun ~loc Nolabel None
+                     (ppat_constraint ~loc (pvar ~loc "p")
+                        (ptyp_constr ~loc (Located.mk ~loc (Lident "params")) []))
+                     (pexp_let ~loc Nonrecursive [dict_binding] body)) ]
 
-let channel_function_code tables (query : query) =
-  match query.return_table with
-  | None -> "let channel _ = \"\""
-  | Some table_name -> (
-    match List.find_opt (fun (t : table) -> t.name = table_name) tables with
-    | None -> "let channel _ = \"\""
-    | Some table -> (
-      match table.broadcast_channel with
-      | None -> "let channel _ = \"\""
-      | Some (Column column_name) -> (
-        match
-          List.find_opt
-            (fun (param : query_param) ->
-              match param.column_ref with
-              | Some (t_name, c_name) -> t_name = table_name && c_name = column_name
-              | None -> false)
-            query.params
-        with
-        | None -> "let channel _ = \"\""
-        | Some param ->
-          let field_name =
-            match param.payload_key with
-            | Some key -> sanitize_identifier key
-            | None -> Printf.sprintf "param_%d" param.index
-          in
-          Printf.sprintf "let channel (p: params) = p.%s" field_name)
-      | Some _ -> "let channel _ = \"\""))
+(* AST-building versions of record literals *)
 
-let decode_row_code (columns : (string * sql_type) list) =
-  match columns with
-  | [] -> "let decodeRow _ = ()"
+let ocaml_type_of_sql_type_ast ~loc (sql_type : sql_type) : expression =
+  match sql_type with
+  | Uuid -> econstr_ast ~loc "Uuid" None
+  | Varchar -> econstr_ast ~loc "Varchar" None
+  | Text -> econstr_ast ~loc "Text" None
+  | Int -> econstr_ast ~loc "Int" None
+  | Bigint -> econstr_ast ~loc "Bigint" None
+  | Boolean -> econstr_ast ~loc "Boolean" None
+  | Timestamp -> econstr_ast ~loc "Timestamp" None
+  | Timestamptz -> econstr_ast ~loc "Timestamptz" None
+  | Json -> econstr_ast ~loc "Json" None
+  | Jsonb -> econstr_ast ~loc "Jsonb" None
+  | Custom value -> econstr_ast ~loc "Custom" (Some (estring_of_string ~loc value))
+
+let foreign_key_to_ast ~loc (fk : foreign_key option) : expression =
+  match fk with
+  | None -> enone_ast ~loc
+  | Some fk ->
+      esome_ast ~loc
+        (pexp_record ~loc [
+             Located.mk ~loc (Lident "column"), estring_of_string ~loc fk.column;
+             Located.mk ~loc (Lident "referenced_table"), estring_of_string ~loc fk.referenced_table;
+             Located.mk ~loc (Lident "referenced_column"), estring_of_string ~loc fk.referenced_column;
+          ] None)
+
+let broadcast_channel_to_ast ~loc (bc : broadcast_channel option) : expression =
+  match bc with
+  | None -> enone_ast ~loc
+  | Some (Column value) -> esome_ast ~loc (econstr_ast ~loc "Column" (Some (estring_of_string ~loc value)))
+  | Some (Computed value) -> esome_ast ~loc (econstr_ast ~loc "Computed" (Some (estring_of_string ~loc value)))
+  | Some (Conditional value) -> esome_ast ~loc (econstr_ast ~loc "Conditional" (Some (estring_of_string ~loc value)))
+  | Some (Subquery value) -> esome_ast ~loc (econstr_ast ~loc "Subquery" (Some (estring_of_string ~loc value)))
+
+let broadcast_parent_to_ast ~loc (bp : broadcast_parent option) : expression =
+  match bp with
+  | None -> enone_ast ~loc
+  | Some bp ->
+      esome_ast ~loc
+        (pexp_record ~loc [
+             Located.mk ~loc (Lident "parent_table"), estring_of_string ~loc bp.parent_table;
+             Located.mk ~loc (Lident "query_name"), estring_of_string ~loc bp.query_name;
+          ] None)
+
+let broadcast_to_views_to_ast ~loc (btv : broadcast_to_views option) : expression =
+  match btv with
+  | None -> enone_ast ~loc
+  | Some config ->
+      esome_ast ~loc
+        (pexp_record ~loc [
+             Located.mk ~loc (Lident "view_table"), estring_of_string ~loc config.view_table;
+             Located.mk ~loc (Lident "channel_column"), estring_of_string ~loc config.channel_column;
+          ] None)
+
+let column_record_literal_ast ~loc (column : column) : expression =
+  pexp_record ~loc [
+    Located.mk ~loc (Lident "name"), estring_of_string ~loc column.name;
+    Located.mk ~loc (Lident "sql_type"), ocaml_type_of_sql_type_ast ~loc column.sql_type;
+    Located.mk ~loc (Lident "sql_type_raw"), estring_of_string ~loc column.sql_type_raw;
+    Located.mk ~loc (Lident "nullable"), ebool_ast ~loc column.nullable;
+    Located.mk ~loc (Lident "primary_key"), ebool_ast ~loc column.primary_key;
+    Located.mk ~loc (Lident "default"), 
+      (match column.default with
+       | None -> enone_ast ~loc
+       | Some v -> esome_ast ~loc (estring_of_string ~loc v));
+    Located.mk ~loc (Lident "foreign_key"), foreign_key_to_ast ~loc column.foreign_key;
+    Located.mk ~loc (Lident "definition_sql"), estring_of_string ~loc column.definition_sql;
+  ] None
+
+let table_record_literal_ast ~loc (table : table) : expression =
+  let columns_expr = elist_of_exprs ~loc (List.map (column_record_literal_ast ~loc) table.columns) in
+  pexp_record ~loc [
+    Located.mk ~loc (Lident "name"), estring_of_string ~loc table.name;
+    Located.mk ~loc (Lident "columns"), columns_expr;
+    Located.mk ~loc (Lident "id_column"),
+      (match table.id_column with
+       | None -> enone_ast ~loc
+       | Some v -> esome_ast ~loc (estring_of_string ~loc v));
+    Located.mk ~loc (Lident "composite_key"), elist_of_exprs ~loc (List.map (estring_of_string ~loc) table.composite_key);
+    Located.mk ~loc (Lident "broadcast_channel"), broadcast_channel_to_ast ~loc table.broadcast_channel;
+    Located.mk ~loc (Lident "broadcast_parent"), broadcast_parent_to_ast ~loc table.broadcast_parent;
+    Located.mk ~loc (Lident "broadcast_to_views"), broadcast_to_views_to_ast ~loc table.broadcast_to_views;
+    Located.mk ~loc (Lident "create_sql"), estring_of_string ~loc table.create_sql;
+    Located.mk ~loc (Lident "source_file"), estring_of_string ~loc table.source_file;
+  ] None
+
+let string_of_handler_ast ~loc = function
+  | Sql -> econstr_ast ~loc "Sql" None
+  | Ocaml -> econstr_ast ~loc "Ocaml" None
+
+let query_record_literal_ast ~loc (query : query) : expression =
+  pexp_record ~loc [
+    Located.mk ~loc (Lident "name"), estring_of_string ~loc query.name;
+    Located.mk ~loc (Lident "sql"), estring_of_string ~loc query.sql;
+    Located.mk ~loc (Lident "source_file"), estring_of_string ~loc query.source_file;
+     Located.mk ~loc (Lident "cache_key"),
+       (match query.cache_key with
+       | None -> enone_ast ~loc
+       | Some v -> esome_ast ~loc (estring_of_string ~loc v));
+     Located.mk ~loc (Lident "return_table"),
+       (match query.return_table with
+       | None -> enone_ast ~loc
+       | Some v -> esome_ast ~loc (estring_of_string ~loc v));
+    Located.mk ~loc (Lident "json_columns"), elist_of_exprs ~loc (List.map (estring_of_string ~loc) query.json_columns);
+    Located.mk ~loc (Lident "params_metadata"), params_literal_ast ~loc query.params;
+    Located.mk ~loc (Lident "handler"), string_of_handler_ast ~loc query.handler;
+  ] None
+
+let mutation_record_literal_ast ~loc (mutation : mutation) : expression =
+  pexp_record ~loc [
+    Located.mk ~loc (Lident "name"), estring_of_string ~loc mutation.name;
+    Located.mk ~loc (Lident "sql"), estring_of_string ~loc mutation.sql;
+    Located.mk ~loc (Lident "source_file"), estring_of_string ~loc mutation.source_file;
+    Located.mk ~loc (Lident "params_metadata"), params_literal_ast ~loc mutation.params;
+    Located.mk ~loc (Lident "handler"), string_of_handler_ast ~loc mutation.handler;
+  ] None
+
+(* AST-building versions of type declarations *)
+
+let column_type_annotation_ast ~loc (column : column) : core_type =
+  let type_str = ocaml_type_string_of_sql_type column.sql_type in
+  ptyp_constr ~loc (Located.mk ~loc (Lident type_str)) []
+
+let record_type_declaration_ast ~loc (table : table) : structure_item =
+  let type_name = type_name_of_table table.name in
+  let label_decls =
+    table.columns
+    |> List.map (fun (column : column) ->
+         label_declaration
+           ~loc
+           ~name:(Located.mk ~loc (sanitize_identifier column.name))
+           ~mutable_:Immutable
+           ~type_:(column_type_annotation_ast ~loc column))
+  in
+  pstr_type ~loc Nonrecursive [
+    type_declaration
+      ~loc
+      ~name:(Located.mk ~loc type_name)
+      ~params:[]
+      ~cstrs:[]
+      ~private_:Public
+      ~manifest:None
+      ~kind:(Ptype_record label_decls)
+  ]
+
+let params_type_declaration_ast ~loc (params : query_param list) : structure_item =
+  match params with
+  | [] ->
+      pstr_type ~loc Nonrecursive [
+        type_declaration ~loc ~name:(Located.mk ~loc "params") ~params:[] ~cstrs:[]
+          ~private_:Public ~manifest:(Some (ptyp_constr ~loc (Located.mk ~loc (Lident "unit")) []))
+          ~kind:Ptype_abstract
+      ]
   | _ ->
-      let field_decodes =
-        columns
-        |> List.map (fun (name, sql_type) ->
-               let field_name = sanitize_identifier name in
-               let ocaml_type = ocaml_type_string_of_sql_type sql_type in
-               let json_fn = ocaml_type_of_json_fn ocaml_type in
-               Printf.sprintf
-" %s = StoreJson.requiredField ~json ~fieldName:%S ~decode:Melange_json.Primitives.%s;"
-                 field_name name json_fn)
-        |> String.concat "\n"
+      let label_decls =
+        params
+        |> List.map (fun (param : query_param) ->
+               let field_name =
+                 match param.payload_key with
+                 | Some key -> sanitize_identifier key
+                 | None -> Printf.sprintf "param_%d" param.index
+               in
+               label_declaration ~loc ~name:(Located.mk ~loc field_name) ~mutable_:Immutable
+                 ~type_:(ptyp_constr ~loc (Located.mk ~loc (Lident param.ocaml_type)) []))
       in
-      Printf.sprintf
-        "let decodeRow json = {\n%s\n}"
-        field_decodes
+       pstr_type ~loc Nonrecursive [
+         type_declaration ~loc ~name:(Located.mk ~loc "params") ~params:[] ~cstrs:[] ~private_:Public
+           ~manifest:None ~kind:(Ptype_record label_decls)
+       ]
 
-let row_to_json_code (columns : (string * sql_type) list) =
-  match columns with
-  | [] -> "let row_to_json _ = Melange_json.Primitives.unit_to_json ()"
-  | _ ->
-      let dict_entries =
-        columns
-        |> List.map (fun (name, sql_type) ->
-               let field_name = sanitize_identifier name in
-               let ocaml_type = ocaml_type_string_of_sql_type sql_type in
-               let json_fn = ocaml_type_to_json_fn ocaml_type in
-               Printf.sprintf
-                 "Js.Dict.set dict %S (Melange_json.Primitives.%s row.%s);"
-                 name json_fn field_name)
-        |> String.concat "\n  "
-      in
-      Printf.sprintf
-        "let row_to_json (row: row) =\n  let dict = Js.Dict.empty () in\n  %s\n  Melange_json.declassify (`Assoc (Array.to_list (Js.Dict.entries dict)))"
-        dict_entries
-
-let query_module_declaration tables (query : query) =
-  let params_metadata_literal =
-    query.params
-    |> List.map (fun param -> Printf.sprintf "(%d, %S, %S)" param.index param.ocaml_type param.sql_type)
-    |> String.concat "; "
+let mutation_to_action_binding_ast ~loc (mutation : mutation) : structure_item =
+  let constructor_name = module_name_of_table mutation.name in
+  let constructor_lid = lid_of_strings ~loc ["MutationActions"; constructor_name] in
+  let payload_params =
+    mutation.params |> List.filter (fun (p : query_param) -> p.payload_key <> None)
   in
-  let inferred_columns = Realtime_schema_pg_query.infer_select_columns tables query.return_table query.sql in
-  let row_type_and_caqti =
-    match inferred_columns with
-    | Some columns when columns <> [] ->
-        let fields =
-          columns
-          |> List.map (fun (name, sql_type) ->
-                 Printf.sprintf "  %s : %s;" (sanitize_identifier name) (ocaml_type_string_of_sql_type sql_type))
-          |> String.concat "\n"
-        in
-        (* row type is SHARED - no [@@platform native] *)
-        let type_decl = Printf.sprintf "type row = {\n%s\n}" fields in
-        let caqti_decl = caqti_type_for_columns ~type_name:"row" columns in
-        Printf.sprintf "%s\n\n  %s [@@platform native]" type_decl caqti_decl
-    | _ -> ""
-  in
-  let params_type_decl = params_type_declaration query.params in
-  let channel_func = channel_function_code tables query in
-  let params_hash_func = params_hash_code query.params in
-  let encode_params_func = encode_params_code query.params in
-  let decode_row_func =
-    match inferred_columns with
-    | Some columns when columns <> [] -> decode_row_code columns
-    | _ -> "let decodeRow _ = ()"
-  in
-  let row_to_json_func =
-    match inferred_columns with
-    | Some columns when columns <> [] -> row_to_json_code columns
-    | _ -> "let row_to_json _ = Melange_json.Primitives.unit_to_json ()"
-  in
-  let caqti_items =
- let param_type_expr = mutation_param_type_expr query.params in
- Printf.sprintf
- "let param_type = %s [@@platform native]\n\
-  \ let request row_type = Caqti_request.Infix.(param_type ->* row_type)(sql) [@@platform native]\n\
-  \ let find_request row_type = Caqti_request.Infix.(param_type ->? row_type)(sql) [@@platform native]\n\
-  \ let collect (module Db : Caqti_lwt.CONNECTION) row_type param_values =\n\
-  \ let open Lwt.Syntax in\n\
-  \ let* result = Db.collect_list (request row_type) param_values in\n\
-  \ Caqti_lwt.or_fail result [@@platform native]\n\
-  \ let find_opt (module Db : Caqti_lwt.CONNECTION) row_type param_values =\n\
-  \ let open Lwt.Syntax in\n\
-  \ let* result = Db.find_opt (find_request row_type) param_values in\n\
-  \ Caqti_lwt.or_fail result [@@platform native]"
- param_type_expr
-  in
-let caqti_args = caqti_param_expr query.params in
-  let execute_func =
-  Printf.sprintf
-  "let execute (module Db : Caqti_lwt.CONNECTION) (p : params) =\n\
-   \ let open Lwt.Syntax in\n\
-   \ Lwt.catch\n\
-   \ (fun () ->\n\
-   \ let* rows = collect (module Db) caqti_type %s in\n\
-   \ Lwt.return (Ok (Array.of_list rows)))\n\
-   \ (function\n\
-   \ | Caqti_error.Exn error -> Lwt.return (Error (Caqti_error.show error))\n\
-   \ | exn -> Lwt.return (Error (Printexc.to_string exn)))\n\
-   \ [@@platform native]"
-  caqti_args
-   in
-  let new_items =
-    Printf.sprintf "%s\n\n %s\n\n %s\n\n %s\n\n %s\n\n %s\n\n %s"
-    params_type_decl channel_func params_hash_func encode_params_func decode_row_func row_to_json_func execute_func
-  in
-  Printf.sprintf
-    "module %s = struct\n let name = %S\n let sql = %S\n let params_metadata = [%s]\n let return_table = %s\n let json_columns = %s\n let handler = %s\n\n %s\n\n %s\n\n %s\nend"
-    (module_name_of_table query.name) query.name query.sql params_metadata_literal
-  (match query.return_table with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
-  (string_list_literal query.json_columns) (string_of_handler query.handler)
-  row_type_and_caqti
-  caqti_items
-  new_items
-
-let json_extractor_code ~key ~ocaml_type =
-  let extractor =
-    match ocaml_type with
-    | "bool" ->
-        "        | Some (`Bool b) -> Ok b\n\
-        \        | Some (`String \"true\") -> Ok true\n\
-        \        | Some (`String \"false\") -> Ok false\n\
-        \        | _ -> Error msg"
-    | "int" ->
-        "        | Some (`Int i) -> Ok i\n\
-        \        | Some (`Float f) -> Ok (int_of_float f)\n\
-        \        | Some (`String s) -> (try Ok (int_of_string s) with Failure _ -> Error msg)\n\
-        \        | _ -> Error msg"
-    | "float" ->
-        "        | Some (`Float f) -> Ok f\n\
-        \        | Some (`Int i) -> Ok (float_of_int i)\n\
-        \        | Some (`String s) -> (try Ok (float_of_string s) with Failure _ -> Error msg)\n\
-        \        | _ -> Error msg"
-    | "int64" ->
-        "        | Some (`Int i) -> Ok (Int64.of_int i)\n\
-        \        | Some (`String s) -> (try Ok (Int64.of_string s) with Failure _ -> Error msg)\n\
-        \        | _ -> Error msg"
+  let params_pat =
+    match mutation.params with
+    | [] -> ppat_constraint ~loc (ppat_any ~loc) (ptyp_constr ~loc (Located.mk ~loc (Lident "unit")) [])
     | _ ->
-        "        | Some (`String s) -> Ok s\n\
-        \        | _ -> Error msg"
+        ppat_constraint ~loc (pvar ~loc "params")
+          (ptyp_constr ~loc (Located.mk ~loc (Lident "params")) [])
   in
-  Printf.sprintf
-    "let msg = \"Missing or invalid field: %s\" in\n\
-    \  match payload with\n\
-    \  | `Assoc fields -> (\n\
-    \      match List.assoc_opt %S fields with\n\
-    %s)\n\
-    \  | _ -> Error msg"
-    key key extractor
+  let action_expr =
+    match payload_params with
+    | [] -> pexp_construct ~loc constructor_lid None
+    | [param] ->
+        let field_name =
+          match param.payload_key with
+          | Some key -> sanitize_identifier key
+          | None -> Printf.sprintf "param_%d" param.index
+        in
+        pexp_construct ~loc constructor_lid
+          (Some
+             (pexp_field ~loc (eident_of_string ~loc "params")
+                (Located.mk ~loc (Lident field_name))))
+    | _ ->
+        let payload_record =
+          pexp_record ~loc
+            (payload_params
+            |> List.map (fun (param : query_param) ->
+                   let field_name =
+                     match param.payload_key with
+                     | Some key -> sanitize_identifier key
+                     | None -> Printf.sprintf "param_%d" param.index
+                   in
+                   ( Located.mk ~loc (Lident field_name),
+                     pexp_field ~loc (eident_of_string ~loc "params")
+                       (Located.mk ~loc (Lident field_name)) )))
+            None
+        in
+        pexp_construct ~loc constructor_lid (Some payload_record)
+  in
+  pstr_value ~loc Nonrecursive
+    [ value_binding ~loc ~pat:(pvar ~loc "toAction")
+        ~expr:(pexp_fun ~loc Nolabel None params_pat action_expr) ]
 
-let dispatch_function_for_mutation (mutation : mutation) =
+let caqti_type_constructor_sql_type_ast ~loc = function
+  | Uuid | Varchar | Text | Json | Jsonb | Custom _ -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "string")))
+  | Int -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "int")))
+  | Bigint -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "int64")))
+  | Boolean -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "bool")))
+  | Timestamp | Timestamptz -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "float")))
+
+let table_caqti_type_declaration_ast ~loc (table : table) : structure_item =
+  let columns = List.map (fun (c : column) -> (c.name, c.sql_type)) table.columns in
+  pstr_eval ~loc (caqti_type_expr_for_columns_ast ~loc ~type_name:(type_name_of_table table.name) columns) []
+
+let table_module_declaration_ast ~loc (table : table) : structure_item list =
+  let module_name = module_name_of_table table.name in
+  (* let name = "table_name" *)
+  let name_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "name")
+          ~expr:(estring_of_string ~loc table.name) ]
+  in
+  (* let id_column = Some "col" | None *)
+  let id_column_expr =
+    match table.id_column with
+    | None -> pexp_construct ~loc (Located.mk ~loc (Lident "None")) None
+    | Some value ->
+        pexp_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (estring_of_string ~loc value))
+  in
+  let id_column_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "id_column")
+          ~expr:id_column_expr ]
+  in
+  (* let composite_key = ["col1"; "col2"] *)
+  let composite_key_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "composite_key")
+          ~expr:(elist_of_exprs ~loc (List.map (estring_of_string ~loc) table.composite_key)) ]
+  in
+  (* let caqti_type = ... *)
+  let caqti_type_structure_item = table_caqti_type_declaration_ast ~loc table in
+  let caqti_type_expr =
+    match caqti_type_structure_item.pstr_desc with
+    | Pstr_eval (expr, _) -> expr
+    | _ -> assert false
+  in
+  let caqti_type_binding =
+    let vb = value_binding ~loc ~pat:(pvar ~loc "caqti_type") ~expr:caqti_type_expr in
+    let vb = {vb with pvb_attributes = [platform_attribute ~loc "native"]} in
+    pstr_value ~loc Nonrecursive [vb]
+  in
+  let structure_items = [ name_binding; id_column_binding; composite_key_binding; caqti_type_binding ] in
+  let module_expr = pmod_structure ~loc structure_items in
+  let mod_binding =
+    { pmb_name = Located.mk ~loc (Some module_name);
+      pmb_expr = module_expr;
+      pmb_attributes = [];
+      pmb_loc = loc }
+  in
+  [ pstr_module ~loc mod_binding ]
+
+let params_hash_code_ast ~loc (params : query_param list) =
+  let string_expr_for_param param =
+    let field_name =
+      match param.payload_key with
+      | Some key -> sanitize_identifier key
+      | None -> Printf.sprintf "param_%d" param.index
+    in
+    let field_expr = pexp_field ~loc (eident_of_string ~loc "p") (Located.mk ~loc (Lident field_name)) in
+    match string_conversion_fn param.ocaml_type with
+    | "" -> field_expr
+    | fn -> pexp_apply ~loc (eident_of_string ~loc fn) [(Nolabel, field_expr)]
+  in
+  match params with
+  | [] ->
+      pstr_value ~loc Nonrecursive
+        [ value_binding ~loc ~pat:(pvar ~loc "paramsHash")
+            ~expr:(pexp_fun ~loc Nolabel None (ppat_construct ~loc (Located.mk ~loc (Lident "()")) None)
+                     (estring_of_string ~loc "")) ]
+  | _ ->
+      let hash_body = concat_with_separator_ast ~loc ":" (List.map string_expr_for_param params) in
+      pstr_value ~loc Nonrecursive
+        [ value_binding ~loc ~pat:(pvar ~loc "paramsHash")
+            ~expr:(pexp_fun ~loc Nolabel None
+                     (ppat_constraint ~loc (pvar ~loc "p")
+                        (ptyp_constr ~loc (Located.mk ~loc (Lident "params")) []))
+                     hash_body) ]
+
+let caqti_param_expr_ast ~loc (params : query_param list) =
+  match params with
+  | [] -> pexp_construct ~loc (Located.mk ~loc (Lident "()")) None
+  | [ param ] ->
+      let field_name =
+        match param.payload_key with
+        | Some key -> sanitize_identifier key
+        | None -> Printf.sprintf "param_%d" param.index
+      in
+      pexp_field ~loc (pexp_ident ~loc (Located.mk ~loc (Lident "p"))) (Located.mk ~loc (Lident field_name))
+  | _ ->
+      let fields =
+        params
+        |> List.map (fun (param : query_param) ->
+              let field_name =
+                match param.payload_key with
+                | Some key -> sanitize_identifier key
+                | None -> Printf.sprintf "param_%d" param.index
+              in
+              pexp_field ~loc (pexp_ident ~loc (Located.mk ~loc (Lident "p"))) (Located.mk ~loc (Lident field_name)))
+      in
+      pexp_tuple ~loc fields
+
+let channel_function_code_ast ~loc tables (query : query) =
+  pstr_value ~loc Nonrecursive
+    [ value_binding ~loc ~pat:(pvar ~loc "channel")
+        ~expr:(pexp_fun ~loc Nolabel None
+                 (pvar ~loc "_")
+                 (estring_of_string ~loc query.name)) ]
+
+let decode_row_code_ast ~loc (columns : (string * sql_type) list) =
+  match columns with
+  | [] ->
+      pstr_value ~loc Nonrecursive
+        [ value_binding ~loc ~pat:(pvar ~loc "decodeRow")
+            ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "_") (eunit_ast ~loc)) ]
+  | _ ->
+      let fields =
+        columns
+        |> List.map (fun (name, sql_type) ->
+               let field_name = sanitize_identifier name in
+               let decode_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_of_json_fn (ocaml_type_string_of_sql_type sql_type)] in
+               ( Located.mk ~loc (Lident field_name),
+                 pexp_apply ~loc (epath_of_strings ~loc ["StoreJson"; "requiredField"])
+                   [ (Labelled "json", eident_of_string ~loc "json");
+                     (Labelled "fieldName", estring_of_string ~loc name);
+                     (Labelled "decode", decode_fn) ] ))
+      in
+      pstr_value ~loc Nonrecursive
+        [ value_binding ~loc ~pat:(pvar ~loc "decodeRow")
+            ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "json") (pexp_record ~loc fields None)) ]
+
+let row_to_json_code_ast ~loc (columns : (string * sql_type) list) =
+  match columns with
+  | [] ->
+      pstr_value ~loc Nonrecursive
+        [ value_binding ~loc ~pat:(pvar ~loc "row_to_json")
+            ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "_")
+                     (pexp_apply ~loc (epath_of_strings ~loc ["Melange_json"; "Primitives"; "unit_to_json"])
+                        [(Nolabel, eunit_ast ~loc)])) ]
+  | _ ->
+      let dict_binding =
+        value_binding ~loc ~pat:(pvar ~loc "dict")
+          ~expr:(pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "empty"]) [(Nolabel, eunit_ast ~loc)])
+      in
+      let set_calls =
+        columns
+        |> List.map (fun (name, sql_type) ->
+               let field_name = sanitize_identifier name in
+               let json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_to_json_fn (ocaml_type_string_of_sql_type sql_type)] in
+               pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "set"])
+                 [ (Nolabel, eident_of_string ~loc "dict");
+                   (Nolabel, estring_of_string ~loc name);
+                   ( Nolabel,
+                     pexp_apply ~loc json_fn
+                       [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "row") (Located.mk ~loc (Lident field_name))) ] ) ])
+      in
+      let body =
+        List.fold_right
+          (fun call acc -> pexp_sequence ~loc call acc)
+          set_calls
+          (store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict"))
+      in
+      pstr_value ~loc Nonrecursive
+        [ value_binding ~loc ~pat:(pvar ~loc "row_to_json")
+            ~expr:(pexp_fun ~loc Nolabel None
+                     (ppat_constraint ~loc (pvar ~loc "row")
+                        (ptyp_constr ~loc (Located.mk ~loc (Lident "row")) []))
+                     (pexp_let ~loc Nonrecursive [dict_binding] body)) ]
+
+let query_module_declaration_ast ~loc (tables : table list) (query : query) : structure_item list =
+  let mod_name = module_name_of_table query.name in
+  let inferred_columns = Realtime_schema_pg_query.infer_select_columns tables query.return_table query.sql in
+  let params_metadata_expr =
+    elist_of_exprs ~loc
+      (List.map
+         (fun (param : query_param) ->
+           pexp_tuple ~loc
+             [eint_of_int ~loc param.index; estring_of_string ~loc param.ocaml_type; estring_of_string ~loc param.sql_type])
+         query.params)
+  in
+  let return_table_expr =
+    match query.return_table with
+    | None -> enone_ast ~loc
+    | Some v -> esome_ast ~loc (estring_of_string ~loc v)
+  in
+  let json_columns_expr = elist_of_exprs ~loc (List.map (estring_of_string ~loc) query.json_columns) in
+  let handler_expr = string_of_handler_ast ~loc query.handler in
+  let row_columns = Option.value inferred_columns ~default:[] in
+  let row_type_decl =
+    if row_columns = [] then
+      pstr_type ~loc Nonrecursive
+        [ type_declaration ~loc ~name:(Located.mk ~loc "row") ~params:[] ~cstrs:[] ~private_:Public
+            ~manifest:(Some (ptyp_constr ~loc (Located.mk ~loc (Lident "unit")) []))
+            ~kind:Ptype_abstract ]
+    else
+      let fields =
+        row_columns
+        |> List.map (fun (name, sql_type) ->
+               label_declaration ~loc ~name:(Located.mk ~loc (sanitize_identifier name)) ~mutable_:Immutable
+                 ~type_:(ptyp_constr ~loc (Located.mk ~loc (Lident (ocaml_type_string_of_sql_type sql_type))) []))
+      in
+      pstr_type ~loc Nonrecursive
+        [ type_declaration ~loc ~name:(Located.mk ~loc "row") ~params:[] ~cstrs:[] ~private_:Public
+            ~manifest:None ~kind:(Ptype_record fields) ]
+  in
+  let param_type_expr = mutation_param_type_expr_ast ~loc query.params in
+  let caqti_type_expr =
+    caqti_type_expr_for_columns_ast ~loc ~type_name:"row"
+      (List.map (fun (name, sql_type) -> (name, sql_type)) row_columns)
+  in
+  let infix_request_expr operator right_expr =
+    let request_builder =
+      pexp_open ~loc
+        (open_infos ~loc ~expr:(mpath_of_strings ~loc ["Caqti_request"; "Infix"]) ~override:Fresh)
+        (pexp_apply ~loc (eident_of_string ~loc operator)
+           [(Nolabel, eident_of_string ~loc "param_type"); (Nolabel, right_expr)])
+    in
+    pexp_apply ~loc request_builder [(Nolabel, eident_of_string ~loc "sql")]
+  in
+  let name_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc "name") ~expr:(estring_of_string ~loc query.name) ]
+  in
+  let sql_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc "sql") ~expr:(estring_of_string ~loc query.sql) ]
+  in
+  let params_metadata_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc "params_metadata") ~expr:params_metadata_expr ]
+  in
+  let return_table_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc "return_table") ~expr:return_table_expr ]
+  in
+  let json_columns_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc "json_columns") ~expr:json_columns_expr ]
+  in
+  let handler_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc "handler") ~expr:handler_expr ]
+  in
+  let caqti_type_binding = native_value_binding ~loc "caqti_type" caqti_type_expr in
+  let param_type_binding = native_value_binding ~loc "param_type" param_type_expr in
+  let request_binding =
+    native_value_binding ~loc "request"
+      (pexp_fun ~loc Nolabel None (pvar ~loc "row_type")
+         (infix_request_expr "->*" (eident_of_string ~loc "row_type")))
+  in
+  let find_request_binding =
+    native_value_binding ~loc "find_request"
+      (pexp_fun ~loc Nolabel None (pvar ~loc "row_type")
+         (infix_request_expr "->?" (eident_of_string ~loc "row_type")))
+  in
+  let collect_binding =
+    native_value_binding ~loc "collect"
+      (pexp_fun ~loc Nolabel None (db_connection_pattern ~loc)
+         (pexp_fun ~loc Nolabel None (pvar ~loc "row_type")
+            (pexp_fun ~loc Nolabel None (pvar ~loc "param_values")
+               (pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "bind"])
+                  [ ( Nolabel,
+                      pexp_apply ~loc (epath_of_strings ~loc ["Db"; "collect_list"])
+                        [ (Nolabel, pexp_apply ~loc (eident_of_string ~loc "request") [(Nolabel, eident_of_string ~loc "row_type")]);
+                          (Nolabel, eident_of_string ~loc "param_values") ] );
+                    (Nolabel, epath_of_strings ~loc ["Caqti_lwt"; "or_fail"]) ]))))
+  in
+  let find_opt_binding =
+    native_value_binding ~loc "find_opt"
+      (pexp_fun ~loc Nolabel None (db_connection_pattern ~loc)
+         (pexp_fun ~loc Nolabel None (pvar ~loc "row_type")
+            (pexp_fun ~loc Nolabel None (pvar ~loc "param_values")
+               (pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "bind"])
+                  [ ( Nolabel,
+                      pexp_apply ~loc (epath_of_strings ~loc ["Db"; "find_opt"])
+                        [ (Nolabel, pexp_apply ~loc (eident_of_string ~loc "find_request") [(Nolabel, eident_of_string ~loc "row_type")]);
+                          (Nolabel, eident_of_string ~loc "param_values") ] );
+                    (Nolabel, epath_of_strings ~loc ["Caqti_lwt"; "or_fail"]) ]))))
+  in
+  let params_type_binding = params_type_declaration_ast ~loc query.params in
+  let channel_binding = channel_function_code_ast ~loc tables query in
+  let params_hash_binding = params_hash_code_ast ~loc query.params in
+  let encode_params_binding = encode_params_code_ast ~loc query.params in
+  let decode_row_binding = decode_row_code_ast ~loc row_columns in
+  let row_to_json_binding = row_to_json_code_ast ~loc row_columns in
+  let execute_binding =
+    let caqti_args = caqti_param_expr_ast ~loc query.params in
+    let success_body =
+      pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "bind"])
+        [ ( Nolabel,
+            pexp_apply ~loc (eident_of_string ~loc "collect")
+              [ (Nolabel, pexp_pack ~loc (mpath_of_strings ~loc ["Db"]));
+                (Nolabel, eident_of_string ~loc "caqti_type");
+                (Nolabel, caqti_args) ] );
+          ( Nolabel,
+            pexp_fun ~loc Nolabel None (pvar ~loc "rows")
+              (pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "return"])
+                 [ ( Nolabel,
+                     econstr_ast ~loc "Ok"
+                       (Some
+                          (pexp_apply ~loc (epath_of_strings ~loc ["Array"; "of_list"])
+                             [(Nolabel, eident_of_string ~loc "rows")])) ) ]) ) ]
+    in
+    let error_handler =
+      pexp_function_cases ~loc
+        [ case
+            ~lhs:(ppat_construct ~loc (Located.mk ~loc (Ldot (Lident "Caqti_error", "Exn")))
+                    (Some (pvar ~loc "error")))
+            ~guard:None
+            ~rhs:(pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "return"])
+                    [ ( Nolabel,
+                        econstr_ast ~loc "Error"
+                          (Some
+                             (pexp_apply ~loc (epath_of_strings ~loc ["Caqti_error"; "show"])
+                                [(Nolabel, eident_of_string ~loc "error")])) ) ]);
+          case ~lhs:(pvar ~loc "exn") ~guard:None
+            ~rhs:(pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "return"])
+                    [ ( Nolabel,
+                        econstr_ast ~loc "Error"
+                          (Some
+                             (pexp_apply ~loc (epath_of_strings ~loc ["Printexc"; "to_string"])
+                                [(Nolabel, eident_of_string ~loc "exn")])) ) ]) ]
+    in
+    native_value_binding ~loc "execute"
+      (pexp_fun ~loc Nolabel None (db_connection_pattern ~loc)
+         (pexp_fun ~loc Nolabel None
+            (ppat_constraint ~loc (pvar ~loc "p") (ptyp_constr ~loc (Located.mk ~loc (Lident "params")) []))
+            (pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "catch"])
+               [ (Nolabel, pexp_fun ~loc Nolabel None (ppat_construct ~loc (Located.mk ~loc (Lident "()")) None) success_body);
+                 (Nolabel, error_handler) ])))
+  in
+  let structure_items = [
+    name_binding;
+    sql_binding;
+    params_metadata_binding;
+    return_table_binding;
+    json_columns_binding;
+    handler_binding;
+    row_type_decl;
+    caqti_type_binding;
+    param_type_binding;
+    request_binding;
+    find_request_binding;
+    collect_binding;
+    find_opt_binding;
+    params_type_binding;
+    channel_binding;
+    params_hash_binding;
+    encode_params_binding;
+    decode_row_binding;
+    row_to_json_binding;
+    execute_binding;
+  ] in
+  [ pstr_module ~loc
+      (module_binding ~loc
+         ~name:(Located.mk ~loc (Some mod_name))
+         ~expr:(pmod_structure ~loc structure_items))
+  ]
+
+let json_extractor_cases_ast ~loc ~ocaml_type =
+  let ok e = pexp_construct ~loc (Located.mk ~loc (Lident "Ok")) (Some e) in
+  let error_msg = pexp_construct ~loc (Located.mk ~loc (Lident "Error")) (Some (eident_of_string ~loc "msg")) in
+  let wild_case = case ~lhs:(ppat_any ~loc) ~guard:None ~rhs:error_msg in
+  match ocaml_type with
+  | "bool" ->
+      let bool_case =
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "Bool" (Some (pvar ~loc "b")))))
+          ~guard:None ~rhs:(ok (eident_of_string ~loc "b"))
+      in
+      let true_case =
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "String"
+            (Some (ppat_constant ~loc (Pconst_string ("true", loc, None)))))))
+          ~guard:None ~rhs:(ok (pexp_construct ~loc (Located.mk ~loc (Lident "true")) None))
+      in
+      let false_case =
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "String"
+            (Some (ppat_constant ~loc (Pconst_string ("false", loc, None)))))))
+          ~guard:None ~rhs:(ok (pexp_construct ~loc (Located.mk ~loc (Lident "false")) None))
+      in
+      [bool_case; true_case; false_case; wild_case]
+  | "int" ->
+      let int_case =
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "Int" (Some (pvar ~loc "i")))))
+          ~guard:None ~rhs:(ok (eident_of_string ~loc "i"))
+      in
+      let float_case =
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "Float" (Some (pvar ~loc "f")))))
+          ~guard:None ~rhs:(ok (pexp_apply ~loc (eident_of_string ~loc "int_of_float")
+            [(Nolabel, eident_of_string ~loc "f")]))
+      in
+      let str_case =
+        let try_body = ok (pexp_apply ~loc (eident_of_string ~loc "int_of_string")
+          [(Nolabel, eident_of_string ~loc "s")]) in
+        let failure_case =
+          case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Failure")) (Some (pvar ~loc "_")))
+            ~guard:None ~rhs:error_msg
+        in
+        let try_expr = pexp_try ~loc try_body [failure_case] in
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "String" (Some (pvar ~loc "s")))))
+          ~guard:None ~rhs:try_expr
+      in
+      [int_case; float_case; str_case; wild_case]
+  | "float" ->
+      let float_case =
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "Float" (Some (pvar ~loc "f")))))
+          ~guard:None ~rhs:(ok (eident_of_string ~loc "f"))
+      in
+      let int_case =
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "Int" (Some (pvar ~loc "i")))))
+          ~guard:None ~rhs:(ok (pexp_apply ~loc (eident_of_string ~loc "float_of_int")
+            [(Nolabel, eident_of_string ~loc "i")]))
+      in
+      let str_case =
+        let try_body = ok (pexp_apply ~loc (eident_of_string ~loc "float_of_string")
+          [(Nolabel, eident_of_string ~loc "s")]) in
+        let failure_case =
+          case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Failure")) (Some (pvar ~loc "_")))
+            ~guard:None ~rhs:error_msg
+        in
+        let try_expr = pexp_try ~loc try_body [failure_case] in
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "String" (Some (pvar ~loc "s")))))
+          ~guard:None ~rhs:try_expr
+      in
+      [float_case; int_case; str_case; wild_case]
+  | "int64" ->
+      let int_case =
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "Int" (Some (pvar ~loc "i")))))
+          ~guard:None ~rhs:(ok (pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Int64", "of_int"))))
+            [(Nolabel, eident_of_string ~loc "i")]))
+      in
+      let str_case =
+        let try_body = ok (pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Int64", "of_string"))))
+          [(Nolabel, eident_of_string ~loc "s")]) in
+        let failure_case =
+          case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Failure")) (Some (pvar ~loc "_")))
+            ~guard:None ~rhs:error_msg
+        in
+        let try_expr = pexp_try ~loc try_body [failure_case] in
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "String" (Some (pvar ~loc "s")))))
+          ~guard:None ~rhs:try_expr
+      in
+      [int_case; str_case; wild_case]
+  | _ ->
+      let str_case =
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some"))
+          (Some (ppat_variant ~loc "String" (Some (pvar ~loc "s")))))
+          ~guard:None ~rhs:(ok (eident_of_string ~loc "s"))
+      in
+      [str_case; wild_case]
+
+let dispatch_function_for_mutation_ast ~loc (mutation : mutation) : structure_item option =
   match mutation.handler with
-  | Ocaml -> ""
+  | Ocaml -> None
   | Sql ->
-      let param_extractions =
-        mutation.params
-        |> List.map (fun param ->
-               let key = Option.value param.payload_key ~default:(Printf.sprintf "param_%d" param.index) in
-               let var_name = sanitize_identifier key in
-               let extractor = json_extractor_code ~key ~ocaml_type:param.ocaml_type in
-               Printf.sprintf "  let %s =\n%s\n  in" var_name (indent extractor))
-        |> String.concat "\n"
-      in
+      let params = mutation.params in
       let var_names =
-        mutation.params
-        |> List.map (fun param ->
-               let key = Option.value param.payload_key ~default:(Printf.sprintf "param_%d" param.index) in
-               sanitize_identifier key)
+        params
+        |> List.map (fun (param : query_param) ->
+          let key = Option.value param.payload_key ~default:(Printf.sprintf "param_%d" param.index) in
+          sanitize_identifier key)
       in
-      let tuple_expr =
+      let exec_arg =
         match var_names with
-        | [] -> "()"
-        | [ v ] -> v
-        | vs -> Printf.sprintf "(%s)" (String.concat ", " vs)
+        | [] -> eunit_ast ~loc
+        | [v] -> eident_of_string ~loc v
+        | vs -> pexp_tuple ~loc (List.map (fun v -> eident_of_string ~loc v) vs)
       in
-      let rec build_matches = function
-        | [] ->
-            Printf.sprintf
-              "      Lwt.catch\n\
-              \        (fun () ->\n\
-              \           let open Lwt.Syntax in\n\
-              \           let* () = exec (module Db) %s in\n\
-              \           Lwt.return (Ok ()))\n\
-              \        (function\n\
-              \         | Caqti_error.Exn error -> Lwt.return (Error (Caqti_error.show error))\n\
-              \         | exn -> Lwt.return (Error (Printexc.to_string exn)))"
-              tuple_expr
-        | v :: rest ->
-            Printf.sprintf
-              "  match %s with\n\
-              \  | Error msg -> Lwt.return (Error msg)\n\
-              \  | Ok %s ->\n%s"
-              v v (indent (build_matches rest))
+      let exec_call =
+        pexp_apply ~loc (eident_of_string ~loc "exec")
+          [(Nolabel, pexp_pack ~loc (pmod_ident ~loc (Located.mk ~loc (Lident "Db"))));
+            (Nolabel, exec_arg)]
       in
-      let body = build_matches var_names in
-      let payload_binding =
-        if mutation.params = [] then ""
-        else
-          "  let payload =\n\
-          \    match action with\n\
-          \    | `Assoc fields -> (\n\
-          \        match List.assoc_opt \"payload\" fields with\n\
-          \        | Some p -> p\n\
-          \        | None -> `Assoc [])\n\
-          \    | _ -> `Assoc []\n\
-          \  in\n"
+      let success_fun =
+        pexp_fun ~loc Nolabel None (ppat_construct ~loc (Located.mk ~loc (Lident "()")) None)
+          (pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "bind"])
+             [ (Nolabel, exec_call);
+               ( Nolabel,
+                 pexp_fun ~loc Nolabel None (ppat_construct ~loc (Located.mk ~loc (Lident "()")) None)
+                   (pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "return"])
+                      [ (Nolabel, econstr_ast ~loc "Ok" (Some (eunit_ast ~loc))) ]) ) ])
       in
-      Printf.sprintf
-        "let dispatch (module Db : Caqti_lwt.CONNECTION) action =\n\
-        %s\
-        %s\n\
-        %s\n\
-        [@@platform native]"
-        payload_binding param_extractions body
+      let error_msg =
+        pexp_construct ~loc (Located.mk ~loc (Lident "Error")) (Some (eident_of_string ~loc "msg"))
+      in
+      let caqti_error_case =
+        let rhs =
+          pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "return"])
+            [(Nolabel, pexp_construct ~loc (Located.mk ~loc (Lident "Error"))
+              (Some (pexp_apply ~loc (epath_of_strings ~loc ["Caqti_error"; "show"])
+                [(Nolabel, eident_of_string ~loc "error")])))]
+        in
+        case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Ldot (Lident "Caqti_error", "Exn")))
+          (Some (pvar ~loc "error")))
+          ~guard:None ~rhs
+      in
+      let generic_error_case =
+        let rhs =
+          pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "return"])
+            [(Nolabel, pexp_construct ~loc (Located.mk ~loc (Lident "Error"))
+              (Some (pexp_apply ~loc (epath_of_strings ~loc ["Printexc"; "to_string"])
+                [(Nolabel, eident_of_string ~loc "exn")])))]
+        in
+        case ~lhs:(pvar ~loc "exn") ~guard:None ~rhs
+      in
+      let error_handler = pexp_function_cases ~loc [caqti_error_case; generic_error_case] in
+      let lwt_catch =
+        pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "catch"])
+          [(Nolabel, success_fun); (Nolabel, error_handler)]
+      in
+      let body =
+        if params = [] then lwt_catch
+        else begin
+          let empty_assoc =
+            pexp_variant ~loc "Assoc" (Some (pexp_construct ~loc (Located.mk ~loc (Lident "[]")) None))
+          in
+          let payload_match =
+            let some_p_case = case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some")) (Some (pvar ~loc "p")))
+              ~guard:None ~rhs:(eident_of_string ~loc "p") in
+            let none_case = case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "None")) None)
+              ~guard:None ~rhs:empty_assoc in
+            let assoc_inner =
+              pexp_match ~loc
+                (pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "List", "assoc_opt"))))
+                  [(Nolabel, estring_of_string ~loc "payload"); (Nolabel, eident_of_string ~loc "fields")])
+                [some_p_case; none_case]
+            in
+            let assoc_case = case ~lhs:(ppat_variant ~loc "Assoc" (Some (pvar ~loc "fields")))
+              ~guard:None ~rhs:assoc_inner in
+            let wild_case = case ~lhs:(ppat_any ~loc) ~guard:None ~rhs:empty_assoc in
+            pexp_match ~loc (eident_of_string ~loc "action") [assoc_case; wild_case]
+          in
+          let payload_vb = value_binding ~loc ~pat:(pvar ~loc "payload") ~expr:payload_match in
+          let param_vbs =
+            params
+            |> List.map (fun (param : query_param) ->
+              let key = Option.value param.payload_key ~default:(Printf.sprintf "param_%d" param.index) in
+              let var_name = sanitize_identifier key in
+              let msg_binding =
+                value_binding ~loc ~pat:(pvar ~loc "msg")
+                  ~expr:(estring_of_string ~loc (Printf.sprintf "Missing or invalid field: %s" key))
+              in
+              let extractor_cases = json_extractor_cases_ast ~loc ~ocaml_type:param.ocaml_type in
+              let assoc_inner =
+                pexp_match ~loc
+                  (pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "List", "assoc_opt"))))
+                    [(Nolabel, estring_of_string ~loc key); (Nolabel, eident_of_string ~loc "fields")])
+                  extractor_cases
+              in
+              let assoc_case = case ~lhs:(ppat_variant ~loc "Assoc" (Some (pvar ~loc "fields")))
+                ~guard:None ~rhs:assoc_inner in
+              let wild_case = case ~lhs:(ppat_any ~loc) ~guard:None
+                ~rhs:(pexp_construct ~loc (Located.mk ~loc (Lident "Error")) (Some (eident_of_string ~loc "msg"))) in
+              let param_match =
+                pexp_match ~loc (eident_of_string ~loc "payload") [assoc_case; wild_case]
+              in
+              let param_body = pexp_let ~loc Nonrecursive [msg_binding] param_match in
+              value_binding ~loc ~pat:(pvar ~loc var_name) ~expr:param_body)
+          in
+          let rec build_nested_matches = function
+            | [] -> lwt_catch
+            | v :: rest ->
+                let ok_pat = ppat_construct ~loc (Located.mk ~loc (Lident "Ok")) (Some (pvar ~loc v)) in
+                let ok_body = build_nested_matches rest in
+                let ok_case = case ~lhs:ok_pat ~guard:None ~rhs:ok_body in
+                let error_case = case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Error")) (Some (pvar ~loc "msg")))
+                  ~guard:None
+                  ~rhs:(pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "return"]) [(Nolabel, error_msg)]) in
+                pexp_match ~loc (eident_of_string ~loc v) [error_case; ok_case]
+          in
+          let match_body = build_nested_matches var_names in
+          let with_params =
+            List.fold_right
+              (fun vb acc -> pexp_let ~loc Nonrecursive [vb] acc)
+              param_vbs match_body
+          in
+          pexp_let ~loc Nonrecursive [payload_vb] with_params
+        end
+      in
+      let db_pat =
+        ppat_constraint ~loc
+          (ppat_unpack ~loc (Located.mk ~loc (Some "Db")))
+          (ptyp_package ~loc (Located.mk ~loc (Ldot (Lident "Caqti_lwt", "CONNECTION")), []))
+      in
+      let dispatch_expr =
+        pexp_fun ~loc Nolabel None db_pat
+          (pexp_fun ~loc Nolabel None (pvar ~loc "action") body)
+      in
+      let platform_attr =
+        attribute ~loc
+          ~name:(Located.mk ~loc "platform")
+          ~payload:(PStr [pstr_eval ~loc (eident_of_string ~loc "native") []])
+      in
+      let vb = value_binding ~loc ~pat:(pvar ~loc "dispatch") ~expr:dispatch_expr in
+      let vb = { vb with pvb_attributes = [platform_attr] } in
+      Some (pstr_value ~loc Nonrecursive [vb])
 
-let mutation_module_declaration (mutation : mutation) =
-  let params_metadata_literal =
-    mutation.params
-    |> List.map (fun param -> Printf.sprintf "(%d, %S, %S)" param.index param.ocaml_type param.sql_type)
-    |> String.concat "; "
+let mutation_module_declaration_ast ~loc (mutation : mutation) : structure_item list =
+  let mod_name = module_name_of_table mutation.name in
+  let params_metadata_expr =
+    elist_of_exprs ~loc
+      (List.map
+         (fun (param : query_param) ->
+           pexp_tuple ~loc
+             [eint_of_int ~loc param.index; estring_of_string ~loc param.ocaml_type; estring_of_string ~loc param.sql_type])
+         mutation.params)
   in
- let caqti_items =
- let param_type_expr = mutation_param_type_expr mutation.params in
- Printf.sprintf
- "let param_type = %s [@@platform native]\n\
-  \ let request = Caqti_request.Infix.(param_type ->. Caqti_type.unit)(sql) [@@platform native]\n\
-  \ let exec (module Db : Caqti_lwt.CONNECTION) param_values =\n\
-  \ let open Lwt.Syntax in\n\
-  \ let* result = Db.exec request param_values in\n\
-  \ Caqti_lwt.or_fail result [@@platform native]"
- param_type_expr
+  let handler_expr = string_of_handler_ast ~loc mutation.handler in
+  let param_type_expr = mutation_param_type_expr_ast ~loc mutation.params in
+  let request_expr =
+    let request_builder =
+      pexp_open ~loc
+        (open_infos ~loc ~expr:(mpath_of_strings ~loc ["Caqti_request"; "Infix"]) ~override:Fresh)
+        (pexp_apply ~loc (eident_of_string ~loc "->.")
+           [ (Nolabel, eident_of_string ~loc "param_type");
+             (Nolabel, epath_of_strings ~loc ["Caqti_type"; "unit"]) ])
+    in
+    pexp_apply ~loc request_builder [(Nolabel, eident_of_string ~loc "sql")]
   in
-  let dispatch_items = dispatch_function_for_mutation mutation in
-  let items =
-    if dispatch_items = "" then caqti_items
-    else Printf.sprintf "%s\n\n  %s" caqti_items dispatch_items
+  let name_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc "name") ~expr:(estring_of_string ~loc mutation.name) ]
   in
-  let params_type_decl = params_type_declaration mutation.params in
-  let encode_params_func = encode_params_code mutation.params in
-  Printf.sprintf
-    "module %s = struct\n let name = %S\n let sql = %S\n let params_metadata = [%s]\n let handler = %s\n\n %s\n\n %s\n\n %s\nend"
-    (module_name_of_table mutation.name) mutation.name mutation.sql params_metadata_literal
-    (string_of_handler mutation.handler)
-    items
-    params_type_decl
-    encode_params_func
+  let sql_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc "sql") ~expr:(estring_of_string ~loc mutation.sql) ]
+  in
+  let params_metadata_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc "params_metadata") ~expr:params_metadata_expr ]
+  in
+  let handler_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc "handler") ~expr:handler_expr ]
+  in
+  let param_type_binding = native_value_binding ~loc "param_type" param_type_expr in
+  let request_binding = native_value_binding ~loc "request" request_expr in
+  let exec_binding =
+    native_value_binding ~loc "exec"
+      (pexp_fun ~loc Nolabel None (db_connection_pattern ~loc)
+         (pexp_fun ~loc Nolabel None (pvar ~loc "param_values")
+            (pexp_apply ~loc (epath_of_strings ~loc ["Lwt"; "bind"])
+               [ (Nolabel, pexp_apply ~loc (epath_of_strings ~loc ["Db"; "exec"])
+                             [ (Nolabel, eident_of_string ~loc "request");
+                               (Nolabel, eident_of_string ~loc "param_values") ]);
+                 (Nolabel, epath_of_strings ~loc ["Caqti_lwt"; "or_fail"]) ])))
+  in
+  let params_type_binding = params_type_declaration_ast ~loc mutation.params in
+  let encode_params_binding = encode_params_code_ast ~loc mutation.params in
+  let to_action_binding = mutation_to_action_binding_ast ~loc mutation in
+  let dispatch_items =
+    match dispatch_function_for_mutation_ast ~loc mutation with
+    | Some item -> [item]
+    | None -> []
+  in
+  let structure_items = [
+    name_binding;
+    sql_binding;
+    params_metadata_binding;
+    handler_binding;
+    param_type_binding;
+    request_binding;
+    exec_binding;
+    params_type_binding;
+    encode_params_binding;
+    to_action_binding;
+  ] @ dispatch_items in
+  [ pstr_module ~loc
+      (module_binding ~loc
+         ~name:(Located.mk ~loc (Some mod_name))
+         ~expr:(pmod_structure ~loc structure_items))
+  ]
 
 let table_id_expression row_alias (table : table) =
   match table.id_column with
@@ -1118,78 +1734,838 @@ let migration_sql ?previous_snapshot (schema : schema) =
   in
   (version, String.concat "\n\n" statements ^ "\n")
 
-let table_caqti_type_declaration (table : table) =
-  let columns_list : column list = table.columns in
-  match columns_list with
-  | [] -> "let caqti_type = Caqti_type.unit [@@platform native]"
-  | _ ->
-      let field_names = List.map (fun (c : column) -> sanitize_identifier c.name) columns_list in
-      let constructor_args = String.concat " " field_names in
-      let record_body =
-        field_names
-        |> List.map (fun name -> Printf.sprintf "%s = %s;" name name)
-        |> String.concat " "
-      in
-      let proj_chain =
-        let record_type = type_name_of_table table.name in
-        columns_list
-        |> List.map (fun (col : column) ->
-               Printf.sprintf "    @@ Caqti_type.proj %s (fun (r : %s) -> r.%s)"
-                 (caqti_type_constructor_of_sql_type col.sql_type)
-                 record_type
-                 (sanitize_identifier col.name))
-        |> String.concat "\n"
-      in
-      Printf.sprintf
-        "let caqti_type =\n    Caqti_type.product(fun %s -> { %s })\n%s\n    @@ Caqti_type.proj_end [@@platform native]"
-        constructor_args record_body proj_chain
 
-let table_module_declaration (table : table) =
-  Printf.sprintf
-    "module %s = struct\n  let name = %S\n  let id_column = %s\n  let composite_key = %s\n\n  %s\nend"
-    (module_name_of_table table.name) table.name
-    (match table.id_column with None -> "None" | Some value -> Printf.sprintf "Some %S" value)
-    (string_list_literal table.composite_key)
-    (table_caqti_type_declaration table)
-
-let dispatch_mutation_source (mutations : mutation list) =
+let dispatch_mutation_ast ~loc (mutations : mutation list) : structure_item =
   let cases =
     mutations
     |> List.filter (fun (m : mutation) -> m.handler = Sql)
     |> List.map (fun (m : mutation) ->
-           Printf.sprintf "  | %S -> Some (Mutations.%s.dispatch (module Db) action)"
-             m.name (module_name_of_table m.name))
-    |> String.concat "\n"
+           case ~lhs:(ppat_constant ~loc (Pconst_string (m.name, loc, None))) ~guard:None
+             ~rhs:(esome_ast ~loc
+                     (pexp_apply ~loc
+                        (epath_of_strings ~loc ["Mutations"; module_name_of_table m.name; "dispatch"])
+                        [ (Nolabel, pexp_pack ~loc (mpath_of_strings ~loc ["Db"]));
+                          (Nolabel, eident_of_string ~loc "action") ])))
   in
-  Printf.sprintf
-    "let dispatch_mutation (module Db : Caqti_lwt.CONNECTION) ~mutation_name action =\n\
-    \  match mutation_name with\n\
-    %s\n\
-    \  | _ -> None\n\
-    [@@platform native]"
-    cases
+  let default_case = case ~lhs:(ppat_any ~loc) ~guard:None ~rhs:(enone_ast ~loc) in
+  let expr =
+    pexp_fun ~loc Nolabel None (db_connection_pattern ~loc)
+      (pexp_fun ~loc (Labelled "mutation_name") None (pvar ~loc "mutation_name")
+         (pexp_fun ~loc Nolabel None (pvar ~loc "action")
+            (pexp_match ~loc (eident_of_string ~loc "mutation_name") (cases @ [default_case]))))
+  in
+  native_value_binding ~loc "dispatch_mutation" expr
 
-let module_source (schema : schema) =
-  let table_types = schema.tables |> List.map record_type_declaration |> String.concat "\n\n" in
-  let table_values = schema.tables |> List.map table_record_literal |> String.concat ";\n  " in
-  let query_values = schema.queries |> List.map query_record_literal |> String.concat ";\n  " in
-  let mutation_values = schema.mutations |> List.map mutation_record_literal |> String.concat ";\n  " in
-  let query_modules = schema.queries |> List.map (query_module_declaration schema.tables) |> String.concat "\n\n" in
-  let mutation_modules = schema.mutations |> List.map mutation_module_declaration |> String.concat "\n\n" in
-  let table_modules =
-    schema.tables
-    |> List.map table_module_declaration
-    |> String.concat "\n\n"
+
+
+let pcd_simple ~loc name =
+  constructor_declaration ~loc
+    ~name:(Located.mk ~loc name)
+    ~args:(Pcstr_tuple [])
+    ~res:None
+
+let pcd_with_arg ~loc name arg_type =
+  constructor_declaration ~loc
+    ~name:(Located.mk ~loc name)
+    ~args:(Pcstr_tuple [arg_type])
+    ~res:None
+
+let toption ~loc inner =
+  ptyp_constr ~loc (Located.mk ~loc (Lident "option")) [inner]
+
+let tlist ~loc inner =
+  ptyp_constr ~loc (Located.mk ~loc (Lident "list")) [inner]
+
+let tstring ~loc = ptyp_constr ~loc (Located.mk ~loc (Lident "string")) []
+let tint ~loc = ptyp_constr ~loc (Located.mk ~loc (Lident "int")) []
+let tbool ~loc = ptyp_constr ~loc (Located.mk ~loc (Lident "bool")) []
+let tident ~loc name = ptyp_constr ~loc (Located.mk ~loc (Lident name)) []
+let tpair ~loc = ptyp_tuple ~loc [tstring ~loc; tstring ~loc]
+
+let mutation_payload_type_name (mutation_name : string) : string =
+  let pascal = module_name_of_table mutation_name in
+  let first = String.sub pascal 0 1 |> String.lowercase_ascii in
+  let rest = String.sub pascal 1 (String.length pascal - 1) in
+  first ^ rest ^ "Params"
+
+let mutation_payload_type_declaration_ast ~loc (mutation : mutation) : structure_item option =
+  let payload_params = mutation.params
+    |> List.filter (fun (p : query_param) -> p.payload_key <> None)
   in
-  let _, migration_sql = migration_sql schema in
-  Printf.sprintf
-    "include struct\n\ntype sql_type =\n  | Uuid\n  | Varchar\n  | Text\n  | Int\n  | Bigint\n  | Boolean\n  | Timestamp\n  | Timestamptz\n  | Json\n  | Jsonb\n  | Custom of string\n\ntype foreign_key = {\n  column : string;\n  referenced_table : string;\n  referenced_column : string;\n}\n\ntype broadcast_channel =\n  | Column of string\n  | Computed of string\n  | Conditional of string\n  | Subquery of string\n\ntype broadcast_parent = {\n  parent_table : string;\n  query_name : string;\n}\n\ntype broadcast_to_views = {\n  view_table : string;\n  channel_column : string;\n}\n\ntype column_metadata = {\n  name : string;\n  sql_type : sql_type;\n  sql_type_raw : string;\n  nullable : bool;\n  primary_key : bool;\n  default : string option;\n  foreign_key : foreign_key option;\n  definition_sql : string;\n}\n\ntype table_metadata = {\n  name : string;\n  columns : column_metadata list;\n  id_column : string option;\n  composite_key : string list;\n  broadcast_channel : broadcast_channel option;\n  broadcast_parent : broadcast_parent option;\n  broadcast_to_views : broadcast_to_views option;\n  create_sql : string;\n  source_file : string;\n}\n\ntype handler = Sql | Ocaml\n\ntype query_param = {\n  index : int;\n  column_ref : (string * string) option;
-  payload_key : string option;\n  ocaml_type : string;\n  sql_type : string;\n}\n\ntype query_metadata = {\n  name : string;\n  sql : string;\n  source_file : string;\n  cache_key : string option;\n  return_table : string option;\n  json_columns : string list;\n  params_metadata : query_param list;\n handler : handler;\n}\n\ntype mutation_metadata = {\n name : string;\n sql : string;\n source_file : string;\n params_metadata : query_param list;\n  handler : handler;\n}\n\n%s\n\nlet schema_hash = %S\n\nlet source_files = %s\n\nlet tables : table_metadata list = [\n  %s\n]\n\nlet queries : query_metadata list = [\n  %s\n]\n\nlet mutations : mutation_metadata list = [\n  %s\n]\n\nlet generated_triggers_sql = %S\n\nlet latest_migration_sql = %S\n\nlet find_query name = List.find_opt (fun (query : query_metadata) -> query.name = name) queries\n\nlet find_mutation name = List.find_opt (fun (mutation : mutation_metadata) -> mutation.name = name) mutations\n\nlet find_table name = List.find_opt (fun (table : table_metadata) -> table.name = name) tables\n\nlet find_column table_name column_name =\n  match find_table table_name with\n  | Some table -> List.find_opt (fun (column : column_metadata) -> column.name = column_name) table.columns\n  | None -> None\n\nlet table_name name = match find_table name with Some table -> table.name | None -> name\n\nmodule Tables = struct\n%s\nend\n\nmodule Queries = struct\n%s\nend\n\nmodule Mutations = struct\n%s\nend\n\n%s\nend"
-    table_types schema.schema_hash (string_list_literal schema.source_files)
-    (indent table_values) (indent query_values) (indent mutation_values)
-    (generated_triggers_sql schema) migration_sql
-    (indent table_modules) (indent query_modules) (indent mutation_modules)
-    (dispatch_mutation_source schema.mutations)
+  match List.length payload_params with
+  | 0 | 1 -> None
+  | _ ->
+    let type_name = mutation_payload_type_name mutation.name in
+    let label_decls = payload_params
+      |> List.map (fun (param : query_param) ->
+        let field_name = match param.payload_key with
+          | Some key -> sanitize_identifier key
+          | None -> Printf.sprintf "param_%d" param.index
+        in
+        label_declaration ~loc
+          ~name:(Located.mk ~loc field_name)
+          ~mutable_:Immutable
+          ~type_:(ptyp_constr ~loc (Located.mk ~loc (Lident param.ocaml_type)) []))
+    in
+    Some (pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc type_name)
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_record label_decls)
+    ])
+
+let mutation_payload_type_declarations_ast ~loc (mutations : mutation list) : structure_item list =
+  mutations
+  |> List.filter_map (mutation_payload_type_declaration_ast ~loc)
+
+let action_variant_declaration_ast ~loc (mutations : mutation list) : structure_item =
+  let constructors = mutations
+    |> List.map (fun (mutation : mutation) ->
+      let constructor_name = module_name_of_table mutation.name in
+      let payload_params = mutation.params
+        |> List.filter (fun (p : query_param) -> p.payload_key <> None)
+      in
+      match List.length payload_params with
+      | 0 -> pcd_simple ~loc constructor_name
+      | 1 ->
+        let param = List.hd payload_params in
+        pcd_with_arg ~loc constructor_name (ptyp_constr ~loc (Located.mk ~loc (Lident param.ocaml_type)) [])
+      | _ ->
+        let type_name = mutation_payload_type_name mutation.name in
+        pcd_with_arg ~loc constructor_name (tident ~loc type_name)
+    )
+  in
+  let custom_constructor =
+    pcd_with_arg ~loc "Custom"
+      (ptyp_var ~loc "custom")
+  in
+  let all_constructors = constructors @ [custom_constructor] in
+  pstr_type ~loc Nonrecursive [
+    type_declaration ~loc
+      ~name:(Located.mk ~loc "action")
+      ~params:[(ptyp_var ~loc "custom", (NoVariance, NoInjectivity))]
+      ~cstrs:[]
+      ~private_:Public
+      ~manifest:None
+      ~kind:(Ptype_variant all_constructors)
+  ]
+
+let payload_to_json_function_ast ~loc (mutation : mutation) : structure_item option =
+  let payload_params = mutation.params
+    |> List.filter (fun (p : query_param) -> p.payload_key <> None)
+  in
+  match List.length payload_params with
+  | 0 | 1 -> None
+  | _ ->
+    let type_name = mutation_payload_type_name mutation.name in
+    let fn_name = type_name ^ "_to_json" in
+    let dict_binding =
+      value_binding ~loc ~pat:(pvar ~loc "dict")
+        ~expr:(pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "empty"]) [(Nolabel, eunit_ast ~loc)])
+    in
+    let set_calls =
+      payload_params
+      |> List.map (fun (param : query_param) ->
+             let field_name = match param.payload_key with
+               | Some key -> sanitize_identifier key
+               | None -> Printf.sprintf "param_%d" param.index
+             in
+             let json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_to_json_fn param.ocaml_type] in
+             pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "set"])
+               [ (Nolabel, eident_of_string ~loc "dict");
+                 (Nolabel, estring_of_string ~loc field_name);
+                 ( Nolabel,
+                   pexp_apply ~loc json_fn
+                     [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "p") (Located.mk ~loc (Lident field_name))) ] ) ])
+    in
+    let body =
+      List.fold_right
+        (fun call acc -> pexp_sequence ~loc call acc)
+        set_calls
+        (store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict"))
+    in
+    let param_pat =
+      ppat_constraint ~loc (pvar ~loc "p")
+        (ptyp_constr ~loc (Located.mk ~loc (Lident type_name)) [])
+    in
+    Some (pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc fn_name)
+          ~expr:(pexp_fun ~loc Nolabel None param_pat
+                   (pexp_let ~loc Nonrecursive [dict_binding] body)) ])
+
+let payload_of_json_function_ast ~loc (mutation : mutation) : structure_item option =
+  let payload_params = mutation.params
+    |> List.filter (fun (p : query_param) -> p.payload_key <> None)
+  in
+  match List.length payload_params with
+  | 0 | 1 -> None
+  | _ ->
+    let type_name = mutation_payload_type_name mutation.name in
+    let fn_name = type_name ^ "_of_json" in
+    let fields =
+      payload_params
+      |> List.map (fun (param : query_param) ->
+             let field_name = match param.payload_key with
+               | Some key -> sanitize_identifier key
+               | None -> Printf.sprintf "param_%d" param.index
+             in
+             let of_json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_of_json_fn param.ocaml_type] in
+             let decode_arg =
+               pexp_fun ~loc Nolabel None (pvar ~loc "v") (pexp_apply ~loc of_json_fn [(Nolabel, eident_of_string ~loc "v")])
+             in
+             (Located.mk ~loc (Lident field_name),
+              pexp_apply ~loc (epath_of_strings ~loc ["StoreJson"; "requiredField"])
+                [ (Labelled "json", eident_of_string ~loc "p");
+                  (Labelled "fieldName", estring_of_string ~loc field_name);
+                  (Labelled "decode", decode_arg) ]))
+    in
+    let record_expr = pexp_record ~loc fields None in
+    Some (pstr_value ~loc Nonrecursive
+      [ value_binding ~loc ~pat:(pvar ~loc fn_name)
+          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "p") record_expr) ])
+
+let mutation_payload_params (mutation : mutation) : query_param list =
+  mutation.params |> List.filter (fun (p : query_param) -> p.payload_key <> None)
+
+let action_to_json_function_ast ~loc (mutations : mutation list) : structure_item =
+  let cases =
+    mutations
+    |> List.map (fun (mutation : mutation) ->
+           let constructor_name = module_name_of_table mutation.name in
+           let kind_string = mutation.name in
+           let payload_params = mutation_payload_params mutation in
+           let num_params = List.length payload_params in
+           let payload_expr =
+             match num_params with
+              | 0 ->
+                pexp_apply ~loc (epath_of_strings ~loc ["Melange_json"; "declassify"])
+                  [ (Nolabel, json_assoc_expr ~loc
+                       (elist_of_exprs ~loc [])) ]
+               | 1 ->
+                 let param = List.hd payload_params in
+                 let field_name = match param.payload_key with Some key -> key | None -> "param_0" in
+                 let dict_binding =
+                   value_binding ~loc ~pat:(pvar ~loc "dict")
+                     ~expr:(pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "empty"]) [(Nolabel, eunit_ast ~loc)])
+                 in
+                 let json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_to_json_fn param.ocaml_type] in
+                 let set_field =
+                   pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "set"])
+                     [ (Nolabel, eident_of_string ~loc "dict");
+                       (Nolabel, estring_of_string ~loc field_name);
+                       (Nolabel, pexp_apply ~loc json_fn [(Nolabel, eident_of_string ~loc "p")]) ]
+                 in
+                 let result =
+                   store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict")
+                 in
+                 pexp_let ~loc Nonrecursive [dict_binding]
+                   (pexp_sequence ~loc set_field result)
+              | _ ->
+                let type_name = mutation_payload_type_name mutation.name in
+                pexp_apply ~loc (epath_of_strings ~loc [type_name ^ "_to_json"])
+                  [(Nolabel, eident_of_string ~loc "p")]
+            in
+            let dict_binding =
+             value_binding ~loc ~pat:(pvar ~loc "dict")
+               ~expr:(pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "empty"]) [(Nolabel, eunit_ast ~loc)])
+           in
+           let set_kind =
+             pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "set"])
+               [ (Nolabel, eident_of_string ~loc "dict");
+                 (Nolabel, estring_of_string ~loc "kind");
+                 (Nolabel, pexp_apply ~loc (epath_of_strings ~loc ["Melange_json"; "Primitives"; "string_to_json"])
+                    [(Nolabel, estring_of_string ~loc kind_string)]) ]
+           in
+           let set_payload =
+             pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "set"])
+               [ (Nolabel, eident_of_string ~loc "dict");
+                 (Nolabel, estring_of_string ~loc "payload");
+                 (Nolabel, payload_expr) ]
+           in
+           let result_expr =
+             store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict")
+           in
+           let body =
+             pexp_let ~loc Nonrecursive [dict_binding]
+               (pexp_sequence ~loc set_kind
+                  (pexp_sequence ~loc set_payload result_expr))
+           in
+           let pat = match num_params with
+             | 0 -> ppat_construct ~loc (Located.mk ~loc (Lident constructor_name)) None
+             | _ -> ppat_construct ~loc (Located.mk ~loc (Lident constructor_name)) (Some (pvar ~loc "p"))
+           in
+           case ~lhs:pat ~guard:None ~rhs:body)
+  in
+  let custom_case =
+    case ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Custom")) (Some (pvar ~loc "action")))
+      ~guard:None
+      ~rhs:(pexp_apply ~loc (eident_of_string ~loc "custom_to_json")
+              [(Labelled "action", eident_of_string ~loc "action")])
+  in
+  let fun_body = pexp_match ~loc (eident_of_string ~loc "action") (cases @ [custom_case]) in
+  let fun_expr =
+    pexp_fun ~loc (Labelled "custom_to_json") None (pvar ~loc "custom_to_json")
+      (pexp_fun ~loc Nolabel None (pvar ~loc "action") fun_body)
+  in
+  pstr_value ~loc Nonrecursive
+    [ value_binding ~loc ~pat:(pvar ~loc "action_to_json") ~expr:fun_expr ]
+
+let action_of_json_function_ast ~loc (mutations : mutation list) : structure_item =
+  let string_of_json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; "string_of_json"] in
+  let decode_string_arg =
+    pexp_fun ~loc Nolabel None (pvar ~loc "v")
+      (pexp_apply ~loc string_of_json_fn [(Nolabel, eident_of_string ~loc "v")])
+  in
+  let decode_identity_arg =
+    pexp_fun ~loc Nolabel None (pvar ~loc "v") (eident_of_string ~loc "v")
+  in
+  let kind_binding =
+    value_binding ~loc ~pat:(pvar ~loc "kind")
+      ~expr:(pexp_apply ~loc (epath_of_strings ~loc ["StoreJson"; "requiredField"])
+               [ (Labelled "json", eident_of_string ~loc "json");
+                 (Labelled "fieldName", estring_of_string ~loc "kind");
+                 (Labelled "decode", decode_string_arg) ])
+  in
+  let payload_binding =
+    value_binding ~loc ~pat:(pvar ~loc "payload")
+      ~expr:(pexp_apply ~loc (epath_of_strings ~loc ["StoreJson"; "requiredField"])
+               [ (Labelled "json", eident_of_string ~loc "json");
+                 (Labelled "fieldName", estring_of_string ~loc "payload");
+                 (Labelled "decode", decode_identity_arg) ])
+  in
+  let cases =
+    mutations
+    |> List.map (fun (mutation : mutation) ->
+           let constructor_name = module_name_of_table mutation.name in
+           let kind_string = mutation.name in
+           let payload_params = mutation_payload_params mutation in
+           let num_params = List.length payload_params in
+            let rhs = match num_params with
+              | 0 ->
+                pexp_construct ~loc (Located.mk ~loc (Lident constructor_name)) None
+               | 1 ->
+                 let param = List.hd payload_params in
+                 let field_name = match param.payload_key with Some key -> key | None -> "param_0" in
+                 let of_json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_of_json_fn param.ocaml_type] in
+                 let extract_field =
+                   pexp_apply ~loc (epath_of_strings ~loc ["StoreJson"; "requiredField"])
+                     [ (Labelled "json", eident_of_string ~loc "payload");
+                       (Labelled "fieldName", estring_of_string ~loc field_name);
+                       (Labelled "decode",
+                         pexp_fun ~loc Nolabel None (pvar ~loc "v")
+                           (pexp_apply ~loc of_json_fn [(Nolabel, eident_of_string ~loc "v")])) ]
+                 in
+                 pexp_construct ~loc (Located.mk ~loc (Lident constructor_name))
+                   (Some extract_field)
+              | _ ->
+                let type_name = mutation_payload_type_name mutation.name in
+               pexp_construct ~loc (Located.mk ~loc (Lident constructor_name))
+                 (Some (pexp_apply ~loc (epath_of_strings ~loc [type_name ^ "_of_json"])
+                          [(Nolabel, eident_of_string ~loc "payload")]))
+           in
+           case ~lhs:(ppat_constant ~loc (Pconst_string (kind_string, loc, None))) ~guard:None ~rhs)
+    in
+  let custom_rhs =
+    pexp_construct ~loc (Located.mk ~loc (Lident "Custom"))
+      (Some (pexp_apply ~loc (eident_of_string ~loc "custom_of_json")
+               [(Labelled "kind", eident_of_string ~loc "kind");
+                (Labelled "payload", eident_of_string ~loc "payload")]))
+  in
+  let default_case = case ~lhs:(ppat_any ~loc) ~guard:None ~rhs:custom_rhs in
+  let switch_expr = pexp_match ~loc (eident_of_string ~loc "kind") (cases @ [default_case]) in
+  let body = pexp_let ~loc Nonrecursive [kind_binding] (pexp_let ~loc Nonrecursive [payload_binding] switch_expr) in
+  let fun_expr =
+    pexp_fun ~loc (Labelled "custom_of_json") None (pvar ~loc "custom_of_json")
+      (pexp_fun ~loc Nolabel None (pvar ~loc "json") body)
+  in
+  pstr_value ~loc Nonrecursive
+    [ value_binding ~loc ~pat:(pvar ~loc "action_of_json") ~expr:fun_expr ]
+
+let mutation_actions_module_ast ~loc (mutations : mutation list) : structure_item =
+  let payload_decls = mutation_payload_type_declarations_ast ~loc mutations in
+  let payload_to_json_helpers = mutations |> List.filter_map (payload_to_json_function_ast ~loc) in
+  let payload_of_json_helpers = mutations |> List.filter_map (payload_of_json_function_ast ~loc) in
+  let action_decl = action_variant_declaration_ast ~loc mutations in
+  let action_to_json = action_to_json_function_ast ~loc mutations in
+  let action_of_json = action_of_json_function_ast ~loc mutations in
+  let items = payload_decls @ payload_to_json_helpers @ payload_of_json_helpers @ [action_decl; action_to_json; action_of_json] in
+  pstr_module ~loc
+    (module_binding ~loc
+       ~name:(Located.mk ~loc (Some "MutationActions"))
+       ~expr:(pmod_structure ~loc items))
+
+let module_source_ast (schema : schema) ~loc : Parsetree.structure =
+  (* --- Type declarations --- *)
+
+  (* type sql_type = Uuid | Varchar | Text | ... | Custom of string *)
+  let sql_type_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "sql_type")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_variant [
+          pcd_simple ~loc "Uuid";
+          pcd_simple ~loc "Varchar";
+          pcd_simple ~loc "Text";
+          pcd_simple ~loc "Int";
+          pcd_simple ~loc "Bigint";
+          pcd_simple ~loc "Boolean";
+          pcd_simple ~loc "Timestamp";
+          pcd_simple ~loc "Timestamptz";
+          pcd_simple ~loc "Json";
+          pcd_simple ~loc "Jsonb";
+          pcd_with_arg ~loc "Custom" (tstring ~loc);
+        ])
+    ]
+  in
+
+  (* type foreign_key = { column : string; referenced_table : string; referenced_column : string; } *)
+  let foreign_key_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "foreign_key")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_record [
+          label_declaration ~loc ~name:(Located.mk ~loc "column") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "referenced_table") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "referenced_column") ~mutable_:Immutable ~type_:(tstring ~loc);
+        ])
+    ]
+  in
+
+  (* type broadcast_channel = Column of string | Computed of string | Conditional of string | Subquery of string *)
+  let broadcast_channel_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "broadcast_channel")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_variant [
+          pcd_with_arg ~loc "Column" (tstring ~loc);
+          pcd_with_arg ~loc "Computed" (tstring ~loc);
+          pcd_with_arg ~loc "Conditional" (tstring ~loc);
+          pcd_with_arg ~loc "Subquery" (tstring ~loc);
+        ])
+    ]
+  in
+
+  (* type broadcast_parent = { parent_table : string; query_name : string; } *)
+  let broadcast_parent_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "broadcast_parent")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_record [
+          label_declaration ~loc ~name:(Located.mk ~loc "parent_table") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "query_name") ~mutable_:Immutable ~type_:(tstring ~loc);
+        ])
+    ]
+  in
+
+  (* type broadcast_to_views = { view_table : string; channel_column : string; } *)
+  let broadcast_to_views_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "broadcast_to_views")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_record [
+          label_declaration ~loc ~name:(Located.mk ~loc "view_table") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "channel_column") ~mutable_:Immutable ~type_:(tstring ~loc);
+        ])
+    ]
+  in
+
+  (* type column_metadata = { ... } *)
+  let column_metadata_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "column_metadata")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_record [
+          label_declaration ~loc ~name:(Located.mk ~loc "name") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "sql_type") ~mutable_:Immutable ~type_:(tident ~loc "sql_type");
+          label_declaration ~loc ~name:(Located.mk ~loc "sql_type_raw") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "nullable") ~mutable_:Immutable ~type_:(tbool ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "primary_key") ~mutable_:Immutable ~type_:(tbool ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "default") ~mutable_:Immutable ~type_:(toption ~loc (tstring ~loc));
+          label_declaration ~loc ~name:(Located.mk ~loc "foreign_key") ~mutable_:Immutable ~type_:(toption ~loc (tident ~loc "foreign_key"));
+          label_declaration ~loc ~name:(Located.mk ~loc "definition_sql") ~mutable_:Immutable ~type_:(tstring ~loc);
+        ])
+    ]
+  in
+
+  (* type table_metadata = { ... } *)
+  let table_metadata_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "table_metadata")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_record [
+          label_declaration ~loc ~name:(Located.mk ~loc "name") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "columns") ~mutable_:Immutable ~type_:(tlist ~loc (tident ~loc "column_metadata"));
+          label_declaration ~loc ~name:(Located.mk ~loc "id_column") ~mutable_:Immutable ~type_:(toption ~loc (tstring ~loc));
+          label_declaration ~loc ~name:(Located.mk ~loc "composite_key") ~mutable_:Immutable ~type_:(tlist ~loc (tstring ~loc));
+          label_declaration ~loc ~name:(Located.mk ~loc "broadcast_channel") ~mutable_:Immutable ~type_:(toption ~loc (tident ~loc "broadcast_channel"));
+          label_declaration ~loc ~name:(Located.mk ~loc "broadcast_parent") ~mutable_:Immutable ~type_:(toption ~loc (tident ~loc "broadcast_parent"));
+          label_declaration ~loc ~name:(Located.mk ~loc "broadcast_to_views") ~mutable_:Immutable ~type_:(toption ~loc (tident ~loc "broadcast_to_views"));
+          label_declaration ~loc ~name:(Located.mk ~loc "create_sql") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "source_file") ~mutable_:Immutable ~type_:(tstring ~loc);
+        ])
+    ]
+  in
+
+  (* type handler = Sql | Ocaml *)
+  let handler_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "handler")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_variant [
+          pcd_simple ~loc "Sql";
+          pcd_simple ~loc "Ocaml";
+        ])
+    ]
+  in
+
+  (* type query_param = { index : int; column_ref : (string * string) option; payload_key : string option; ocaml_type : string; sql_type : string; } *)
+  let query_param_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "query_param")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_record [
+          label_declaration ~loc ~name:(Located.mk ~loc "index") ~mutable_:Immutable ~type_:(tint ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "column_ref") ~mutable_:Immutable ~type_:(toption ~loc (tpair ~loc));
+          label_declaration ~loc ~name:(Located.mk ~loc "payload_key") ~mutable_:Immutable ~type_:(toption ~loc (tstring ~loc));
+          label_declaration ~loc ~name:(Located.mk ~loc "ocaml_type") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "sql_type") ~mutable_:Immutable ~type_:(tstring ~loc);
+        ])
+    ]
+  in
+
+  (* type query_metadata = { ... } *)
+  let query_metadata_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "query_metadata")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_record [
+          label_declaration ~loc ~name:(Located.mk ~loc "name") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "sql") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "source_file") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "cache_key") ~mutable_:Immutable ~type_:(toption ~loc (tstring ~loc));
+          label_declaration ~loc ~name:(Located.mk ~loc "return_table") ~mutable_:Immutable ~type_:(toption ~loc (tstring ~loc));
+          label_declaration ~loc ~name:(Located.mk ~loc "json_columns") ~mutable_:Immutable ~type_:(tlist ~loc (tstring ~loc));
+          label_declaration ~loc ~name:(Located.mk ~loc "params_metadata") ~mutable_:Immutable ~type_:(tlist ~loc (tident ~loc "query_param"));
+          label_declaration ~loc ~name:(Located.mk ~loc "handler") ~mutable_:Immutable ~type_:(tident ~loc "handler");
+        ])
+    ]
+  in
+
+  (* type mutation_metadata = { ... } *)
+  let mutation_metadata_decl =
+    pstr_type ~loc Nonrecursive [
+      type_declaration ~loc
+        ~name:(Located.mk ~loc "mutation_metadata")
+        ~params:[]
+        ~cstrs:[]
+        ~private_:Public
+        ~manifest:None
+        ~kind:(Ptype_record [
+          label_declaration ~loc ~name:(Located.mk ~loc "name") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "sql") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "source_file") ~mutable_:Immutable ~type_:(tstring ~loc);
+          label_declaration ~loc ~name:(Located.mk ~loc "params_metadata") ~mutable_:Immutable ~type_:(tlist ~loc (tident ~loc "query_param"));
+          label_declaration ~loc ~name:(Located.mk ~loc "handler") ~mutable_:Immutable ~type_:(tident ~loc "handler");
+        ])
+    ]
+  in
+
+  (* Table record type declarations (from existing AST function) *)
+  let table_type_decls = schema.tables |> List.map (record_type_declaration_ast ~loc) in
+
+  (* --- Value bindings --- *)
+
+  (* let schema_hash = "..." *)
+  let schema_hash_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "schema_hash")
+          ~expr:(estring_of_string ~loc schema.schema_hash) ]
+  in
+
+  (* let source_files = [...] *)
+  let source_files_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "source_files")
+          ~expr:(elist_of_exprs ~loc (List.map (estring_of_string ~loc) schema.source_files)) ]
+  in
+
+  (* let tables : table_metadata list = [...] *)
+  let tables_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "tables")
+          ~expr:(elist_of_exprs ~loc (List.map (table_record_literal_ast ~loc) schema.tables)) ]
+  in
+
+  (* let queries : query_metadata list = [...] *)
+  let queries_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "queries")
+          ~expr:(elist_of_exprs ~loc (List.map (query_record_literal_ast ~loc) schema.queries)) ]
+  in
+
+  (* let mutations : mutation_metadata list = [...] *)
+  let mutations_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "mutations")
+          ~expr:(elist_of_exprs ~loc (List.map (mutation_record_literal_ast ~loc) schema.mutations)) ]
+  in
+
+  (* let generated_triggers_sql = "..." *)
+  let triggers_sql = generated_triggers_sql schema in
+  let generated_triggers_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "generated_triggers_sql")
+          ~expr:(estring_of_string ~loc triggers_sql) ]
+  in
+
+  (* let latest_migration_sql = "..." *)
+  let _, migration_sql_str = migration_sql schema in
+  let latest_migration_binding =
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "latest_migration_sql")
+          ~expr:(estring_of_string ~loc migration_sql_str) ]
+  in
+
+  (* --- Function definitions --- *)
+
+  (* let find_query name = List.find_opt (fun (query : query_metadata) -> query.name = name) queries *)
+  let find_query_fn =
+    let query_pat = ppat_constraint ~loc (pvar ~loc "query") (tident ~loc "query_metadata") in
+    let pred =
+      pexp_apply ~loc (eident_of_string ~loc "=")
+        [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "query") (Located.mk ~loc (Lident "name")));
+          (Nolabel, eident_of_string ~loc "name") ]
+    in
+    let find_opt_call = pexp_apply ~loc
+      (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "List", "find_opt"))))
+      [ (Nolabel, pexp_fun ~loc Nolabel None query_pat pred);
+        (Nolabel, eident_of_string ~loc "queries") ] in
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "find_query")
+          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "name") find_opt_call) ]
+  in
+
+  (* let find_mutation name = List.find_opt (fun (mutation : mutation_metadata) -> mutation.name = name) mutations *)
+  let find_mutation_fn =
+    let mutation_pat = ppat_constraint ~loc (pvar ~loc "mutation") (tident ~loc "mutation_metadata") in
+    let pred =
+      pexp_apply ~loc (eident_of_string ~loc "=")
+        [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "mutation") (Located.mk ~loc (Lident "name")));
+          (Nolabel, eident_of_string ~loc "name") ]
+    in
+    let find_opt_call = pexp_apply ~loc
+      (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "List", "find_opt"))))
+      [ (Nolabel, pexp_fun ~loc Nolabel None mutation_pat pred);
+        (Nolabel, eident_of_string ~loc "mutations") ] in
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "find_mutation")
+          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "name") find_opt_call) ]
+  in
+
+  (* let find_table name = List.find_opt (fun (table : table_metadata) -> table.name = name) tables *)
+  let find_table_fn =
+    let table_pat = ppat_constraint ~loc (pvar ~loc "table") (tident ~loc "table_metadata") in
+    let pred =
+      pexp_apply ~loc (eident_of_string ~loc "=")
+        [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "table") (Located.mk ~loc (Lident "name")));
+          (Nolabel, eident_of_string ~loc "name") ]
+    in
+    let find_opt_call = pexp_apply ~loc
+      (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "List", "find_opt"))))
+      [ (Nolabel, pexp_fun ~loc Nolabel None table_pat pred);
+        (Nolabel, eident_of_string ~loc "tables") ] in
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "find_table")
+          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "name") find_opt_call) ]
+  in
+
+  (* let find_column table_name column_name =
+       match find_table table_name with
+       | Some table -> List.find_opt (fun (column : column_metadata) -> column.name = column_name) table.columns
+       | None -> None *)
+  let find_column_fn =
+    let col_pat = ppat_constraint ~loc (pvar ~loc "column") (tident ~loc "column_metadata") in
+    let col_pred =
+      pexp_apply ~loc (eident_of_string ~loc "=")
+        [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "column") (Located.mk ~loc (Lident "name")));
+          (Nolabel, eident_of_string ~loc "column_name") ]
+    in
+    let col_find = pexp_apply ~loc
+      (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "List", "find_opt"))))
+      [ (Nolabel, pexp_fun ~loc Nolabel None col_pat col_pred);
+        (Nolabel, pexp_field ~loc (eident_of_string ~loc "table") (Located.mk ~loc (Lident "columns"))) ] in
+    let some_case = case
+      ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some")) (Some (pvar ~loc "table")))
+      ~guard:None
+      ~rhs:col_find in
+    let none_case = case
+      ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "None")) None)
+      ~guard:None
+      ~rhs:(enone_ast ~loc) in
+    let find_table_call = pexp_apply ~loc (eident_of_string ~loc "find_table") [(Nolabel, eident_of_string ~loc "table_name")] in
+    let match_expr = pexp_match ~loc find_table_call [some_case; none_case] in
+    let body = pexp_fun ~loc Nolabel None (pvar ~loc "column_name") match_expr in
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "find_column")
+          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "table_name") body) ]
+  in
+
+  (* let table_name name = match find_table name with Some table -> table.name | None -> name *)
+  let table_name_fn =
+    let some_case = case
+      ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some")) (Some (pvar ~loc "table")))
+      ~guard:None
+      ~rhs:(pexp_field ~loc (eident_of_string ~loc "table") (Located.mk ~loc (Lident "name"))) in
+    let none_case = case
+      ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "None")) None)
+      ~guard:None
+      ~rhs:(eident_of_string ~loc "name") in
+    let find_table_call = pexp_apply ~loc (eident_of_string ~loc "find_table") [(Nolabel, eident_of_string ~loc "name")] in
+    let match_expr = pexp_match ~loc find_table_call [some_case; none_case] in
+    pstr_value ~loc Nonrecursive
+      [ value_binding ~loc
+          ~pat:(pvar ~loc "table_name")
+          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "name") match_expr) ]
+  in
+
+  (* --- Module declarations --- *)
+
+  (* module Tables = struct ... end *)
+  let tables_module_items =
+    schema.tables |> List.map (table_module_declaration_ast ~loc) |> List.concat
+  in
+  let tables_module =
+    pstr_module ~loc
+      (module_binding ~loc
+         ~name:(Located.mk ~loc (Some "Tables"))
+         ~expr:(pmod_structure ~loc tables_module_items))
+  in
+
+  (* module Queries = struct ... end *)
+  let queries_module_items =
+    schema.queries |> List.map (query_module_declaration_ast ~loc schema.tables) |> List.concat
+  in
+  let queries_module =
+    pstr_module ~loc
+      (module_binding ~loc
+         ~name:(Located.mk ~loc (Some "Queries"))
+         ~expr:(pmod_structure ~loc queries_module_items))
+  in
+
+  let mutation_actions_module =
+    mutation_actions_module_ast ~loc schema.mutations
+  in
+
+  (* module Mutations = struct ... end *)
+  let mutations_module_items =
+    schema.mutations |> List.map (mutation_module_declaration_ast ~loc) |> List.concat
+  in
+  let mutations_module =
+    pstr_module ~loc
+      (module_binding ~loc
+         ~name:(Located.mk ~loc (Some "Mutations"))
+         ~expr:(pmod_structure ~loc mutations_module_items))
+  in
+
+  let dispatch_mutation_binding = dispatch_mutation_ast ~loc schema.mutations in
+
+  (* Assemble the inner structure *)
+  let inner_items = [
+    sql_type_decl;
+    foreign_key_decl;
+    broadcast_channel_decl;
+    broadcast_parent_decl;
+    broadcast_to_views_decl;
+    column_metadata_decl;
+    table_metadata_decl;
+    handler_decl;
+    query_param_decl;
+    query_metadata_decl;
+    mutation_metadata_decl;
+  ] @ table_type_decls @ [
+    schema_hash_binding;
+    source_files_binding;
+    tables_binding;
+    queries_binding;
+    mutations_binding;
+    generated_triggers_binding;
+    latest_migration_binding;
+    find_query_fn;
+    find_mutation_fn;
+    find_table_fn;
+    find_column_fn;
+    table_name_fn;
+    tables_module;
+    queries_module;
+    mutation_actions_module;
+    mutations_module;
+    dispatch_mutation_binding;
+  ] in
+
+  (* include struct ... end *)
+  let incl : Parsetree.include_declaration = {
+    pincl_mod = pmod_structure ~loc inner_items;
+    pincl_loc = loc;
+    pincl_attributes = [];
+  } in
+  [ { pstr_desc = Pstr_include incl; pstr_loc = loc } ]
+
+let module_source (schema : schema) ~loc : Parsetree.structure =
+  module_source_ast schema ~loc
 
 let write_file path contents =
   let channel = open_out_bin path in

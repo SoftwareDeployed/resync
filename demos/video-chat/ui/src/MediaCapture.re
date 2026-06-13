@@ -90,10 +90,16 @@ let createReal = () => {
       let canvasEl = Webapi.Dom.Document.createElement("canvas", Webapi.Dom.document);
       Webapi.Canvas.CanvasElement.setWidth(canvasEl, width);
       Webapi.Canvas.CanvasElement.setHeight(canvasEl, height);
-      let ctx = Obj.magic(Webapi.Canvas.CanvasElement.getContext2d(canvasEl));
-      let canvas = Obj.magic(canvasEl);
+      let ctx =
+        MediaBindings.canvasRenderingContext2dOfDom(
+          Webapi.Canvas.CanvasElement.getContext2d(canvasEl),
+        );
+      let canvas = MediaBindings.canvasElementOfDom(canvasEl);
 
-      let captureVideo = Obj.magic(Webapi.Dom.Document.createElement("video", Webapi.Dom.document));
+      let captureVideo =
+        MediaBindings.videoElementOfDom(
+          Webapi.Dom.Document.createElement("video", Webapi.Dom.document),
+        );
       MediaBindings.setAutoplay(captureVideo, true);
       MediaBindings.setMuted(captureVideo, true);
       MediaBindings.setPlaysInline(captureVideo, true);
@@ -153,14 +159,19 @@ let createReal = () => {
       });
     },
     MediaBindings.getUserMedia(
-      MediaBindings.mediaDevices(Obj.magic(Webapi.Dom.Window.navigator(Webapi.Dom.window))),
+      MediaBindings.mediaDevices(
+        MediaBindings.navigatorOfDom(
+          Webapi.Dom.Window.navigator(Webapi.Dom.window),
+        ),
+      ),
       constraints,
     ),
   );
 };
 
 [@platform native]
-let createReal = () => Js.Promise.resolve(Obj.magic());
+let createReal = (): Js.Promise.t(realHandle) =>
+  Js.Promise.reject(Failure("Media capture is not available during SSR"));
 
 [@platform js]
 let create = () =>
@@ -178,7 +189,8 @@ let create = () =>
   };
 
 [@platform native]
-let create = () => Js.Promise.resolve(Obj.magic());
+let create = (): Js.Promise.t(t) =>
+  Js.Promise.reject(Failure("Media capture is not available during SSR"));
 
 [@platform js]
 let attachVideoElement = (capture: t, videoEl: Dom.element) =>
@@ -333,7 +345,7 @@ let setVideoEnabled = (capture, enabled) =>
   switch (capture) {
   | Real(realCapture) => {
       let tracks = MediaBindings.getVideoTracks(realCapture.stream);
-      Js.Array.forEach(~f=track => MediaBindings.setEnabled(track, enabled), tracks);
+      tracks->Js.Array.forEach(~f=track => MediaBindings.setEnabled(track, enabled));
     }
   | Override(implementation, overrideHandle) =>
     MediaCaptureOverride.setVideoEnabled(implementation, overrideHandle, enabled)
@@ -348,7 +360,7 @@ let setAudioEnabled = (capture, enabled) =>
   | Real(realCapture) => {
       setAudioCaptureEnabled(capture, enabled);
       let tracks = MediaBindings.getAudioTracks(realCapture.stream);
-      Js.Array.forEach(~f=track => MediaBindings.setEnabled(track, enabled), tracks);
+      tracks->Js.Array.forEach(~f=track => MediaBindings.setEnabled(track, enabled));
     }
   | Override(implementation, overrideHandle) =>
     MediaCaptureOverride.setAudioEnabled(implementation, overrideHandle, enabled)

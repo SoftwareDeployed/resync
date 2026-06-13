@@ -1,20 +1,61 @@
-module MockMutationA = struct
+module MockMutation = struct
   type params = string
-  let dispatch text = ignore text
 end
 
-module MockMutationB = struct
-  type params = int
-  let dispatch _n = ignore _n
-end
+let promise_resolves promise =
+  let resolved = ref false in
+  let _ =
+    Js.Promise.then_
+      (fun () ->
+        resolved := true;
+        Js.Promise.resolve ())
+      promise
+  in
+  !resolved
 
 let suite =
   ( "UseMutation",
     [
-      Alcotest.test_case "client returns dispatch function" `Quick (fun () ->
-          let result = UseMutation.useMutation (module MockMutationA) in
-          Alcotest.(check unit) "dispatch should be callable" () (result "test"));
-      Alcotest.test_case "server returns no-op function" `Quick (fun () ->
-          let result = UseMutation.useMutation (module MockMutationB) in
-          Alcotest.(check unit) "no-op should be callable" () (result 42));
+      Alcotest.test_case "server dispatch resolves without side effects" `Quick
+        (fun () ->
+          let result = UseMutation.make (module MockMutation) () in
+          Alcotest.(check bool)
+            "dispatch promise should resolve"
+            true
+            (promise_resolves (result.dispatch "test")));
+      Alcotest.test_case "server mutate alias matches dispatch behavior" `Quick
+        (fun () ->
+          let result = UseMutation.make (module MockMutation) () in
+          Alcotest.(check bool)
+            "mutate promise should resolve"
+            true
+            (promise_resolves (result.mutate "test")));
+      Alcotest.test_case "server mutation function resolves" `Quick
+        (fun () ->
+          let mutate = UseMutation.makeFn (module MockMutation) () in
+          Alcotest.(check bool)
+            "mutation function promise should resolve"
+            true
+            (promise_resolves (mutate "test")));
+      Alcotest.test_case "low-level useMutation is callable" `Quick
+        (fun () ->
+          let mutate = Hooks.useMutation (module MockMutation) () in
+          Alcotest.(check bool)
+            "useMutation should return a mutation function"
+            true
+            (promise_resolves (mutate "test")));
+      Alcotest.test_case "low-level useMutationFn remains callable alias" `Quick
+        (fun () ->
+          let mutate = Hooks.useMutationFn (module MockMutation) () in
+          Alcotest.(check bool)
+            "useMutationFn should return a mutation function"
+            true
+            (promise_resolves (mutate "test")));
+      Alcotest.test_case "low-level useMutationResult returns handle" `Quick
+        (fun () ->
+          let result = Hooks.useMutationResult (module MockMutation) () in
+          Alcotest.(check bool)
+            "useMutationResult dispatch promise should resolve"
+            true
+            (promise_resolves (result.dispatch "test")));
     ] )

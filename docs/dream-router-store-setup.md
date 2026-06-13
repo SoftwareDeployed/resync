@@ -173,7 +173,10 @@ module StoreDef =
          ~state_of_json,
          ~state_to_json,
          ~action_of_json: _json => Noop,
-         ~action_to_json: _action => StoreJson.parse("{\"kind\":\"noop\"}"),
+         ~action_to_json: _action =>
+           StoreJson.Object.make(dict =>
+             StoreJson.Object.setString(dict, "kind", "noop")
+           ),
        )
     |> StoreBuilder.withSync(
          ~storeName="ecommerce.inventory",
@@ -196,13 +199,13 @@ module StoreDef =
            | None => state
            },
          ~decodePatch=
-           StorePatch.compose([
+           StorePatch.compose([|
              StoreCrud.decodePatch(
                ~table=RealtimeSchema.table_name("inventory"),
                ~decodeRow=Model.InventoryItem.of_json,
                (),
              ),
-           ]),
+           |]),
          ~updateOfPatch=
            StoreCrud.updateOfPatch(
              ~getId=(item: Model.InventoryItem.t) => item.id,
@@ -219,6 +222,7 @@ module StoreDef =
            eventUrl: Constants.event_url,
            baseUrl: Constants.base_url,
          },
+         ~emptyStreamingState=(),
          ~stateElementId=Some("initial-store"),
          (),
        )
@@ -333,13 +337,13 @@ Use `StoreCrud.patch('row)` as your patch type and `StoreCrud.decodePatch`/`Stor
 type patch = StoreCrud.patch(MyItem.t);
 
 let decodePatch =
-  StorePatch.compose([
+  StorePatch.compose([|
     StoreCrud.decodePatch(
       ~table=RealtimeSchema.table_name("items"),
       ~decodeRow=MyItem.of_json,
       (),
     ),
-  ]);
+  |]);
 
 let updateOfPatch = StoreCrud.updateOfPatch(
   ~getId=(item: MyItem.t) => item.id,
@@ -391,13 +395,33 @@ The important part is that sync talks to the captured `StoreSource` actions and 
 
 That keeps realtime updates flowing through the same Tilia-backed source that hydration and local actions use.
 
-Typed runtime actions use the same active websocket connection. The client-side write path is:
+Typed runtime actions use the same active websocket connection. In component code, use the store-scoped mutation hook:
 
 ```reason
-dispatch(AddTodo({id, list_id, text}));
+/* Store.re */
+module Mutations = {
+  module AddTodo = {
+    include RealtimeSchema.Mutations.AddTodo;
+    type nonrec action = action;
+  };
+};
+
+/* Component.re */
+[@react.component]
+let make = (~id: string, ~list_id: string, ~text: string) => {
+  let addTodo =
+    Store.Hooks.useMutation((module Store.Mutations.AddTodo), ());
+
+  let onAddTodo = () => {
+    let _ = addTodo({id, list_id, text});
+    ();
+  };
+
+  React.null;
+};
 ```
 
-That reduces optimistically, writes the queued action to IndexedDB, sends a JSON mutation frame over the socket, and waits for an `ack`, patch, or snapshot to advance confirmed state.
+That converts params into a typed store action, reduces optimistically, writes the queued action to IndexedDB, sends a JSON mutation frame over the socket, and waits for an `ack`. A successful ack advances and persists confirmed state by applying the acknowledged action; later patches or snapshots can further reconcile server-delivered data.
 
 For the ecommerce demo, the relevant wiring lives in:
 

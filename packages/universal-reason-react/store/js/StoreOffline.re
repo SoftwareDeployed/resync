@@ -1,4 +1,191 @@
+module type StoreHookRuntime = {
+  type store;
+  type action;
+  let useStore: unit => store;
+  let dispatchForMutation: action => Js.Promise.t(unit);
+};
+
+module MakeStoreHooks = (Runtime: StoreHookRuntime) => {
+  let queryResult = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: p,
+    ~skip=false,
+    (),
+  ) =>
+    UseQuery.useQuery((module Q), params, ~skip, ());
+
+  let queryResultOption = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: option(p),
+    (),
+  ) =>
+    UseQuery.useQueryOption((module Q), params, ());
+
+  let queryStore = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: p,
+    ~skip=false,
+    (),
+  ) => {
+    let _ = queryResult((module Q), params, ~skip, ());
+    Runtime.useStore();
+  };
+
+  let queryStoreOption = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: option(p),
+    (),
+  ) => {
+    let _ = queryResultOption((module Q), params, ());
+    Runtime.useStore();
+  };
+
+  let query = queryResult;
+  let queryOption = queryResultOption;
+
+  let isQueryLoading = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: p,
+  ) => UseQuery.useIsQueryLoading((module Q), params);
+
+  let isQueryLoadingOption = (
+    type p,
+    type r,
+    module Q: QueryRegistryTypes.QueryModule with type params = p and type row = r,
+    params: option(p),
+  ) => UseQuery.useIsQueryLoadingOption((module Q), params);
+
+  let mutationResult = (
+    type p,
+    module M: QueryRegistryTypes.MutationModuleWithAction
+      with type params = p and type action = Runtime.action,
+    (),
+  ) => {
+    UseMutation.make(
+      (module M),
+      ~onDispatch=params => Runtime.dispatchForMutation(M.toAction(params)),
+      (),
+    );
+  };
+
+  let mutation = (
+    type p,
+    module M: QueryRegistryTypes.MutationModuleWithAction
+      with type params = p and type action = Runtime.action,
+    (),
+  ) => {
+    UseMutation.makeFn(
+      (module M),
+      ~onDispatch=params => Runtime.dispatchForMutation(M.toAction(params)),
+      (),
+    );
+  };
+
+  let mutationFn = mutation;
+};
+
+module type StoreContextRuntime = {
+  type t;
+  let empty: t;
+};
+
+module MakeStoreContext = (Runtime: StoreContextRuntime) => {
+  let context = React.createContext(Runtime.empty);
+
+  module Provider = {
+    type props = Js.t({. value: Runtime.t, children: React.element});
+    let makeProps = (~value, ~children, ()) => {
+      "value": value,
+      "children": children,
+    };
+    [@platform js]
+    let make = React.Context.provider(context);
+    [@platform native]
+    let make = (props: props) => React.Context.provider(context)(props);
+  };
+
+  let useStore = () => React.useContext(context);
+};
+
+module StoreBroadcast = {
+  type channel = BroadcastChannel.t;
+
+  let openChannel = (name: string) => BroadcastChannel.make(name);
+
+  let postMessage = (channel: channel, message: string) =>
+    BroadcastChannel.postMessage(channel, message);
+
+  [@platform js]
+  let setHandler = (channel: channel, handler: string => unit) =>
+    BroadcastChannel.setOnmessage(channel, event => handler(event##data));
+
+  [@platform native]
+  let setHandler = (_channel, _handler) => ();
+};
+
 module Local = {
+  type queriesConfig('state) = {
+    applyQueryResult: (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
+  };
+
+  let applyLoadedQueryResult = (
+    ~queriesConfig: queriesConfig('state),
+    ~confirmedStateRef: ref('state),
+    ~refreshOptimisticState: unit => unit,
+    ~channel: string,
+    ~rows: array(StoreJson.json),
+    (),
+  ) => {
+    let newState = queriesConfig.applyQueryResult(
+      ~state=confirmedStateRef.contents,
+      ~channel,
+      ~rows,
+    );
+    confirmedStateRef := newState;
+    refreshOptimisticState();
+  };
+
+  let replaceLoadedQueryResultListener = (
+    ~listenerIdRef: ref(option(QueryCache.loaded_result_listener_id)),
+    ~queryCache: QueryCache.t,
+    ~queriesConfig: option(queriesConfig('state)),
+    ~confirmedStateRef: ref('state),
+    ~refreshOptimisticState: unit => unit,
+    (),
+  ) => {
+    switch (listenerIdRef.contents) {
+    | Some(listenerId) => QueryCache.unlistenLoadedResults(~t=queryCache, listenerId)
+    | None => ()
+    };
+    listenerIdRef :=
+      switch (queriesConfig) {
+      | Some(config) =>
+        Some(
+          QueryCache.listenLoadedResults(~t=queryCache, loadedResult =>
+            applyLoadedQueryResult(
+              ~queriesConfig=config,
+              ~confirmedStateRef,
+              ~refreshOptimisticState,
+              ~channel=loadedResult.QueryCache.channel,
+              ~rows=loadedResult.QueryCache.rows,
+              (),
+            )
+          ),
+        )
+      | None => None
+      };
+  };
+
   module type Schema = {
     type state;
     type action;
@@ -17,6 +204,7 @@ module Local = {
     let makeStore:
       (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
     let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
+    let queries: option(queriesConfig(state));
     let cache: [ | `IndexedDB | `None ];
   };
 
@@ -31,38 +219,41 @@ module Local = {
     type listener = StoreEvents.listener(action);
 
     let streaming = ();
+    let useStreaming = () => streaming;
 
     let lifecycle = StoreRuntimeLifecycle.make(~storeName=Schema.storeName, ());
     StoreRuntimeLifecycle.markConnectionNotApplicable(lifecycle);
 
-    type broadcast_channel = BroadcastChannel.t;
+    type broadcast_channel = StoreBroadcast.channel;
 
     /* Cache adapter instantiation based on Schema.cache selection */
     module IDBCache = StoreCache.IndexedDB(Schema);
     module NoOpCache = StoreCache.NoCache(Schema);
-
-    [@platform js]
-    let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
-
-    [@platform native]
-    let openBroadcastChannel = (_name: string) => Obj.magic();
-
-    [@platform js]
-    let postBroadcastMessage = (channel: broadcast_channel, message: string) =>
-      BroadcastChannel.postMessage(channel, message);
-
-    [@platform native]
-    let postBroadcastMessage = (_channel, _message) => ();
-
-    [@platform js]
-    let setBroadcastHandler = (channel: broadcast_channel, handler: string => unit) =>
-      BroadcastChannel.setOnmessage(channel, event => handler(event##data));
-
-    [@platform native]
-    let setBroadcastHandler = (_channel, _handler) => ();
+    module Cache =
+      (val (
+        switch (Schema.cache) {
+        | `IndexedDB =>
+          (
+            module IDBCache:
+              StoreCache.Adapter
+                with type state = state
+                and type action = action
+          )
+        | `None =>
+          (
+            module NoOpCache:
+              StoreCache.Adapter
+                with type state = state
+                and type action = action
+          )
+        }
+      ));
 
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
+    let confirmedStateRef: ref(state) = ref(Schema.emptyState);
     let channelRef: ref(option(broadcast_channel)) = ref(None);
+    let queryResultListenerIdRef:
+      ref(option(QueryCache.loaded_result_listener_id)) = ref(None);
     let suppressPublishRef: ref(bool) = ref(false);
     let listenersRef: StoreEvents.registry(action) = ref([||]);
 
@@ -78,20 +269,16 @@ module Local = {
     let writeStateRecord = (state: state) =>
       switch%platform (Runtime.platform) {
       | Client =>
-        switch (Schema.cache) {
-        | `IndexedDB =>
-          let _ =
-            StoreRuntimeLifecycle.trackPersistence(lifecycle, IDBCache.setState(
-                ~storeName=Schema.storeName,
-                {
-                  scopeKey: Schema.scopeKeyOfState(state),
-                  state,
-                  timestamp: Schema.timestampOfState(state),
-                },
-              ),);
-          ()
-        | `None => ()
-        }
+        let _ =
+          StoreRuntimeLifecycle.trackPersistenceOp(lifecycle, () => Cache.setState(
+              ~storeName=Schema.storeName,
+              {
+                scopeKey: Schema.scopeKeyOfState(state),
+                state,
+                timestamp: Schema.timestampOfState(state),
+              },
+            ),);
+        ()
       | Server => ()
       };
 
@@ -100,25 +287,15 @@ module Local = {
       | Client =>
         switch (channelRef.contents) {
         | Some(channel) =>
-          postBroadcastMessage(
+          StoreBroadcast.postMessage(
             channel,
             StoreJson.stringify(
               json => json,
-              StoreJson.parse(
-                "{\"scopeKey\":"
-                ++ Melange_json.Primitives.string_to_json(
-                     Schema.scopeKeyOfState(state),
-                   )
-                   ->Melange_json.to_string
-                ++ ",\"timestamp\":"
-                ++ Melange_json.Primitives.float_to_json(
-                     Schema.timestampOfState(state),
-                   )
-                   ->Melange_json.to_string
-                ++ ",\"state\":"
-                ++ StoreJson.stringify(Schema.state_to_json, state)
-                ++ "}",
-              ),
+              StoreJson.Object.make(dict => {
+                StoreJson.Object.setString(dict, "scopeKey", Schema.scopeKeyOfState(state));
+                StoreJson.Object.setFloat(dict, "timestamp", Schema.timestampOfState(state));
+                StoreJson.Object.setJson(dict, "state", Schema.state_to_json(state));
+              }),
             ),
           )
         | None => ()
@@ -135,6 +312,7 @@ module Local = {
     let persistState = (~broadcast: bool=true, state: state) =>
       switch%platform (Runtime.platform) {
       | Client =>
+        confirmedStateRef := state;
         writeStateRecord(state);
         if (broadcast) {
           if (suppressPublishRef.contents) {
@@ -147,34 +325,36 @@ module Local = {
       | Server => ()
       };
 
+    let refreshOptimisticState = () =>
+      switch (sourceRef.contents) {
+      | Some(actions) => actions.set(confirmedStateRef.contents)
+      | None => ()
+      };
+
     let reconcilePersistedState = (actions: StoreSource.actions(state)) =>
       switch%platform (Runtime.platform) {
       | Client =>
         let currentState = actions.get();
-        switch (Schema.cache) {
-        | `IndexedDB =>
-          Js.Promise.then_(
-            (persistedState: option(StoreCache.state_record(state))) => {
-              switch (persistedState) {
-              | Some(record) =>
-                if (record.timestamp
-                    > Schema.timestampOfState(actions.get())) {
-                  setExternalState(~actions, record.state);
-                } else {
-                  writeStateRecord(actions.get());
-                }
-              | None => writeStateRecord(actions.get())
-              };
-              Js.Promise.resolve();
-            },
-            IDBCache.getState(
-              ~storeName=Schema.storeName,
-              ~scopeKey=Schema.scopeKeyOfState(currentState),
-              (),
-            ),
-          )
-        | `None => Js.Promise.resolve()
-        }
+        Js.Promise.then_(
+          (persistedState: option(StoreCache.state_record(state))) => {
+            switch (persistedState) {
+            | Some(record) =>
+              if (record.timestamp
+                  > Schema.timestampOfState(actions.get())) {
+                setExternalState(~actions, record.state);
+              } else {
+                writeStateRecord(actions.get());
+              }
+            | None => writeStateRecord(actions.get())
+            };
+            Js.Promise.resolve();
+          },
+          Cache.getState(
+            ~storeName=Schema.storeName,
+            ~scopeKey=Schema.scopeKeyOfState(currentState),
+            (),
+          ),
+        )
       | Server => Js.Promise.resolve()
       };
 
@@ -194,6 +374,8 @@ module Local = {
         | Server => Schema.emptyState
         };
 
+      confirmedStateRef := initialState;
+
       switch%platform (Runtime.platform) {
       | Client =>
         let source =
@@ -202,10 +384,18 @@ module Local = {
             ~mount=
               actions => {
                 sourceRef := Some(actions);
+                replaceLoadedQueryResultListener(
+                  ~listenerIdRef=queryResultListenerIdRef,
+                  ~queryCache=UseQuery.getQueryCache(),
+                  ~queriesConfig=Schema.queries,
+                  ~confirmedStateRef,
+                  ~refreshOptimisticState,
+                  (),
+                );
                 let channel =
-                  openBroadcastChannel("resync.store." ++ Schema.storeName);
+                  StoreBroadcast.openChannel("resync.store." ++ Schema.storeName);
                 channelRef := Some(channel);
-                setBroadcastHandler(channel, message => {
+                StoreBroadcast.setHandler(channel, message => {
                   switch (StoreJson.tryParse(message)) {
                   | Some(json) =>
                     let scopeKey =
@@ -234,7 +424,11 @@ module Local = {
                   }
                 });
                 let _ =
-                  StoreRuntimeLifecycle.trackBoot(lifecycle, reconcilePersistedState(actions),);
+                  StoreRuntimeLifecycle.trackBoot(
+                    lifecycle,
+                    reconcilePersistedState(actions),
+                  )
+                  |> Js.Promise.catch(_ => Js.Promise.resolve());
                 ();
               },
             initialState,
@@ -248,20 +442,27 @@ module Local = {
       };
     };
 
+    let executeDispatch = (actions: StoreSource.actions(state), action) => {
+      let currentState = actions.get();
+      let guardResult =
+        StoreRuntimeHelpers.validateAction(
+          ~state=currentState,
+          ~action,
+          ~validate=Schema.validate,
+        );
+      switch (guardResult) {
+      | Deny(reason) => Error(reason)
+      | Allow =>
+        actions.update(state => Schema.reduce(~state, ~action));
+        Ok()
+      };
+    };
+
     let dispatch = (action: action) =>
       switch (sourceRef.contents) {
       | Some(actions) =>
-        let currentState = actions.get();
-        switch (Schema.validate) {
-        | Some(validate) =>
-          switch (validate(~state=currentState, ~action)) {
-          | Deny(_) => ()
-          | Allow =>
-            actions.update(state => Schema.reduce(~state, ~action))
-          }
-        | None =>
-          actions.update(state => Schema.reduce(~state, ~action))
-        };
+        let _ = executeDispatch(actions, action);
+        ();
       | None => ()
       };
 
@@ -273,22 +474,59 @@ module Local = {
         StoreEvents.Events.unlisten(~registry=listenersRef, listenerId);
     };
 
-    module Context = {
-      let context = React.createContext(empty);
+    module Context = MakeStoreContext({
+      type nonrec t = t;
+      let empty = empty;
+    });
 
-      module Provider = {
-        type props = Js.t({. value: t, children: React.element});
-        let makeProps = (~value, ~children, ()) => {
-          "value": value,
-          "children": children,
+    module HookRuntime = {
+      type store = t;
+      type action = Schema.action;
+      let useStore = Context.useStore;
+      let dispatchForMutation = action => {
+        try({
+          switch (sourceRef.contents) {
+          | Some(actions) =>
+            switch (executeDispatch(actions, action)) {
+            | Ok(()) => Js.Promise.resolve()
+            | Error(reason) => Js.Promise.reject(Failure(reason))
+            }
+          | None => Js.Promise.reject(Failure("Store is not mounted"))
+          };
+        }) {
+        | error => Js.Promise.reject(error)
         };
-        [@platform js]
-        let make = React.Context.provider(context);
-        [@platform native]
-        let make = (props: props) => React.Context.provider(context)(props);
       };
+    };
 
-      let useStore = () => React.useContext(context);
+    module RuntimeHooks = MakeStoreHooks(HookRuntime);
+
+    let useQuery = RuntimeHooks.query;
+    let useQueryResult = RuntimeHooks.queryResult;
+    let useQueryStore = RuntimeHooks.queryStore;
+    let useQueryOption = RuntimeHooks.queryOption;
+    let useQueryResultOption = RuntimeHooks.queryResultOption;
+    let useQueryStoreOption = RuntimeHooks.queryStoreOption;
+    let useIsQueryLoading = RuntimeHooks.isQueryLoading;
+    let useIsQueryLoadingOption = RuntimeHooks.isQueryLoadingOption;
+    let useMutation = RuntimeHooks.mutation;
+    let useMutationFn = RuntimeHooks.mutationFn;
+    let useMutationResult = RuntimeHooks.mutationResult;
+
+    module Hooks = {
+      let useStore = Context.useStore;
+      let useStreaming = useStreaming;
+      let useQuery = useQuery;
+      let useQueryResult = useQueryResult;
+      let useQueryStore = useQueryStore;
+      let useQueryOption = useQueryOption;
+      let useQueryResultOption = useQueryResultOption;
+      let useQueryStoreOption = useQueryStoreOption;
+      let useIsQueryLoading = useIsQueryLoading;
+      let useIsQueryLoadingOption = useIsQueryLoadingOption;
+      let useMutation = useMutation;
+      let useMutationFn = useMutationFn;
+      let useMutationResult = useMutationResult;
     };
 
     let flushCache = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
@@ -296,7 +534,7 @@ module Local = {
     let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let status = () => StoreRuntimeLifecycle.status(lifecycle);
 
-    type status_listener_id = string;
+    type status_listener_id = StoreEvents.listener_id;
     let subscribeStatus = callback =>
       StoreRuntimeLifecycle.subscribeStatus(lifecycle, callback);
     let unsubscribeStatus = id =>
@@ -305,27 +543,9 @@ module Local = {
 };
 
 module Synced = {
-  type broadcast_channel = BroadcastChannel.t;
+  type queriesConfig('state) = Local.queriesConfig('state);
 
-  [@platform js]
-  let openBroadcastChannel = (name: string) => BroadcastChannel.make(name);
-
-  [@platform native]
-  let openBroadcastChannel = (_name: string) => Obj.magic();
-
-  [@platform js]
-  let postBroadcastMessage = (channel: broadcast_channel, message: string) =>
-    BroadcastChannel.postMessage(channel, message);
-
-  [@platform native]
-  let postBroadcastMessage = (_channel, _message) => ();
-
-  [@platform js]
-  let setBroadcastHandler = (channel: broadcast_channel, handler: string => unit) =>
-    BroadcastChannel.setOnmessage(channel, event => handler(event##data));
-
-  [@platform native]
-  let setBroadcastHandler = (_channel, _handler) => ();
+  type broadcast_channel = StoreBroadcast.channel;
 
   [@platform js]
   external setTimeout: (unit => unit, int) => int = "setTimeout";
@@ -429,19 +649,11 @@ module Synced = {
     /* Typed listener registry */
     let listenersRef: StoreEvents.registry(Config.action) = ref([||]);
 
-    let subscribe = (listener: listener): listener_id => {
-      let listenerId = UUID.make();
-      listenersRef.contents =
-        Js.Array.concat(~other=[|(listenerId, listener)|], listenersRef.contents);
-      listenerId;
-    };
+    let subscribe = (listener: listener): listener_id =>
+      StoreEvents.Events.listen(~registry=listenersRef, listener);
 
-    let unsubscribe = (listenerId: listener_id) => {
-      listenersRef.contents =
-        listenersRef.contents->Js.Array.filter(~f=((currentId, _listener)) =>
-          currentId != listenerId
-        );
-    };
+    let unsubscribe = (listenerId: listener_id) =>
+      StoreEvents.Events.unlisten(~registry=listenersRef, listenerId);
 
     /* Queued nested dispatch: when emit is active, dispatches are queued
        and drained after the current listener batch completes. This prevents
@@ -453,7 +665,7 @@ module Synced = {
 
     let queueDispatch = (dispatchFn: unit => unit) => {
       pendingDispatchesRef.contents =
-        Js.Array.concat(~other=[|dispatchFn|], pendingDispatchesRef.contents);
+        pendingDispatchesRef.contents->Js.Array.concat(~other=[|dispatchFn|]);
     };
 
     let drainPendingDispatches = () => {
@@ -462,16 +674,25 @@ module Synced = {
       toDrain->Js.Array.forEach(~f=fn => fn());
     };
 
+    let finishEmit = () => {
+      isEmittingRef := false;
+      drainPendingDispatches();
+    };
+
     let emit = (event: store_event) => {
       /* Capture stable snapshot of listeners before iteration.
          listen/unlisten during emit affect subsequent batches only. */
       let snapshot = listenersRef.contents;
       isEmittingRef := true;
 
-      snapshot->Js.Array.forEach(~f=((_, listener)) => listener(event));
-
-      isEmittingRef := false;
-      drainPendingDispatches();
+      try({
+        snapshot->Js.Array.forEach(~f=((_, listener)) => listener(event));
+        finishEmit();
+      }) {
+      | error =>
+        finishEmit();
+        raise(error);
+      };
     };
   };
 
@@ -504,6 +725,7 @@ module Synced = {
     let decodePatch: StoreJson.json => option(patch);
     let updateOfPatch: (patch, state) => state;
     let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state));
+    let emptyStreamingState: streaming_state;
     /* Legacy compatibility hooks. New code should prefer Runtime.Events.listen and
        the narrow StoreEvents.store_event surface instead of raw per-frame callback
        registration. */
@@ -518,6 +740,7 @@ module Synced = {
        raw frames without storing singleton state in RealtimeClient. */
     let onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit);
     let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
+    let queries: option(queriesConfig(state));
     let cache: [ | `IndexedDB | `None ];
   };
 
@@ -546,6 +769,25 @@ module Synced = {
     /* Cache adapter instantiation based on Schema.cache selection */
     module IDBCache = StoreCache.IndexedDB(Schema);
     module NoOpCache = StoreCache.NoCache(Schema);
+    module Cache =
+      (val (
+        switch (Schema.cache) {
+        | `IndexedDB =>
+          (
+            module IDBCache:
+              StoreCache.Adapter
+                with type state = state
+                and type action = action
+          )
+        | `None =>
+          (
+            module NoOpCache:
+              StoreCache.Adapter
+                with type state = state
+                and type action = action
+          )
+        }
+      ));
 
     /* Bridge helpers: convert between typed cache adapter records and
        StoreActionLedger.t (= StoreIndexedDB.action_record) so that
@@ -570,62 +812,49 @@ module Synced = {
       error: record.error,
     };
 
-    /* Dispatch cache adapter calls based on Schema.cache selection */
     let cacheGetState = (~scopeKey, ()) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.getState(~storeName=Schema.storeName, ~scopeKey, ())
-      | `None => NoOpCache.getState(~storeName=Schema.storeName, ~scopeKey, ())
-      };
+      Cache.getState(~storeName=Schema.storeName, ~scopeKey, ());
 
     let cacheSetState = (record: StoreCache.state_record(state)) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.setState(~storeName=Schema.storeName, record)
-      | `None => NoOpCache.setState(~storeName=Schema.storeName, record)
-      };
+      Cache.setState(~storeName=Schema.storeName, record);
 
     let cacheGetAction = (~id, ()) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.getAction(~storeName=Schema.storeName, ~id, ())
-      | `None => NoOpCache.getAction(~storeName=Schema.storeName, ~id, ())
-      };
+      Cache.getAction(~storeName=Schema.storeName, ~id, ());
 
     let cachePutAction = (record: StoreCache.action_record(action)) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.putAction(~storeName=Schema.storeName, record)
-      | `None => NoOpCache.putAction(~storeName=Schema.storeName, record)
-      };
+      Cache.putAction(~storeName=Schema.storeName, record);
 
     let cacheGetActionsByScope = (~scopeKey, ()) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.getActionsByScope(~storeName=Schema.storeName, ~scopeKey, ())
-      | `None =>
-        NoOpCache.getActionsByScope(~storeName=Schema.storeName, ~scopeKey, ())
-      };
+      Cache.getActionsByScope(~storeName=Schema.storeName, ~scopeKey, ());
 
     let cacheDeleteActions = (~ids, ()) =>
-      switch (Schema.cache) {
-      | `IndexedDB =>
-        IDBCache.deleteActions(~storeName=Schema.storeName, ~ids, ())
-      | `None => NoOpCache.deleteActions(~storeName=Schema.storeName, ~ids, ())
+      Cache.deleteActions(~storeName=Schema.storeName, ~ids, ());
+
+    let shouldAcceptAckForCacheRecord =
+        (cacheRecord: option(StoreCache.action_record(action))) =>
+      switch (cacheRecord) {
+      | Some(record) =>
+        StoreActionLedger.shouldAcceptAck(
+          StoreActionLedger.statusOfString(record.status),
+        )
+      | None => true
       };
 
     /* Hydration and source state stay outside the controller */
     let sourceRef: ref(option(StoreSource.actions(state))) = ref(None);
     let confirmedStateRef: ref(state) = ref(Schema.emptyState);
-    let streamingRef: ref(Schema.streaming_state) = ref(
-      switch (Schema.streams) {
-      | Some({emptyStreamingState, _}) => emptyStreamingState
-      | None => Obj.magic()
-      },
-    );
+    let queryResultListenerIdRef:
+      ref(option(QueryCache.loaded_result_listener_id)) = ref(None);
+    let streamingRef: ref(Schema.streaming_state) = ref(Schema.emptyStreamingState);
+    [@platform js]
+    let streamingRevisionRef = ref(0);
+    [@platform js]
+    let streamingRevisionSignal = Tilia.Core.signal(0);
     let suppressPublishRef: ref(bool) = ref(false);
     let replayInProgressRef: ref(bool) = ref(false);
     let replayNeededRef: ref(bool) = ref(false);
+    let scopeGenerationRef: ref(int) = ref(0);
+    let pendingScopeReadyRef: ref(option((int, unit => unit))) = ref(None);
 
     /* Initialize the SyncController that owns connection state, timers,
        listeners, and queued dispatch behavior. */
@@ -652,24 +881,63 @@ module Synced = {
     /* Emit through the controller for stable snapshot and queued dispatch */
     let emitEvent = (event: store_event) => Controller.emit(event);
 
+    let clearPendingScopeReady = scopeGeneration =>
+      switch (pendingScopeReadyRef.contents) {
+      | Some((pendingGeneration, _)) when pendingGeneration == scopeGeneration =>
+        pendingScopeReadyRef := None
+      | _ => ()
+      };
+
+    let resolvePendingScopeReady = () =>
+      switch (pendingScopeReadyRef.contents) {
+      | Some((_, resolveReady)) =>
+        pendingScopeReadyRef := None;
+        resolveReady();
+      | None => ()
+      };
+
+    let nextScopeGeneration = () => {
+      resolvePendingScopeReady();
+      let nextGeneration = scopeGenerationRef.contents + 1;
+      scopeGenerationRef := nextGeneration;
+      nextGeneration;
+    };
+
+    let isCurrentScopeGeneration = scopeGeneration =>
+      StoreRuntimeHelpers.shouldApplyScopeGeneration(
+        ~startedGeneration=scopeGeneration,
+        ~currentGeneration=scopeGenerationRef.contents,
+      );
+
+    [@platform js]
+    let notifyStreamingChanged = () => {
+      let (_signal, setStreamingRevisionSignal) = streamingRevisionSignal;
+      streamingRevisionRef := streamingRevisionRef.contents + 1;
+      setStreamingRevisionSignal(streamingRevisionRef.contents);
+    };
+
+    [@platform native]
+    let notifyStreamingChanged = () => ();
+
+    let updateStreamingState = reducer => {
+      streamingRef := reducer(streamingRef.contents);
+      notifyStreamingChanged();
+    };
+
     let broadcastOptimisticAction = (record: StoreActionLedger.t) =>
       switch%platform (Runtime.platform) {
       | Client =>
         switch (Controller.getBroadcastChannel()) {
         | Some(channel) =>
-          postBroadcastMessage(
+          StoreBroadcast.postMessage(
             channel,
             StoreJson.stringify(
               json => json,
-              StoreJson.parse(
-                "{\"type\":\"optimistic_action\",\"scopeKey\":"
-                ++ Melange_json.Primitives.string_to_json(record.scopeKey)
-                   ->Melange_json.to_string
-                ++ ",\"actionId\":"
-                ++ Melange_json.Primitives.string_to_json(record.id)
-                   ->Melange_json.to_string
-                ++ "}",
-              ),
+              StoreJson.Object.make(dict => {
+                StoreJson.Object.setString(dict, "type", "optimistic_action");
+                StoreJson.Object.setString(dict, "scopeKey", record.scopeKey);
+                StoreJson.Object.setString(dict, "actionId", record.id);
+              }),
             ),
           )
         | None => ()
@@ -682,25 +950,16 @@ module Synced = {
       | Client =>
         switch (Controller.getBroadcastChannel()) {
         | Some(channel) =>
-          postBroadcastMessage(
+          StoreBroadcast.postMessage(
             channel,
             StoreJson.stringify(
               json => json,
-              StoreJson.parse(
-                "{\"type\":\"confirmed_state\",\"scopeKey\":"
-                ++ Melange_json.Primitives.string_to_json(
-                     Schema.scopeKeyOfState(state),
-                   )
-                   ->Melange_json.to_string
-                ++ ",\"timestamp\":"
-                ++ Melange_json.Primitives.float_to_json(
-                     Schema.timestampOfState(state),
-                   )
-                   ->Melange_json.to_string
-                ++ ",\"state\":"
-                ++ StoreJson.stringify(Schema.state_to_json, state)
-                ++ "}",
-              ),
+              StoreJson.Object.make(dict => {
+                StoreJson.Object.setString(dict, "type", "confirmed_state");
+                StoreJson.Object.setString(dict, "scopeKey", Schema.scopeKeyOfState(state));
+                StoreJson.Object.setFloat(dict, "timestamp", Schema.timestampOfState(state));
+                StoreJson.Object.setJson(dict, "state", Schema.state_to_json(state));
+              }),
             ),
           )
         | None => ()
@@ -712,7 +971,7 @@ module Synced = {
       switch%platform (Runtime.platform) {
       | Client =>
         let _ =
-          StoreRuntimeLifecycle.trackPersistence(lifecycle, cacheSetState({
+          StoreRuntimeLifecycle.trackPersistenceOp(lifecycle, () => cacheSetState({
               scopeKey: Schema.scopeKeyOfState(state),
               state,
               timestamp: Schema.timestampOfState(state),
@@ -747,13 +1006,12 @@ module Synced = {
                     cacheRecords
                     ->Js.Array.map(~f=ledgerRecordOfCache);
                   let idsToDelete =
-                    StoreRuntimeHelpers.getPendingActionIds(
+                    StoreRuntimeHelpers.getPrunableAckedActionIds(
                       ~confirmedTimestamp,
                       ~records,
                     );
-                  let remaining = Array.of_list(
-                    StoreRuntimeHelpers.filterResumableRecords(records),
-                  );
+                  let remaining =
+                    StoreRuntimeHelpers.filterResumableRecords(records);
                   actions.set(
                     StoreRuntimeHelpers.replayActions(
                       ~confirmed=confirmedState,
@@ -833,19 +1091,35 @@ module Synced = {
             status: StoreActionLedger.statusToString(Pending),
           };
         };
-      let _ =
-        cachePutAction(cacheRecordOfLedger(nextRecord));
+      let persistPromise = cachePutAction(cacheRecordOfLedger(nextRecord));
       if (sent) {
         Controller.scheduleAckTimeout(
           nextRecord.id,
           () => handleAckTimeout(nextRecord.id),
         );
       };
+      persistPromise
+    }
+
+    and failTimedOutAction = (~actionId, ~action) => {
+      let message = "Timed out waiting for acknowledgement";
+      refreshOptimisticState();
+      StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
+      emitEvent(
+        StoreEvents.ActionFailed({
+          actionId,
+          action,
+          message,
+        }),
+      );
+      Schema.onActionError(message);
+      Js.Promise.resolve();
     }
 
     and handleAckTimeout = actionId =>
       switch%platform (Runtime.platform) {
       | Client =>
+        Controller.clearAckTimeout(actionId);
         let _ =
           Js.Promise.then_(
             cacheRecord =>
@@ -857,29 +1131,19 @@ module Synced = {
                 | Pending
                 | Syncing =>
                   if (record.retryCount >= StoreActionLedger.maxRetries) {
-                    let message = "Timed out waiting for acknowledgement";
                     let ledgerRecord = ledgerRecordOfCache(record);
-                    StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
                     Js.Promise.then_(
-                      _ => {
-                        refreshOptimisticState();
-                        /* Failure ordering contract: the action ledger status is
-                           updated before the public ActionFailed event and any
-                           legacy callback fire. */
-                        emitEvent(
-                          StoreEvents.ActionFailed({
-                            actionId,
-                            action: Some(ledgerRecord.action |> Schema.action_of_json),
-                            message,
-                          }),
-                        );
-                        Schema.onActionError(message);
-                        Js.Promise.resolve();
-                      },
+                      _ =>
+                        failTimedOutAction(
+                          ~actionId,
+                          ~action=Some(
+                            ledgerRecord.action |> Schema.action_of_json,
+                          ),
+                        ),
                       cachePutAction({
                         ...record,
                         status: StoreActionLedger.statusToString(Failed),
-                        error: Some(message),
+                        error: Some("Timed out waiting for acknowledgement"),
                       }),
                     );
                   } else {
@@ -889,15 +1153,12 @@ module Synced = {
                     };
                     let nextLedger = ledgerRecordOfCache(nextRecord);
                     Js.Promise.then_(
-                      _ => {
-                        sendQueuedRecord(nextLedger);
-                        Js.Promise.resolve();
-                      },
+                      _ => sendQueuedRecord(nextLedger),
                       cachePutAction(nextRecord),
                     );
                   }
                 }
-              | None => Js.Promise.resolve()
+              | None => failTimedOutAction(~actionId, ~action=None)
               },
             cacheGetAction(~id=actionId, ()),
           );
@@ -911,43 +1172,48 @@ module Synced = {
       switch (sourceRef.contents) {
       | Some(actions) =>
         let currentState = actions.get();
-        let isValid =
-          switch (Schema.validate) {
-          | Some(validate) =>
-            switch (validate(~state=currentState, ~action)) {
-            | Deny(_) => false
-            | Allow => true
-            }
-          | None => true
-          };
-        if (!isValid) { () } else {
-        let nextState = Schema.reduce(~state=currentState, ~action);
-        let actionId = UUID.make();
-        StoreRuntimeLifecycle.markActionPending(lifecycle, actionId);
-        let ledgerRecord =
-          StoreActionLedger.make(
-            ~id=actionId,
-            ~scopeKey=Schema.scopeKeyOfState(nextState),
-            ~action=Schema.action_to_json(action),
-            (),
+        let validationResult =
+          StoreRuntimeHelpers.validateAction(
+            ~state=currentState,
+            ~action,
+            ~validate=Schema.validate,
           );
-        let cacheRecord = cacheRecordOfLedger(ledgerRecord);
-        actions.set(nextState);
-        let _ =
-          Js.Promise.then_(
-            _ => {
-              broadcastOptimisticAction(ledgerRecord);
-              sendQueuedRecord(ledgerRecord);
-              Js.Promise.resolve();
-            },
-            cachePutAction(cacheRecord),
-          )
-          |> Js.Promise.catch(_ => {
-               sendQueuedRecord(ledgerRecord);
-               Js.Promise.resolve();
-             });
-        ();};
-      | None => ()
+        switch (validationResult) {
+        | Deny(reason) => Error(reason)
+        | Allow =>
+          let nextState = Schema.reduce(~state=currentState, ~action);
+          let actionId = UUID.make();
+          StoreRuntimeLifecycle.markActionPending(lifecycle, actionId);
+          let ledgerRecord =
+            StoreActionLedger.make(
+              ~id=actionId,
+              ~scopeKey=Schema.scopeKeyOfState(nextState),
+              ~action=Schema.action_to_json(action),
+              (),
+            );
+          let cacheRecord = cacheRecordOfLedger(ledgerRecord);
+          actions.set(nextState);
+          let sendAndBroadcast = () =>
+            sendQueuedRecord(ledgerRecord)
+            |> Js.Promise.then_(_ => {
+                 broadcastOptimisticAction(ledgerRecord);
+                 Js.Promise.resolve();
+               })
+            |> Js.Promise.catch(_ => {
+                 broadcastOptimisticAction(ledgerRecord);
+                 Js.Promise.resolve();
+               });
+          let _ =
+            Js.Promise.then_(
+              _ => sendAndBroadcast(),
+              cachePutAction(cacheRecord),
+            )
+            |> Js.Promise.catch(_ => {
+                 sendAndBroadcast()
+               });
+          Ok(actionId);
+        };
+      | None => Error("Store is not mounted")
       }
 
     /* Public dispatch that respects controller emission gating.
@@ -956,15 +1222,57 @@ module Synced = {
        while preserving FIFO ordering for both typed listeners and legacy callbacks. */
     and dispatch = (action: action) => {
       if (Controller.isEmitting()) {
-        Controller.queueDispatch(() => executeDispatch(action));
+        Controller.queueDispatch(() => {
+          let _ = executeDispatch(action);
+          ();
+        });
       } else {
-        executeDispatch(action);
+        let _ = executeDispatch(action);
+        ();
       }
     }
 
     /* Legacy callback dispatch wrapper - calls the main dispatch
        since both respect emission gating uniformly. */
     and safeDispatch = (action: action) => dispatch(action);
+
+    let dispatchForMutation = (action: action): Js.Promise.t(unit) =>
+      Js.Promise.make((~resolve, ~reject) => {
+        let settleWithActionId = actionId => {
+          let listenerIdRef = ref(None);
+          let cleanup = () =>
+            switch (listenerIdRef.contents) {
+            | Some(listenerId) => Controller.unsubscribe(listenerId)
+            | None => ()
+            };
+          let listener = event =>
+            switch (event) {
+            | StoreEvents.ActionAcked({actionId: ackedActionId, _}) when ackedActionId == actionId =>
+              cleanup();
+              let unitValue = ();
+              resolve(. unitValue);
+            | StoreEvents.ActionFailed({actionId: failedActionId, message, _}) when failedActionId == actionId =>
+              cleanup();
+              reject(. Failure(message));
+            | _ => ()
+            };
+          listenerIdRef := Some(Controller.subscribe(listener));
+        };
+        let run = () =>
+          try({
+            switch (executeDispatch(action)) {
+            | Ok(actionId) => settleWithActionId(actionId)
+            | Error(reason) => reject(. Failure(reason))
+            };
+          }) {
+          | error => reject(. error)
+          };
+        if (Controller.isEmitting()) {
+          Controller.queueDispatch(run);
+        } else {
+          run();
+        };
+      });
 
     let resumePendingActions = () =>
       switch%platform (Runtime.platform) {
@@ -977,11 +1285,13 @@ module Synced = {
                 ->Js.Array.map(~f=ledgerRecordOfCache);
               StoreActionLedger.sortByEnqueuedAt(records)
               ->Js.Array.forEach(~f=(record: StoreActionLedger.t) =>
-                  switch (StoreActionLedger.statusOfString(record.status)) {
-                  | Pending
-                  | Syncing => sendQueuedRecord(record)
-                  | Acked
-                  | Failed => ()
+                  if (
+                    StoreActionLedger.shouldSendOnOpen(
+                      StoreActionLedger.statusOfString(record.status),
+                    )
+                  ) {
+                    let _ = sendQueuedRecord(record);
+                    ();
                   }
                 );
               Js.Promise.resolve();
@@ -995,58 +1305,69 @@ module Synced = {
       | Server => ()
       };
 
-    let handleAck = (actionId: string, status: string, error: option(string)) => {
+    let handleAck =
+        (
+          ~shouldApplySideEffects: unit => bool,
+          actionId: string,
+          status: string,
+          error: option(string),
+        ) => {
       Controller.clearAckTimeout(actionId);
       switch (status) {
       | "ok" =>
-        StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
         let _ = 
           Js.Promise.then_(
             cacheRecord => {
-              let ledgerRecord =
-                Option.map(ledgerRecordOfCache, cacheRecord);
-              let persistPromise =
-                switch (cacheRecord) {
-                | Some(record) =>
-                  cachePutAction({
-                    ...record,
-                    status: StoreActionLedger.statusToString(Acked),
-                  })
-                | None => Js.Promise.resolve()
+              if (shouldAcceptAckForCacheRecord(cacheRecord)) {
+                let ledgerRecord =
+                  Option.map(ledgerRecordOfCache, cacheRecord);
+                let persistPromise =
+                  switch (cacheRecord) {
+                  | Some(record) =>
+                    cachePutAction({
+                      ...record,
+                      status: StoreActionLedger.statusToString(Acked),
+                    })
+                  | None => Js.Promise.resolve()
                 };
-              Js.Promise.then_(
-                _ => {
-                  /* Ack ordering contract: the action ledger status is updated
-                     before ActionAcked listeners or legacy callbacks run. */
-                  emitEvent(
-                    StoreEvents.ActionAcked({
-                      actionId,
-                      action: actionOptionOfRecord(ledgerRecord),
-                    }),
-                  );
-                  switch (ledgerRecord) {
-                  | Some(r: StoreActionLedger.t) =>
-                    switch (Schema.onActionAck) {
-                    | Some(onActionAck) =>
-                      onActionAck(
-                        ~dispatch=safeDispatch,
-                        ~action=Schema.action_of_json(r.action),
-                        ~actionId,
-                      )
-                    | None => ()
-                    }
-                  | None => ()
-                  };
-                  Js.Promise.resolve();
-                },
-                persistPromise,
-              );
+                Js.Promise.then_(
+                  _ => {
+                    if (shouldApplySideEffects()) {
+                      StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
+                      /* Ack ordering contract: the action ledger status is updated
+                         before ActionAcked listeners or legacy callbacks run. */
+                      emitEvent(
+                        StoreEvents.ActionAcked({
+                          actionId,
+                          action: actionOptionOfRecord(ledgerRecord),
+                        }),
+                      );
+                      switch (ledgerRecord) {
+                      | Some(r: StoreActionLedger.t) =>
+                        switch (Schema.onActionAck) {
+                        | Some(onActionAck) =>
+                          onActionAck(
+                            ~dispatch=safeDispatch,
+                            ~action=Schema.action_of_json(r.action),
+                            ~actionId,
+                          )
+                        | None => ()
+                        }
+                      | None => ()
+                      };
+                    };
+                    Js.Promise.resolve();
+                  },
+                  persistPromise,
+                );
+              } else {
+                Js.Promise.resolve();
+              };
             },
             cacheGetAction(~id=actionId, ()),
           );
         ();
       | "error" =>
-        StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
         let message =
           switch (error) {
           | Some(message) => message
@@ -1055,35 +1376,42 @@ module Synced = {
         let _ =
           Js.Promise.then_(
             cacheRecord => {
-              let ledgerRecord =
-                Option.map(ledgerRecordOfCache, cacheRecord);
-              let persistPromise =
-                switch (cacheRecord) {
-                | Some(record) =>
-                  cachePutAction({
-                    ...record,
-                    status: StoreActionLedger.statusToString(Failed),
-                    error: Some(message),
-                  })
-                | None => Js.Promise.resolve()
+              if (shouldAcceptAckForCacheRecord(cacheRecord)) {
+                let ledgerRecord =
+                  Option.map(ledgerRecordOfCache, cacheRecord);
+                let persistPromise =
+                  switch (cacheRecord) {
+                  | Some(record) =>
+                    cachePutAction({
+                      ...record,
+                      status: StoreActionLedger.statusToString(Failed),
+                      error: Some(message),
+                    })
+                  | None => Js.Promise.resolve()
                 };
-              Js.Promise.then_(
-                _ => {
-                  refreshOptimisticState();
-                  /* Failure ordering contract: emit ActionFailed only after the
-                     ledger status reflects the failed action. */
-                  emitEvent(
-                    StoreEvents.ActionFailed({
-                      actionId,
-                      action: actionOptionOfRecord(ledgerRecord),
-                      message,
-                    }),
-                  );
-                  Schema.onActionError(message);
-                  Js.Promise.resolve();
-                },
-                persistPromise,
-              );
+                Js.Promise.then_(
+                  _ => {
+                    if (shouldApplySideEffects()) {
+                      refreshOptimisticState();
+                      StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
+                      /* Failure ordering contract: emit ActionFailed only after the
+                         ledger status reflects the failed action. */
+                      emitEvent(
+                        StoreEvents.ActionFailed({
+                          actionId,
+                          action: actionOptionOfRecord(ledgerRecord),
+                          message,
+                        }),
+                      );
+                      Schema.onActionError(message);
+                    };
+                    Js.Promise.resolve();
+                  },
+                  persistPromise,
+                );
+              } else {
+                Js.Promise.resolve();
+              };
             },
             cacheGetAction(~id=actionId, ()),
           );
@@ -1120,20 +1448,58 @@ module Synced = {
         /* Reconcile streaming state after confirmed patch */
         switch (Schema.streams) {
         | Some({reconcilePatch, _}) =>
-          streamingRef := reconcilePatch(patch, streamingRef.contents);
+          updateStreamingState(streaming => reconcilePatch(patch, streaming));
         | None => ()
         };
       | None => ()
       };
     };
 
-    let startSubscription = (state): Js.Promise.t(unit) =>
+    let handleCustom = (payload: StoreJson.json) => {
+      switch (Schema.streams) {
+      | Some({decodeStreamEvent, reduceStream, _}) =>
+        switch (decodeStreamEvent(payload)) {
+        | Some(event) =>
+          updateStreamingState(streaming => reduceStream(streaming, event))
+        | None => ()
+        }
+      | None => ()
+      };
+      emitEvent(StoreEvents.CustomEvent(payload));
+      switch (Schema.onCustom) {
+      | Some(onCustom) => onCustom(payload)
+      | None => ()
+      };
+    };
+
+    let handleMedia = (payload: StoreJson.json) => {
+      emitEvent(StoreEvents.MediaEvent(payload));
+      switch (Schema.onMedia) {
+      | Some(onMedia) => onMedia(payload)
+      | None => ()
+      };
+    };
+
+    let handleConnectionError = (message: string) => {
+      emitEvent(StoreEvents.ConnectionError(message));
+      switch (Schema.onError) {
+      | Some(onError) => onError(~dispatch=safeDispatch)(message)
+      | None => ()
+      };
+    };
+
+    let startSubscription = (~scopeGeneration, state): Js.Promise.t(unit) =>
       switch (Schema.subscriptionOfState(state)) {
       | Some(subscription) =>
         StoreRuntimeLifecycle.markConnectionWaiting(lifecycle);
         Controller.disposeConnectionHandle();
         Js.Promise.make((~resolve, ~reject as _) => {
           let resolveUnit = v => resolve(. v);
+          let resolveScopeReady = () => {
+            clearPendingScopeReady(scopeGeneration);
+            resolveUnit(());
+          };
+          pendingScopeReadyRef := Some((scopeGeneration, resolveScopeReady));
           let multiplexed =
             RealtimeClientMultiplexed.Multiplexed.make(
               ~eventUrl=Schema.eventUrl,
@@ -1144,28 +1510,59 @@ module Synced = {
               ~channel=Schema.encodeSubscription(subscription),
               ~updatedAt=Schema.timestampOfState(state),
               ~onOpen=() => {
-                StoreRuntimeLifecycle.markConnectionOpen(lifecycle);
-                let lifecycleEvent =
-                  if (Controller.getHasOpened()) {
-                    StoreEvents.Reconnect;
-                  } else {
-                    Controller.setHasOpened(true);
-                    StoreEvents.Open;
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  StoreRuntimeLifecycle.markConnectionOpen(lifecycle);
+                  let lifecycleEvent =
+                    if (Controller.getHasOpened()) {
+                      StoreEvents.Reconnect;
+                    } else {
+                      Controller.setHasOpened(true);
+                      StoreEvents.Open;
+                    };
+                  /* Lifecycle events originate from the store-owned sync runtime instead
+                     of demo code so reconnect/open ordering stays centralized. */
+                  emitEvent(lifecycleEvent);
+                  switch (Schema.onOpen) {
+                  | Some(onOpen) => onOpen(~dispatch=safeDispatch)
+                  | None => ()
                   };
-                /* Lifecycle events originate from the store-owned sync runtime instead
-                   of demo code so reconnect/open ordering stays centralized. */
-                emitEvent(lifecycleEvent);
-                switch (Schema.onOpen) {
-                | Some(onOpen) => onOpen(~dispatch=safeDispatch)
-                | None => ()
+                  resumePendingActions();
                 };
-                resumePendingActions();
-                resolveUnit(());
+                resolveScopeReady();
               },
-              ~onClose=() => emitEvent(StoreEvents.Close),
-              ~onPatch=handlePatch,
-              ~onSnapshot=handleSnapshot,
-              ~onAck=handleAck,
+              ~onClose=() =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  StoreRuntimeLifecycle.markConnectionWaiting(lifecycle);
+                  emitEvent(StoreEvents.Close);
+                },
+              ~onPatch=(~payload, ~timestamp) =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  handlePatch(~payload, ~timestamp);
+                },
+              ~onSnapshot=snapshotJson =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  handleSnapshot(snapshotJson);
+                },
+              ~onAck=(actionId, status, error) =>
+                handleAck(
+                  ~shouldApplySideEffects=() =>
+                    isCurrentScopeGeneration(scopeGeneration),
+                  actionId,
+                  status,
+                  error,
+                ),
+              ~onCustom=payload =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  handleCustom(payload);
+                },
+              ~onMedia=payload =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  handleMedia(payload);
+                },
+              ~onError=message =>
+                if (isCurrentScopeGeneration(scopeGeneration)) {
+                  handleConnectionError(message);
+                },
               multiplexed,
             );
           Controller.setConnectionHandle(Some(multiplexed));
@@ -1181,6 +1578,7 @@ module Synced = {
       };
 
     let handleScopeChange = (~actions: StoreSource.actions(state), nextState: state): Js.Promise.t(unit) => {
+      let scopeGeneration = nextScopeGeneration();
       Controller.disposeConnectionHandle();
       cacheGetState(
         ~scopeKey=Schema.scopeKeyOfState(nextState),
@@ -1188,22 +1586,26 @@ module Synced = {
       )
       |> Js.Promise.then_(
            (persistedState: option(StoreCache.state_record(state))) => {
-             let persisted =
-               switch (persistedState) {
-               | Some(record) => Some(record.state)
-               | None => None
-               };
-             let baseState =
-               StoreRuntimeHelpers.selectHydrationBase(
-                 ~initialState=nextState,
-                 ~persistedState=persisted,
-                 ~timestampOfState=Schema.timestampOfState,
-               );
-             confirmedStateRef := baseState;
-             persistConfirmedState(~broadcast=false, baseState);
-             actions.set(baseState);
-             refreshOptimisticState();
-             startSubscription(baseState);
+             if (!isCurrentScopeGeneration(scopeGeneration)) {
+               Js.Promise.resolve();
+             } else {
+               let persisted =
+                 switch (persistedState) {
+                 | Some(record) => Some(record.state)
+                 | None => None
+                 };
+               let baseState =
+                 StoreRuntimeHelpers.selectHydrationBase(
+                   ~initialState=nextState,
+                   ~persistedState=persisted,
+                   ~timestampOfState=Schema.timestampOfState,
+                 );
+               confirmedStateRef := baseState;
+               persistConfirmedState(~broadcast=false, baseState);
+               actions.set(baseState);
+               refreshOptimisticState();
+               startSubscription(~scopeGeneration, baseState);
+             };
            },
          );
     };
@@ -1222,9 +1624,12 @@ module Synced = {
           | None => Schema.emptyState
           }
         | Server => Schema.emptyState
-        };
+      };
 
       confirmedStateRef := initialState;
+      resolvePendingScopeReady();
+      scopeGenerationRef := 0;
+      pendingScopeReadyRef := None;
       Controller.setHasOpened(false);
       Controller.disposeConnectionHandle();
 
@@ -1247,10 +1652,18 @@ module Synced = {
             ~mount=
               actions => {
                 sourceRef := Some(actions);
+                Local.replaceLoadedQueryResultListener(
+                  ~listenerIdRef=queryResultListenerIdRef,
+                  ~queryCache=UseQuery.getQueryCache(),
+                  ~queriesConfig=Schema.queries,
+                  ~confirmedStateRef,
+                  ~refreshOptimisticState,
+                  (),
+                );
                 let channel =
-                  openBroadcastChannel("resync.store." ++ Schema.storeName);
+                  StoreBroadcast.openChannel("resync.store." ++ Schema.storeName);
                 Controller.setBroadcastChannel(Some(channel));
-                setBroadcastHandler(channel, message => {
+                StoreBroadcast.setHandler(channel, message => {
                   switch (StoreJson.tryParse(message)) {
                   | Some(json) =>
                     let messageType =
@@ -1294,7 +1707,8 @@ module Synced = {
                 });
                 let bootPromise = handleScopeChange(~actions, initialState);
                 let _ =
-                  StoreRuntimeLifecycle.trackBoot(lifecycle, bootPromise);
+                  StoreRuntimeLifecycle.trackBoot(lifecycle, bootPromise)
+                  |> Js.Promise.catch(_ => Js.Promise.resolve());
                 ();
               },
             initialState,
@@ -1314,22 +1728,58 @@ module Synced = {
       let unlisten = (listenerId: listener_id) => Controller.unsubscribe(listenerId);
     };
 
-    module Context = {
-      let context = React.createContext(empty);
+    [@platform js]
+    let useStreaming = () => {
+      Tilia.React.useTilia();
+      let (signal, _setSignal) = streamingRevisionSignal;
+      let _ = signal->Tilia.Core.lift;
+      streamingRef.contents;
+    };
 
-      module Provider = {
-        type props = Js.t({. value: t, children: React.element});
-        let makeProps = (~value, ~children, ()) => {
-          "value": value,
-          "children": children,
-        };
-        [@platform js]
-        let make = React.Context.provider(context);
-        [@platform native]
-        let make = (props: props) => React.Context.provider(context)(props);
-      };
+    [@platform native]
+    let useStreaming = () => streamingRef.contents;
 
-      let useStore = () => React.useContext(context);
+    module Context = MakeStoreContext({
+      type nonrec t = t;
+      let empty = empty;
+    });
+
+    let runtimeDispatchForMutation = dispatchForMutation;
+    module HookRuntime = {
+      type store = t;
+      type action = Schema.action;
+      let useStore = Context.useStore;
+      let dispatchForMutation = runtimeDispatchForMutation;
+    };
+
+    module RuntimeHooks = MakeStoreHooks(HookRuntime);
+
+    let useQuery = RuntimeHooks.query;
+    let useQueryResult = RuntimeHooks.queryResult;
+    let useQueryStore = RuntimeHooks.queryStore;
+    let useQueryOption = RuntimeHooks.queryOption;
+    let useQueryResultOption = RuntimeHooks.queryResultOption;
+    let useQueryStoreOption = RuntimeHooks.queryStoreOption;
+    let useIsQueryLoading = RuntimeHooks.isQueryLoading;
+    let useIsQueryLoadingOption = RuntimeHooks.isQueryLoadingOption;
+    let useMutation = RuntimeHooks.mutation;
+    let useMutationFn = RuntimeHooks.mutationFn;
+    let useMutationResult = RuntimeHooks.mutationResult;
+
+    module Hooks = {
+      let useStore = Context.useStore;
+      let useStreaming = useStreaming;
+      let useQuery = useQuery;
+      let useQueryResult = useQueryResult;
+      let useQueryStore = useQueryStore;
+      let useQueryOption = useQueryOption;
+      let useQueryResultOption = useQueryResultOption;
+      let useQueryStoreOption = useQueryStoreOption;
+      let useIsQueryLoading = useIsQueryLoading;
+      let useIsQueryLoadingOption = useIsQueryLoadingOption;
+      let useMutation = useMutation;
+      let useMutationFn = useMutationFn;
+      let useMutationResult = useMutationResult;
     };
 
     let flushCache = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
@@ -1337,7 +1787,7 @@ module Synced = {
     let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let status = () => StoreRuntimeLifecycle.status(lifecycle);
 
-    type status_listener_id = string;
+    type status_listener_id = StoreEvents.listener_id;
     let subscribeStatus = callback =>
       StoreRuntimeLifecycle.subscribeStatus(lifecycle, callback);
     let unsubscribeStatus = id =>

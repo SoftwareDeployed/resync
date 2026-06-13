@@ -23,6 +23,26 @@ type action =
   | SetTodoCompleted(set_completed)
   | RemoveTodo(string);
 
+module Mutations = {
+  module AddTodo = {
+    type params = todo;
+    type nonrec action = action;
+    let toAction = params => AddTodo(params);
+  };
+
+  module SetTodoCompleted = {
+    type params = set_completed;
+    type nonrec action = action;
+    let toAction = params => SetTodoCompleted(params);
+  };
+
+  module RemoveTodo = {
+    type params = string;
+    type nonrec action = action;
+    let toAction = id => RemoveTodo(id);
+  };
+};
+
 type store = {
   state: state,
   completed_count: int,
@@ -31,51 +51,56 @@ type store = {
 
 let storeName = "todo.simple";
 
-let emptyState: state = {
-  todos: [||],
-  updated_at: 0.0,
-};
-
 let nextTodoId = (todos: array(todo)) => {
-  let next =
-    Array.to_list(todos)
-    |> List.fold_left(
-         (current, item: todo) =>
-           switch (
-             try (Some(int_of_string(item.id))) {
-             | Failure(_) => None
-             }
-           ) {
-           | Some(id) when id >= current => id + 1
-           | _ => current
-           },
-         1,
-       );
-  string_of_int(next);
+  let rec loop = (index, current) =>
+    if (index >= Array.length(todos)) {
+      current;
+    } else {
+      let item = todos[index];
+      let next =
+        switch (
+          try (Some(int_of_string(item.id))) {
+          | Failure(_) => None
+          }
+        ) {
+        | Some(id) when id >= current => id + 1
+        | _ => current
+        };
+      loop(index + 1, next);
+    };
+
+  string_of_int(loop(0, 1));
 };
 
 let completedCount = todos =>
   todos->Js.Array.filter(~f=(item: todo) => item.completed)->Array.length;
 
+let actionJson = (~kind, ~fill) => {
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    fill(dict);
+  });
+};
+
 let action_to_json = action =>
   switch (action) {
   | AddTodo(todo) =>
-    StoreJson.parse(
-      "{\"kind\":\"add_todo\",\"todo\":" ++ StoreJson.stringify(todo_to_json, todo) ++ "}",
+    actionJson(
+      ~kind="add_todo",
+      ~fill=dict => StoreJson.Object.setJson(dict, "todo", todo_to_json(todo)),
     )
   | SetTodoCompleted(input) =>
-    StoreJson.parse(
-      "{\"kind\":\"set_todo_completed\",\"id\":"
-      ++ string_to_json(input.id)->Melange_json.to_string
-      ++ ",\"completed\":"
-      ++ bool_to_json(input.completed)->Melange_json.to_string
-      ++ "}",
+    actionJson(
+      ~kind="set_todo_completed",
+      ~fill=dict => {
+        StoreJson.Object.setString(dict, "id", input.id);
+        StoreJson.Object.setBool(dict, "completed", input.completed);
+      },
     )
   | RemoveTodo(id) =>
-    StoreJson.parse(
-      "{\"kind\":\"remove_todo\",\"id\":"
-      ++ string_to_json(id)->Melange_json.to_string
-      ++ "}",
+    actionJson(
+      ~kind="remove_todo",
+      ~fill=dict => StoreJson.Object.setString(dict, "id", id),
     )
   };
 
@@ -108,73 +133,85 @@ let action_of_json = json => {
   };
 };
 
-let reduce = (~state: state, ~action: action) => {
-  let updated_at = Js.Date.now();
-  switch (action) {
-  | AddTodo(todo) => {
-      todos: StoreCrud.upsert(~getId=(item: todo) => item.id, state.todos, todo),
-      updated_at,
-    }
-  | SetTodoCompleted(input) => {
-      todos:
-        Js.Array.map(
-          ~f=(item: todo) =>
-            item.id == input.id ? {...item, completed: input.completed} : item,
-          state.todos,
-        ),
-      updated_at,
-    }
-  | RemoveTodo(id) => {
-      todos: StoreCrud.remove(~getId=(item: todo) => item.id, state.todos, id),
-      updated_at,
-    }
-  };
-};
-
 /* ============================================================================
-   Pipeline Builder API
+   FRP Local Store API
    ============================================================================ */
 
-module StoreDef =
-  (val StoreBuilder.buildLocal(
-    StoreBuilder.make()
-    |> StoreBuilder.withSchema({
-         emptyState,
-         reduce,
-         makeStore:
-           (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
-           state:
-             StoreBuilder.current(
-               ~derive?,
-               ~client=state,
-               ~server=() => state,
-               (),
-             ),
-           completed_count:
-             StoreBuilder.derived(
-               ~derive?,
-               ~client=store => completedCount(store.state.todos),
-               ~server=() => completedCount(state.todos),
-               (),
-             ),
-           total_count:
-             StoreBuilder.derived(
-               ~derive?,
-               ~client=store => Array.length(store.state.todos),
-               ~server=() => Array.length(state.todos),
-               (),
-             ),
-         },
-       })
-    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
-    |> StoreBuilder.withLocalPersistence(
-         ~storeName,
-         ~scopeKeyOfState = (_state: state) => "default",
-         ~timestampOfState = (state: state) => state.updated_at,
-         ~stateElementId=None,
-         (),
-       ),
-  ));
+module StoreDef = StoreFrp.Local.Build({
+  type nonrec state = state;
+  type nonrec action = action;
+  type nonrec store = store;
+
+  let config =
+    StoreFrp.Local.make({
+      storeName,
+      emptyState: {
+        todos: [||],
+        updated_at: 0.0,
+      },
+      reduce: (~state: state, ~action: action) => {
+        let updated_at = Js.Date.now();
+        switch (action) {
+        | AddTodo(todo) => {
+            todos:
+              StoreCrud.upsert(
+                ~getId=(item: todo) => item.id,
+                state.todos,
+                todo,
+              ),
+            updated_at,
+          }
+        | SetTodoCompleted(input) => {
+            todos:
+              state.todos->Js.Array.map(
+                ~f=(item: todo) =>
+                  item.id == input.id ? {...item, completed: input.completed} : item,
+              ),
+            updated_at,
+          }
+        | RemoveTodo(id) => {
+            todos:
+              StoreCrud.remove(
+                ~getId=(item: todo) => item.id,
+                state.todos,
+                id,
+              ),
+            updated_at,
+          }
+        };
+      },
+      state_of_json,
+      state_to_json,
+      action_of_json,
+      action_to_json,
+      makeStore: (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
+        state:
+          StoreBuilder.current(
+            ~derive?,
+            ~client=state,
+            ~server=() => state,
+            (),
+          ),
+        completed_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => completedCount(store.state.todos),
+            ~server=() => completedCount(state.todos),
+            (),
+          ),
+        total_count:
+          StoreBuilder.derived(
+            ~derive?,
+            ~client=store => Array.length(store.state.todos),
+            ~server=() => Array.length(state.todos),
+            (),
+          ),
+      },
+      scopeKeyOfState: (_state: state) => "default",
+      timestampOfState: (state: state) => state.updated_at,
+      stateElementId: None,
+    });
+});
 
 include (
   StoreDef:

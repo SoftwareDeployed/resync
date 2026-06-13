@@ -127,6 +127,7 @@ Test cases in `packages/reason-realtime/dream-middleware/test/middleware_behavio
 - **ping replies with pong** — verifies ping handling preserves channel state and emits the expected pong payload.
 - **select subscribes and sends snapshot** — verifies `select` subscribes the requested channel and wraps snapshot output.
 - **mutation success sends ack ok** — verifies a successful mutation emits an `ack` payload with `status:"ok"`.
+- **mutation without db skips use_db and dedupes action id** — verifies the no-DB mutation handler path does not require `Dream.sql` and replays duplicate action acknowledgements without rerunning the handler.
 - **invalid mutation sends error ack** — verifies malformed mutation frames emit an error ack and trigger close behavior.
 - **media handler error sends error frame** — verifies media-handler failures emit an error frame and trigger close behavior.
 - **detach unsubscribes active channel** — verifies teardown unsubscribes the active channel from the adapter.

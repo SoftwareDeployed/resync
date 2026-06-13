@@ -13,7 +13,11 @@ type error;
  * ============================================================================ */
 
 [@platform native]
-let openRaw = (_name: string, _version: int) => Obj.magic();
+let unavailable = () =>
+  raise(Failure("IndexedDB raw bindings are only available in the browser"));
+
+[@platform native]
+let openRaw = (_name: string, _version: int) => unavailable();
 
 [@platform native]
 let setOnsuccess = (_req: request, _cb) => ();
@@ -25,13 +29,13 @@ let setOnerror = (_req: request, _cb) => ();
 let setOnupgradeneeded = (_req: request, _cb) => ();
 
 [@platform native]
-let resultAsDatabase = (_req: request) => Obj.magic();
+let resultAsDatabase = (_req: request) => unavailable();
 
 [@platform native]
 let resultAsNullable = (_req: request) => Js.Nullable.null;
 
 [@platform native]
-let resultError = (_req: request) => Obj.magic();
+let resultError = (_req: request) => unavailable();
 
 [@platform native]
 let errorName = (_e: error) => "";
@@ -41,33 +45,33 @@ let errorMessage = (_e: error) => "";
 
 [@platform native]
 let createObjectStore = (_db: database, _name: string, _keyPath: string) =>
-  Obj.magic();
+  unavailable();
 
 [@platform native]
 let createIndex = (_store: objectStore, _name: string, _keyPath: string, _unique: bool) =>
-  Obj.magic();
+  unavailable();
 
 [@platform native]
 let transaction = (_db: database, _storeNames: array(string), _mode: string) =>
-  Obj.magic();
+  unavailable();
 
 [@platform native]
-let objectStore = (_tx: transaction, _name: string) => Obj.magic();
+let objectStore = (_tx: transaction, _name: string) => unavailable();
 
 [@platform native]
-let index = (_store: objectStore, _name: string) => Obj.magic();
+let index = (_store: objectStore, _name: string) => unavailable();
 
 [@platform native]
-let getRaw = (_store: objectStore, _key: string) => Obj.magic();
+let getRaw = (_store: objectStore, _key: string) => unavailable();
 
 [@platform native]
-let putRaw = (_store: objectStore, _value) => Obj.magic();
+let putRaw = (_store: objectStore, _value) => unavailable();
 
 [@platform native]
-let deleteRaw = (_store: objectStore, _key: string) => Obj.magic();
+let deleteRaw = (_store: objectStore, _key: string) => unavailable();
 
 [@platform native]
-let getAllRaw = (_idx: index, _key: string) => Obj.magic();
+let getAllRaw = (_idx: index, _key: string) => unavailable();
 
 [@platform native]
 let objectStoreNames = (_db: database) => [||];
@@ -82,7 +86,7 @@ let setTxOncomplete = (_tx: transaction, _cb) => ();
 let setTxOnerror = (_tx: transaction, _cb) => ();
 
 [@platform native]
-let txError = (_tx: transaction) => Obj.magic();
+let txError = (_tx: transaction) => unavailable();
 
 /* ============================================================================
  * JS EXTERNALS

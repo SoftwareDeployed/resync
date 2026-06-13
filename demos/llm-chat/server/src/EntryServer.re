@@ -34,74 +34,76 @@ let isUuid = (value: string) => {
 };
 
 let getServerState = (context: UniversalRouterDream.serverContext(LlmChatStore.t)) => {
-  let UniversalRouterDream.{basePath, request} = context;
-  if (String.length(basePath) <= 1) {
+  let UniversalRouterDream.{basePath, request, params} = context;
+  if (basePath != "/") {
     Lwt.return(UniversalRouterDream.NotFound);
   } else {
-    let threadId = String.sub(basePath, 1, String.length(basePath) - 1);
-    if (!isUuid(threadId)) {
-      Lwt.return(UniversalRouterDream.NotFound);
-    } else {
-      let* threadRow =
-        Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
-          RealtimeSchema.Queries.GetThread.find_opt(
-            (module Db),
-            RealtimeSchema.Queries.GetThread.caqti_type,
-            threadId,
-          )
-        );
-      switch (threadRow) {
-      | None => Lwt.return(UniversalRouterDream.NotFound)
-      | Some(row) =>
-        let thread = ({
-          Model.Thread.id: row.id,
-          title: row.title,
-          updated_at: row.updated_at,
-        }: Model.Thread.t);
-        let* messageRows =
+    switch (UniversalRouter.Params.find("threadId", params)) {
+    | None => Lwt.return(UniversalRouterDream.NotFound)
+    | Some(threadId) =>
+      if (!isUuid(threadId)) {
+        Lwt.return(UniversalRouterDream.NotFound);
+      } else {
+        let* threadRow =
           Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
-            RealtimeSchema.Queries.GetMessages.collect(
+            RealtimeSchema.Queries.GetThread.find_opt(
               (module Db),
-              RealtimeSchema.Queries.GetMessages.caqti_type,
+              RealtimeSchema.Queries.GetThread.caqti_type,
               threadId,
             )
           );
-        let messages =
-          Array.map(
-            (msgRow: RealtimeSchema.Queries.GetMessages.row) => ({
-              Model.Message.id: msgRow.id,
-              thread_id: msgRow.thread_id,
-              role: msgRow.role,
-              content: msgRow.content,
-            }: Model.Message.t),
-            Array.of_list(messageRows),
-          );
-        let* threadRows =
-          Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
-            RealtimeSchema.Queries.GetThreads.collect(
-              (module Db),
-              RealtimeSchema.Queries.GetThreads.caqti_type,
-              (),
-            )
-          );
-        let threads =
-          Array.map(
-            (tr: RealtimeSchema.Queries.GetThreads.row) => ({
-              Model.Thread.id: tr.id,
-              title: tr.title,
-              updated_at: tr.updated_at,
-            }: Model.Thread.t),
-            Array.of_list(threadRows),
-          );
-        let config: Model.t = {
-          threads,
-          current_thread_id: Some(threadId),
-          messages,
-          input: "",
-          updated_at: thread.updated_at,
+        switch (threadRow) {
+        | None => Lwt.return(UniversalRouterDream.NotFound)
+        | Some(row) =>
+          let thread = ({
+            Model.Thread.id: row.id,
+            title: row.title,
+            updated_at: row.updated_at,
+          }: Model.Thread.t);
+          let* messageRows =
+            Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+              RealtimeSchema.Queries.GetMessages.collect(
+                (module Db),
+                RealtimeSchema.Queries.GetMessages.caqti_type,
+                threadId,
+              )
+            );
+          let messages =
+            Array.map(
+              (msgRow: RealtimeSchema.Queries.GetMessages.row) => ({
+                Model.Message.id: msgRow.id,
+                thread_id: msgRow.thread_id,
+                role: msgRow.role,
+                content: msgRow.content,
+              }: Model.Message.t),
+              Array.of_list(messageRows),
+            );
+          let* threadRows =
+            Dream.sql(request, (module Db: Caqti_lwt.CONNECTION) =>
+              RealtimeSchema.Queries.GetThreads.collect(
+                (module Db),
+                RealtimeSchema.Queries.GetThreads.caqti_type,
+                (),
+              )
+            );
+          let threads =
+            Array.map(
+              (tr: RealtimeSchema.Queries.GetThreads.row) => ({
+                Model.Thread.id: tr.id,
+                title: tr.title,
+                updated_at: tr.updated_at,
+              }: Model.Thread.t),
+              Array.of_list(threadRows),
+            );
+          let config: Model.t = {
+            threads,
+            current_thread_id: Some(threadId),
+            messages,
+            updated_at: thread.updated_at,
+          };
+          let store = LlmChatStore.createStore(config);
+          Lwt.return(UniversalRouterDream.State(store));
         };
-        let store = LlmChatStore.createStore(config);
-        Lwt.return(UniversalRouterDream.State(store));
       };
     };
   };

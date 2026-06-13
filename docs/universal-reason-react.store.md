@@ -16,6 +16,8 @@ The current store model is runtime-first:
 - local-only stores persist confirmed snapshots to IndexedDB and sync across tabs with `BroadcastChannel`
 - synced stores persist confirmed snapshots and an action ledger in IndexedDB, then reconcile with websocket acks, patches, and snapshots
 
+The `Store` namespace re-exports common helpers (`Store.Json`, `Store.Crud`, `Store.Patch`, `Store.Runtime`, `Store.Sync`, and `Store.Frp`) so components and store modules can import one top-level namespace when desired.
+
 ## End-to-End Authoring Example
 
 The smallest complete store in the repo is the todo demo. It shows the full path from types to reducer to store shape to component dispatch.
@@ -42,21 +44,30 @@ let emptyState: state = {todos: [||], updated_at: 0.0};
 
 let completedCount = todos => todos->Js.Array.filter(~f=(item: todo) => item.completed)->Array.length;
 
+let actionJson = (~kind, ~fill) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    fill(dict);
+  });
+
 let action_to_json = action => switch (action) {
-| AddTodo(todo) => StoreJson.parse("{\"kind\":\"add_todo\",\"todo\":" ++ StoreJson.stringify(todo_to_json, todo) ++ "}")
+| AddTodo(todo) =>
+  actionJson(
+    ~kind="add_todo",
+    ~fill=dict => StoreJson.Object.setJson(dict, "todo", todo_to_json(todo)),
+  )
 | SetTodoCompleted(input) =>
-  StoreJson.parse(
-    "{\"kind\":\"set_todo_completed\",\"id\":"
-    ++ string_to_json(input.id)->Melange_json.to_string
-    ++ ",\"completed\":"
-    ++ bool_to_json(input.completed)->Melange_json.to_string
-    ++ "}",
+  actionJson(
+    ~kind="set_todo_completed",
+    ~fill=dict => {
+      StoreJson.Object.setString(dict, "id", input.id);
+      StoreJson.Object.setBool(dict, "completed", input.completed);
+    },
   )
 | RemoveTodo(id) =>
-  StoreJson.parse(
-    "{\"kind\":\"remove_todo\",\"id\":"
-    ++ string_to_json(id)->Melange_json.to_string
-    ++ "}",
+  actionJson(
+    ~kind="remove_todo",
+    ~fill=dict => StoreJson.Object.setString(dict, "id", id),
   )
 };
 
@@ -196,7 +207,7 @@ See `docs/API_REFERENCE.md` for the complete signatures.
 
 ## Bootstrap Helpers
 
-`StoreBuilder.Bootstrap` removes repeated provider/hydration ceremony from app entrypoints.
+`StoreBuilder.Bootstrap` removes repeated provider/hydration ceremony from app entrypoints. Hydrated-provider helpers also hydrate the default SSR query cache script (`id="query-cache"`) before rendering.
 
 - `withHydratedProvider` for one store
 - `withHydratedProviders` for nested stores
@@ -276,6 +287,8 @@ type t = store;
 module Context = StoreDef.Context;
 ```
 
+The runtime export also includes store-scoped hooks. `useStreaming()` returns the typed streaming state reactively; local stores return `unit`, and synced stores update after typed stream events plus confirmed-state reconciliation. `useQuery((module Query), params, ~skip=false, ())` subscribes through the shared query cache and returns the Convex-style `{data, loading, error}` query result; pass `~skip=true` to preserve hook order while avoiding SSR registration and client subscription. `useQueryResult((module Query), params, ~skip=false, ())` is an explicit alias for the same result-returning hook. `useQueryStore((module Query), params, ~skip=false, ())` uses the same subscription path and returns the store with loaded rows applied. `useQueryOption((module Query), paramsOpt, ())` is the Reason-friendly conditional result form: `Some(params)` subscribes and `None` skips without requiring placeholder params. `useQueryResultOption((module Query), paramsOpt, ())` is an explicit alias for `useQueryOption`, and `useQueryStoreOption((module Query), paramsOpt, ())` is the conditional store-returning form. When skipped, result-returning query hooks return `{data: Loading, loading: false, error: None}`. `useIsQueryLoading((module Query), params)` returns the query cache loading state. `useIsQueryLoadingOption((module Query), paramsOpt)` returns `false` for `None` without deriving query keys, registering SSR queries, or opening client subscriptions. Standalone low-level `UseQuery`/`Hooks.useQuery` calls use the same global query cache, but they do not infer a websocket transport from any store; call `UseQuery.initCache(~eventUrl, ~baseUrl)` during client startup before subscribing to uncached queries. `eventUrl` may be a same-origin path such as `"/_events"`, and `baseUrl` may be `""`. If transport is not initialized, uncached client queries return an error instead of staying `Loading`; SSR-hydrated rows remain usable. `useMutation((module Mutation), ())` returns the async mutation function directly, matching Convex's callable mutation style. `useMutationFn((module Mutation), ())` remains a compatibility alias for the same callable function. `useMutationResult((module Mutation), ())` returns a mutation handle whose `dispatch(params)` and `mutate(params)` fields are aliases that return `Js.Promise.t(unit)`, plus `loading` and `error` fields for the in-flight state and latest rejection message. Local stores resolve after local dispatch and reject when validation denies the action or the store is unavailable. Synced stores resolve after server acknowledgement and reject when validation or the server mutation fails. Custom store-scoped mutation modules only need `type params`, `type action`, and `let toAction: params => action`.
+
 ### `StoreBuilder.buildSynced`
 
 Use this for realtime state such as `todo-multiplayer`, ecommerce inventory, or the LLM chat demo.
@@ -283,7 +296,7 @@ Use this for realtime state such as `todo-multiplayer`, ecommerce inventory, or 
 Additional pipeline steps (after `withJson`):
 
 1. `StoreBuilder.withGuardTree(~guardTree)` — optional validation before sync wiring
-2. `StoreBuilder.withSync(...)` — wire transport, patches, hooks, and optional streams
+2. `StoreBuilder.withSync(...)` — wire transport, patches, hooks, and optional streams. If the store has no streams, pass `~emptyStreamingState=()`.
 
 Behavior:
 
@@ -293,6 +306,7 @@ Behavior:
 - queues optimistic actions in IndexedDB
 - sends JSON mutation envelopes over the websocket
 - retries with the same `actionId` until ack or retry exhaustion
+- persists the ack-confirmed state when the server acknowledges a mutation
 - rebuilds optimistic state from confirmed state plus remaining pending actions
 
 The synced runtime is the right choice when actions are optimistic and the server can later confirm or patch them.
@@ -331,6 +345,7 @@ module StoreDef =
            eventUrl: Constants.event_url,
            baseUrl: Constants.base_url,
          },
+         ~emptyStreamingState=(),
          ~stateElementId=None,
          (),
        )
@@ -481,7 +496,8 @@ This means SSR stays server-first and there is no promise-gated boot path.
 - the typed action is serialized and stored in the IndexedDB action ledger
 - the runtime sends `{type: "mutation", actionId, action}` over the websocket
 - server responds with `{type: "ack", actionId, status, error?}`
-- snapshots and patches advance confirmed state
+- successful acks advance and persist confirmed state by applying the acknowledged action
+- snapshots and patches can further reconcile confirmed state from server-delivered data
 - optimistic state is rebuilt from confirmed state plus remaining pending actions
 
 ## Realtime Patch Helpers
@@ -492,13 +508,13 @@ Use `StoreCrud` for standard table-backed patch handling.
 type patch = StoreCrud.patch(MyRow.t);
 
 let decodePatch =
-  StorePatch.compose([
+  StorePatch.compose([|
     StoreCrud.decodePatch(
       ~table=RealtimeSchema.table_name("items"),
       ~decodeRow=MyRow.of_json,
       (),
     ),
-  ]);
+  |]);
 
 let updateOfPatch =
   StoreCrud.updateOfPatch(

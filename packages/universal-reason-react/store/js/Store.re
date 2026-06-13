@@ -9,3 +9,4 @@ module Selectors = StoreBuilder.Selectors;
 module Bootstrap = StoreBuilder.Bootstrap;
 module Runtime = StoreBuilder.Runtime;
 module Sync = StoreBuilder.Sync;
+module Frp = StoreFrp;

@@ -5,14 +5,21 @@
     store_action_ledger_test
     store_events_behavior_test
     store_runtime_behavior_test
+    store_runtime_lifecycle_test
+    store_frp_test
     store_crud_test
     store_patch_test
     store_source_test
-    store_cache_test)
+    store_cache_test
+    realtime_client_test
+    query_registry_test
+    use_query_test
+    use_mutation_test)
  (wrapped false)
  (libraries
    alcotest
    alcobar
+   lwt.unix
    melange-json-native
    universal_reason_react_store_native
    universal_reason_react_uuid_native)

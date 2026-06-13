@@ -19,13 +19,42 @@ type float32Array;
 type arrayBuffer;
 type dataView;
 type uint8Array;
+type scrollElement;
 
 [@platform native]
-let mediaDevices = (_navigator: navigator) => Obj.magic();
+let unavailable = () =>
+  raise(Failure("MediaBindings raw browser bindings are only available in the browser"));
+
+[@platform native]
+let canvasRenderingContext2dOfDom = (_ctx: 'ctx) => unavailable();
+
+[@platform native]
+let canvasElementOfDom = (_element: 'element) => unavailable();
+
+[@platform native]
+let videoElementOfDom = (_element: 'element) => unavailable();
+
+[@platform native]
+let imageOfHtmlImage = (_image: 'image) => unavailable();
+
+[@platform native]
+let navigatorOfDom = (_navigator: 'navigator) => unavailable();
+
+[@platform native]
+let scrollElementOfDom = (_element: 'element) => unavailable();
+
+[@platform native]
+let scrollHeight = (_element: scrollElement) => 0.0;
+
+[@platform native]
+let setScrollTop = (_element: scrollElement, _value: float) => ();
+
+[@platform native]
+let mediaDevices = (_navigator: navigator) => unavailable();
 
 [@platform native]
 let getUserMedia = (_mediaDevices: mediaDevices, _constraints: Js.t({. video: bool, audio: bool})) =>
-  Js.Promise.resolve(Obj.magic());
+  Js.Promise.reject(Failure("getUserMedia is only available in the browser"));
 
 [@platform native]
 let toDataURL = (_canvas: canvasElement, _mimeType: string, _quality: float) => "";
@@ -44,7 +73,7 @@ let drawVideoImage = (
 let drawImage = (_ctx: canvasRenderingContext2d, _image: image, _x: int, _y: int) => ();
 
 [@platform native]
-let makeAudio = (_src: string) => Obj.magic();
+let makeAudio = (_src: string) => unavailable();
 
 [@platform native]
 let playAudio = (_audio: audio) => Js.Promise.resolve();
@@ -89,23 +118,23 @@ let setEnabled = (_track: mediaTrack, _enabled: bool) => ();
 let stopTrack = (_track: mediaTrack) => ();
 
 [@platform native]
-let makeAudioContext = (_config: Js.t({. sampleRate: int})) => Obj.magic();
+let makeAudioContext = (_config: Js.t({. sampleRate: int})) => unavailable();
 
 [@platform native]
-let makeWebkitAudioContext = (_config: Js.t({. sampleRate: int})) => Obj.magic();
+let makeWebkitAudioContext = (_config: Js.t({. sampleRate: int})) => unavailable();
 
 [@platform native]
-let createMediaStreamSource = (_ctx: audioContext, _stream: mediaStream) => Obj.magic();
+let createMediaStreamSource = (_ctx: audioContext, _stream: mediaStream) => unavailable();
 
 [@platform native]
 let createScriptProcessor = (_ctx: audioContext, _bufferSize: int, _inputChannels: int, _outputChannels: int) =>
-  Obj.magic();
+  unavailable();
 
 [@platform native]
-let createGain = (_ctx: audioContext) => Obj.magic();
+let createGain = (_ctx: audioContext) => unavailable();
 
 [@platform native]
-let gainParam = (_gain: gainNode) => Obj.magic();
+let gainParam = (_gain: gainNode) => unavailable();
 
 [@platform native]
 let setAudioParamValue = (_param: audioParam, _value: float) => ();
@@ -117,7 +146,7 @@ let connect = (_source, _destination) => ();
 let disconnect = _node => ();
 
 [@platform native]
-let audioContextDestination = (_ctx: audioContext) => Obj.magic();
+let audioContextDestination = (_ctx: audioContext) => unavailable();
 
 [@platform native]
 let audioContextState = (_ctx: audioContext) => "closed";
@@ -135,10 +164,10 @@ let audioContextSampleRate = (_ctx: audioContext) => 0;
 let setOnAudioProcess = (_processor: scriptProcessorNode, _handler: audioProcessingEvent => unit) => ();
 
 [@platform native]
-let inputBuffer = (_event: audioProcessingEvent) => Obj.magic();
+let inputBuffer = (_event: audioProcessingEvent) => unavailable();
 
 [@platform native]
-let getChannelData = (_buffer: audioBuffer, _channel: int) => Obj.magic();
+let getChannelData = (_buffer: audioBuffer, _channel: int) => unavailable();
 
 [@platform native]
 let float32Length = (_buffer: float32Array) => 0;
@@ -147,10 +176,10 @@ let float32Length = (_buffer: float32Array) => 0;
 let float32At = (_buffer: float32Array, _index: int) => 0.0;
 
 [@platform native]
-let makeArrayBuffer = (_byteLength: int) => Obj.magic();
+let makeArrayBuffer = (_byteLength: int) => unavailable();
 
 [@platform native]
-let makeDataView = (_buffer: arrayBuffer) => Obj.magic();
+let makeDataView = (_buffer: arrayBuffer) => unavailable();
 
 [@platform native]
 let setUint8 = (_view: dataView, _offset: int, _value: int) => ();
@@ -165,7 +194,7 @@ let setUint32 = (_view: dataView, _offset: int, _value: int, _littleEndian: bool
 let setInt16 = (_view: dataView, _offset: int, _value: int, _littleEndian: bool) => ();
 
 [@platform native]
-let makeUint8Array = (_buffer: arrayBuffer) => Obj.magic();
+let makeUint8Array = (_buffer: arrayBuffer) => unavailable();
 
 [@platform native]
 let uint8Length = (_buffer: uint8Array) => 0;
@@ -182,6 +211,22 @@ let setInterval = (_callback: unit => unit, _delay: int) => 0;
 [@platform native]
 let clearInterval = (_intervalId: int) => ();
 
+[@platform js]
+external canvasRenderingContext2dOfDom: 'ctx => canvasRenderingContext2d = "%identity";
+[@platform js]
+external canvasElementOfDom: 'element => canvasElement = "%identity";
+[@platform js]
+external videoElementOfDom: 'element => videoElement = "%identity";
+[@platform js]
+external imageOfHtmlImage: 'image => image = "%identity";
+[@platform js]
+external navigatorOfDom: 'navigator => navigator = "%identity";
+[@platform js]
+external scrollElementOfDom: 'element => scrollElement = "%identity";
+[@platform js]
+[@mel.get] external scrollHeight: scrollElement => float = "scrollHeight";
+[@platform js]
+[@mel.set] external setScrollTop: (scrollElement, float) => unit = "scrollTop";
 [@platform js]
 [@mel.get] external mediaDevices: navigator => mediaDevices = "mediaDevices";
 [@platform js]

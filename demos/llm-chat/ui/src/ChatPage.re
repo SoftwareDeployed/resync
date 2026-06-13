@@ -21,111 +21,312 @@ let handleInputChange = (setDraft, event) => {
 let handleInputChange = (_setDraft, _event) => ();
 
 [@platform js]
-let handleSend = (store: LlmChatStore.t, prompt, setDraft, setIsStreaming) => {
+let handleSend =
+    (
+      store: LlmChatStore.t,
+      sendPromptMutation: UseMutation.mutation_result(LlmChatStore.send_prompt_payload),
+      prompt,
+      setDraft,
+    ) => {
   let threadId =
     switch (store.state.current_thread_id) {
     | Some(id) => id
     | None => ""
-    };
-  if (String.length(prompt) > 0 && String.length(threadId) > 0) {
-    LlmChatStore.dispatch(
-      SendPrompt({
+  };
+  let trimmedPrompt = String.trim(prompt);
+  if (String.length(trimmedPrompt) > 0 && String.length(threadId) > 0) {
+    let messageId = UUID.make();
+    let assistantMessageId = UUID.make();
+    let _ =
+      sendPromptMutation.mutate({
+        message_id: messageId,
+        assistant_message_id: assistantMessageId,
         thread_id: threadId,
-        prompt,
-      }),
-    );
+        prompt: trimmedPrompt,
+      });
     setDraft(_ => "");
-    setIsStreaming(_ => true);
   };
 };
 
 [@platform native]
-let handleSend = (_store, _prompt, _setDraft, _setIsStreaming) =>
+let handleSend = (_store, _sendPromptMutation, _prompt, _setDraft) =>
   ();
 
-let onThreadClick = (_router: UniversalRouter.routerApi, threadId, _event) => {
-  LlmChatStore.dispatch(SelectThread(threadId));
+let onThreadClick =
+    (
+      _router: UniversalRouter.routerApi,
+      selectThread: string => Js.Promise.t(unit),
+      threadId,
+      _event,
+    ) => {
+  let _ = selectThread(threadId);
   ReasonReactRouter.push("/" ++ threadId);
 };
 
-let onNewChatClick = (router: UniversalRouter.routerApi, _event) => {
+let onNewChatClick =
+    (
+      createThread: LlmChatStore.create_thread_payload => Js.Promise.t(unit),
+      router: UniversalRouter.routerApi,
+      _event,
+    ) => {
   let uuid = UUID.make();
-  LlmChatStore.dispatch(
-    CreateNewThread({id: uuid, title: "New Chat"}),
-  );
-  router.push("/" ++ uuid);
+  let _ =
+    createThread({id: uuid, title: "New Chat"})
+    |> Js.Promise.then_(_ => {
+         router.push("/" ++ uuid);
+         Js.Promise.resolve();
+       })
+    |> Js.Promise.catch(_ => Js.Promise.resolve());
+  ();
 };
 
-let onDeleteThread = (_router: UniversalRouter.routerApi, threadId, event) => {
+let onDeleteThread =
+    (
+      _router: UniversalRouter.routerApi,
+      deleteThread: string => Js.Promise.t(unit),
+      threadId,
+      event,
+    ) => {
   React.Event.Mouse.stopPropagation(event);
   React.Event.Mouse.preventDefault(event);
-  LlmChatStore.dispatch(DeleteThread(threadId));
+  let _ = deleteThread(threadId);
 };
 
 [@platform js]
-let handleKeyDown = (store, draft, setDraft, setIsStreaming, event) => {
+let handleKeyDown =
+    (
+      store,
+      sendPromptMutation: UseMutation.mutation_result(LlmChatStore.send_prompt_payload),
+      draft,
+      setDraft,
+      event,
+    ) => {
   let key = React.Event.Keyboard.key(event);
   let shift = React.Event.Keyboard.shiftKey(event);
   if (key == "Enter" && !shift) {
     React.Event.Keyboard.preventDefault(event);
-    handleSend(store, draft, setDraft, setIsStreaming);
+    handleSend(store, sendPromptMutation, draft, setDraft);
   };
 };
 
 [@platform native]
-let handleKeyDown = (_store, _draft, _setDraft, _setIsStreaming, _event) =>
+let handleKeyDown = (_store, _sendPromptMutation, _draft, _setDraft, _event) =>
   ();
 
-let hasConfirmedAssistantMessage = (~messages, ~content) =>
-  messages->Js.Array.some(~f=(message: Model.Message.t) =>
-    message.role == "assistant" && message.content == content
+let hasCurrentStreamAssistantMessage = (~messages, streaming: LlmChatStore.streaming_state) =>
+  switch (streaming.currentStreamId) {
+  | Some(streamId) =>
+    messages->Js.Array.some(~f=(message: Model.Message.t) =>
+      message.role == "assistant" && message.id == streamId
+    )
+  | None => false
+  };
+
+let isStreamingForThread = (~currentThreadId, streaming: LlmChatStore.streaming_state) =>
+  switch (streaming.currentThreadId) {
+  | Some(threadId) => threadId == currentThreadId && streaming.isStreaming
+  | None => false
+  };
+
+let streamingTextForThread = (~currentThreadId, streaming: LlmChatStore.streaming_state) => {
+  let activeText =
+    switch (streaming.currentThreadId, streaming.currentStreamId) {
+    | (Some(threadId), Some(streamId)) when threadId == currentThreadId =>
+      streaming.activeStreams
+      ->Belt.Map.String.get(streamId)
+      ->Belt.Option.getWithDefault("")
+    | _ => ""
+    };
+  if (String.length(activeText) > 0) {
+    activeText;
+  } else {
+    switch (streaming.streamError) {
+    | Some({thread_id, message}) when thread_id == currentThreadId =>
+      "Error: " ++ message
+    | _ => ""
+    };
+  };
+};
+
+let currentStreamIdForThread = (~currentThreadId, streaming: LlmChatStore.streaming_state) =>
+  switch (streaming.currentThreadId, streaming.currentStreamId) {
+  | (Some(threadId), Some(streamId)) when threadId == currentThreadId =>
+    Some(streamId)
+  | _ => None
+  };
+
+let startsWith = (~prefix, value) => {
+  let prefixLength = String.length(prefix);
+  String.length(value) >= prefixLength
+  && String.sub(value, 0, prefixLength) == prefix;
+};
+
+let activeStreamTextForMessage = (~streaming: LlmChatStore.streaming_state, ~messageId) =>
+  switch (streaming.currentStreamId) {
+  | Some(streamId) when streamId == messageId =>
+    streaming.activeStreams
+    ->Belt.Map.String.get(streamId)
+    ->Belt.Option.getWithDefault("")
+  | _ => ""
+  };
+
+let displayAssistantContent = (~message: Model.Message.t, ~streaming) => {
+  let activeText = activeStreamTextForMessage(~streaming, ~messageId=message.id);
+  if (String.length(activeText) == 0) {
+    message.content;
+  } else if (startsWith(~prefix=message.content, activeText)) {
+    activeText;
+  } else if (startsWith(~prefix=activeText, message.content)) {
+    message.content;
+  } else {
+    message.content ++ activeText;
+  };
+};
+
+let appendCurrentStreamMessage =
+    (
+      ~messages,
+      ~currentThreadId,
+      ~currentStreamId,
+      ~hasCurrentStreamRow,
+      ~streamingText,
+      ~streamError: option(LlmChatStore.stream_error),
+    ) =>
+  switch (currentStreamId, streamError) {
+  | (Some(streamId), _)
+      when String.length(streamingText) > 0 && !hasCurrentStreamRow =>
+    messages->Js.Array.concat(
+      ~other=[|
+        {
+          Model.Message.id: streamId,
+          thread_id: currentThreadId,
+          role: "assistant",
+          content: "",
+        },
+      |],
+    )
+  | (None, Some({thread_id, message}))
+      when thread_id == currentThreadId && String.length(streamingText) > 0 =>
+    messages->Js.Array.concat(
+      ~other=[|
+        {
+          Model.Message.id: "stream-error-" ++ thread_id,
+          thread_id: currentThreadId,
+          role: "assistant",
+          content:
+            String.length(streamingText) > 0 ? streamingText : "Error: " ++ message,
+        },
+      |],
+    )
+  | _ => messages
+  };
+
+[@platform js]
+let messageListElement = () =>
+  Webapi.Dom.document
+  |> Webapi.Dom.Document.getElementById("message-list");
+
+[@platform js]
+let scrollToBottomElement = el =>
+  Webapi.Dom.Element.setScrollTop(
+    el,
+    float_of_int(Webapi.Dom.Element.scrollHeight(el)),
   );
 
 [@platform js]
 let scrollToBottom = () => {
-  switch (
-    Webapi.Dom.document
-    |> Webapi.Dom.Document.getElementById("message-list")
-  ) {
-  | Some(el) =>
-    Webapi.Dom.Element.setScrollTop(
-      el,
-      float_of_int(Webapi.Dom.Element.scrollHeight(el)),
-    );
+  switch (messageListElement()) {
+  | Some(el) => scrollToBottomElement(el)
   | None => ()
   };
 };
 
 [@platform js]
+let isNearBottomElement = el => {
+  let scrollTop = Webapi.Dom.Element.scrollTop(el);
+  let scrollHeight = Webapi.Dom.Element.scrollHeight(el);
+  let clientHeight = Webapi.Dom.Element.clientHeight(el);
+  scrollTop +. float_of_int(clientHeight) > float_of_int(scrollHeight) -. 80.0;
+};
+
+[@platform js]
 let isNearBottom = () => {
-  switch (
-    Webapi.Dom.document
-    |> Webapi.Dom.Document.getElementById("message-list")
-  ) {
-  | Some(el) =>
-    let scrollTop = Webapi.Dom.Element.scrollTop(el);
-    let scrollHeight = Webapi.Dom.Element.scrollHeight(el);
-    let clientHeight = Webapi.Dom.Element.clientHeight(el);
-    scrollTop +. float_of_int(clientHeight) > float_of_int(scrollHeight) -. 80.0;
+  switch (messageListElement()) {
+  | Some(el) => isNearBottomElement(el)
   | None => true
   };
 };
 
+[@platform native]
+let messageListElement = () => None;
+
+[@platform native]
+let scrollToBottomElement = _el => ();
+
+[@platform native]
+let scrollToBottom = () => ();
+
+[@platform native]
+let isNearBottomElement = _el => true;
+
+[@platform native]
+let isNearBottom = () => true;
+
+[@platform js]
+let cancelScheduledScroll = scrollRafId => {
+  switch (scrollRafId^) {
+  | Some(rafId) =>
+    Webapi.cancelAnimationFrame(rafId);
+    scrollRafId := None;
+  | None => ()
+  };
+};
+
+[@platform js]
+let scheduleScrollToBottom = (scrollRafId, shouldStickToBottomRef) => {
+  let scrollIfSticky = () =>
+    if (shouldStickToBottomRef^) {
+      scrollToBottom();
+    };
+  cancelScheduledScroll(scrollRafId);
+  scrollIfSticky();
+  scrollRafId := Some(Webapi.requestCancellableAnimationFrame(_ => {
+    scrollIfSticky();
+    scrollRafId := Some(Webapi.requestCancellableAnimationFrame(_ => {
+      scrollIfSticky();
+      scrollRafId := None;
+    }));
+  }));
+};
+
 [@platform js]
 let useAutoScroll = (messages, isStreaming, streamingText) => {
-  let isNearBottomRef = React.useMemo1(() => ref(true), [||]);
+  let shouldStickToBottomRef = React.useMemo1(() => ref(true), [||]);
   let scrollRafId = React.useMemo1(() => ref(None), [||]);
+
+  React.useEffect0(() => {
+    switch (messageListElement()) {
+    | Some(el) =>
+      shouldStickToBottomRef := isNearBottomElement(el);
+      let onScroll = _event => {
+        let shouldStick = isNearBottomElement(el);
+        shouldStickToBottomRef := shouldStick;
+        if (!shouldStick) {
+          cancelScheduledScroll(scrollRafId);
+        };
+      };
+      Webapi.Dom.Element.addEventListener("scroll", onScroll, el);
+      Some(() => {
+        Webapi.Dom.Element.removeEventListener("scroll", onScroll, el);
+      });
+    | None => None
+    };
+  });
+
   React.useEffect3(
     () => {
-      isNearBottomRef := isNearBottom();
-      if (isNearBottomRef^) {
-        switch (scrollRafId^) {
-        | Some(rafId) => Webapi.cancelAnimationFrame(rafId)
-        | None => ()
-        };
-        scrollRafId := Some(Webapi.requestCancellableAnimationFrame(_ => {
-          scrollToBottom();
-        }));
+      if (shouldStickToBottomRef^) {
+        scheduleScrollToBottom(scrollRafId, shouldStickToBottomRef);
       };
       None;
     },
@@ -141,12 +342,20 @@ module View = {
   let make =
     leaf(() => {
       useTilia();
+      module Hooks = LlmChatStore.Hooks;
+      open Hooks;
       let store = LlmChatStore.Context.useStore();
       let router = UniversalRouter.useRouter();
       let pathname = UniversalRouter.usePathname();
-      let (isStreaming, setIsStreaming) = React.useState(() => false);
       let (draft, setDraft) = React.useState(() => "");
-      let (streamingText, setStreamingText) = React.useState(() => "");
+      let sendPromptMutation =
+        useMutationResult((module LlmChatStore.Mutations.SendPrompt), ());
+      let createThread =
+        useMutation((module LlmChatStore.Mutations.CreateNewThread), ());
+      let selectThread =
+        useMutation((module LlmChatStore.Mutations.SelectThread), ());
+      let deleteThread =
+        useMutation((module LlmChatStore.Mutations.DeleteThread), ());
 
       let messages = store.state.messages;
       let threads = store.state.threads;
@@ -154,62 +363,27 @@ module View = {
         switch (store.state.current_thread_id) {
         | Some(threadId) => threadId
         | None => ""
-        };
-
-      React.useEffect0(() => {
-        let listenerId =
-          LlmChatStore.Events.listen(event => {
-            switch (event) {
-            | CustomEvent(json) =>
-              let eventKind =
-                StoreJson.optionalField(
-                  ~json,
-                  ~fieldName="event",
-                  ~decode=Melange_json.Primitives.string_of_json,
-                );
-              switch (eventKind) {
-              | Some("token_received") =>
-                let token =
-                  StoreJson.optionalField(
-                    ~json,
-                    ~fieldName="token",
-                    ~decode=Melange_json.Primitives.string_of_json,
-                  );
-                switch (token) {
-                | Some(t) => setStreamingText(prev => prev ++ t)
-                | None => ()
-                };
-              | Some("stream_complete") =>
-                setIsStreaming(_ => false);
-              | Some("stream_error") =>
-                setIsStreaming(_ => false);
-                setStreamingText(_ => "");
-              | _ => ()
-              }
-            | _ => ()
-            }
-          });
-        Some(() => LlmChatStore.Events.unlisten(listenerId));
-      });
-
-      React.useEffect2(
-        () => {
-          if (
-            String.length(streamingText) > 0
-            && hasConfirmedAssistantMessage(~messages, ~content=streamingText)
-          ) {
-            setStreamingText(_ => "");
-          };
-          None;
-        },
-        (messages, streamingText),
-      );
+      };
+      let streaming = useStreaming();
+      let streamingText = streamingTextForThread(~currentThreadId, streaming);
+      let currentStreamId =
+        currentStreamIdForThread(~currentThreadId, streaming);
+      let hasCurrentStreamRow =
+        hasCurrentStreamAssistantMessage(~messages, streaming);
+      let isStreaming = isStreamingForThread(~currentThreadId, streaming);
+      let renderedMessages =
+        appendCurrentStreamMessage(
+          ~messages,
+          ~currentThreadId,
+          ~currentStreamId,
+          ~hasCurrentStreamRow,
+          ~streamingText,
+          ~streamError=streaming.streamError,
+        );
 
       React.useEffect1(
         () => {
           setDraft(_ => "");
-          setStreamingText(_ => "");
-          setIsStreaming(_ => false);
           let expectedPath =
             switch (store.state.current_thread_id) {
             | Some(id) => "/" ++ id
@@ -233,7 +407,7 @@ module View = {
           <button
             className="new-thread-button"
             id="new-thread-button"
-            onClick={event => onNewChatClick(router, event)}>
+            onClick={event => onNewChatClick(createThread, router, event)}>
             {React.string("New Chat")}
           </button>
           {threads
@@ -249,14 +423,18 @@ module View = {
                    "thread-item" ++ (isActive ? " thread-item--active" : "")
                  }
                  id={"thread-item-" ++ thread.id}
-                 onClick={event => onThreadClick(router, thread.id, event)}>
+                 onClick={event =>
+                   onThreadClick(router, selectThread, thread.id, event)
+                 }>
                  <span className="thread-item-title">
                    {React.string(thread.title)}
                  </span>
                   <button
                     id={"delete-thread-" ++ thread.id}
                     className="thread-delete-button"
-                    onClick={event => onDeleteThread(router, thread.id, event)}>
+                    onClick={event =>
+                      onDeleteThread(router, deleteThread, thread.id, event)
+                    }>
                     <Lucide.IconTrash size=14 />
                   </button>
                </div>;
@@ -283,57 +461,35 @@ module View = {
                   {React.string("Send a message to start the conversation.")}
                 </div>;
               } else {
-                Js.Array.concat(
-                  ~other=[|
-                    if (
-                      String.length(streamingText) > 0
-                      && !hasConfirmedAssistantMessage(~messages, ~content=streamingText)
-                    ) {
-                      <div
-                        key="streaming-message"
-                        id="streaming-message"
-                        className="message message--assistant"
-                        role="assistant">
-                        {
-                          Streamdown.make(
-                            ~isAnimating=true,
-                            ~children=streamingText,
-                            (),
-                          )
-                        }
-                      </div>;
+                renderedMessages->Js.Array.map(~f=(message: Model.Message.t) => {
+                  let roleClass =
+                    message.role == "user"
+                      ? "message--user" : "message--assistant";
+                  let isLastMessage = {
+                    let len = Array.length(renderedMessages);
+                    len > 0 && renderedMessages[len - 1].id == message.id;
+                  };
+                  let children =
+                    if (message.role == "assistant") {
+                      let content =
+                        displayAssistantContent(~message, ~streaming);
+                      [|
+                        Streamdown.make(
+                          ~isAnimating=isStreaming && isLastMessage,
+                          ~children=content,
+                          (),
+                        ),
+                      |];
                     } else {
-                      React.null
-                    },
-                  |],
-                  messages->Js.Array.map(~f=(message: Model.Message.t) => {
-                    let roleClass =
-                      message.role == "user"
-                        ? "message--user" : "message--assistant";
-                    let isLastMessage = {
-                      let len = Array.length(messages);
-                      len > 0 && messages[len - 1].id == message.id;
+                      [|React.string(message.content)|];
                     };
-                    let children =
-                      if (message.role == "assistant") {
-                        [|
-                          Streamdown.make(
-                            ~isAnimating=isStreaming && isLastMessage,
-                            ~children=message.content,
-                            (),
-                          ),
-                        |];
-                      } else {
-                        [|React.string(message.content)|];
-                      };
-                    <div
-                      key={message.id}
-                      className={"message " ++ roleClass}
-                      role={message.role}>
-                      {React.array(children)}
-                    </div>;
-                  }),
-                )
+                  <div
+                    key={message.id}
+                    className={"message " ++ roleClass}
+                    role={message.role}>
+                    {React.array(children)}
+                  </div>;
+                })
                 ->React.array;
               }
             }
@@ -349,9 +505,9 @@ module View = {
                       event =>
                         handleKeyDown(
                           store,
+                          sendPromptMutation,
                           draft,
                           setDraft,
-                          setIsStreaming,
                           event,
                         )
                     }
@@ -359,8 +515,15 @@ module View = {
                   />
                   <button
                     id="send-button"
-                    disabled=isStreaming
-                    onClick={_ => handleSend(store, draft, setDraft, setIsStreaming)}>
+                    disabled={isStreaming || sendPromptMutation.loading}
+                    onClick={_ =>
+                      handleSend(
+                        store,
+                        sendPromptMutation,
+                        draft,
+                        setDraft,
+                      )
+                    }>
                     {React.string("Send")}
                   </button>
                </div>

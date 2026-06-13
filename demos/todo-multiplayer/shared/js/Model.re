@@ -7,6 +7,7 @@ module Todo = {
     list_id: string,
     text: string,
     completed: bool,
+    created_at: float,
   };
 };
 

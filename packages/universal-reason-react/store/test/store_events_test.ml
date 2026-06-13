@@ -1,6 +1,26 @@
 let suite =
   ( "StoreEvents",
     [
+      Alcotest.test_case "Callback registry emits generic payload" `Quick (fun () ->
+          let registry : int StoreEvents.callback_registry = ref [||] in
+          let received = ref 0 in
+          let _id = StoreEvents.Callback.listen ~registry (fun value -> received := value) in
+          StoreEvents.Callback.emit ~registry 42;
+          Alcotest.(check int) "payload delivered" 42 !received);
+      Alcotest.test_case "Callback unlisten removes generic listener" `Quick (fun () ->
+          let registry : string StoreEvents.callback_registry = ref [||] in
+          let received = ref [] in
+          let id =
+            StoreEvents.Callback.listen ~registry (fun value ->
+              received := value :: !received)
+          in
+          StoreEvents.Callback.emit ~registry "before";
+          StoreEvents.Callback.unlisten ~registry id;
+          StoreEvents.Callback.emit ~registry "after";
+          Alcotest.(check (list string))
+            "listener removed"
+            [ "before" ]
+            !received);
       Alcotest.test_case "listen registers callback in registry" `Quick (fun () ->
           let registry : string StoreEvents.registry = ref [||] in
           let called = ref false in
@@ -147,4 +167,36 @@ let suite =
             "Dispatch should execute after emit, not during"
             true
             (!during_emit = false && !after_emit = true));
+      Alcotest.test_case "listener exception still clears emitting and drains queued dispatches" `Quick
+        (fun () ->
+          let state = StoreControllerHelpers.makeEmissionState () in
+          let dispatch_executed = ref false in
+          let listener (_ : string StoreEvents.store_event) =
+            StoreControllerHelpers.queueDispatch state (fun () ->
+              dispatch_executed := true);
+            raise (Failure "boom")
+          in
+          let listeners : (string * (string StoreEvents.store_event -> unit)) array =
+            [| ("id", listener) |]
+          in
+          let raised =
+            try
+              StoreControllerHelpers.emitWithQueuedDispatch state listeners StoreEvents.Open;
+              false
+            with
+            | Failure message when String.equal message "boom" -> true
+            | _ -> false
+          in
+          Alcotest.(check bool)
+            "Original listener exception should still be raised"
+            true
+            raised;
+          Alcotest.(check bool)
+            "isEmitting should be false after failed emit"
+            false
+            (StoreControllerHelpers.isEmitting state);
+          Alcotest.(check bool)
+            "Queued dispatch should drain after failed emit"
+            true
+            !dispatch_executed);
     ] )

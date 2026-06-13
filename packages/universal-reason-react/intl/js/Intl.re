@@ -25,7 +25,7 @@ module NumberFormatter = {
   type t;
 
   [@mel.new] [@mel.scope "Intl"]
-  external makeIntl: (string, Js.t({..})) =>
+  external makeIntl: (string, Js.Dict.t(Js.Json.t)) =>
   t = "NumberFormat";
 
   [@mel.send]
@@ -39,6 +39,12 @@ module NumberFormatter = {
 
   [@mel.send]
   external formatToParts: (t, float) => array(jsPart) = "formatToParts";
+
+  [@mel.get]
+  external partType: jsPart => string = "type";
+
+  [@mel.get]
+  external partValue: jsPart => string = "value";
 
   let styleToString = style =>
     switch (style) {
@@ -80,7 +86,7 @@ module NumberFormatter = {
     | None => ()
     };
 
-    makeIntl(locale, Obj.magic(jsOpts));
+    makeIntl(locale, jsOpts);
   };
 
   let make = (
@@ -105,8 +111,7 @@ module NumberFormatter = {
     let parts = formatToParts(formatter, value);
     Array.to_list(parts)
     |> List.map(part => {
-         let typedPart = Obj.magic(part);
-         {type_: typedPart##type_, value: part##value};
+         {type_: partType(part), value: partValue(part)};
        });
   };
 
@@ -231,7 +236,7 @@ module DateTimeFormatter = {
   type t;
 
   [@mel.new] [@mel.scope "Intl"]
-  external makeIntl: (string, Js.t({..})) =>
+  external makeIntl: (string, Js.Dict.t(Js.Json.t)) =>
   t = "DateTimeFormat";
 
   [@mel.send]
@@ -245,6 +250,12 @@ module DateTimeFormatter = {
 
   [@mel.send]
   external formatToParts: (t, float) => array(jsPart) = "formatToParts";
+
+  [@mel.get]
+  external partType: jsPart => string = "type";
+
+  [@mel.get]
+  external partValue: jsPart => string = "value";
 
   let styleToString = style =>
     switch (style) {
@@ -377,7 +388,7 @@ module DateTimeFormatter = {
     | None => ()
     };
 
-    makeIntl(locale, Obj.magic(jsOpts));
+    makeIntl(locale, jsOpts);
   };
 
   let make = (
@@ -422,8 +433,7 @@ module DateTimeFormatter = {
     let parts = formatToParts(formatter, value);
     Array.to_list(parts)
     |> List.map(part => {
-         let typedPart = Obj.magic(part);
-         {type_: typedPart##type_, value: part##value};
+         {type_: partType(part), value: partValue(part)};
        });
   };
 

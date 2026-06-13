@@ -37,7 +37,7 @@ BEGIN
   END IF;
   row_id := NEW.id;
   FOR current_record IN
-    SELECT id, list_id, text, completed FROM todos WHERE list_id = row_id ORDER BY created_at
+    SELECT id, list_id, text, completed, EXTRACT(EPOCH FROM created_at) * 1000 AS created_at FROM todos WHERE list_id = row_id ORDER BY created_at
   LOOP
     did_broadcast := TRUE;
     channel_name := current_record.id::text;
@@ -133,7 +133,7 @@ BEGIN
     RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
   END IF;
   FOR parent_record IN
-    SELECT id, list_id, text, completed FROM todos WHERE list_id = parent_row_id ORDER BY created_at
+    SELECT id, list_id, text, completed, EXTRACT(EPOCH FROM created_at) * 1000 AS created_at FROM todos WHERE list_id = parent_row_id ORDER BY created_at
   LOOP
     did_broadcast := TRUE;
     channel_name := parent_record.id::text;

@@ -138,7 +138,11 @@ module Bootstrap = {
     element: React.element,
   };
 
+  let hydrateQueryCache = () =>
+    UseQuery.hydrateCacheFromDom(~cacheId="query-cache", ());
+
   let withHydratedProvider = (~hydrateStore, ~provider, ~children) => {
+    hydrateQueryCache();
     let store = hydrateStore();
     let element =
       React.createElement(
@@ -149,20 +153,21 @@ module Bootstrap = {
   };
 
   let withHydratedProviders = (~stores, ~children) => {
+    hydrateQueryCache();
     let hydratedStores = stores->Js.Array.map(~f=((_, hydrate, _)) => hydrate());
-    let element =
-      stores
-      ->Js.Array.reducei(
-          ~init=children,
-          ~f=(acc, (_, _, provider), index) => {
-            let store = hydratedStores[index];
-            React.createElement(
-              provider,
-              {"value": store, "children": acc},
-            );
-          },
+    let elementRef = ref(children);
+    let storeCount = Array.length(stores);
+    for (offset in 0 to storeCount - 1) {
+      let index = storeCount - 1 - offset;
+      let (_, _, provider) = stores[index];
+      let store = hydratedStores[index];
+      elementRef :=
+        React.createElement(
+          provider,
+          {"value": store, "children": elementRef.contents},
         );
-    {stores: hydratedStores, element};
+    };
+    {stores: hydratedStores, element: elementRef.contents};
   };
 
   let withCreatedProvider = (~createStore, ~provider, ~initialState, ~children) => {
@@ -194,15 +199,28 @@ module Bootstrap = {
   };
 
   let withHydratedProvider = (~hydrateStore as _, ~provider as _, ~children as _) => {
-    {store: Obj.magic(), element: React.null};
+    {
+      store:
+        Js.Exn.raiseError("StoreBuilder.Bootstrap.withHydratedProvider is client-only"),
+      element: React.null,
+    };
   };
 
   let withHydratedProviders = (~stores as _, ~children as _) => {
-    {stores: [||], element: React.null};
+    {
+      stores:
+        Js.Exn.raiseError("StoreBuilder.Bootstrap.withHydratedProviders is client-only"),
+      element: React.null,
+    };
   };
 
-  let withCreatedProvider = (~createStore as _, ~provider as _, ~initialState as _, ~children as _) => {
-    {store: Obj.magic(), element: React.null};
+  let withCreatedProvider = (~createStore, ~provider, ~initialState, ~children) => {
+    let store = createStore(initialState);
+    let element = provider({"value": store, "children": children});
+    {
+      store,
+      element,
+    };
   };
 };
 
@@ -232,6 +250,8 @@ type json('state, 'action) = {
   action_of_json: StoreJson.json => 'action,
   action_to_json: 'action => StoreJson.json,
 };
+
+type queriesConfig('state) = StoreOffline.Local.queriesConfig('state);
 
 type localPersistence('state) = {
   storeName: string,
@@ -276,17 +296,30 @@ module Sync = {
     crud: crudConfig('row, 'state),
   };
 
-  let defaultHooks = (): hooks('action) => {
-    onActionError: None,
-    onActionAck: None,
-    onCustom: None,
-    onMedia: None,
-    onError: None,
-    onOpen: None,
-    onMultiplexedHandle: None,
+  let defaultOnActionError = (_message: string) => ();
+
+  let hooks =
+      (
+        ~onActionError: option(string => unit)=?,
+        ~onActionAck:
+          option((~dispatch: 'action => unit, ~action: 'action, ~actionId: string) => unit)=?,
+        ~onCustom: option(StoreJson.json => unit)=?,
+        ~onMedia: option(StoreJson.json => unit)=?,
+        ~onError: option((~dispatch: 'action => unit) => string => unit)=?,
+        ~onOpen: option((~dispatch: 'action => unit) => unit)=?,
+        ~onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit)=?,
+        (),
+      ): hooks('action) => {
+    onActionError,
+    onActionAck,
+    onCustom,
+    onMedia,
+    onError,
+    onOpen,
+    onMultiplexedHandle,
   };
 
-  let defaultOnActionError = (_message: string) => ();
+  let defaultHooks = (): hooks('action) => hooks(());
 
   let custom = (~decodePatch, ~updateOfPatch): customStrategy('state, 'patch) => {
     decodePatch,
@@ -304,6 +337,31 @@ module Sync = {
   };
 };
 
+let stateElementIdOrDefault = (stateElementId: option(string)) =>
+  switch (stateElementId) {
+  | Some(value) => value
+  | None => "initial-store"
+  };
+
+let hooksOrDefault = (hooks: option(Sync.hooks('action))) =>
+  switch (hooks) {
+  | Some(hooks) => hooks
+  | None => Sync.defaultHooks()
+  };
+
+let onActionErrorOrDefault = (hooks: Sync.hooks('action)) =>
+  switch (hooks.onActionError) {
+  | Some(callback) => callback
+  | None => Sync.defaultOnActionError
+  };
+
+let validateOfGuardTree = (guardTree: option(GuardTree.t('state, 'action))) =>
+  switch (guardTree) {
+  | Some(tree) =>
+    Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
+  | None => None
+  };
+
 type syncPersistence('state, 'subscription) = {
   storeName: string,
   scopeKeyOfState: 'state => string,
@@ -317,6 +375,7 @@ type local_input('state, 'action, 'store) = {
   schema: schema('state, 'action, 'store),
   json: json('state, 'action),
   guardTree: option(GuardTree.t('state, 'action)),
+  queries: option(queriesConfig('state)),
   persistence: localPersistence('state),
 };
 
@@ -324,16 +383,19 @@ type synced_input('state, 'action, 'store, 'subscription, 'patch, 'stream_event,
   schema: schema('state, 'action, 'store),
   json: json('state, 'action),
   guardTree: option(GuardTree.t('state, 'action)),
+  queries: option(queriesConfig('state)),
   persistence: syncPersistence('state, 'subscription),
   hooks: Sync.hooks('action),
   strategy: Sync.customStrategy('state, 'patch),
   streams: option(StoreRuntimeTypes.streamsConfig('patch, 'stream_event, 'streaming_state)),
+  emptyStreamingState: 'streaming_state,
 };
 
 type synced_crud_input('state, 'action, 'store, 'subscription, 'row) = {
   schema: schema('state, 'action, 'store),
   json: json('state, 'action),
   guardTree: option(GuardTree.t('state, 'action)),
+  queries: option(queriesConfig('state)),
   persistence: syncPersistence('state, 'subscription),
   hooks: Sync.hooks('action),
   crud: Sync.crudConfig('row, 'state),
@@ -352,6 +414,13 @@ type jsonBuilder('state, 'action, 'store) = {
   schema: schema('state, 'action, 'store),
   json: json('state, 'action),
   guardTree: option(GuardTree.t('state, 'action)),
+};
+
+type queriesBuilder('state, 'action, 'store) = {
+  schema: schema('state, 'action, 'store),
+  json: json('state, 'action),
+  guardTree: option(GuardTree.t('state, 'action)),
+  queries: option(queriesConfig('state)),
 };
 
 let make = () => {
@@ -395,10 +464,19 @@ let withJson = (
   ~action_of_json: StoreJson.json => 'action,
   ~action_to_json: 'action => StoreJson.json,
   builder: schemaBuilder('state, 'action, 'store),
-): jsonBuilder('state, 'action, 'store) => {
+): queriesBuilder('state, 'action, 'store) => {
   schema: builder.schema,
   json: {state_of_json, state_to_json, action_of_json, action_to_json},
   guardTree: builder.guardTree,
+  queries: None,
+};
+
+let withQueries = (
+  ~applyQueryResult: (~state: 'state, ~channel: string, ~rows: array(StoreJson.json)) => 'state,
+  builder: queriesBuilder('state, 'action, 'store),
+): queriesBuilder('state, 'action, 'store) => {
+  ...builder,
+  queries: Some({applyQueryResult: applyQueryResult}),
 };
 
 let withLocalPersistence = (
@@ -407,11 +485,12 @@ let withLocalPersistence = (
   ~timestampOfState: 'state => float,
   ~stateElementId: option(string)=None,
   _,
-  builder: jsonBuilder('state, 'action, 'store),
+  builder: queriesBuilder('state, 'action, 'store),
 ): local_input('state, 'action, 'store) => {
   schema: builder.schema,
   json: builder.json,
   guardTree: builder.guardTree,
+  queries: builder.queries,
   persistence: {
     storeName,
     scopeKeyOfState,
@@ -429,29 +508,39 @@ let withSync = (
   ~scopeKeyOfState: 'state => string,
   ~timestampOfState: 'state => float,
   ~streams: option(StoreRuntimeTypes.streamsConfig('patch, 'stream_event, 'streaming_state))=None,
+  ~emptyStreamingState: option('streaming_state)=?,
   ~hooks: option(Sync.hooks('action))=?,
   ~stateElementId: option(string)=None,
   _,
-  builder: jsonBuilder('state, 'action, 'store),
+  builder: queriesBuilder('state, 'action, 'store),
 ): synced_input('state, 'action, 'store, 'subscription, 'patch, 'stream_event, 'streaming_state) => {
-  schema: builder.schema,
-  json: builder.json,
-  guardTree: builder.guardTree,
-  persistence: {
-    storeName,
-    scopeKeyOfState,
-    timestampOfState,
-    stateElementId,
-    setTimestamp,
-    transport,
-  },
-  hooks:
-    switch (hooks) {
-    | Some(h) => h
-    | None => Sync.defaultHooks()
+  let emptyStreamingState =
+    switch (streams, emptyStreamingState) {
+    | (Some({emptyStreamingState, _}), _) => emptyStreamingState
+    | (None, Some(emptyStreamingState)) => emptyStreamingState
+    | (None, None) =>
+      Js.Exn.raiseError(
+        "StoreBuilder.withSync requires ~streams=Some(...) or an explicit ~emptyStreamingState for non-streaming synced stores.",
+      )
+    };
+  {
+    schema: builder.schema,
+    json: builder.json,
+    guardTree: builder.guardTree,
+    queries: builder.queries,
+    persistence: {
+      storeName,
+      scopeKeyOfState,
+      timestampOfState,
+      stateElementId,
+      setTimestamp,
+      transport,
     },
-  strategy: {decodePatch, updateOfPatch},
-  streams,
+    hooks: hooksOrDefault(hooks),
+    strategy: {decodePatch, updateOfPatch},
+    streams,
+    emptyStreamingState,
+  };
 };
 
 let withSyncCrud = (
@@ -468,11 +557,12 @@ let withSyncCrud = (
   ~hooks: option(Sync.hooks('action))=?,
   ~stateElementId: option(string)=None,
   _,
-  builder: jsonBuilder('state, 'action, 'store),
+  builder: queriesBuilder('state, 'action, 'store),
 ): synced_crud_input('state, 'action, 'store, 'subscription, 'row) => {
   schema: builder.schema,
   json: builder.json,
   guardTree: builder.guardTree,
+  queries: builder.queries,
   persistence: {
     storeName,
     scopeKeyOfState,
@@ -481,11 +571,7 @@ let withSyncCrud = (
     setTimestamp,
     transport,
   },
-  hooks:
-    switch (hooks) {
-    | Some(h) => h
-    | None => Sync.defaultHooks()
-    },
+  hooks: hooksOrDefault(hooks),
   crud: {
     table,
     decodeRow,
@@ -524,12 +610,114 @@ module Runtime = {
     let serializeSnapshot: state => string;
     let dispatch: action => unit;
     let streaming: streaming_state;
+    let useStreaming: unit => streaming_state;
     let flushCache: unit => Js.Promise.t(unit);
     let whenReady: unit => Js.Promise.t(unit);
     let whenIdle: unit => Js.Promise.t(unit);
     let status: unit => status;
+    let useQuery:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       'p,
+       ~skip: bool=?,
+       unit) => UseQuery.result('r);
+    let useQueryResult:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       'p,
+       ~skip: bool=?,
+       unit) => UseQuery.result('r);
+    let useQueryStore:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       'p,
+       ~skip: bool=?,
+       unit) => t;
+    let useQueryOption:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       option('p),
+       unit) => UseQuery.result('r);
+    let useQueryResultOption:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       option('p),
+       unit) => UseQuery.result('r);
+    let useQueryStoreOption:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       option('p),
+       unit) => t;
+    let useIsQueryLoading:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       'p) => bool;
+    let useIsQueryLoadingOption:
+      (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+       option('p)) => bool;
+    let useMutation:
+      (module QueryRegistryTypes.MutationModuleWithAction
+         with type params = 'p and type action = action,
+       unit) =>
+      ('p => Js.Promise.t(unit));
+    let useMutationFn:
+      (module QueryRegistryTypes.MutationModuleWithAction
+         with type params = 'p and type action = action,
+       unit) =>
+      ('p => Js.Promise.t(unit));
+    let useMutationResult:
+      (module QueryRegistryTypes.MutationModuleWithAction
+         with type params = 'p and type action = action,
+       unit) =>
+      UseMutation.mutation_result('p);
 
-    type status_listener_id = string;
+    module Hooks: {
+      let useStore: unit => t;
+      let useStreaming: unit => streaming_state;
+      let useQuery:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         'p,
+         ~skip: bool=?,
+         unit) => UseQuery.result('r);
+      let useQueryResult:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         'p,
+         ~skip: bool=?,
+         unit) => UseQuery.result('r);
+      let useQueryStore:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         'p,
+         ~skip: bool=?,
+         unit) => t;
+      let useQueryOption:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         option('p),
+         unit) => UseQuery.result('r);
+      let useQueryResultOption:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         option('p),
+         unit) => UseQuery.result('r);
+      let useQueryStoreOption:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         option('p),
+         unit) => t;
+      let useIsQueryLoading:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         'p) => bool;
+      let useIsQueryLoadingOption:
+        (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
+         option('p)) => bool;
+      let useMutation:
+        (module QueryRegistryTypes.MutationModuleWithAction
+           with type params = 'p and type action = action,
+         unit) =>
+        ('p => Js.Promise.t(unit));
+      let useMutationFn:
+        (module QueryRegistryTypes.MutationModuleWithAction
+           with type params = 'p and type action = action,
+         unit) =>
+        ('p => Js.Promise.t(unit));
+      let useMutationResult:
+        (module QueryRegistryTypes.MutationModuleWithAction
+           with type params = 'p and type action = action,
+         unit) =>
+        UseMutation.mutation_result('p);
+    };
+
+    type status_listener_id = StoreEvents.listener_id;
     let subscribeStatus: (status => unit) => status_listener_id;
     let unsubscribeStatus: status_listener_id => unit;
 
@@ -557,6 +745,7 @@ module Runtime = {
     let makeStore:
       (~state: state, ~derive: Tilia.Core.deriver(store)=?, unit) => store;
     let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
+    let queries: option(queriesConfig(state));
     let cache: [ | `IndexedDB | `None ];
   };
 
@@ -591,6 +780,7 @@ module Runtime = {
     let decodePatch: StoreJson.json => option(patch);
     let updateOfPatch: (patch, state) => state;
     let streams: option(StoreRuntimeTypes.streamsConfig(patch, stream_event, streaming_state));
+    let emptyStreamingState: streaming_state;
     let onActionError: string => unit;
     let onActionAck: option((~dispatch: action => unit, ~action: action, ~actionId: string) => unit);
     let onCustom: option(StoreJson.json => unit);
@@ -599,6 +789,7 @@ module Runtime = {
     let onOpen: option((~dispatch: action => unit) => unit);
     let onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit);
     let validate: option((~state: state, ~action: action) => StoreRuntimeTypes.guardResult);
+    let queries: option(queriesConfig(state));
     let cache: [ | `IndexedDB | `None ];
   };
 
@@ -638,11 +829,7 @@ module Runtime = {
 let buildLocal =
     (type s, type a, type st, input: local_input(s, a, st))
     : (module Runtime.LocalStore with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit) => {
-  let stateElementId =
-    switch (input.persistence.stateElementId) {
-    | Some(value) => value
-    | None => "initial-store"
-    };
+  let stateElementId = stateElementIdOrDefault(input.persistence.stateElementId);
 
   module M =
     StoreOffline.Local.Make({
@@ -661,12 +848,8 @@ let buildLocal =
       let action_of_json = input.json.action_of_json;
       let action_to_json = input.json.action_to_json;
       let makeStore = input.schema.makeStore;
-      let validate =
-        switch (input.guardTree) {
-        | Some(tree) =>
-          Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
-        | None => None
-        };
+      let validate = validateOfGuardTree(input.guardTree);
+      let queries = input.queries;
       let cache = `IndexedDB;
     });
 
@@ -685,11 +868,7 @@ let buildSynced =
       input: synced_input(s, a, st, sub, p, se, ss),
     )
     : (module Runtime.SyncedStore with type state = s and type action = a and type t = st and type stream_event = se and type streaming_state = ss) => {
-  let stateElementId =
-    switch (input.persistence.stateElementId) {
-    | Some(value) => value
-    | None => "initial-store"
-    };
+  let stateElementId = stateElementIdOrDefault(input.persistence.stateElementId);
   let hooks = input.hooks;
 
   module M =
@@ -721,23 +900,16 @@ let buildSynced =
       let decodePatch = input.strategy.decodePatch;
       let updateOfPatch = input.strategy.updateOfPatch;
       let streams = input.streams;
-      let onActionError =
-        switch (hooks.onActionError) {
-        | Some(callback) => callback
-        | None => Sync.defaultOnActionError
-        };
+      let emptyStreamingState = input.emptyStreamingState;
+      let onActionError = onActionErrorOrDefault(hooks);
       let onActionAck = hooks.onActionAck;
       let onCustom = hooks.onCustom;
       let onMedia = hooks.onMedia;
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onMultiplexedHandle = hooks.onMultiplexedHandle;
-      let validate =
-        switch (input.guardTree) {
-        | Some(tree) =>
-          Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
-        | None => None
-        };
+      let validate = validateOfGuardTree(input.guardTree);
+      let queries = input.queries;
       let cache = `IndexedDB;
     });
 
@@ -747,11 +919,7 @@ let buildSynced =
 let buildCrud =
     (type s, type a, type st, type sub, type r, input: synced_crud_input(s, a, st, sub, r))
     : (module Runtime.SyncedStore with type state = s and type action = a and type t = st and type stream_event = unit and type streaming_state = unit) => {
-  let stateElementId =
-    switch (input.persistence.stateElementId) {
-    | Some(value) => value
-    | None => "initial-store"
-    };
+  let stateElementId = stateElementIdOrDefault(input.persistence.stateElementId);
   let hooks = input.hooks;
   let crudPatch =
     StoreCrud.decodePatch(
@@ -792,26 +960,19 @@ let buildCrud =
       let encodeSubscription = input.persistence.transport.encodeSubscription;
       let eventUrl = input.persistence.transport.eventUrl;
       let baseUrl = input.persistence.transport.baseUrl;
-      let decodePatch = StorePatch.compose([crudPatch]);
+      let decodePatch = StorePatch.compose([|crudPatch|]);
       let updateOfPatch = (patch, state) => crudUpdate(patch)(state);
       let streams = None;
-      let onActionError =
-        switch (hooks.onActionError) {
-        | Some(callback) => callback
-        | None => Sync.defaultOnActionError
-        };
+      let emptyStreamingState = ();
+      let onActionError = onActionErrorOrDefault(hooks);
       let onActionAck = hooks.onActionAck;
       let onCustom = hooks.onCustom;
       let onMedia = hooks.onMedia;
       let onError = hooks.onError;
       let onOpen = hooks.onOpen;
       let onMultiplexedHandle = hooks.onMultiplexedHandle;
-      let validate =
-        switch (input.guardTree) {
-        | Some(tree) =>
-          Some((~state, ~action) => GuardTree.resolve(~state, ~action, tree))
-        | None => None
-        };
+      let validate = validateOfGuardTree(input.guardTree);
+      let queries = input.queries;
       let cache = `IndexedDB;
     });
 

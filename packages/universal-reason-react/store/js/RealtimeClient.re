@@ -1,44 +1,95 @@
 [@platform js]
-let mutationFrameString = (actionId: string, actionString: string) => {
-  let actionJson = Js.Json.parseExn(actionString);
-  let jsonObj =
-    Js.Dict.fromArray([|
-      ("type", Js.Json.string("mutation")),
-      ("actionId", Js.Json.string(actionId)),
-      ("action", actionJson),
-    |]);
-  Js.Json.stringify(Js.Json.object_(jsonObj));
-};
+let mutationFrameString = (actionId: string, action: StoreJson.json) =>
+  StoreJson.stringify(
+    json => json,
+    StoreJson.Object.make(dict => {
+      StoreJson.Object.setString(dict, "type", "mutation");
+      StoreJson.Object.setString(dict, "actionId", actionId);
+      StoreJson.Object.setJson(dict, "action", action);
+    }),
+  );
 
 [@platform native]
-let mutationFrameString = (_actionId, _actionString) => "";
+let mutationFrameString = (_actionId, _action) => "";
 
 [@platform js]
-let selectFrameString = (subscription: string, updatedAt: float) => {
-  let jsonObj =
-    Js.Dict.fromArray([|
-      ("type", Js.Json.string("select")),
-      ("subscription", Js.Json.string(subscription)),
-      ("updatedAt", Js.Json.number(updatedAt)),
-    |]);
-  Js.Json.stringify(Js.Json.object_(jsonObj));
-};
+let selectFrameString = (subscription: string, updatedAt: float) =>
+  StoreJson.stringify(
+    json => json,
+    StoreJson.Object.make(dict => {
+      StoreJson.Object.setString(dict, "type", "select");
+      StoreJson.Object.setString(dict, "subscription", subscription);
+      StoreJson.Object.setFloat(dict, "updatedAt", updatedAt);
+    }),
+  );
 
 [@platform native]
 let selectFrameString = (_subscription, _updatedAt) => "";
 
 [@platform js]
-let pingFrameString = () => {
-  let jsonObj = Js.Dict.fromArray([|("type", Js.Json.string("ping"))|]);
-  Js.Json.stringify(Js.Json.object_(jsonObj));
-};
+let unsubscribeFrameString = (channel: string) =>
+  StoreJson.stringify(
+    json => json,
+    StoreJson.Object.make(dict => {
+      StoreJson.Object.setString(dict, "type", "unsubscribe");
+      StoreJson.Object.setString(dict, "channel", channel);
+    }),
+  );
+
+[@platform native]
+let unsubscribeFrameString = (_channel: string) => "";
+
+[@platform js]
+let pingFrameString = () =>
+  StoreJson.stringify(
+    json => json,
+    StoreJson.Object.make(dict => StoreJson.Object.setString(dict, "type", "ping")),
+  );
 
 [@platform native]
 let pingFrameString = () => "";
 
+let channelIdOfSubscription = (subscription: string): string =>
+  {
+    let length = String.length(subscription);
+    let rec findColon = index =>
+      if (index >= length) {
+        None;
+      } else if (String.get(subscription, index) == ':') {
+        Some(index);
+      } else {
+        findColon(index + 1);
+      };
+    switch (findColon(0)) {
+    | Some(index) => String.sub(subscription, index + 1, length - index - 1)
+    | None => subscription
+    };
+  };
+
+let connectionStateKey = (~eventUrl: string, ~baseUrl: string): string =>
+  string_of_int(String.length(baseUrl)) ++ ":" ++ baseUrl ++ eventUrl;
+
+type select_request = (string, float);
+
+let hasSelectRequest = (~subscription: string, requests: array(select_request)) =>
+  requests->Js.Array.some(~f=((existingSubscription, _updatedAt)) =>
+    existingSubscription == subscription
+  );
+
+let uniqueSelectRequests = (requests: array(select_request)): array(select_request) =>
+  requests->Js.Array.reduce(
+    ~f=(acc, ((subscription, _updatedAt) as request)) =>
+      if (hasSelectRequest(~subscription, acc)) {
+        acc;
+      } else {
+        acc->Js.Array.concat(~other=[|request|]);
+      },
+    ~init=[||],
+  );
+
 [@platform native]
 module Socket = {
-  type websocket;
+  type websocket = unit;
 
   type websocket_state = {
     last_ping: float,
@@ -124,7 +175,7 @@ module Socket = {
 
 [@platform js]
 module Socket = {
-  type websocket;
+  type websocket = WebSocket.t;
 
   external setInterval: (unit => unit, int) => int = "setInterval";
   external clearInterval: int => unit = "clearInterval";
@@ -136,6 +187,7 @@ module Socket = {
 
   /* Subscription callbacks for a single channel */
   type subscription_callbacks = {
+    id: string,
     onOpen: unit => unit,
     onClose: unit => unit,
     onPatch: (~payload: StoreJson.json, ~timestamp: float) => unit,
@@ -158,10 +210,11 @@ module Socket = {
 
   /* Multiplexed connection state - shared across all subscriptions */
   type multiplexed_state = {
+    key: string,
     mutable websocket: option(websocket),
     mutable pingIntervalId: option(int),
     mutable reconnectTimeoutId: option(int),
-    subscriptions: Js.Dict.t(subscription_callbacks),
+    subscriptions: Js.Dict.t(array(subscription_callbacks)),
     mutable connectionState: connection_state,
     mutable eventUrl: string,
     mutable baseUrl: string,
@@ -169,18 +222,18 @@ module Socket = {
     mutable isClosing: bool,
   };
 
-  /* Global singleton state per URL combination */
-  let globalState: ref(option(multiplexed_state)) = ref(None);
+  external deleteState: (Js.Dict.t(multiplexed_state), string) => unit = "delete";
+
+  /* Global websocket state per URL combination */
+  let globalStatesRef: ref(Js.Dict.t(multiplexed_state)) = ref(Js.Dict.empty());
 
   let getOrCreateState = (~eventUrl: string, ~baseUrl: string) => {
-    switch (globalState.contents) {
-    | Some(state) =>
-      /* Update URLs in case they changed */
-      state.eventUrl = eventUrl;
-      state.baseUrl = baseUrl;
-      state
+    let key = connectionStateKey(~eventUrl, ~baseUrl);
+    switch (globalStatesRef.contents->Js.Dict.get(key)) {
+    | Some(state) => state
     | None =>
       let state = {
+        key,
         websocket: None,
         pingIntervalId: None,
         reconnectTimeoutId: None,
@@ -194,7 +247,7 @@ module Socket = {
         isConnecting: false,
         isClosing: false,
       };
-      globalState := Some(state);
+      globalStatesRef.contents->Js.Dict.set(key, state);
       state
     };
   };
@@ -215,6 +268,19 @@ module Socket = {
       }
     | None => ()
     };
+
+  let disposeState = state => {
+    state.isClosing = true;
+    clearPingInterval(state);
+    clearReconnectTimeout(state);
+    switch (state.websocket) {
+    | Some(ws) => {
+        state.websocket = None;
+        ws->WebSocket.close;
+      }
+    | None => ()
+    };
+  };
 
   let sendFrame = (state, frame: string) =>
     switch (state.websocket) {
@@ -242,25 +308,36 @@ module Socket = {
     };
   };
 
+  let activeCallbacks = callbacks =>
+    callbacks->Js.Array.filter(~f=callbacks => !callbacks.disposed.contents);
+
   /* Route message to the correct subscription based on channel */
   let routeMessage = (state, json: StoreJson.json) => {
-    Js.Console.log("[RealtimeClient] routeMessage called");
-    switch (StoreJson.field(json, "channel")) {
-    | Some(rawChannel) =>
-      switch (StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rawChannel)) {
-      | Some(channel) =>
-        Js.Console.log2("[RealtimeClient] Routing message for channel:", channel);
-        switch (Js.Dict.get(state.subscriptions, channel)) {
-        | Some(callbacks) =>
-          Js.Console.log("[RealtimeClient] Found callbacks for channel");
-          if (!callbacks.disposed.contents) {
-            Js.Console.log("[RealtimeClient] Callbacks not disposed, processing message");
-            switch (StoreJson.field(json, "type")) {
-            | Some(rawType) =>
-              switch (StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rawType)) {
+    let messageKind =
+      switch (StoreJson.field(json, "type")) {
+      | Some(rawType) =>
+        StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rawType)
+      | None => None
+      };
+    switch (messageKind) {
+    | Some("pong") => updateLastPong(state)
+    | _ =>
+      switch (StoreJson.field(json, "channel")) {
+      | Some(rawChannel) =>
+        switch (StoreJson.tryDecode(Melange_json.Primitives.string_of_json, rawChannel)) {
+        | Some(channel) =>
+          switch (Js.Dict.get(state.subscriptions, channel)) {
+          | Some(callbacks) =>
+            let callbacks = activeCallbacks(callbacks);
+            callbacks->Js.Array.forEach(~f=callbacks =>
+              switch (messageKind) {
               | Some("pong") => updateLastPong(state)
               | Some("patch") =>
-                let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
+                let payload =
+                  switch (StoreJson.field(json, "payload")) {
+                  | Some(payload) => payload
+                  | None => json
+                  };
                 let timestamp =
                   switch (StoreJson.optionalField(~json, ~fieldName="timestamp", ~decode=Melange_json.Primitives.float_of_json)) {
                   | Some(value) => value
@@ -271,11 +348,9 @@ module Socket = {
                 let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
                 callbacks.onSnapshot(payload);
               | Some("ack") =>
-                Js.Console.log("RealtimeClient: Received ack, invoking callback");
                 let actionId = StoreJson.requiredField(~json, ~fieldName="actionId", ~decode=Melange_json.Primitives.string_of_json);
                 let status = StoreJson.requiredField(~json, ~fieldName="status", ~decode=Melange_json.Primitives.string_of_json);
                 let error = StoreJson.optionalField(~json, ~fieldName="error", ~decode=Melange_json.Primitives.string_of_json);
-                Js.Console.log3("[RealtimeClient] Invoking onAck with:", actionId, status);
                 callbacks.onAck(actionId, status, error);
               | Some("custom") =>
                 let payload = StoreJson.requiredField(~json, ~fieldName="payload", ~decode=value => value);
@@ -297,14 +372,13 @@ module Socket = {
                 }
               | _ => ()
               }
-            | None => ()
-            }
+            )
+          | None => ()
           }
         | None => ()
         }
       | None => ()
-      }
-    | None => ()
+      };
     };
   };
 
@@ -314,22 +388,13 @@ module Socket = {
     let subs = Js.Dict.entries(state.subscriptions);
     for (i in 0 to Array.length(subs) - 1) {
       let (_, callbacks) = subs[i];
-      if (!callbacks.disposed.contents) {
+      if (Array.length(activeCallbacks(callbacks)) > 0) {
         hasActive := true;
       };
     };
     if (!hasActive.contents) {
-      state.isClosing = true;
-      clearPingInterval(state);
-      clearReconnectTimeout(state);
-      switch (state.websocket) {
-      | Some(ws) => {
-          state.websocket = None;
-          ws->WebSocket.close;
-        }
-      | None => ()
-      };
-      globalState := None;
+      disposeState(state);
+      deleteState(globalStatesRef.contents, state.key);
     };
   };
 
@@ -352,7 +417,7 @@ module Socket = {
         let isSecure = Webapi.Url.protocol(url) == "https:";
         url->Webapi.Url.setProtocol(isSecure ? "wss" : "ws");
 
-        let ws: websocket = Obj.magic(WebSocket.make(url->Webapi.Url.href));
+        let ws: websocket = WebSocket.make(url->Webapi.Url.href);
         state.websocket = Some(ws);
         state.connectionState = {
           last_ping: Js.Date.now(),
@@ -379,9 +444,16 @@ module Socket = {
           let subs = Js.Dict.entries(state.subscriptions);
           for (i in 0 to Array.length(subs) - 1) {
             let (_, callbacks) = subs[i];
-            if (!callbacks.disposed.contents) {
-              let _ = sendFrame(state, selectFrameString(callbacks.subscription, callbacks.updatedAt));
-              callbacks.onOpen();
+            let callbacks = activeCallbacks(callbacks);
+            if (Array.length(callbacks) > 0) {
+              callbacks
+              ->Js.Array.map(~f=callback => (callback.subscription, callback.updatedAt))
+              ->uniqueSelectRequests
+              ->Js.Array.forEach(~f=((subscription, updatedAt)) => {
+                  let _ = sendFrame(state, selectFrameString(subscription, updatedAt));
+                  ();
+                });
+              callbacks->Js.Array.forEach(~f=callbacks => callbacks.onOpen());
             };
           };
         });
@@ -395,9 +467,8 @@ module Socket = {
             let subs = Js.Dict.entries(state.subscriptions);
             for (i in 0 to Array.length(subs) - 1) {
               let (_, callbacks) = subs[i];
-              if (!callbacks.disposed.contents) {
-                callbacks.onClose();
-              };
+              activeCallbacks(callbacks)
+              ->Js.Array.forEach(~f=callbacks => callbacks.onClose());
             };
             /* Reconnect after delay */
             clearReconnectTimeout(state);
@@ -415,7 +486,6 @@ module Socket = {
 
         WebSocket.onMessage(ws, event => {
           let data: string = event##data;
-          Js.Console.log2("[RealtimeClient] WebSocket raw message received:", data);
           updateLastPong(state);
           switch (StoreJson.tryParse(data)) {
           | Some(json) => routeMessage(state, json)
@@ -429,6 +499,8 @@ module Socket = {
   /* Per-subscription connection handle */
   type connection_handle = {
     channel: string,
+    channelId: string,
+    callbackId: string,
     send: string => bool,
     dispose: unit => unit,
     disposedRef: ref(bool),
@@ -448,18 +520,14 @@ module Socket = {
        ~eventUrl: string,
        ~baseUrl: string,
        ()) => {
-    Js.Console.log2("[RealtimeClient] subscribeSynced called for channel:", subscription);
     let state = getOrCreateState(~eventUrl, ~baseUrl);
+    let callbackId = UUID.make();
     let disposedRef = ref(false);
 
-    /* Extract channel ID from subscription (format: "type:id", e.g., "list:uuid") */
-    let channelId =
-      switch (Js.String.split(~sep=":", subscription)) {
-      | [|_, id|] => id
-      | _ => subscription
-      };
+    let channelId = channelIdOfSubscription(subscription);
 
     let callbacks = {
+      id: callbackId,
       onOpen,
       onClose,
       onPatch,
@@ -474,8 +542,18 @@ module Socket = {
       disposed: disposedRef,
     };
 
-    /* Register subscription with channel ID as key */
-    Js.Dict.set(state.subscriptions, channelId, callbacks);
+    /* Register subscription with channel ID as key. Multiple query entries can
+       share a broadcast channel and all must receive snapshots/patches. */
+    let existing =
+      switch (Js.Dict.get(state.subscriptions, channelId)) {
+      | Some(callbacks) => callbacks
+      | None => [||]
+      };
+    Js.Dict.set(
+      state.subscriptions,
+      channelId,
+      existing->Js.Array.concat(~other=[|callbacks|]),
+    );
 
     /* Ensure connection is established */
     connect(state);
@@ -490,14 +568,26 @@ module Socket = {
     | None => ()
     };
 
-    Js.Console.log2("[RealtimeClient] Subscription registered with channelId:", channelId);
-
     {
       channel: subscription,
+      channelId,
+      callbackId,
       send: frame => sendFrame(state, frame),
       dispose: () => {
         if (!disposedRef.contents) {
           disposedRef := true;
+          let remaining =
+            switch (Js.Dict.get(state.subscriptions, channelId)) {
+            | Some(callbacks) =>
+              callbacks->Js.Array.filter(~f=callbacks =>
+                callbacks.id != callbackId && !callbacks.disposed.contents
+              )
+            | None => [||]
+            };
+          Js.Dict.set(state.subscriptions, channelId, remaining);
+          if (Array.length(remaining) == 0) {
+            let _ = sendFrame(state, unsubscribeFrameString(channelId));
+          };
           maybeClose(state);
         };
       },
@@ -506,7 +596,7 @@ module Socket = {
   };
 
   let sendAction = (~handle: connection_handle, ~actionId: string, ~action: StoreJson.json) =>
-    handle.send(mutationFrameString(actionId, StoreJson.stringify(json => json, action)));
+    handle.send(mutationFrameString(actionId, action));
 
   let sendFrame = (~handle: connection_handle, ~frame: string) =>
     handle.send(frame);
@@ -514,13 +604,30 @@ module Socket = {
   let disposeHandle = handle => {
     handle.dispose();
   };
+
+  module InternalForTests = {
+    let touchState = (~eventUrl, ~baseUrl) => {
+      let _ = getOrCreateState(~eventUrl, ~baseUrl);
+      ();
+    };
+
+    let activeStateCount = () =>
+      Array.length(globalStatesRef.contents->Js.Dict.keys);
+
+    let resetStates = () => {
+      globalStatesRef.contents
+      ->Js.Dict.entries
+      ->Js.Array.forEach(~f=((_, state)) => disposeState(state));
+      globalStatesRef := Js.Dict.empty();
+    };
+  };
 };
 
 [@platform native]
 module Multiplexed = {
-  type t;
+  type t = unit;
   type subscription_handle = { channel: string, id: int };
-  let make = (~eventUrl as _, ~baseUrl as _) => Obj.magic();
+  let make = (~eventUrl as _, ~baseUrl as _) => ();
   let subscribe = (~channel as _, ~updatedAt as _, ~onOpen as _, ~onClose as _, ~onPatch as _, ~onSnapshot as _, ~onAck as _, _t) => { channel: "", id: 0 };
   let unsubscribe = (_t, _handle) => ();
   let sendAction = (~actionId as _, ~action as _, _t) => false;

@@ -1,15 +1,42 @@
 // QueryCache.re - Client-side query cache with WebSocket subscription
-// Stores type-erased data (query_result(StoreJson.json)) to avoid Obj.magic
+// Stores type-erased data (query_result(StoreJson.json)).
 
 open QueryRegistryTypes;
+
+type loaded_result = {
+  key: query_key,
+  channel: string,
+  rows: array(StoreJson.json),
+};
+type loaded_result_listener = loaded_result => unit;
+type loaded_result_listener_id = StoreEvents.listener_id;
+
+let notifyLoadedResult =
+    (
+      ~registry: StoreEvents.callback_registry(loaded_result),
+      ~key: query_key,
+      ~channel: string,
+      ~rows: array(StoreJson.json),
+    ) => {
+  StoreEvents.Callback.emit(
+    ~registry,
+    {key, channel, rows},
+  );
+};
+
+let decodeJsonRows = (json: StoreJson.json): option(array(StoreJson.json)) =>
+  StoreJson.tryDecode(
+    Melange_json.Primitives.array_of_json(rowJson => rowJson),
+    json,
+  );
 
 // Cache entry stores type-erased JSON data
 // The decoder is provided at access time, not storage time
 type cache_entry = {
   key: query_key,
   mutable data: query_result(StoreJson.json),
-  signal: Tilia.Core.signal(query_result(StoreJson.json)),
-  setSignal: query_result(StoreJson.json) => unit,
+  mutable signal: Tilia.Core.signal(query_result(StoreJson.json)),
+  mutable setSignal: query_result(StoreJson.json) => unit,
   mutable subscriptionHandle: option(RealtimeClient.Socket.connection_handle),
   mutable lastUpdated: float,
   mutable refCount: int,
@@ -20,14 +47,8 @@ type t = {
   entries: Js.Dict.t(cache_entry),
   mutable eventUrl: string,
   mutable baseUrl: string,
+  loadedResultListenersRef: StoreEvents.callback_registry(loaded_result),
 };
-
-// External for deleting dictionary entries (already in file)
-[@platform js]
-external deleteEntry: (Js.Dict.t('a), string) => unit = "delete";
-
-[@platform native]
-let deleteEntry = (_dict, _key) => ();
 
 // Platform-specific implementations
 [@platform js]
@@ -35,6 +56,7 @@ let make = () => {
   entries: Js.Dict.empty(),
   eventUrl: "",
   baseUrl: "",
+  loadedResultListenersRef: ref([||]),
 };
 
 [@platform native]
@@ -42,7 +64,105 @@ let make = () => {
   entries: Js.Dict.empty(),
   eventUrl: "",
   baseUrl: "",
+  loadedResultListenersRef: ref([||]),
 };
+
+let listenLoadedResults = (~t: t, listener: loaded_result_listener): loaded_result_listener_id =>
+  StoreEvents.Callback.listen(~registry=t.loadedResultListenersRef, listener);
+
+let unlistenLoadedResults = (~t: t, listenerId: loaded_result_listener_id) =>
+  StoreEvents.Callback.unlisten(~registry=t.loadedResultListenersRef, listenerId);
+
+let shouldUseTransport = (~eventUrl: string, ~baseUrl as _: string) =>
+  eventUrl != "";
+
+module InternalForTests = {
+  let loadedResultListenerCount = (~t: t) =>
+    Array.length(t.loadedResultListenersRef.contents);
+
+  let shouldUseTransport = shouldUseTransport;
+};
+
+[@platform js]
+let getOrCreateEntry =
+    (~t: t, ~key: query_key, ~updatedAt: float=0.0, ()): cache_entry => {
+  switch (t.entries->Js.Dict.get(key)) {
+  | Some(existing) => existing
+  | None =>
+    let (signal, setSignal) = Tilia.Core.signal(Loading);
+    let newEntry = {
+      key,
+      data: Loading,
+      signal,
+      setSignal,
+      subscriptionHandle: None,
+      lastUpdated: updatedAt,
+      refCount: 0,
+    };
+    t.entries->Js.Dict.set(key, newEntry);
+    newEntry;
+  };
+};
+
+[@platform native]
+let getOrCreateEntry =
+    (~t: t, ~key: query_key, ~updatedAt as _: float=0.0, ()): cache_entry => {
+  switch (t.entries->Js.Dict.get(key)) {
+  | Some(existing) => existing
+  | None =>
+    let (signal, setSignal) = Tilia.Core.signal(Loading);
+    let newEntry = {
+      key,
+      data: Loading,
+      signal,
+      setSignal,
+      subscriptionHandle: None,
+      lastUpdated: 0.0,
+      refCount: 0,
+    };
+    t.entries->Js.Dict.set(key, newEntry);
+    newEntry;
+  };
+};
+
+let getSignal = (~t: t, ~key: query_key): Tilia.Core.signal(query_result(StoreJson.json)) => {
+  let entry = getOrCreateEntry(~t, ~key, ());
+  entry.signal;
+};
+
+let setEntryResult =
+    (
+      ~t: t,
+      ~entry: cache_entry,
+      ~channel: string,
+      ~result: query_result(StoreJson.json),
+      ~lastUpdated: float,
+    ) => {
+  entry.data = result;
+  entry.setSignal(result);
+  entry.lastUpdated = lastUpdated;
+  switch (result) {
+  | Loaded(rows) =>
+    notifyLoadedResult(
+      ~registry=t.loadedResultListenersRef,
+      ~key=entry.key,
+      ~channel,
+      ~rows,
+    )
+  | Loading
+  | Error(_) => ()
+  };
+};
+
+let isLoading = (result: query_result('row)) =>
+  switch (result) {
+  | Loading => true
+  | Loaded(_)
+  | Error(_) => false
+  };
+
+let uninitializedTransportMessage =
+  "QueryCache transport is not initialized. Call UseQuery.initCache before subscribing to uncached queries.";
 
 // Configure WebSocket URLs at initialization
 [@platform js]
@@ -54,75 +174,61 @@ let init = (~eventUrl: string, ~baseUrl: string, t: t) => {
 [@platform native]
 let init = (~eventUrl as _: string, ~baseUrl as _: string, _t: t) => ();
 
-// Subscribe to a query with type-erased storage
-// Store raw JSON directly - decodeRow is used by consumers, not the cache
+// Subscribe to a query with type-erased storage.
+// Store raw JSON directly; UseQuery decodes rows on access.
 [@platform js]
 let subscribe =
     (
       ~t: t,
       ~key: query_key,
       ~channel: string,
-      ~decodeRow as _: StoreJson.json => 'row,
       ~updatedAt: float=0.0,
       (),
     )
     : (Tilia.Core.signal(query_result(StoreJson.json)), unit => unit) => {
-  // Get or create cache entry
-  let entry =
-    switch (t.entries->Js.Dict.get(key)) {
-    | Some(existing) =>
-      // Increment ref count and return existing entry
-      existing.refCount = existing.refCount + 1;
-      existing;
-    | None =>
-      // Create new entry with Loading state
-      let (signal, setSignal) = Tilia.Core.signal(Loading);
-      let newEntry = {
-        key,
-        data: Loading,
-        signal,
-        setSignal,
-        subscriptionHandle: None,
-        lastUpdated: updatedAt,
-        refCount: 1,
-      };
-      t.entries->Js.Dict.set(key, newEntry);
-      newEntry;
-    };
+  let entry = getOrCreateEntry(~t, ~key, ~updatedAt, ());
+  entry.refCount = entry.refCount + 1;
 
   // Subscribe via RealtimeClient.Socket if not already subscribed
   let handle =
     switch (entry.subscriptionHandle) {
     | Some(h) => Some(h)
     | None =>
-      if (t.eventUrl != "" && t.baseUrl != "") {
+      if (shouldUseTransport(~eventUrl=t.eventUrl, ~baseUrl=t.baseUrl)) {
         let h =
           RealtimeClient.Socket.subscribeSynced(
             ~subscription=channel,
             ~updatedAt=entry.lastUpdated,
             ~onPatch=
               (~payload as _: StoreJson.json, ~timestamp: float) => {
-                // For now, just update lastUpdated timestamp
-                // Patch application will be enhanced later
-                entry.lastUpdated = timestamp
+                let previousUpdatedAt = entry.lastUpdated;
+                entry.lastUpdated = timestamp;
+                let _ =
+                  switch (entry.subscriptionHandle) {
+                  | Some(handle) =>
+                    RealtimeClient.Socket.sendFrame(
+                      ~handle,
+                      ~frame=RealtimeClient.selectFrameString(channel, previousUpdatedAt),
+                    )
+                  | None => false
+                  };
+                ();
               },
             ~onSnapshot=
               (json: StoreJson.json) => {
-                // Store raw JSON directly - the cache stores type-erased JSON
-                // UseQuery will decode using decodeRow on access
+                // Store raw JSON directly; UseQuery decodes rows on access.
                 let result =
-                  switch (
-                    StoreJson.tryDecode(
-                      Melange_json.Primitives.array_of_json(x => x),
-                      json,
-                    )
-                  ) {
+                  switch (decodeJsonRows(json)) {
                   | Some(jsonRows) => Loaded(jsonRows)
                   | None => Error("Failed to decode snapshot data")
                   };
-                entry.data = result;
-                entry.setSignal(result);
-                entry.lastUpdated = Js.Date.now();
+                setEntryResult(
+                  ~t,
+                  ~entry,
+                  ~channel,
+                  ~result,
+                  ~lastUpdated=Js.Date.now(),
+                );
               },
             ~onAck=
               (_actionId: string, _status: string, _error: option(string)) =>
@@ -135,6 +241,15 @@ let subscribe =
           );
         Some(h);
       } else {
+        if (isLoading(entry.data)) {
+          setEntryResult(
+            ~t,
+            ~entry,
+            ~channel,
+            ~result=Error(uninitializedTransportMessage),
+            ~lastUpdated=entry.lastUpdated,
+          );
+        };
         None;
       }
     };
@@ -143,16 +258,18 @@ let subscribe =
   entry.subscriptionHandle = handle;
 
   // Return signal and unsubscribe function
+  let active = ref(true);
   let unsubscribe = () => {
-    entry.refCount = entry.refCount - 1;
-    if (entry.refCount <= 0) {
-      // Dispose subscription
-      switch (entry.subscriptionHandle) {
-      | Some(h) => RealtimeClient.Socket.disposeHandle(h)
-      | None => ()
+    if (active.contents) {
+      active := false;
+      entry.refCount = max(0, entry.refCount - 1);
+      if (entry.refCount == 0) {
+        switch (entry.subscriptionHandle) {
+        | Some(h) => RealtimeClient.Socket.disposeHandle(h)
+        | None => ()
+        };
+        entry.subscriptionHandle = None;
       };
-      // Remove entry from cache
-      deleteEntry(t.entries, key);
     };
   };
 
@@ -165,7 +282,6 @@ let subscribe =
       ~t as _: t,
       ~key as _: query_key,
       ~channel as _: string,
-      ~decodeRow as _: StoreJson.json => 'row,
       ~updatedAt as _: float=0.0,
       (),
     )
@@ -194,21 +310,30 @@ let getResult =
 [@platform native]
 let result_to_json = (result: query_result(StoreJson.json)): StoreJson.json => {
   switch (result) {
-  | Loading => `Assoc([("_tag", `String("Loading"))])
+  | Loading => StoreJson.Object.make(dict =>
+      StoreJson.Object.setString(dict, "_tag", "Loading")
+    )
   | Loaded(jsonArray) =>
-    `Assoc([
-      ("_tag", `String("Loaded")),
-      ("data", `List(Belt.List.fromArray(jsonArray))),
-    ])
+    StoreJson.Object.make(dict => {
+      StoreJson.Object.setString(dict, "_tag", "Loaded");
+      StoreJson.Object.setJson(
+        dict,
+        "data",
+        Melange_json.To_json.array(json => json)(jsonArray),
+      );
+    })
   | Error(msg) =>
-    `Assoc([("_tag", `String("Error")), ("message", `String(msg))])
+    StoreJson.Object.make(dict => {
+      StoreJson.Object.setString(dict, "_tag", "Error");
+      StoreJson.Object.setString(dict, "message", msg);
+    })
   };
 };
 
 // JS stub - client only decodes, doesn't encode
 [@platform js]
 let result_to_json = (_result: query_result(StoreJson.json)): StoreJson.json => {
-  Obj.magic(Js.Json.null);
+  Melange_json.To_json.unit();
 };
 
 // Helper to deserialize a single query result from JSON
@@ -222,12 +347,7 @@ let result_of_json = (json: StoreJson.json): query_result(StoreJson.json) => {
     | Some("Loaded") =>
       switch (StoreJson.field(json, "data")) {
       | Some(data) =>
-        switch (
-          StoreJson.tryDecode(
-            Melange_json.Primitives.array_of_json(x => x),
-            data,
-          )
-        ) {
+        switch (decodeJsonRows(data)) {
         | Some(rows) => Loaded(rows)
         | None => Error("Invalid data field in Loaded result")
         }
@@ -250,31 +370,56 @@ let result_of_json = (json: StoreJson.json): query_result(StoreJson.json) => {
   };
 };
 
-// Hydrate cache from SSR-serialized JSON
-[@platform js]
-let hydrate = (~t: t, ~jsonStr: string): unit => {
+let forEachSerializedResult =
+    (
+      ~jsonStr: string,
+      ~f:
+        (
+          ~key: query_key,
+          ~result: query_result(StoreJson.json),
+        ) =>
+        unit,
+    )
+    : unit => {
   switch (StoreJson.tryParse(jsonStr)) {
   | Some(json) =>
-    // Parse as object/dict using StoreJson.Dict module
     let dict = StoreJson.Dict.of_json(x => x, json);
     let entries = Js.Dict.entries(dict);
     for (i in 0 to Array.length(entries) - 1) {
       let (key, resultJson) = entries[i];
-      let result = result_of_json(resultJson);
-      let (signal, setSignal) = Tilia.Core.signal(result);
-      let entry = {
-        key,
-        data: result,
-        signal,
-        setSignal,
-        subscriptionHandle: None,
-        lastUpdated: 0.0,
-        refCount: 0 // Will be incremented when subscribe is called
-      };
-      t.entries->Js.Dict.set(key, entry);
+      f(~key, ~result=result_of_json(resultJson));
     };
   | None => ()
   };
+};
+
+let forEachLoadedResult = (~jsonStr: string, ~f: loaded_result_listener): unit =>
+  forEachSerializedResult(
+    ~jsonStr,
+    ~f=(~key, ~result) =>
+      switch (result) {
+      | Loaded(rows) => f({key, channel: channelOfKey(key), rows})
+      | Loading
+      | Error(_) => ()
+      },
+  );
+
+// Hydrate cache from SSR-serialized JSON
+[@platform js]
+let hydrate = (~t: t, ~jsonStr: string): unit => {
+  forEachSerializedResult(
+    ~jsonStr,
+    ~f=(~key, ~result) => {
+      let entry = getOrCreateEntry(~t, ~key, ());
+      setEntryResult(
+        ~t,
+        ~entry,
+        ~channel=channelOfKey(key),
+        ~result,
+        ~lastUpdated=entry.lastUpdated,
+      );
+    },
+  );
 };
 
 [@platform native]
@@ -289,13 +434,7 @@ let serialize = (t: t): string => {
     let (key, entry) = entries[i];
     dict->Js.Dict.set(key, result_to_json(entry.data));
   };
-  Yojson.Basic.to_string(
-    `Assoc(
-      Js.Dict.entries(dict)
-      |> Array.to_list
-      |> List.map(((k, v)) => (k, Obj.magic(v))),
-    ),
-  );
+  StoreJson.stringify(json => json, StoreJson.Dict.to_json(json => json, dict));
 };
 
 [@platform js]

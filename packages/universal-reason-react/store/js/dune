@@ -16,7 +16,7 @@
   StoreComputed
   StoreCrud
   StoreEvents
-  StoreFrpFixture
+  Hooks
   StoreGuardTree
   StoreIndexedDB
   StoreJson

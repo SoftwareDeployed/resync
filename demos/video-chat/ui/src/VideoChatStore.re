@@ -58,7 +58,8 @@ type action =
   | SendMessage(send_message_payload)
   | ReceiveMessage(Model.ChatMessage.t)
   | ResetJoinStatus
-  | JoinRoomAcknowledged;
+  | JoinRoomAcknowledged
+  | Noop;
 
 type store = {
   room_id: string,
@@ -66,108 +67,90 @@ type store = {
   peers_count: int,
 };
 
-let emptyState: state = {
-  client_id: UUID.make(),
-  room: None,
-  is_joined: false,
-  local_video_enabled: true,
-  local_audio_enabled: true,
-  remote_peer_id: None,
-  remote_video_enabled: true,
-  remote_audio_enabled: true,
-  messages: [||],
-  updated_at: Js.Date.now(),
-};
+let actionJsonWithPayload = (~kind, ~payload) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "kind", kind);
+    StoreJson.Object.setJson(dict, "payload", payload);
+  });
 
-let storeName = "video-chat";
+let actionJson = (~kind, ~fill) =>
+  actionJsonWithPayload(~kind, ~payload=StoreJson.Object.make(fill));
 
-let scopeKeyOfState = (state: state) => state.client_id;
+let noopActionJson = () => actionJson(~kind="noop", ~fill=_dict => ());
 
-let timestampOfState = (state: state) => state.updated_at;
+let roomPayloadJson = (room_id: string) =>
+  StoreJson.Object.make(dict =>
+    StoreJson.Object.setString(dict, "room_id", room_id)
+  );
 
-let setTimestamp = (~state: state, ~timestamp: float) => {
-  ...state,
-  updated_at: timestamp,
-};
+let roomPeerPayloadJson = (room_id: string, peer_id: string) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "room_id", room_id);
+    StoreJson.Object.setString(dict, "peer_id", peer_id);
+  });
+
+let togglePayloadJson = (room_id: string, peer_id: string, enabled: bool) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "room_id", room_id);
+    StoreJson.Object.setString(dict, "peer_id", peer_id);
+    StoreJson.Object.setBool(dict, "enabled", enabled);
+  });
+
+let sendMessagePayloadJson = (payload: send_message_payload) =>
+  StoreJson.Object.make(dict => {
+    StoreJson.Object.setString(dict, "room_id", payload.room_id);
+    StoreJson.Object.setString(dict, "peer_id", payload.peer_id);
+    StoreJson.Object.setString(dict, "text", payload.text);
+  });
 
 let action_to_json = action =>
   switch (action) {
   | JoinRoom(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"join_room\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ "}}",
+    actionJsonWithPayload(
+      ~kind="join_room",
+      ~payload=roomPeerPayloadJson(payload.room_id, payload.peer_id),
     )
   | LeaveRoom(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"leave_room\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ "}}",
+    actionJsonWithPayload(
+      ~kind="leave_room",
+      ~payload=roomPeerPayloadJson(payload.room_id, payload.peer_id),
     )
   | PeerJoined(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"peer_joined\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ "}}",
+    actionJsonWithPayload(
+      ~kind="peer_joined",
+      ~payload=roomPayloadJson(payload.room_id),
     )
   | PeerLeft(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"peer_left\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ "}}",
+    actionJsonWithPayload(
+      ~kind="peer_left",
+      ~payload=roomPeerPayloadJson(payload.room_id, payload.peer_id),
     )
   | ToggleVideo(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"toggle_video\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ ",\"enabled\":"
-      ++ bool_to_json(payload.enabled)->Melange_json.to_string
-      ++ "}}",
+    actionJsonWithPayload(
+      ~kind="toggle_video",
+      ~payload=togglePayloadJson(payload.room_id, payload.peer_id, payload.enabled),
     )
   | ToggleAudio(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"toggle_audio\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ ",\"enabled\":"
-      ++ bool_to_json(payload.enabled)->Melange_json.to_string
-      ++ "}}",
+    actionJsonWithPayload(
+      ~kind="toggle_audio",
+      ~payload=togglePayloadJson(payload.room_id, payload.peer_id, payload.enabled),
     )
   | RemoteToggleVideo(_)
   | RemoteToggleAudio(_) =>
-    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+    noopActionJson()
   | SendMessage(payload) =>
-    StoreJson.parse(
-      "{\"kind\":\"send_message\",\"payload\":{"
-      ++ "\"room_id\":"
-      ++ string_to_json(payload.room_id)->Melange_json.to_string
-      ++ ",\"peer_id\":"
-      ++ string_to_json(payload.peer_id)->Melange_json.to_string
-      ++ ",\"text\":"
-      ++ string_to_json(payload.text)->Melange_json.to_string
-      ++ "}}",
+    actionJsonWithPayload(
+      ~kind="send_message",
+      ~payload=sendMessagePayloadJson(payload),
     )
   | ReceiveMessage(_) =>
-    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+    noopActionJson()
   | ResetJoinStatus =>
-    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+    noopActionJson()
   | JoinRoomAcknowledged =>
-    StoreJson.parse("{\"kind\":\"noop\",\"payload\":{}}")
+    noopActionJson()
+  | Noop =>
+    noopActionJson()
   };
 
 let action_of_json = json => {
@@ -359,11 +342,40 @@ let action_of_json = json => {
           ~decode=string_of_json,
         ),
     })
-  | _ =>
-    JoinRoom({
-      room_id: "",
-      peer_id: "",
-    })
+  | "noop" => Noop
+  | _ => Noop
+  };
+};
+
+module Mutations = {
+  module JoinRoom = {
+    type params = join_room_payload;
+    type nonrec action = action;
+    let toAction = params => JoinRoom(params);
+  };
+
+  module LeaveRoom = {
+    type params = peer_left_payload;
+    type nonrec action = action;
+    let toAction = params => LeaveRoom(params);
+  };
+
+  module ToggleVideo = {
+    type params = toggle_video_payload;
+    type nonrec action = action;
+    let toAction = params => ToggleVideo(params);
+  };
+
+  module ToggleAudio = {
+    type params = toggle_audio_payload;
+    type nonrec action = action;
+    let toAction = params => ToggleAudio(params);
+  };
+
+  module SendMessage = {
+    type params = send_message_payload;
+    type nonrec action = action;
+    let toAction = params => SendMessage(params);
   };
 };
 
@@ -372,17 +384,14 @@ let upsertPeer = (peers: array(Model.Peer.t), peer: Model.Peer.t) => {
     peers->Js.Array.filter(~f=(existing: Model.Peer.t) =>
       existing.id != peer.id
     );
-  Js.Array.concat(~other=[|peer|], remaining);
+  remaining->Js.Array.concat(~other=[|peer|]);
 };
 
 let removePeer = (peers: array(Model.Peer.t), peer_id: string) =>
   peers->Js.Array.filter(~f=(peer: Model.Peer.t) => peer.id != peer_id);
 
 let firstPeerId = (peers: array(Model.Peer.t)) =>
-  switch (Belt.Array.get(peers, 0)) {
-  | Some(peer) => Some(peer.id)
-  | None => None
-  };
+  Array.length(peers) > 0 ? Some(peers[0].id) : None;
 
 let resolveRemotePeerId = (~current, ~selfId, ~peers) => {
   let otherPeers =
@@ -406,7 +415,7 @@ let currentRoomMatches = (state: state, room_id: string) =>
   | None => false
   };
 
-let reduce = (~state: state, ~action: action) => {
+let applyAction = (~state: state, ~action: action) => {
   let updated_at = Js.Date.now();
   switch (action) {
   | JoinRoom(payload) =>
@@ -420,8 +429,9 @@ let reduce = (~state: state, ~action: action) => {
       created_at: updated_at,
       peers:
         switch (state.room) {
-        | Some(room) when room.id == payload.room_id => room.peers
-        | _ => [||]
+        | Some(room) when room.id == payload.room_id =>
+          upsertPeer(room.peers, {id: payload.peer_id, joined_at: updated_at})
+        | _ => [|{id: payload.peer_id, joined_at: updated_at}|]
         },
     };
     {
@@ -576,7 +586,7 @@ let reduce = (~state: state, ~action: action) => {
       } else {
         {
           ...state,
-          messages: Js.Array.concat(~other=[|message|], state.messages),
+          messages: state.messages->Js.Array.concat(~other=[|message|]),
           updated_at,
         };
       };
@@ -593,7 +603,7 @@ let reduce = (~state: state, ~action: action) => {
     } else {
       {
         ...state,
-        messages: Js.Array.concat(~other=[|message|], state.messages),
+        messages: state.messages->Js.Array.concat(~other=[|message|]),
         updated_at,
       };
     }
@@ -607,6 +617,7 @@ let reduce = (~state: state, ~action: action) => {
       is_joined: true,
       updated_at,
     }
+  | Noop => state
   };
 };
 
@@ -655,15 +666,26 @@ let reduceStream = (_streaming, _event) => ();
 let reconcilePatch = (_patch, streaming) => streaming;
 
 /* ============================================================================
-   New Grouped API (Task 7) - Using Synced.Define with custom strategy
+   FRP streaming store API
    ============================================================================ */
 
 module StoreDef =
   (val StoreBuilder.buildSynced(
     StoreBuilder.make()
     |> StoreBuilder.withSchema({
-         emptyState,
-         reduce,
+         emptyState: ({
+           client_id: UUID.make(),
+           room: None,
+           is_joined: false,
+           local_video_enabled: true,
+           local_audio_enabled: true,
+           remote_peer_id: None,
+           remote_video_enabled: true,
+           remote_audio_enabled: true,
+           messages: [||],
+           updated_at: Js.Date.now(),
+         }: state),
+         reduce: (~state: state, ~action: action) => applyAction(~state, ~action),
          makeStore:
            (~state: state, ~derive: option(Tilia.Core.deriver(store))=?, ()) => {
            let room_id =
@@ -694,12 +716,20 @@ module StoreDef =
            };
          },
        })
-    |> StoreBuilder.withJson(~state_of_json, ~state_to_json, ~action_of_json, ~action_to_json)
+    |> StoreBuilder.withJson(
+         ~state_of_json,
+         ~state_to_json,
+         ~action_of_json,
+         ~action_to_json,
+       )
     |> StoreBuilder.withSync(
-         ~storeName,
-         ~scopeKeyOfState,
-         ~timestampOfState,
-         ~setTimestamp,
+         ~transport={
+           subscriptionOfState: (state: state): option(subscription) =>
+             Some(state.client_id),
+           encodeSubscription: (sub: subscription) => sub,
+           eventUrl: Constants.event_url,
+           baseUrl: Constants.base_url,
+         },
          ~decodePatch=json => {
            let type_field =
              StoreJson.optionalField(
@@ -765,48 +795,76 @@ module StoreDef =
              | None => None
              };
            | _ =>
-             switch (action_of_json(json)) {
-             | JoinRoom(_)
-             | LeaveRoom(_)
-             | ToggleVideo(_)
-             | ToggleAudio(_)
-             | ResetJoinStatus
-             | JoinRoomAcknowledged => None
-             | patch => Some(patch)
+             let decodeActionPatch = actionJson =>
+               switch (StoreJson.tryDecode(action_of_json, actionJson)) {
+               | Some(
+                   JoinRoom(_)
+                   | LeaveRoom(_)
+                   | ToggleVideo(_)
+                   | ToggleAudio(_)
+                   | ResetJoinStatus
+                   | JoinRoomAcknowledged
+                   | Noop,
+                 ) =>
+                 None
+               | Some(patch) => Some(patch)
+               | None => None
+               };
+             let decodeOuterPatch = () => decodeActionPatch(json);
+             switch (
+               StoreJson.optionalField(
+                 ~json,
+                 ~fieldName="payload",
+                 ~decode=value => value,
+               )
+             ) {
+             | Some(payload) =>
+               switch (StoreJson.decodeEmbedded(~decode=value => value, payload)) {
+               | Some(payloadJson) =>
+                 let decodedPayloadPatch = decodeActionPatch(payloadJson);
+                 switch (decodedPayloadPatch) {
+                 | Some(_) => decodedPayloadPatch
+                 | None => decodeOuterPatch()
+                 };
+               | None => decodeOuterPatch()
+               }
+             | None => decodeOuterPatch()
              }
            };
          },
-         ~updateOfPatch=(patch, state) => reduce(~state, ~action=patch),
-         ~transport = {
-           subscriptionOfState: (state: state): option(subscription) =>
-             Some(state.client_id),
-           encodeSubscription: (sub: subscription) => sub,
-           eventUrl: Constants.event_url,
-           baseUrl: Constants.base_url,
+         ~updateOfPatch=(patch, state) => applyAction(~state, ~action=patch),
+         ~setTimestamp=(~state: state, ~timestamp: float) => {
+           ...state,
+           updated_at: timestamp,
          },
+         ~storeName="video-chat",
+         ~scopeKeyOfState=(state: state) => state.client_id,
+         ~timestampOfState=(state: state) => state.updated_at,
          ~streams=Some({
            decodeStreamEvent,
            emptyStreamingState,
            reduceStream,
            reconcilePatch,
          }),
-  ~hooks={
-    StoreBuilder.Sync.onActionError: Some(onActionError),
-    onActionAck: None,
-    onCustom: None,
-    onMedia: None,
-    onError:
-    Some((~dispatch) => (message) => {
-      Js.Console.error("[VideoChatStore] Server error: " ++ message);
-      dispatch(ResetJoinStatus);
-    }),
-    onOpen: Some((~dispatch) => dispatch(ResetJoinStatus)),
-    onMultiplexedHandle:
-    Some((handle) => MediaTransport.setHandle(Some(handle))),
-  },
+         ~hooks=
+           Store.Sync.hooks(
+             ~onActionError=onActionError,
+             ~onActionAck=(~dispatch, ~action, ~actionId as _actionId) =>
+               switch (action) {
+               | JoinRoom(_) => dispatch(JoinRoomAcknowledged)
+               | _ => ()
+               },
+             ~onError=(~dispatch) => message => {
+               Js.Console.error("[VideoChatStore] Server error: " ++ message);
+               dispatch(ResetJoinStatus);
+             },
+             ~onMultiplexedHandle=handle =>
+               MediaTransport.setHandle(Some(handle)),
+             (),
+           ),
          ~stateElementId=Some("initial-store"),
          (),
-       ),
+       )
   ));
 
 include (
@@ -822,84 +880,36 @@ include (
 type t = store;
 
 module Context = StoreDef.Context;
+module Hooks = StoreDef.Hooks;
 
-let dispatch = StoreDef.dispatch;
-
-let joinRoom = (store: t, room_id: string) => {
-  let peer_id = store.state.client_id;
-  Js.Console.log(
-    "[joinRoom] called with room_id=" ++ room_id ++ " peer_id=" ++ peer_id,
-  );
-  dispatch(
-    JoinRoom({
-      room_id,
-      peer_id,
-    }),
-  );
-  peer_id;
+let joinRoomPayload = (store: t, room_id: string): join_room_payload => {
+  room_id,
+  peer_id: store.state.client_id,
 };
 
-let leaveRoom = (store: t) =>
+let leaveRoomPayload = (store: t): option(peer_left_payload) =>
+  switch (store.state.room) {
+  | Some(room) => Some({room_id: room.id, peer_id: store.state.client_id})
+  | None => None
+  };
+
+let toggleVideoPayload = (store: t, enabled: bool): option(toggle_video_payload) =>
   switch (store.state.room) {
   | Some(room) =>
-    dispatch(
-      LeaveRoom({
-        room_id: room.id,
-        peer_id: store.state.client_id,
-      }),
-    )
-  | None => ()
+    Some({room_id: room.id, peer_id: store.state.client_id, enabled})
+  | None => None
   };
 
-let sendVideoFrame = (store: t, frame_data: string) =>
-  switch (store.state.room) {
-  | Some(room) when store.state.is_joined =>
-    MediaTransport.sendMediaFrame(room.id, store.state.client_id, frame_data)
-  | _ => ()
-  };
-
-let sendAudioChunk = (store: t, chunk_data: string) =>
-  switch (store.state.room) {
-  | Some(room) when store.state.is_joined =>
-    MediaTransport.sendMediaAudio(room.id, store.state.client_id, chunk_data)
-  | _ => ()
-  };
-
-let toggleVideo = (store: t, enabled: bool) =>
+let toggleAudioPayload = (store: t, enabled: bool): option(toggle_audio_payload) =>
   switch (store.state.room) {
   | Some(room) =>
-    dispatch(
-      ToggleVideo({
-        room_id: room.id,
-        peer_id: store.state.client_id,
-        enabled,
-      }),
-    )
-  | None => ()
+    Some({room_id: room.id, peer_id: store.state.client_id, enabled})
+  | None => None
   };
 
-let toggleAudio = (store: t, enabled: bool) =>
+let sendMessagePayload = (store: t, text: string): option(send_message_payload) =>
   switch (store.state.room) {
   | Some(room) =>
-    dispatch(
-      ToggleAudio({
-        room_id: room.id,
-        peer_id: store.state.client_id,
-        enabled,
-      }),
-    )
-  | None => ()
-  };
-
-let sendMessage = (store: t, text: string) =>
-  switch (store.state.room) {
-  | Some(room) =>
-    dispatch(
-      SendMessage({
-        room_id: room.id,
-        peer_id: store.state.client_id,
-        text,
-      }),
-    )
-  | None => ()
+    Some({room_id: room.id, peer_id: store.state.client_id, text})
+  | None => None
   };

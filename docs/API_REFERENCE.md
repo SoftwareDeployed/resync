@@ -265,6 +265,14 @@ let {UniversalRouterDream.basePath, UniversalRouterDream.request} = context;
 
 ## Universal Store
 
+### Store Namespace
+
+The `Store` module re-exports the common store namespaces: `Json`, `Crud`, `Patch`, `Signal`, `Events`, `Source`, `IndexedDB`, `Selectors`, `Bootstrap`, `Runtime`, `Sync`, and `Frp`. Prefer `Store.Frp` for the FRP wrapper API; `StoreFrp` remains the underlying module name.
+
+`Store.Frp.Local.make`, `Store.Frp.Synced.make`, and `Store.Frp.Crud.make` accept optional `~guardTree` and `~applyQueryResult`, and each wrapper also exposes `withGuardTree(~guardTree)` and `withQueries(~applyQueryResult)`. Guard trees are passed into the same runtime validation path as `StoreBuilder.withGuardTree`; query result handlers are passed into the same loaded-query path as `StoreBuilder.withQueries`, so FRP-authored stores can update state from `useQuery` results without bypassing the store runtime.
+
+For custom synced stores with typed stream events, use `Store.Frp.Synced.Streaming.make(~streams, ...)`. The nested streaming wrapper keeps `Store.Frp.Synced.make` backward-compatible for non-streaming stores while passing `streams.emptyStreamingState`, `reduceStream`, and `reconcilePatch` through to the same runtime path as `StoreBuilder.withSync(~streams=Some(...))`.
+
 ### Types
 
 #### `store`
@@ -385,7 +393,21 @@ module Context = StoreDef.Context;
 - `let serializeState: state => string`: Serialize for SSR
 - `let serializeSnapshot: state => string`: Serialize for snapshot
 - `let dispatch: action => unit`: Dispatch a typed action
+- `let useStreaming(): streaming_state`: Read the store's typed streaming state reactively; local stores return `unit`, synced stores update after typed stream events and confirmed-state reconciliation
+- `let useQuery((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the Convex-style `{data, loading, error}` query result. Pass `~skip=true` to preserve React hook order while avoiding SSR registration and client subscription.
+- `let useQueryResult((module Query), params, ~skip=false, ())`: Explicit alias for `useQuery`. When skipped, it returns `{data: Loading, loading: false, error: None}` and does not contact the backend.
+- `let useQueryStore((module Query), params, ~skip=false, ())`: Subscribe to an SSR-hydrated query and return the store after applying loaded rows.
+- `let useQueryOption((module Query), paramsOpt, ())`: Reason-friendly conditional result helper. `Some(params)` behaves like `useQuery`; `None` behaves like `~skip=true` without requiring placeholder params.
+- `let useQueryResultOption((module Query), paramsOpt, ())`: Explicit alias for `useQueryOption`.
+- `let useQueryStoreOption((module Query), paramsOpt, ())`: Conditional store-returning form of `useQueryStore`.
+- Standalone low-level `UseQuery`/`Hooks.useQuery` calls share the same query cache but do not infer transport from a store runtime. Call `UseQuery.initCache(~eventUrl, ~baseUrl)` during client startup before subscribing to uncached queries. Same-origin transports can use `~eventUrl="/_events"` with `~baseUrl=""`. Without initialized transport, uncached client queries return an error instead of remaining in `Loading`; SSR-hydrated rows are preserved.
+- `let useMutation((module Mutation), ())`: Create a store-scoped async mutation function directly. This matches Convex's callable mutation style; custom modules provide `type params`, `type action`, and `toAction(params)`. Local stores resolve after local dispatch and reject when validation denies the action or the store is unavailable; synced stores resolve after server acknowledgement and reject on validation or server mutation failure.
+- `let useMutationFn((module Mutation), ())`: Compatibility alias for `useMutation`.
+- `let useMutationResult((module Mutation), ())`: Create a store-scoped mutation handle; `result.dispatch(params)` and `result.mutate(params)` are aliases that return `Js.Promise.t(unit)`. The handle also exposes `loading` while one or more mutations are in flight and `error` with the latest rejection message.
+- `let useIsQueryLoading((module Query), params)`: Reactive loading helper backed by the shared query cache signal.
+- `let useIsQueryLoadingOption((module Query), paramsOpt)`: Conditional loading helper that returns `false` for `None` without subscribing.
 - `module Context`: React context for store access
+- `module Hooks`: Nested `useStreaming`, `useQuery`, `useQueryResult`, `useQueryStore`, `useQueryOption`, `useQueryResultOption`, `useQueryStoreOption`, `useMutation`, `useMutationFn`, `useMutationResult`, `useIsQueryLoading`, and `useIsQueryLoadingOption` exports for component-local opens
 - `module Events`: Event listener module
 
 ### StoreBuilder.buildSynced
@@ -397,7 +419,7 @@ Terminal builder for creating custom synced runtime stores via the pipeline API.
 2. `StoreBuilder.withSchema({emptyState, reduce, makeStore})`
 3. `StoreBuilder.withGuardTree(~guardTree)` *(optional)*
 4. `StoreBuilder.withJson(...)`
-5. `StoreBuilder.withSync(~transport, ~decodePatch, ~updateOfPatch, ~storeName, ~scopeKeyOfState, ~timestampOfState, ~setTimestamp, ~stateElementId, ())`
+5. `StoreBuilder.withSync(~transport, ~decodePatch, ~updateOfPatch, ~storeName, ~scopeKeyOfState, ~timestampOfState, ~setTimestamp, ~streams=?, ~emptyStreamingState=?, ~stateElementId, ())`
 
 **Transport Configuration:**
 ```reason
@@ -418,9 +440,20 @@ type hooks('action) = {
   onMedia: option(StoreJson.json => unit),
   onError: option((~dispatch: 'action => unit) => string => unit),
   onOpen: option((~dispatch: 'action => unit) => unit),
-  onConnectionHandle: option(RealtimeClient.Socket.connection_handle => unit),
+  onMultiplexedHandle: option(RealtimeClientMultiplexed.Multiplexed.t => unit),
 };
 ```
+
+Use `StoreBuilder.Sync.hooks(...)` to construct this record without spelling unused callbacks:
+
+```reason
+~hooks=StoreBuilder.Sync.hooks(
+  ~onActionError=message => Js.log("Action error: " ++ message),
+  (),
+)
+```
+
+`withSync` derives `emptyStreamingState` from `~streams=Some(...)`. For custom synced stores that do not use streams, pass an explicit `~emptyStreamingState`, usually `()`.
 
 **Example:**
 ```reason
@@ -473,6 +506,7 @@ module StoreDef =
            eventUrl: Constants.event_url,
            baseUrl: Constants.base_url,
          },
+         ~emptyStreamingState=(),
          ~stateElementId=Some("initial-store"),
          (),
        )
@@ -578,6 +612,8 @@ In the pipeline API, patch handling is provided directly to `withSync` or `withS
 ```reason
 ~decodePatch: StoreJson.json => option('patch),
 ~updateOfPatch: ('patch, 'state) => 'state,
+~streams: option(StoreRuntimeTypes.streamsConfig('patch, 'stream_event, 'streaming_state))=?,
+~emptyStreamingState: option('streaming_state)=?,
 ```
 
 Use these when you need full control over patch decoding and application. The `decodePatch` function returns `None` for actions that should be handled by the reducer instead of as patches.
@@ -817,7 +853,7 @@ let withHydratedProvider:
   => {store: 'store, element: React.element};
 ```
 
-Hydrates a store and wraps children with its provider. Returns a record with both the store and the wrapped element.
+Hydrates the default SSR query cache script, hydrates a store, and wraps children with its provider. Returns a record with both the store and the wrapped element.
 
 **Example:**
 ```reason
@@ -841,7 +877,7 @@ let withHydratedProviders:
   => {stores: array('store), element: React.element};
 ```
 
-Hydrates multiple stores and wraps children with nested providers. Stores are hydrated in order, with the first store as the outermost provider.
+Hydrates the default SSR query cache script, hydrates multiple stores, and wraps children with nested providers. Stores are hydrated in order, with the first store as the outermost provider.
 
 **Example:**
 ```reason
@@ -922,7 +958,8 @@ React.useEffect0(() => {
 
 - Confirmed snapshot application completes before any snapshot-adjacent notifications fire
 - Confirmed patch application completes before any patch-adjacent notifications fire
-- `ActionAcked` and `ActionFailed` are emitted after ledger status updates complete
+- `ActionAcked` is emitted after the ledger status update completes and the ack-confirmed state persistence has been queued
+- `ActionFailed` is emitted after the ledger status update completes and rollback replay has been requested
 - `Open`, `Close`, `Reconnect`, and `ConnectionError` are emitted from the runtime-owned sync layer
 - Raw `snapshot` and `patch` frames are intentionally not the primary public event model
 
@@ -1032,7 +1069,7 @@ Creates a derived value with SSR/hydration support.
 #### `StorePatch.compose`
 
 ```reason
-let compose: list(decoder('a)) => StoreJson.json => option('a);
+let compose: array(decoder('a)) => StoreJson.json => option('a);
 ```
 
 Composes multiple patch decoders.
@@ -1151,13 +1188,16 @@ let create: (
   ~adapter: Adapter.packed,
   ~resolve_subscription: Dream.request => string => string option Lwt.t,
   ~load_snapshot: Dream.request => string => string Lwt.t,
-  ?handle_mutation: Dream.request => action_id:string => Yojson.Basic.t => (unit, string) result Lwt.t,
+  ?handle_mutation: Middleware.broadcast_fn => Dream.request => db:(module Caqti_lwt.CONNECTION) => action_id:string => mutation_name:string => Yojson.Basic.t => Mutation_result.t Lwt.t,
+  ?handle_mutation_without_db: Middleware.broadcast_fn => Dream.request => action_id:string => mutation_name:string => Yojson.Basic.t => Mutation_result.t Lwt.t,
   ?dispatch_mutation: (module Caqti_lwt.CONNECTION) => mutation_name:string => Yojson.Basic.t => (unit, string) result Lwt.t option,
   unit,
 ) => Middleware.t;
 ```
 
-Creates middleware instance. `~handle_mutation` is optional and receives JSON mutation frames in the form `{type: "mutation", actionId, action}`. If `~dispatch_mutation` is provided, the middleware tries it first for every mutation; only when it returns `None` does the frame fall through to `~handle_mutation`.
+Creates middleware instance. `~handle_mutation` is optional and receives JSON mutation frames in the form `{type: "mutation", actionId, action}` with a Dream SQL connection. If `~dispatch_mutation` is provided, the middleware tries it first for every mutation; only when it returns `None` does the frame fall through to `~handle_mutation`.
+
+Use `~handle_mutation_without_db` for in-memory transports that intentionally run without a `Dream.sql` pool. It is selected only when neither `~dispatch_mutation` nor DB-backed `~handle_mutation` is configured. Duplicate `{mutation_name, actionId}` pairs are still guarded in memory and replay the previous ack, but this idempotency state is not durable across server restarts.
 
 #### `Middleware.route`
 
@@ -1175,7 +1215,7 @@ let broadcast: (Middleware.t, string, string) => Lwt.t(unit);
 
 Broadcasts a payload string to all connected clients.
 
-**Test coverage:** Native protocol tests for ping/select/ack/error/media/detach behavior live under `packages/reason-realtime/dream-middleware/test`. See `docs/testing.md` for commands and the full case list.
+**Test coverage:** Native protocol tests for ping/select/ack/error/media/detach and no-DB mutation idempotency behavior live under `packages/reason-realtime/dream-middleware/test`. See `docs/testing.md` for commands and the full case list.
 
 ### Realtime Client Socket
 

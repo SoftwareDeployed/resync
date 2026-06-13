@@ -1,6 +1,6 @@
 open Store
 
-let dummy_json : Json.json = Obj.magic "dummy"
+let dummy_json : Json.json = Json.parse "\"dummy\""
 
 let make_record ~id ~status ~enqueued_at : StoreActionLedger.t =
   {
@@ -40,13 +40,25 @@ let suite =
           let r1 = make_record ~id:"a" ~status:"pending" ~enqueued_at:2000.0 in
           let r2 = make_record ~id:"b" ~status:"pending" ~enqueued_at:1000.0 in
           let sorted = StoreActionLedger.sortByEnqueuedAt [| r1; r2 |] in
-          Alcotest.(check int) "Array length changed" 2 (Array.length sorted));
+          Alcotest.(check int) "Array length changed" 2 (Array.length sorted);
+          Alcotest.(check string) "Oldest record first" "b" sorted.(0).id;
+          Alcotest.(check string) "Newest record second" "a" sorted.(1).id);
+      Alcotest.test_case "sortByEnqueuedAt does not mutate caller array" `Quick
+        (fun () ->
+          let r1 = make_record ~id:"a" ~status:"pending" ~enqueued_at:2000.0 in
+          let r2 = make_record ~id:"b" ~status:"pending" ~enqueued_at:1000.0 in
+          let records = [| r1; r2 |] in
+          let _sorted = StoreActionLedger.sortByEnqueuedAt records in
+          Alcotest.(check string) "Original first record unchanged" "a" records.(0).id;
+          Alcotest.(check string) "Original second record unchanged" "b" records.(1).id);
       Alcotest.test_case "sortByEnqueuedAt preserves order for same timestamp" `Quick
         (fun () ->
           let r1 = make_record ~id:"a" ~status:"pending" ~enqueued_at:1000.0 in
           let r2 = make_record ~id:"b" ~status:"pending" ~enqueued_at:1000.0 in
           let sorted = StoreActionLedger.sortByEnqueuedAt [| r1; r2 |] in
-          Alcotest.(check int) "Same timestamp sort failed" 2 (Array.length sorted));
+          Alcotest.(check int) "Same timestamp sort failed" 2 (Array.length sorted);
+          Alcotest.(check string) "First equal timestamp record preserved" "a" sorted.(0).id;
+          Alcotest.(check string) "Second equal timestamp record preserved" "b" sorted.(1).id);
       Alcotest.test_case "statusOfString parses pending correctly" `Quick (fun () ->
           match StoreActionLedger.statusOfString "pending" with
           | StoreActionLedger.Pending -> ()
@@ -59,6 +71,40 @@ let suite =
           match StoreActionLedger.statusOfString "unknown" with
           | StoreActionLedger.Pending -> ()
           | _ -> Alcotest.fail "statusOfString unknown should default to Pending");
+      Alcotest.test_case "terminal statuses reject later acks" `Quick (fun () ->
+          Alcotest.(check bool)
+            "pending accepts ack"
+            true
+            (StoreActionLedger.shouldAcceptAck StoreActionLedger.Pending);
+          Alcotest.(check bool)
+            "syncing accepts ack"
+            true
+            (StoreActionLedger.shouldAcceptAck StoreActionLedger.Syncing);
+          Alcotest.(check bool)
+            "acked rejects ack"
+            false
+            (StoreActionLedger.shouldAcceptAck StoreActionLedger.Acked);
+          Alcotest.(check bool)
+            "failed rejects ack"
+            false
+            (StoreActionLedger.shouldAcceptAck StoreActionLedger.Failed));
+      Alcotest.test_case "resumable actions send on open" `Quick (fun () ->
+          Alcotest.(check bool)
+            "pending sends"
+            true
+            (StoreActionLedger.shouldSendOnOpen StoreActionLedger.Pending);
+          Alcotest.(check bool)
+            "syncing sends after reload or reconnect"
+            true
+            (StoreActionLedger.shouldSendOnOpen StoreActionLedger.Syncing);
+          Alcotest.(check bool)
+            "acked does not send"
+            false
+            (StoreActionLedger.shouldSendOnOpen StoreActionLedger.Acked);
+          Alcotest.(check bool)
+            "failed does not send"
+            false
+            (StoreActionLedger.shouldSendOnOpen StoreActionLedger.Failed));
       Alcotest.test_case "action record has required fields" `Quick (fun () ->
           let record : StoreActionLedger.t =
             {

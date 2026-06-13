@@ -20,13 +20,88 @@ type registered_query('params, 'row) = {
   mutable result: query_result('row),
 };
 
-type registry_snapshot = {
-  queries: array(query_key),
-  results: Js.Dict.t(StoreJson.json),
+type loaded_query_result = {
+  key: query_key,
+  channel: string,
+  rows: array(StoreJson.json),
 };
 
+let keySeparator = ':';
+let lengthPrefixedKeyPrefix = "v1:";
+
 let makeKey = (~channel: string, ~paramsHash: string): query_key => {
-  channel ++ ":" ++ paramsHash;
+  lengthPrefixedKeyPrefix
+  ++ string_of_int(String.length(channel))
+  ++ ":"
+  ++ channel
+  ++ ":"
+  ++ paramsHash;
+};
+
+let findLastSeparator = (key: query_key): option(int) => {
+  let found = ref(None);
+  for (index in 0 to String.length(key) - 1) {
+    if (String.get(key, index) == keySeparator) {
+      found := Some(index);
+    };
+  };
+  found.contents;
+};
+
+let channelOfLegacyKey = (key: query_key): string => {
+  switch (findLastSeparator(key)) {
+  | Some(index) => String.sub(key, 0, index)
+  | None => key
+  };
+};
+
+let channelOfLengthPrefixedKey = (key: query_key): option(string) => {
+  let keyLength = String.length(key);
+  if (!String.starts_with(key, ~prefix=lengthPrefixedKeyPrefix)) {
+    None;
+  } else {
+    let prefixLength = String.length(lengthPrefixedKeyPrefix);
+    let firstSeparator =
+      try(
+        Some(
+          String.index(
+            String.sub(key, prefixLength, keyLength - prefixLength),
+            keySeparator,
+          ),
+        )
+      ) {
+      | Not_found => None
+      };
+    switch (firstSeparator) {
+    | None => None
+    | Some(separatorInSuffix) =>
+      let separator = prefixLength + separatorInSuffix;
+      let lengthText =
+        String.sub(key, prefixLength, separator - prefixLength);
+      switch (int_of_string_opt(lengthText)) {
+      | Some(channelLength) =>
+        let channelStart = separator + 1;
+        let separatorAfterChannel = channelStart + channelLength;
+        if (
+          channelLength >= 0
+          && separatorAfterChannel < keyLength
+          && String.get(key, separatorAfterChannel) == keySeparator
+        ) {
+          Some(String.sub(key, channelStart, channelLength));
+        } else {
+          None;
+        }
+      | None => None
+      }
+    }
+  };
+};
+
+let channelOfKey = (key: query_key): string => {
+  switch (channelOfLengthPrefixedKey(key)) {
+  | Some(channel) => channel
+  | None => channelOfLegacyKey(key)
+  };
 };
 
 // Module type for query modules used by useQuery hook
@@ -44,14 +119,20 @@ module type QueryModule = {
     Lwt.t(Stdlib.result(array(row), string));
 };
 
-// Module type for mutation modules used by useMutation hook
+// Low-level mutation contract for manual dispatch. `UseMutation.make`
+// only needs the params type; callers provide the actual dispatch callback.
 module type MutationModule = {
   type params;
-  let encodeParams: params => StoreJson.json;
-  let name: string;
 };
 
-// Module type for mutation modules on native (server-side SSR)
-module type MutationModuleNative = {
+// Action-aware mutation contract for store-scoped hooks that auto-dispatch.
+// Adds `toAction` so the hook can construct a store action from params
+// without the caller providing an explicit ~onDispatch callback.
+module type MutationModuleWithAction = {
   type params;
+  type action;
+  let toAction: params => action;
 };
+
+// Native SSR uses the same marker contract.
+module type MutationModuleNative = MutationModule;
