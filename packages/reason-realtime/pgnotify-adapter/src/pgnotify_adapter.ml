@@ -12,6 +12,7 @@ type handler = ?wrap:(channel:string -> string -> string) -> string -> unit Lwt.
 type t = {
   db_uri : string;
   conn : Postgresql.connection option ref;
+  socket : Lwt_unix.file_descr option ref;
   mutex : Lwt_mutex.t;
   handlers : (string, handler list) Hashtbl.t;
   polling : bool ref;
@@ -21,6 +22,7 @@ let create ~db_uri () =
   {
     db_uri;
     conn = ref None;
+    socket = ref None;
     mutex = Lwt_mutex.create ();
     handlers = Hashtbl.create 32;
     polling = ref false;
@@ -52,6 +54,15 @@ let parse_uri uri_str =
   in
   host, port, user, password, dbname
 
+let file_descr_of_socket socket =
+  (Obj.magic socket : Unix.file_descr)
+
+let lwt_socket_of_connection conn =
+  conn#set_nonblocking true;
+  conn#socket
+  |> file_descr_of_socket
+  |> Lwt_unix.of_unix_file_descr ~blocking:false ~set_flags:false
+
 let connect t =
   Lwt_mutex.with_lock t.mutex (fun () ->
       match !(t.conn) with
@@ -64,6 +75,7 @@ let connect t =
             in
             if conn#status = Postgresql.Ok then (
               t.conn := Some conn;
+              t.socket := Some (lwt_socket_of_connection conn);
               Lwt.return_unit)
             else
               Lwt.fail_with conn#error_message
@@ -76,6 +88,17 @@ let with_connection t f =
       match !(t.conn) with
       | Some conn -> f conn
       | None -> Lwt.fail_with "PostgreSQL notification connection unavailable")
+
+let wait_for_input t =
+  match !(t.socket) with
+  | Some socket ->
+      Lwt.pick
+        [
+          Lwt_unix.wait_read socket;
+          (let* () = Lwt_unix.sleep 1.0 in
+           Lwt.return_unit);
+        ]
+  | None -> Lwt_unix.sleep 1.0
 
 let run_command t query =
   with_connection t (fun conn ->
@@ -160,7 +183,7 @@ let rec poll t =
   if not !(t.polling) then
     Lwt.return_unit
   else (
-    let* () = Lwt_unix.sleep 0.1 in
+    let* () = wait_for_input t in
     if not !(t.polling) then
       Lwt.return_unit
     else
@@ -205,6 +228,7 @@ let stop t =
       | None -> Lwt.return_unit
       | Some conn ->
           t.conn := None;
+          t.socket := None;
           conn#finish;
           Lwt.return_unit)
 

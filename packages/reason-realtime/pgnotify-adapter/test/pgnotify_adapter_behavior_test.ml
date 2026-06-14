@@ -23,6 +23,12 @@ let wait_for_message received_ref =
   in
   loop 20
 
+let rec repeat_lwt count callback =
+  if count <= 0 then Lwt.return_unit
+  else
+    let* () = callback count in
+    repeat_lwt (count - 1) callback
+
 let suite =
   ( "pgnotify adapter",
     [
@@ -99,4 +105,48 @@ let suite =
           match result with
           | None -> ()
           | Some message -> Alcotest.fail ("Unexpected delivery after unsubscribe: " ^ message));
+      Alcotest.test_case "repeated subscribe unsubscribe remains responsive" `Quick
+        (fun () ->
+          let adapter = Pgnotify_adapter.create ~db_uri:(db_uri ()) () in
+          let final_channel = "resync_test_churn_final" in
+          let received = ref None in
+          let handler ?wrap:_ message =
+            received := Some message;
+            Lwt.return_unit
+          in
+          let result =
+            Lwt_main.run
+              (let* () = Pgnotify_adapter.start adapter in
+               let* () =
+                 repeat_lwt 20 (fun index ->
+                     let channel = Printf.sprintf "resync_test_churn_%d" index in
+                     let* () = Pgnotify_adapter.subscribe adapter ~channel ~handler in
+                     Pgnotify_adapter.unsubscribe adapter ~channel)
+               in
+               let* () = Pgnotify_adapter.subscribe adapter ~channel:final_channel ~handler in
+               let sender = make_sender_connection () in
+               let _notify_result =
+                 try
+                   let result =
+                     sender#exec
+                       (Printf.sprintf
+                          "NOTIFY \"%s\", '%s'"
+                          final_channel
+                          "{\"type\":\"patch\",\"payload\":{\"churn\":true}}")
+                   in
+                   safe_finish sender;
+                   result
+                 with exn ->
+                   safe_finish sender;
+                   raise exn
+               in
+               let* result = wait_for_message received in
+               let* () = Pgnotify_adapter.unsubscribe adapter ~channel:final_channel in
+               let* () = Pgnotify_adapter.stop adapter in
+               Lwt.return result)
+          in
+          match result with
+          | Some message when String.contains message 'c' -> ()
+          | Some message -> Alcotest.fail ("Unexpected notification payload: " ^ message)
+          | None -> Alcotest.fail "Expected notification after subscribe churn");
     ] )
