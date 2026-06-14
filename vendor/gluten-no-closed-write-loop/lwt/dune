@@ -1,4 +1,10 @@
 (library
  (name gluten_lwt)
  (public_name gluten-lwt)
+ (modules (:standard \ test_gluten_lwt_buffered_read))
  (libraries lwt gluten))
+
+(test
+ (name test_gluten_lwt_buffered_read)
+ (modules test_gluten_lwt_buffered_read)
+ (libraries gluten-lwt lwt.unix))

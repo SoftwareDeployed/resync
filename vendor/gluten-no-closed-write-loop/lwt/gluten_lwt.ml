@@ -59,22 +59,29 @@ module IO_loop = struct
    fun (module Io) (module Runtime) t ~read_buffer_size socket ->
     let read_buffer = Buffer.create read_buffer_size in
     let read_loop_exited, notify_read_loop_exited = Lwt.wait () in
+    let drain_read_buffer () =
+      Buffer.get read_buffer ~f:(Runtime.read t)
+    in
+    let read_from_socket () =
+      Lwt.catch
+        (fun () ->
+           read (module Io) socket read_buffer >|= fun (_ : int) ->
+           let (_ : int) = drain_read_buffer () in
+           ())
+        (function
+           | End_of_file ->
+             let (_ : int) =
+               Buffer.get read_buffer ~f:(Runtime.read_eof t)
+             in
+             Lwt.return_unit
+           | exn -> Lwt.fail exn)
+    in
     let rec read_loop () =
       let rec read_loop_step () =
         match Runtime.next_read_operation t with
         | `Read ->
-          Lwt.catch
-            (fun () ->
-               read (module Io) socket read_buffer >|= fun (_ : int) ->
-               let (_ : int) = Buffer.get read_buffer ~f:(Runtime.read t) in
-               ())
-            (function
-               | End_of_file ->
-                 let (_ : int) =
-                   Buffer.get read_buffer ~f:(Runtime.read_eof t)
-                 in
-                 Lwt.return_unit
-               | exn -> Lwt.fail exn)
+          let consumed = drain_read_buffer () in
+          (if consumed > 0 then Lwt.return_unit else read_from_socket ())
           >>= read_loop_step
         | `Yield ->
           Runtime.yield_reader t read_loop;
