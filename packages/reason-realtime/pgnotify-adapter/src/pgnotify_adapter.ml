@@ -88,11 +88,16 @@ let close_connection_locked t =
       (try conn#finish with _ -> ())
 
 let exec_command_on_conn (conn : Postgresql.connection) query =
-  let result = conn#exec query in
-  if result#status = Postgresql.Command_ok then
-    ()
-  else
-    failwith result#error
+  conn#set_nonblocking false;
+  Fun.protect
+    ~finally:(fun () ->
+      try conn#set_nonblocking true with _ -> ())
+    (fun () ->
+      let result = conn#exec query in
+      if result#status = Postgresql.Command_ok then
+        ()
+      else
+        failwith result#error)
 
 let replay_listens (conn : Postgresql.connection) handlers =
   Hashtbl.iter
@@ -149,7 +154,20 @@ let with_connection t f =
 
 let wait_for_input t =
   match !(t.socket) with
-  | Some _socket -> Lwt_unix.sleep 0.1
+  | Some socket ->
+      Lwt.catch
+        (fun () ->
+          Lwt.pick
+            [
+              Lwt_unix.wait_read socket;
+              (let* () = Lwt_unix.sleep 1.0 in
+               Lwt.return_unit);
+            ])
+        (fun exn ->
+          Printf.eprintf "[pgnotify] listener wait failed: %s\n%!"
+            (Printexc.to_string exn);
+          let* () = close_connection t in
+          Lwt_unix.sleep empty_read_backoff_seconds)
   | None ->
       Lwt.catch
         (fun () ->
@@ -163,11 +181,8 @@ let wait_for_input t =
 let run_command t query =
   with_connection t (fun conn ->
       try
-        let result = conn#exec query in
-        if result#status = Postgresql.Command_ok then
-          Lwt.return_unit
-        else
-          Lwt.fail_with result#error
+        exec_command_on_conn conn query;
+        Lwt.return_unit
       with Postgresql.Error error ->
         Lwt.fail_with (Postgresql.string_of_error error))
 
