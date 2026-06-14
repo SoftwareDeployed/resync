@@ -1,0 +1,23 @@
+lib: [
+  "_build/install/default/lib/dream-httpaf/META"
+  "_build/install/default/lib/dream-httpaf/dream_httpaf.a"
+  "_build/install/default/lib/dream-httpaf/dream_httpaf.cma"
+  "_build/install/default/lib/dream-httpaf/dream_httpaf.cmi"
+  "_build/install/default/lib/dream-httpaf/dream_httpaf.cmt"
+  "_build/install/default/lib/dream-httpaf/dream_httpaf.cmx"
+  "_build/install/default/lib/dream-httpaf/dream_httpaf.cmxa"
+  "_build/install/default/lib/dream-httpaf/dream_httpaf.ml"
+  "_build/install/default/lib/dream-httpaf/dream_httpaf__Websocket.cmi"
+  "_build/install/default/lib/dream-httpaf/dream_httpaf__Websocket.cmt"
+  "_build/install/default/lib/dream-httpaf/dream_httpaf__Websocket.cmx"
+  "_build/install/default/lib/dream-httpaf/dune-package"
+  "_build/install/default/lib/dream-httpaf/opam"
+  "_build/install/default/lib/dream-httpaf/websocket.ml"
+]
+libexec: [
+  "_build/install/default/lib/dream-httpaf/dream_httpaf.cmxs"
+]
+doc: [
+  "_build/install/default/doc/dream-httpaf/LICENSE.md"
+  "_build/install/default/doc/dream-httpaf/README.md"
+]

@@ -1,0 +1,10 @@
+(library
+ (public_name dream-httpaf)
+ (name dream_httpaf)
+ (libraries
+  bigstringaf
+  dream-pure
+  httpun-ws
+ )
+ (preprocess (pps lwt_ppx))
+ (instrumentation (backend bisect_ppx)))

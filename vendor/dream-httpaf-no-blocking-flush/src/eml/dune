@@ -1,0 +1,13 @@
+(executable
+ (public_name dream_eml)
+ (package dream)
+ (name main)
+ (modules main)
+ (libraries eml)
+ (instrumentation (backend bisect_ppx)))
+
+(library
+ (name eml)
+ (modules eml)
+ (libraries camlp-streams)
+ (instrumentation (backend bisect_ppx)))

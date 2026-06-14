@@ -1,0 +1,24 @@
+(library
+ (public_name dream.http)
+ (name dream__http)
+ (libraries
+  digestif
+  dream.certificate
+  dream.cipher
+  dream-pure
+  dream.server
+  dream-httpaf
+  gluten
+  gluten-lwt-unix
+  h2
+  h2-lwt-unix
+  httpun
+  httpun-lwt-unix
+  httpun-ws
+  lwt
+  lwt.unix
+  lwt_ssl
+  ssl
+ )
+ (preprocess (pps lwt_ppx))
+ (instrumentation (backend bisect_ppx)))

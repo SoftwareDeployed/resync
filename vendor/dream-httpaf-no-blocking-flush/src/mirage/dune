@@ -1,0 +1,21 @@
+(library
+ (public_name dream-mirage)
+ (name dream__mirage)
+ (libraries
+  bigarray-compat
+  bigstringaf
+  digestif
+  dream.cipher
+  dream.server
+  dream.certificate
+  dream-pure
+  dream-httpaf.dream-h2
+  lwt
+  rresult
+  tcpip
+  dream-mirage.dream-paf
+  dream-mirage.dream-paf.alpn
+  dream-mirage.dream-paf.mirage
+ )
+ (preprocess (pps lwt_ppx))
+ (instrumentation (backend bisect_ppx)))
