@@ -557,13 +557,7 @@ let handle_json_message_with_io t request current_channels json ~send ~close
     match assoc_string "channel" json with
     | Some channel ->
       let* () = unsubscribe channel in
-      let next_channels = List.filter (fun c -> c <> channel) current_channels in
-      let* () =
-        match next_channels with
-        | [] -> close ()
-        | _ -> Lwt.return_unit
-      in
-      Lwt.return next_channels
+      Lwt.return (List.filter (fun c -> c <> channel) current_channels)
     | None -> Lwt.return current_channels)
   | Some "mutation" -> (
       match (assoc_string "actionId" json, assoc_json "action" json) with

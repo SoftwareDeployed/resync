@@ -303,6 +303,7 @@ let unsubscribe t ~channel =
   match Hashtbl.find_opt t.handlers channel with
   | None -> Lwt.return_unit
   | Some _ ->
-      let* () = run_command t (Printf.sprintf "UNLISTEN %s" (quote_identifier channel)) in
       Hashtbl.remove t.handlers channel;
+      (* Avoid synchronous UNLISTEN on websocket close paths. Dispatch is gated
+         by the local handler table, so stale LISTEN channels are inert. *)
       Lwt.return_unit
