@@ -39,6 +39,7 @@ type cache_entry = {
   mutable setSignal: query_result(StoreJson.json) => unit,
   mutable subscriptionHandle: option(RealtimeClient.Socket.connection_handle),
   mutable lastUpdated: float,
+  mutable resyncTimeoutId: option(int),
   mutable refCount: int,
 };
 
@@ -76,6 +77,24 @@ let unlistenLoadedResults = (~t: t, listenerId: loaded_result_listener_id) =>
 let shouldUseTransport = (~eventUrl: string, ~baseUrl as _: string) =>
   eventUrl != "";
 
+[@platform js]
+external setTimeout: (unit => unit, int) => int = "setTimeout";
+[@platform js]
+external clearTimeout: int => unit = "clearTimeout";
+
+[@platform js]
+let clearPendingResync = (entry: cache_entry) => {
+  switch (entry.resyncTimeoutId) {
+  | Some(timeoutId) =>
+    clearTimeout(timeoutId);
+    entry.resyncTimeoutId = None;
+  | None => ()
+  };
+};
+
+[@platform native]
+let clearPendingResync = (_entry: cache_entry) => ();
+
 module InternalForTests = {
   let loadedResultListenerCount = (~t: t) =>
     Array.length(t.loadedResultListenersRef.contents);
@@ -97,6 +116,7 @@ let getOrCreateEntry =
       setSignal,
       subscriptionHandle: None,
       lastUpdated: updatedAt,
+      resyncTimeoutId: None,
       refCount: 0,
     };
     t.entries->Js.Dict.set(key, newEntry);
@@ -118,6 +138,7 @@ let getOrCreateEntry =
       setSignal,
       subscriptionHandle: None,
       lastUpdated: 0.0,
+      resyncTimeoutId: None,
       refCount: 0,
     };
     t.entries->Js.Dict.set(key, newEntry);
@@ -203,19 +224,31 @@ let subscribe =
               (~payload as _: StoreJson.json, ~timestamp: float) => {
                 let previousUpdatedAt = entry.lastUpdated;
                 entry.lastUpdated = timestamp;
-                let _ =
-                  switch (entry.subscriptionHandle) {
-                  | Some(handle) =>
-                    RealtimeClient.Socket.sendFrame(
-                      ~handle,
-                      ~frame=RealtimeClient.selectFrameString(channel, previousUpdatedAt),
-                    )
-                  | None => false
-                  };
+                clearPendingResync(entry);
+                entry.resyncTimeoutId =
+                  Some(
+                    setTimeout(
+                      () => {
+                        entry.resyncTimeoutId = None;
+                        let _ =
+                          switch (entry.subscriptionHandle) {
+                          | Some(handle) =>
+                            RealtimeClient.Socket.sendFrame(
+                              ~handle,
+                              ~frame=RealtimeClient.selectFrameString(channel, previousUpdatedAt),
+                            )
+                          | None => false
+                          };
+                        ();
+                      },
+                      100,
+                    ),
+                  );
                 ();
               },
             ~onSnapshot=
               (json: StoreJson.json) => {
+                clearPendingResync(entry);
                 // Store raw JSON directly; UseQuery decodes rows on access.
                 let result =
                   switch (decodeJsonRows(json)) {
@@ -264,6 +297,7 @@ let subscribe =
       active := false;
       entry.refCount = max(0, entry.refCount - 1);
       if (entry.refCount == 0) {
+        clearPendingResync(entry);
         switch (entry.subscriptionHandle) {
         | Some(h) => RealtimeClient.Socket.disposeHandle(h)
         | None => ()
