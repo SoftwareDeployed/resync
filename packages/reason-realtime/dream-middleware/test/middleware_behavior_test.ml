@@ -6,17 +6,22 @@ module Fake_adapter = struct
   type t = {
     subscriptions : (string, handler) Hashtbl.t;
     unsubscribed : string list ref;
+    fail_subscribe : bool ref;
   }
 
-  let create () =
-    { subscriptions = Hashtbl.create 8; unsubscribed = ref [] }
+  let create ?(fail_subscribe = false) () =
+    { subscriptions = Hashtbl.create 8; unsubscribed = ref []; fail_subscribe = ref fail_subscribe }
 
   let start _ = Lwt.return_unit
   let stop _ = Lwt.return_unit
 
   let subscribe t ~channel ~handler =
-    Hashtbl.replace t.subscriptions channel handler;
-    Lwt.return_unit
+    if !(t.fail_subscribe) then
+      Lwt.fail_with "adapter subscribe failed"
+    else begin
+      Hashtbl.replace t.subscriptions channel handler;
+      Lwt.return_unit
+    end
 
   let unsubscribe t ~channel =
     t.unsubscribed := channel :: !(t.unsubscribed);
@@ -487,7 +492,7 @@ let suite =
       failwith "Failed to construct websocket for detach test"
     in
     Hashtbl.replace runtime.Middleware.channels "room-1"
-    [{ websocket; current_subscriptions = ["room-1"]; pending_sends = []; send_in_progress = false }];
+    [{ websocket; current_subscriptions = ["room-1"]; pending_sends = []; send_in_progress = false; closed = false }];
     let _ = Lwt_main.run (Middleware.detach_websocket runtime websocket) in
     if List.mem "room-1" !(adapter.unsubscribed) then ()
     else Alcotest.fail "Expected detach to unsubscribe channel");
@@ -639,9 +644,9 @@ let suite =
       failwith "Failed to construct websocket for detach test"
     in
     Hashtbl.replace runtime.Middleware.channels "room-a"
-    [{ websocket; current_subscriptions = ["room-a"]; pending_sends = []; send_in_progress = false }];
+    [{ websocket; current_subscriptions = ["room-a"]; pending_sends = []; send_in_progress = false; closed = false }];
     Hashtbl.replace runtime.Middleware.channels "room-b"
-    [{ websocket; current_subscriptions = ["room-b"]; pending_sends = []; send_in_progress = false }];
+    [{ websocket; current_subscriptions = ["room-b"]; pending_sends = []; send_in_progress = false; closed = false }];
     let _ = Lwt_main.run (Middleware.detach_websocket runtime websocket) in
     if List.mem "room-a" !(adapter.unsubscribed) && List.mem "room-b" !(adapter.unsubscribed)
     then ()
@@ -666,6 +671,7 @@ let suite =
           current_subscriptions = [ "room-a" ];
           pending_sends = [];
           send_in_progress = false;
+          closed = false;
         }
       in
       Lwt_main.run (Middleware.enqueue_subscriber_send subscriber "{}");
@@ -676,5 +682,96 @@ let suite =
       Alcotest.(check bool)
         "drain worker should be scheduled"
         true
+        subscriber.send_in_progress);
+  Alcotest.test_case "failed snapshot does not register websocket subscription" `Quick
+    (fun () ->
+      let adapter = Fake_adapter.create () in
+      let load_snapshot _request _channel = Lwt.fail_with "snapshot failed" in
+      let runtime = make_runtime ~load_snapshot adapter in
+      let captured = ref None in
+      let _response =
+        Lwt_main.run
+          (Dream.websocket ~close:false (fun websocket ->
+             captured := Some websocket;
+             Lwt.return_unit))
+      in
+      let websocket =
+        match !captured with
+        | Some websocket -> websocket
+        | None -> Alcotest.fail "Expected websocket"
+      in
+      let result =
+        Lwt_main.run
+          (Middleware.subscribe_websocket runtime request websocket "room-fail")
+      in
+      Alcotest.(check bool) "subscribe should fail closed" true (result = None);
+      Alcotest.(check bool)
+        "runtime should not keep failed channel"
+        false
+        (Hashtbl.mem runtime.Middleware.channels "room-fail");
+      Alcotest.(check bool)
+        "adapter should not subscribe failed channel"
+        false
+        (Hashtbl.mem adapter.subscriptions "room-fail"));
+  Alcotest.test_case "failed adapter subscribe rolls back registered websocket" `Quick
+    (fun () ->
+      let adapter = Fake_adapter.create ~fail_subscribe:true () in
+      let runtime = make_runtime adapter in
+      let captured = ref None in
+      let _response =
+        Lwt_main.run
+          (Dream.websocket ~close:false (fun websocket ->
+             captured := Some websocket;
+             Lwt.return_unit))
+      in
+      let websocket =
+        match !captured with
+        | Some websocket -> websocket
+        | None -> Alcotest.fail "Expected websocket"
+      in
+      let result =
+        Lwt_main.run
+          (Middleware.subscribe_websocket runtime request websocket "room-adapter-fail")
+      in
+      Alcotest.(check bool) "subscribe should fail closed" true (result = None);
+      Alcotest.(check bool)
+        "runtime should remove rolled-back channel"
+        false
+        (Hashtbl.mem runtime.Middleware.channels "room-adapter-fail");
+      Alcotest.(check bool)
+        "adapter should not keep failed subscription"
+        false
+        (Hashtbl.mem adapter.subscriptions "room-adapter-fail"));
+  Alcotest.test_case "closed subscriber drops queued sends" `Quick
+    (fun () ->
+      let captured = ref None in
+      let _response =
+        Lwt_main.run
+          (Dream.websocket ~close:false (fun websocket ->
+             captured := Some websocket;
+             Lwt.return_unit))
+      in
+      let websocket =
+        match !captured with
+        | Some websocket -> websocket
+        | None -> Alcotest.fail "Expected websocket"
+      in
+      let subscriber : Middleware.subscriber =
+        {
+          websocket;
+          current_subscriptions = [];
+          pending_sends = [];
+          send_in_progress = false;
+          closed = true;
+        }
+      in
+      Lwt_main.run (Middleware.enqueue_subscriber_send subscriber "{}");
+      Alcotest.(check int)
+        "closed subscriber should not queue"
+        0
+        (List.length subscriber.pending_sends);
+      Alcotest.(check bool)
+        "closed subscriber should not start drain worker"
+        false
         subscriber.send_in_progress);
 ] )

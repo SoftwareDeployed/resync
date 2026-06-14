@@ -216,13 +216,20 @@ let subscribe t ~channel ~handler =
     | None -> []
   in
   let first_subscription = current = [] in
-  Hashtbl.replace t.handlers channel (handler :: current);
   if first_subscription then
-    run_command t (Printf.sprintf "LISTEN %s" (quote_identifier channel))
-  else
+    let* () = run_command t (Printf.sprintf "LISTEN %s" (quote_identifier channel)) in
+    Hashtbl.replace t.handlers channel [ handler ];
     Lwt.return_unit
+  else begin
+    Hashtbl.replace t.handlers channel (handler :: current);
+    Lwt.return_unit
+  end
 
 let unsubscribe t ~channel =
   let* () = validate_channel channel in
-  Hashtbl.remove t.handlers channel;
-  run_command t (Printf.sprintf "UNLISTEN %s" (quote_identifier channel))
+  match Hashtbl.find_opt t.handlers channel with
+  | None -> Lwt.return_unit
+  | Some _ ->
+      let* () = run_command t (Printf.sprintf "UNLISTEN %s" (quote_identifier channel)) in
+      Hashtbl.remove t.handlers channel;
+      Lwt.return_unit

@@ -18,6 +18,7 @@ type subscriber = {
   mutable current_subscriptions : string list;
   mutable pending_sends : pending_send list;
   mutable send_in_progress : bool;
+  mutable closed : bool;
 }
 
 let max_pending_sends = 50
@@ -52,6 +53,7 @@ type t = {
   handle_media : (broadcast_fn -> Dream.request -> string -> string -> (unit, string) result Lwt.t) option;
   handle_disconnect : (broadcast_fn -> string -> unit Lwt.t) option;
   channels : (string, subscriber list) Hashtbl.t;
+  channels_mutex : Lwt_mutex.t;
   in_memory_actions : (string, in_memory_action_status) Hashtbl.t;
 }
 
@@ -69,6 +71,7 @@ let create ~adapter ~resolve_subscription ~load_snapshot ?handle_mutation ?handl
     handle_media;
     handle_disconnect;
     channels = Hashtbl.create 32;
+    channels_mutex = Lwt_mutex.create ();
     in_memory_actions = Hashtbl.create 128;
   }
 
@@ -107,7 +110,11 @@ let send_with_timeout websocket message =
       Lwt.return_unit)
 
 let rec drain_subscriber_sends subscriber =
-  match subscriber.pending_sends with
+  if subscriber.closed then begin
+    subscriber.pending_sends <- [];
+    subscriber.send_in_progress <- false;
+    Lwt.return_unit
+  end else match subscriber.pending_sends with
   | [] ->
       subscriber.send_in_progress <- false;
       Lwt.return_unit
@@ -117,25 +124,29 @@ let rec drain_subscriber_sends subscriber =
       drain_subscriber_sends subscriber
 
 let enqueue_subscriber_send subscriber payload =
-  let pending = { payload; timestamp = Unix.gettimeofday () } in
-  let pending_sends =
-    if List.length subscriber.pending_sends >= max_pending_sends then
-      match subscriber.pending_sends with
-      | [] -> [ pending ]
-      | dropped :: rest ->
-          let age = Unix.gettimeofday () -. dropped.timestamp in
-          Printf.eprintf "[ws] dropping queued send after %.3fs\n%!" age;
-          rest @ [ pending ]
-    else
-      subscriber.pending_sends @ [ pending ]
-  in
-  subscriber.pending_sends <- pending_sends;
-  if not subscriber.send_in_progress then (
-    subscriber.send_in_progress <- true;
-    Lwt.async (fun () ->
-        let* () = Lwt.pause () in
-        drain_subscriber_sends subscriber));
-  Lwt.return_unit
+  if subscriber.closed then
+    Lwt.return_unit
+  else begin
+    let pending = { payload; timestamp = Unix.gettimeofday () } in
+    let pending_sends =
+      if List.length subscriber.pending_sends >= max_pending_sends then
+        match subscriber.pending_sends with
+        | [] -> [ pending ]
+        | dropped :: rest ->
+            let age = Unix.gettimeofday () -. dropped.timestamp in
+            Printf.eprintf "[ws] dropping queued send after %.3fs\n%!" age;
+            rest @ [ pending ]
+      else
+        subscriber.pending_sends @ [ pending ]
+    in
+    subscriber.pending_sends <- pending_sends;
+    if not subscriber.send_in_progress then (
+      subscriber.send_in_progress <- true;
+      Lwt.async (fun () ->
+          let* () = Lwt.pause () in
+          drain_subscriber_sends subscriber));
+    Lwt.return_unit
+  end
 
 let send_websocket t websocket message =
   match find_subscriber_for_websocket t websocket with
@@ -316,38 +327,49 @@ let broadcast t channel ?(wrap = wrap_patch) message =
   send_to_channel t channel (wrap ~channel message)
 
 let unsubscribe_channel t channel =
-  (* Call handle_disconnect BEFORE removing from adapter *)
   let* () = match t.handle_disconnect with
     | Some handler ->
-        handler (make_broadcast_fn t) channel
+        Lwt.catch
+          (fun () -> handler (make_broadcast_fn t) channel)
+          (fun exn ->
+            Printf.eprintf "[ws] handle_disconnect failed for %s: %s\n%!"
+              channel (Printexc.to_string exn);
+            Lwt.return_unit)
     | None -> Lwt.return_unit
   in
+  let* () = Adapter.unsubscribe t.adapter ~channel in
   Hashtbl.remove t.channels channel;
-  Adapter.unsubscribe t.adapter ~channel
+  Lwt.return_unit
 
 let remove_websocket_from_channel t channel websocket =
-  match Hashtbl.find_opt t.channels channel with
-  | None -> Lwt.return_unit
-  | Some subscribers ->
-      let removed =
-        subscribers
-        |> List.filter (fun subscriber -> subscriber.websocket == websocket)
-      in
-      let remaining =
-        subscribers
-        |> List.filter (fun subscriber -> subscriber.websocket != websocket)
-      in
-      removed
-      |> List.iter (fun subscriber ->
-           subscriber.current_subscriptions <- List.filter (fun c -> c <> channel) subscriber.current_subscriptions);
-      if List.length remaining = List.length subscribers then
-        Lwt.return_unit
-      else if remaining = [] then
-        unsubscribe_channel t channel
-      else begin
-        Hashtbl.replace t.channels channel remaining;
-        Lwt.return_unit
-      end
+  Lwt_mutex.with_lock t.channels_mutex (fun () ->
+    match Hashtbl.find_opt t.channels channel with
+    | None -> Lwt.return_unit
+    | Some subscribers ->
+        let removed =
+          subscribers
+          |> List.filter (fun subscriber -> subscriber.websocket == websocket)
+        in
+        let remaining =
+          subscribers
+          |> List.filter (fun subscriber -> subscriber.websocket != websocket)
+        in
+        removed
+        |> List.iter (fun subscriber ->
+             subscriber.current_subscriptions <- List.filter (fun c -> c <> channel) subscriber.current_subscriptions;
+             if subscriber.current_subscriptions = [] then begin
+               subscriber.closed <- true;
+               subscriber.pending_sends <- [];
+               subscriber.send_in_progress <- false
+             end);
+        if List.length remaining = List.length subscribers then
+          Lwt.return_unit
+        else if remaining = [] then
+          unsubscribe_channel t channel
+        else begin
+          Hashtbl.replace t.channels channel remaining;
+          Lwt.return_unit
+        end)
 
 let channels_for_websocket t websocket =
   Hashtbl.fold
@@ -374,63 +396,105 @@ let detach_websocket t websocket =
 
 let subscribe_websocket t request websocket channel =
   Printf.eprintf "[ws] subscribe channel=%s\n%!" channel;
-  let existing_subscribers =
-    match Hashtbl.find_opt t.channels channel with
-    | Some subscribers -> subscribers
-    | None -> []
-  in
-  let existing_websocket_subscriber =
-    find_subscriber_for_websocket t websocket
-  in
-  let already_subscribed =
-    List.exists (fun subscriber -> subscriber.websocket == websocket) existing_subscribers
-  in
-  let subscriber =
-    match existing_websocket_subscriber with
-    | Some subscriber -> subscriber
-    | None ->
-        {
-          websocket;
-          current_subscriptions = [];
-          pending_sends = [];
-          send_in_progress = false;
-        }
-  in
-  let subscribers =
-    if already_subscribed then (
-      if not (List.mem channel subscriber.current_subscriptions) then
-        subscriber.current_subscriptions <- channel :: subscriber.current_subscriptions;
-      existing_subscribers
-    )
-    else (
-      if not (List.mem channel subscriber.current_subscriptions) then
-        subscriber.current_subscriptions <- channel :: subscriber.current_subscriptions;
-      subscriber :: existing_subscribers
-    )
-  in
-  let () = Hashtbl.replace t.channels channel subscribers in
-  let* snapshot = t.load_snapshot request channel in
-  let* () =
-    if existing_subscribers = [] then
-      Adapter.subscribe t.adapter ~channel ~handler:(broadcast t channel)
-    else
-      Lwt.return_unit
-  in
-  let* snapshot_sent =
-    Lwt.catch
-      (fun () ->
-        let* () = enqueue_subscriber_send subscriber (wrap_snapshot ~channel snapshot) in
-        Lwt.return_true)
-      (fun exn ->
-        Printf.eprintf "[ws] failed to send snapshot: %s\n%!" (Printexc.to_string exn);
-        Lwt.return_false)
-  in
-  if snapshot_sent then
-    Lwt.return (Some channel)
-  else begin
-    let* () = remove_websocket_from_channel t channel websocket in
-    Lwt.return_none
-  end
+  Lwt.catch
+    (fun () ->
+      let* snapshot = t.load_snapshot request channel in
+      let* register_result =
+        Lwt_mutex.with_lock t.channels_mutex (fun () ->
+          let existing_subscribers =
+            match Hashtbl.find_opt t.channels channel with
+            | Some subscribers -> subscribers
+            | None -> []
+          in
+          let existing_websocket_subscriber =
+            find_subscriber_for_websocket t websocket
+          in
+          let already_subscribed =
+            List.exists (fun subscriber -> subscriber.websocket == websocket) existing_subscribers
+          in
+          let subscriber =
+            match existing_websocket_subscriber with
+            | Some subscriber ->
+                subscriber.closed <- false;
+                subscriber
+            | None ->
+                {
+                  websocket;
+                  current_subscriptions = [];
+                  pending_sends = [];
+                  send_in_progress = false;
+                  closed = false;
+                }
+          in
+          if not (List.mem channel subscriber.current_subscriptions) then
+            subscriber.current_subscriptions <- channel :: subscriber.current_subscriptions;
+          let first_subscription = existing_subscribers = [] in
+          let subscribers =
+            if already_subscribed then
+              existing_subscribers
+            else
+              subscriber :: existing_subscribers
+          in
+          Hashtbl.replace t.channels channel subscribers;
+          if first_subscription then
+            let* subscribe_result =
+              Lwt.catch
+                (fun () ->
+                  let* () = Adapter.subscribe t.adapter ~channel ~handler:(broadcast t channel) in
+                  Lwt.return (Ok subscriber))
+                (fun exn -> Lwt.return (Error exn))
+            in
+            (match subscribe_result with
+             | Ok _ as ok -> Lwt.return ok
+             | Error exn ->
+                 let current =
+                   match Hashtbl.find_opt t.channels channel with
+                   | Some subscribers -> subscribers
+                   | None -> []
+                 in
+                 let remaining =
+                   current |> List.filter (fun item -> item.websocket != websocket)
+                 in
+                 if remaining = [] then
+                   Hashtbl.remove t.channels channel
+                 else
+                   Hashtbl.replace t.channels channel remaining;
+                 subscriber.current_subscriptions <-
+                   List.filter (fun c -> c <> channel) subscriber.current_subscriptions;
+                 if subscriber.current_subscriptions = [] then begin
+                   subscriber.closed <- true;
+                   subscriber.pending_sends <- [];
+                   subscriber.send_in_progress <- false
+                 end;
+                 Lwt.return (Error exn))
+          else
+            Lwt.return (Ok subscriber))
+      in
+      match register_result with
+      | Error exn ->
+          Printf.eprintf "[ws] failed to subscribe channel %s: %s\n%!"
+            channel (Printexc.to_string exn);
+          Lwt.return_none
+      | Ok subscriber ->
+          let* snapshot_sent =
+            Lwt.catch
+              (fun () ->
+                let* () = enqueue_subscriber_send subscriber (wrap_snapshot ~channel snapshot) in
+                Lwt.return_true)
+              (fun exn ->
+                Printf.eprintf "[ws] failed to send snapshot: %s\n%!" (Printexc.to_string exn);
+                Lwt.return_false)
+          in
+          if snapshot_sent && not subscriber.closed then
+            Lwt.return (Some channel)
+          else begin
+            let* () = remove_websocket_from_channel t channel websocket in
+            Lwt.return_none
+          end)
+    (fun exn ->
+      Printf.eprintf "[ws] snapshot failed for channel %s: %s\n%!"
+        channel (Printexc.to_string exn);
+      Lwt.return_none)
 
 let assoc_string key = function
   | `Assoc fields -> (
