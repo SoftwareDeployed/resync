@@ -89,6 +89,17 @@ let initCache = (~eventUrl: string, ~baseUrl: string) => {
 [@platform native]
 let initCache = (~eventUrl as _: string, ~baseUrl as _: string) => ();
 
+[@platform js]
+let setConnectionHandle =
+    (handle: option(RealtimeClientMultiplexed.Multiplexed.t)) => {
+  let cache = getQueryCache();
+  QueryCache.setConnectionHandle(~t=cache, handle);
+};
+
+[@platform native]
+let setConnectionHandle =
+    (_handle: option(RealtimeClientMultiplexed.Multiplexed.t)) => ();
+
 // Serialize cache for SSR hydration (native only - server serializes)
 [@platform native]
 let serializeCache = (): string => QueryRegistry.serialize_for_cache();

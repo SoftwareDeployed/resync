@@ -11,6 +11,13 @@ type loaded_result = {
 type loaded_result_listener = loaded_result => unit;
 type loaded_result_listener_id = StoreEvents.listener_id;
 
+type subscription_handle =
+  | Standalone(RealtimeClient.Socket.connection_handle)
+  | Shared(
+      RealtimeClientMultiplexed.Multiplexed.t,
+      RealtimeClientMultiplexed.Multiplexed.subscription_handle,
+    );
+
 let notifyLoadedResult =
     (
       ~registry: StoreEvents.callback_registry(loaded_result),
@@ -37,7 +44,8 @@ type cache_entry = {
   mutable data: query_result(StoreJson.json),
   mutable signal: Tilia.Core.signal(query_result(StoreJson.json)),
   mutable setSignal: query_result(StoreJson.json) => unit,
-  mutable subscriptionHandle: option(RealtimeClient.Socket.connection_handle),
+  mutable subscriptionHandle: option(subscription_handle),
+  mutable subscriptionChannel: option(string),
   mutable lastUpdated: float,
   mutable resyncTimeoutId: option(int),
   mutable refCount: int,
@@ -48,6 +56,7 @@ type t = {
   entries: Js.Dict.t(cache_entry),
   mutable eventUrl: string,
   mutable baseUrl: string,
+  mutable sharedConnection: option(RealtimeClientMultiplexed.Multiplexed.t),
   loadedResultListenersRef: StoreEvents.callback_registry(loaded_result),
 };
 
@@ -57,6 +66,7 @@ let make = () => {
   entries: Js.Dict.empty(),
   eventUrl: "",
   baseUrl: "",
+  sharedConnection: None,
   loadedResultListenersRef: ref([||]),
 };
 
@@ -65,6 +75,7 @@ let make = () => {
   entries: Js.Dict.empty(),
   eventUrl: "",
   baseUrl: "",
+  sharedConnection: None,
   loadedResultListenersRef: ref([||]),
 };
 
@@ -115,6 +126,7 @@ let getOrCreateEntry =
       signal,
       setSignal,
       subscriptionHandle: None,
+      subscriptionChannel: None,
       lastUpdated: updatedAt,
       resyncTimeoutId: None,
       refCount: 0,
@@ -137,6 +149,7 @@ let getOrCreateEntry =
       signal,
       setSignal,
       subscriptionHandle: None,
+      subscriptionChannel: None,
       lastUpdated: 0.0,
       resyncTimeoutId: None,
       refCount: 0,
@@ -195,6 +208,159 @@ let init = (~eventUrl: string, ~baseUrl: string, t: t) => {
 [@platform native]
 let init = (~eventUrl as _: string, ~baseUrl as _: string, _t: t) => ();
 
+[@platform js]
+let sendSelectFrame = (~handle: subscription_handle, ~channel: string, ~updatedAt: float) =>
+  switch (handle) {
+  | Standalone(socketHandle) =>
+    RealtimeClient.Socket.sendFrame(
+      ~handle=socketHandle,
+      ~frame=RealtimeClient.selectFrameString(channel, updatedAt),
+    )
+  | Shared(multiplexed, _) =>
+    RealtimeClientMultiplexed.Multiplexed.sendFrame(
+      ~frame=RealtimeClient.selectFrameString(channel, updatedAt),
+      multiplexed,
+    )
+  };
+
+[@platform js]
+let disposeSubscription = (handle: subscription_handle) =>
+  switch (handle) {
+  | Standalone(socketHandle) => RealtimeClient.Socket.disposeHandle(socketHandle)
+  | Shared(multiplexed, subscriptionHandle) =>
+    RealtimeClientMultiplexed.Multiplexed.unsubscribe(
+      multiplexed,
+      subscriptionHandle,
+    )
+  };
+
+[@platform js]
+let subscribeTransport =
+    (~t: t, ~entry: cache_entry, ~channel: string)
+    : option(subscription_handle) => {
+  let onPatch = (~payload as _: StoreJson.json, ~timestamp: float) => {
+    let previousUpdatedAt = entry.lastUpdated;
+    entry.lastUpdated = timestamp;
+    clearPendingResync(entry);
+    entry.resyncTimeoutId =
+      Some(
+        setTimeout(
+          () => {
+            entry.resyncTimeoutId = None;
+            let _ =
+              switch (entry.subscriptionHandle) {
+              | Some(handle) =>
+                sendSelectFrame(~handle, ~channel, ~updatedAt=previousUpdatedAt)
+              | None => false
+              };
+            ();
+          },
+          100,
+        ),
+      );
+    ();
+  };
+
+  let onSnapshot = (json: StoreJson.json) => {
+    clearPendingResync(entry);
+    // Store raw JSON directly; UseQuery decodes rows on access.
+    let result =
+      switch (decodeJsonRows(json)) {
+      | Some(jsonRows) => Loaded(jsonRows)
+      | None => Error("Failed to decode snapshot data")
+      };
+    setEntryResult(
+      ~t,
+      ~entry,
+      ~channel,
+      ~result,
+      ~lastUpdated=Js.Date.now(),
+    );
+  };
+
+  switch (t.sharedConnection) {
+  | Some(multiplexed) =>
+    let handle =
+      RealtimeClientMultiplexed.Multiplexed.subscribe(
+        ~channel,
+        ~updatedAt=entry.lastUpdated,
+        ~onPatch,
+        ~onSnapshot,
+        ~onAck=(_actionId: string, _status: string, _error: option(string)) =>
+          (),
+        ~onOpen=() => (),
+        ~onClose=() => (),
+        multiplexed,
+      );
+    Some(Shared(multiplexed, handle));
+  | None =>
+    if (shouldUseTransport(~eventUrl=t.eventUrl, ~baseUrl=t.baseUrl)) {
+      let handle =
+        RealtimeClient.Socket.subscribeSynced(
+          ~subscription=channel,
+          ~updatedAt=entry.lastUpdated,
+          ~onPatch,
+          ~onSnapshot,
+          ~onAck=(_actionId: string, _status: string, _error: option(string)) =>
+            (),
+          ~onOpen=() => (),
+          ~onClose=() => (),
+          ~eventUrl=t.eventUrl,
+          ~baseUrl=t.baseUrl,
+          (),
+        );
+      Some(Standalone(handle));
+    } else {
+      if (isLoading(entry.data)) {
+        setEntryResult(
+          ~t,
+          ~entry,
+          ~channel,
+          ~result=Error(uninitializedTransportMessage),
+          ~lastUpdated=entry.lastUpdated,
+        );
+      };
+      None;
+    }
+  };
+};
+
+[@platform js]
+let setConnectionHandle =
+    (
+      ~t: t,
+      handle: option(RealtimeClientMultiplexed.Multiplexed.t),
+    ) => {
+  t.sharedConnection = handle;
+  switch (handle) {
+  | Some(_) =>
+    t.entries
+    ->Js.Dict.entries
+    ->Js.Array.forEach(~f=((_, entry)) => {
+        if (entry.refCount > 0) {
+          clearPendingResync(entry);
+          switch (entry.subscriptionHandle) {
+          | Some(existing) => disposeSubscription(existing)
+          | None => ()
+          };
+          entry.subscriptionHandle =
+            switch (entry.subscriptionChannel) {
+            | Some(channel) => subscribeTransport(~t, ~entry, ~channel)
+            | None => None
+            };
+        };
+      })
+  | None => ()
+  };
+};
+
+[@platform native]
+let setConnectionHandle =
+    (
+      ~t as _: t,
+      _handle: option(RealtimeClientMultiplexed.Multiplexed.t),
+    ) => ();
+
 // Subscribe to a query with type-erased storage.
 // Store raw JSON directly; UseQuery decodes rows on access.
 [@platform js]
@@ -209,82 +375,13 @@ let subscribe =
     : (Tilia.Core.signal(query_result(StoreJson.json)), unit => unit) => {
   let entry = getOrCreateEntry(~t, ~key, ~updatedAt, ());
   entry.refCount = entry.refCount + 1;
+  entry.subscriptionChannel = Some(channel);
 
-  // Subscribe via RealtimeClient.Socket if not already subscribed
+  // Subscribe through the store-owned multiplexed connection when available.
   let handle =
     switch (entry.subscriptionHandle) {
     | Some(h) => Some(h)
-    | None =>
-      if (shouldUseTransport(~eventUrl=t.eventUrl, ~baseUrl=t.baseUrl)) {
-        let h =
-          RealtimeClient.Socket.subscribeSynced(
-            ~subscription=channel,
-            ~updatedAt=entry.lastUpdated,
-            ~onPatch=
-              (~payload as _: StoreJson.json, ~timestamp: float) => {
-                let previousUpdatedAt = entry.lastUpdated;
-                entry.lastUpdated = timestamp;
-                clearPendingResync(entry);
-                entry.resyncTimeoutId =
-                  Some(
-                    setTimeout(
-                      () => {
-                        entry.resyncTimeoutId = None;
-                        let _ =
-                          switch (entry.subscriptionHandle) {
-                          | Some(handle) =>
-                            RealtimeClient.Socket.sendFrame(
-                              ~handle,
-                              ~frame=RealtimeClient.selectFrameString(channel, previousUpdatedAt),
-                            )
-                          | None => false
-                          };
-                        ();
-                      },
-                      100,
-                    ),
-                  );
-                ();
-              },
-            ~onSnapshot=
-              (json: StoreJson.json) => {
-                clearPendingResync(entry);
-                // Store raw JSON directly; UseQuery decodes rows on access.
-                let result =
-                  switch (decodeJsonRows(json)) {
-                  | Some(jsonRows) => Loaded(jsonRows)
-                  | None => Error("Failed to decode snapshot data")
-                  };
-                setEntryResult(
-                  ~t,
-                  ~entry,
-                  ~channel,
-                  ~result,
-                  ~lastUpdated=Js.Date.now(),
-                );
-              },
-            ~onAck=
-              (_actionId: string, _status: string, _error: option(string)) =>
-                (),
-            ~onOpen=() => (),
-            ~onClose=() => (),
-            ~eventUrl=t.eventUrl,
-            ~baseUrl=t.baseUrl,
-            (),
-          );
-        Some(h);
-      } else {
-        if (isLoading(entry.data)) {
-          setEntryResult(
-            ~t,
-            ~entry,
-            ~channel,
-            ~result=Error(uninitializedTransportMessage),
-            ~lastUpdated=entry.lastUpdated,
-          );
-        };
-        None;
-      }
+    | None => subscribeTransport(~t, ~entry, ~channel)
     };
 
   // Update entry with subscription handle
@@ -299,10 +396,11 @@ let subscribe =
       if (entry.refCount == 0) {
         clearPendingResync(entry);
         switch (entry.subscriptionHandle) {
-        | Some(h) => RealtimeClient.Socket.disposeHandle(h)
+        | Some(h) => disposeSubscription(h)
         | None => ()
         };
         entry.subscriptionHandle = None;
+        entry.subscriptionChannel = None;
       };
     };
   };
