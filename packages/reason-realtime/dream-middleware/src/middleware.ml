@@ -710,7 +710,7 @@ let rec websocket_handler t request websocket current_channels =
 
 let route path t =
   Dream.get path (fun request ->
-    Dream.websocket (fun websocket ->
+    Dream.websocket ~close:false (fun websocket ->
       incr connection_count;
       Printf.eprintf "[ws] new connection, total=%d\n%!" !connection_count;
       Lwt.catch
