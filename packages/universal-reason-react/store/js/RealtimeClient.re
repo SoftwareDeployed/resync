@@ -401,7 +401,16 @@ module Socket = {
   let rec connect = state => {
     if (!state.isConnecting && !state.isClosing) {
       switch (state.websocket) {
-      | Some(_) => () /* Already connected */
+      | Some(ws) =>
+        switch (ws->WebSocket.readyState) {
+        | 0
+        | 1 => () /* Already connecting or connected */
+        | _ =>
+          state.websocket = None;
+          state.isConnecting = false;
+          state.isClosing = false;
+          connect(state);
+        }
       | None =>
         state.isConnecting = true;
         let url =
@@ -554,6 +563,12 @@ module Socket = {
       channelId,
       existing->Js.Array.concat(~other=[|callbacks|]),
     );
+
+    /* Route changes can dispose the last old query and mount the next route's
+       queries in the same passive-effect flush. New subscriptions should be
+       able to reopen the shared query socket even if the previous route just
+       marked it as closing. */
+    state.isClosing = false;
 
     /* Ensure connection is established */
     connect(state);
