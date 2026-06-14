@@ -149,20 +149,7 @@ let with_connection t f =
 
 let wait_for_input t =
   match !(t.socket) with
-  | Some socket ->
-      Lwt.catch
-        (fun () ->
-          Lwt.pick
-            [
-              Lwt_unix.wait_read socket;
-              (let* () = Lwt_unix.sleep 1.0 in
-               Lwt.return_unit);
-            ])
-        (fun exn ->
-          Printf.eprintf "[pgnotify] listener reconnect after socket failure: %s\n%!"
-            (Printexc.to_string exn);
-          let* () = close_connection t in
-          Lwt_unix.sleep empty_read_backoff_seconds)
+  | Some _socket -> Lwt_unix.sleep 0.1
   | None ->
       Lwt.catch
         (fun () ->
