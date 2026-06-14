@@ -94,25 +94,17 @@ let find_subscriber_for_websocket t websocket =
     t.channels None
 
 let send_with_timeout websocket message =
-  let completed = ref false in
-  Lwt.async (fun () ->
-      Lwt.catch
-        (fun () ->
-          Lwt.pick
-            [
-              (let* () = Dream.send websocket message in
-               completed := true;
-               Lwt.return_unit);
-              (let* () = Lwt_unix.sleep 2.0 in
-               if not !completed then
-                 Printf.eprintf "[ws] send timed out len=%d\n%!"
-                   (String.length message);
-               Lwt.return_unit);
-            ])
-        (fun exn ->
-          Printf.eprintf "[ws] send failed: %s\n%!" (Printexc.to_string exn);
-          Lwt.return_unit));
-  Lwt.pause ()
+  Lwt.catch
+    (fun () ->
+      Lwt.pick
+        [
+          Dream.send websocket message;
+          (let* () = Lwt_unix.sleep 2.0 in
+           Lwt.return_unit);
+        ])
+    (fun exn ->
+      Printf.eprintf "[ws] send failed: %s\n%!" (Printexc.to_string exn);
+      Lwt.return_unit)
 
 let rec drain_subscriber_sends subscriber =
   match subscriber.pending_sends with
