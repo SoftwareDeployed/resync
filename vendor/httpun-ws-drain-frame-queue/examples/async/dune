@@ -1,0 +1,8 @@
+(executables
+ (names wscat echo_server echo_server_upgrade)
+ (libraries
+  httpun-ws
+  httpun-ws-async
+  async
+  httpun-async
+  core_unix.command_unix))

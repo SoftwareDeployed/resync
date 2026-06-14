@@ -1,0 +1,4 @@
+(library
+ (name httpun_ws)
+ (public_name httpun-ws)
+ (libraries gluten base64 angstrom faraday httpun bigstringaf))
