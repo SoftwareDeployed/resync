@@ -12,12 +12,19 @@ type handler = ?wrap:(channel:string -> string -> string) -> string -> unit Lwt.
 type t = {
   db_uri : string;
   conn : Postgresql.connection option ref;
+  mutex : Lwt_mutex.t;
   handlers : (string, handler list) Hashtbl.t;
   polling : bool ref;
 }
 
 let create ~db_uri () =
-  { db_uri; conn = ref None; handlers = Hashtbl.create 32; polling = ref false }
+  {
+    db_uri;
+    conn = ref None;
+    mutex = Lwt_mutex.create ();
+    handlers = Hashtbl.create 32;
+    polling = ref false;
+  }
 
 let parse_uri uri_str =
   let uri = Uri.of_string uri_str in
@@ -46,27 +53,29 @@ let parse_uri uri_str =
   host, port, user, password, dbname
 
 let connect t =
-  match !(t.conn) with
-  | Some _ -> Lwt.return_unit
-  | None ->
-      let host, port, user, password, dbname = parse_uri t.db_uri in
-      try
-        let conn =
-          new Postgresql.connection ~host ~port ~dbname ~user ~password ()
-        in
-        if conn#status = Postgresql.Ok then (
-          t.conn := Some conn;
-          Lwt.return_unit)
-        else
-          Lwt.fail_with conn#error_message
-      with Postgresql.Error error ->
-        Lwt.fail_with (Postgresql.string_of_error error)
+  Lwt_mutex.with_lock t.mutex (fun () ->
+      match !(t.conn) with
+      | Some _ -> Lwt.return_unit
+      | None ->
+          let host, port, user, password, dbname = parse_uri t.db_uri in
+          try
+            let conn =
+              new Postgresql.connection ~host ~port ~dbname ~user ~password ()
+            in
+            if conn#status = Postgresql.Ok then (
+              t.conn := Some conn;
+              Lwt.return_unit)
+            else
+              Lwt.fail_with conn#error_message
+          with Postgresql.Error error ->
+            Lwt.fail_with (Postgresql.string_of_error error))
 
 let with_connection t f =
   let* () = connect t in
-  match !(t.conn) with
-  | Some conn -> f conn
-  | None -> Lwt.fail_with "PostgreSQL notification connection unavailable"
+  Lwt_mutex.with_lock t.mutex (fun () ->
+      match !(t.conn) with
+      | Some conn -> f conn
+      | None -> Lwt.fail_with "PostgreSQL notification connection unavailable")
 
 let run_command t query =
   with_connection t (fun conn ->
@@ -150,24 +159,35 @@ let dispatch t channel payload =
 let rec poll t =
   if not !(t.polling) then
     Lwt.return_unit
-  else
-    with_connection t (fun conn ->
-        let* () = Lwt_unix.sleep 0.1 in
-         (try
-            conn#consume_input;
-            let rec drain () =
-              match conn#notifies with
-              | None -> ()
-              | Some notification ->
-                  Lwt.async (fun () ->
-                      dispatch t notification.name notification.extra);
-                  drain ()
-            in
-            drain ()
-          with
-          | Postgresql.Error _ -> ()
-          | Failure _ -> ());
-         poll t)
+  else (
+    let* () = Lwt_unix.sleep 0.1 in
+    if not !(t.polling) then
+      Lwt.return_unit
+    else
+    let* notifications =
+      Lwt.catch
+        (fun () ->
+          with_connection t (fun conn ->
+              try
+                conn#consume_input;
+                let rec drain acc =
+                  match conn#notifies with
+                  | None -> List.rev acc
+                  | Some notification ->
+                      drain ((notification.name, notification.extra) :: acc)
+                in
+                Lwt.return (drain [])
+              with
+              | Postgresql.Error _ -> Lwt.return []
+              | Failure _ -> Lwt.return []))
+        (fun _ -> Lwt.return [])
+    in
+    let* () =
+      Lwt_list.iter_p
+        (fun (channel, payload) -> dispatch t channel payload)
+        notifications
+    in
+    poll t)
 
 let start t =
   let* () = connect t in
@@ -180,12 +200,13 @@ let start t =
 
 let stop t =
   t.polling := false;
-  match !(t.conn) with
-  | None -> Lwt.return_unit
-  | Some conn ->
-      t.conn := None;
-      conn#finish;
-      Lwt.return_unit
+  Lwt_mutex.with_lock t.mutex (fun () ->
+      match !(t.conn) with
+      | None -> Lwt.return_unit
+      | Some conn ->
+          t.conn := None;
+          conn#finish;
+          Lwt.return_unit)
 
 let subscribe t ~channel ~handler =
   let* () = validate_channel channel in

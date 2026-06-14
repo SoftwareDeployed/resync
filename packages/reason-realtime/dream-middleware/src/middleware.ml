@@ -9,7 +9,7 @@ let message_count = ref 0
 let last_log_time = ref 0.0
 
 type pending_send = {
-  payload : Yojson.Basic.t;
+  payload : string;
   timestamp : float;
 }
 
@@ -20,7 +20,7 @@ type subscriber = {
   mutable send_in_progress : bool;
 }
 
-let max_pending_sends = 2
+let max_pending_sends = 50
 
 type broadcast_fn = string -> (channel:string -> string -> string) -> unit Lwt.t
 
@@ -82,16 +82,74 @@ let log_stats t =
     message_count := 0
   end
 
+let find_subscriber_for_websocket t websocket =
+  Hashtbl.fold
+    (fun _channel subscribers found ->
+      match found with
+      | Some _ -> found
+      | None ->
+          List.find_opt
+            (fun subscriber -> subscriber.websocket == websocket)
+            subscribers)
+    t.channels None
+
+let send_with_timeout websocket message =
+  Lwt.catch
+    (fun () ->
+      Lwt.pick
+        [
+          Dream.send websocket message;
+          (let* () = Lwt_unix.sleep 2.0 in
+           Lwt.return_unit);
+        ])
+    (fun exn ->
+      Printf.eprintf "[ws] send failed: %s\n%!" (Printexc.to_string exn);
+      Lwt.return_unit)
+
+let rec drain_subscriber_sends subscriber =
+  match subscriber.pending_sends with
+  | [] ->
+      subscriber.send_in_progress <- false;
+      Lwt.return_unit
+  | pending :: rest ->
+      subscriber.pending_sends <- rest;
+      let* () = send_with_timeout subscriber.websocket pending.payload in
+      drain_subscriber_sends subscriber
+
+let enqueue_subscriber_send subscriber payload =
+  let pending = { payload; timestamp = Unix.gettimeofday () } in
+  let pending_sends =
+    if List.length subscriber.pending_sends >= max_pending_sends then
+      match subscriber.pending_sends with
+      | [] -> [ pending ]
+      | dropped :: rest ->
+          let age = Unix.gettimeofday () -. dropped.timestamp in
+          Printf.eprintf "[ws] dropping queued send after %.3fs\n%!" age;
+          rest @ [ pending ]
+    else
+      subscriber.pending_sends @ [ pending ]
+  in
+  subscriber.pending_sends <- pending_sends;
+  if not subscriber.send_in_progress then (
+    subscriber.send_in_progress <- true;
+    Lwt.async (fun () -> drain_subscriber_sends subscriber));
+  Lwt.return_unit
+
+let send_websocket t websocket message =
+  match find_subscriber_for_websocket t websocket with
+  | Some subscriber -> enqueue_subscriber_send subscriber message
+  | None -> send_with_timeout websocket message
+
 let make_broadcast_fn t target wrap =
   let wrapped = wrap ~channel:target "" in
   let send_start = Unix.gettimeofday () in
   match Hashtbl.find_opt t.channels target with
   | Some subscribers ->
       Lwt_list.iter_p
-        (fun { websocket; _ } ->
+        (fun subscriber ->
           Lwt.catch
             (fun () ->
-              let* () = Dream.send websocket wrapped in
+              let* () = enqueue_subscriber_send subscriber wrapped in
               let send_time = Unix.gettimeofday () -. send_start in
               if send_time > 0.005 then
                 Printf.eprintf "[send] channel=%s took %.3fs len=%d\n%!" target send_time
@@ -236,6 +294,19 @@ let send_mutation_result ~send ~channel ~action_id current_channels = function
 
 let pong_message = `Assoc [ ("type", `String "pong") ] |> json_string
 
+let close_websocket_safely websocket =
+  Lwt.catch
+    (fun () ->
+      Lwt.pick
+        [
+          Dream.close_websocket websocket;
+          (let* () = Lwt_unix.sleep 1.0 in
+           Lwt.return_unit);
+        ])
+    (fun exn ->
+      Printf.eprintf "[ws] close failed: %s\n%!" (Printexc.to_string exn);
+      Lwt.return_unit)
+
 let send_to_channel t channel message =
   make_broadcast_fn t channel (fun ~channel:_ _ -> message)
 
@@ -297,7 +368,7 @@ let detach_websocket t websocket =
         Lwt.return_unit)
       channels
   in
-  Lwt.pause ()
+  Lwt.return_unit
 
 let subscribe_websocket t request websocket channel =
   Printf.eprintf "[ws] subscribe channel=%s\n%!" channel;
@@ -306,28 +377,34 @@ let subscribe_websocket t request websocket channel =
     | Some subscribers -> subscribers
     | None -> []
   in
+  let existing_websocket_subscriber =
+    find_subscriber_for_websocket t websocket
+  in
   let already_subscribed =
     List.exists (fun subscriber -> subscriber.websocket == websocket) existing_subscribers
   in
+  let subscriber =
+    match existing_websocket_subscriber with
+    | Some subscriber -> subscriber
+    | None ->
+        {
+          websocket;
+          current_subscriptions = [];
+          pending_sends = [];
+          send_in_progress = false;
+        }
+  in
   let subscribers =
-    if already_subscribed then
+    if already_subscribed then (
+      if not (List.mem channel subscriber.current_subscriptions) then
+        subscriber.current_subscriptions <- channel :: subscriber.current_subscriptions;
       existing_subscribers
-      |> List.map (fun subscriber ->
-           if subscriber.websocket == websocket then
-             if List.mem channel subscriber.current_subscriptions then
-               subscriber
-             else
-               { subscriber with current_subscriptions = channel :: subscriber.current_subscriptions }
-           else
-             subscriber)
-    else
-      {
-        websocket;
-        current_subscriptions = [channel];
-        pending_sends = [];
-        send_in_progress = false;
-      }
-      :: existing_subscribers
+    )
+    else (
+      if not (List.mem channel subscriber.current_subscriptions) then
+        subscriber.current_subscriptions <- channel :: subscriber.current_subscriptions;
+      subscriber :: existing_subscribers
+    )
   in
   let () = Hashtbl.replace t.channels channel subscribers in
   let* snapshot = t.load_snapshot request channel in
@@ -340,7 +417,7 @@ let subscribe_websocket t request websocket channel =
   let* snapshot_sent =
     Lwt.catch
       (fun () ->
-        let* () = Dream.send websocket (wrap_snapshot ~channel snapshot) in
+        let* () = enqueue_subscriber_send subscriber (wrap_snapshot ~channel snapshot) in
         Lwt.return_true)
       (fun exn ->
         Printf.eprintf "[ws] failed to send snapshot: %s\n%!" (Printexc.to_string exn);
@@ -469,7 +546,7 @@ let handle_json_message_with_io t request current_channels json ~send ~close
 
 let handle_json_message t request websocket current_channels json =
   handle_json_message_with_io t request current_channels json
-    ~send:(fun message -> Dream.send websocket message)
+    ~send:(fun message -> send_websocket t websocket message)
     ~close:(fun () -> Dream.close_websocket websocket)
     ~subscribe:(fun channel -> subscribe_websocket t request websocket channel)
     ~unsubscribe:(fun channel -> remove_websocket_from_channel t channel websocket)
@@ -508,7 +585,7 @@ let handle_message_with_io t request current_channels message ~send ~close
 
 let handle_message t request websocket current_channels message =
   handle_message_with_io t request current_channels message
-    ~send:(fun msg -> Dream.send websocket msg)
+    ~send:(fun msg -> send_websocket t websocket msg)
     ~close:(fun () -> Dream.close_websocket websocket)
     ~subscribe:(fun channel -> subscribe_websocket t request websocket channel)
     ~unsubscribe:(fun channel -> remove_websocket_from_channel t channel websocket)
@@ -523,7 +600,8 @@ let rec websocket_handler t request websocket current_channels =
     detach_websocket t websocket
   | Some "" ->
     Printf.eprintf "[ws] received empty message, closing connection\n%!";
-    detach_websocket t websocket
+    let* () = detach_websocket t websocket in
+    close_websocket_safely websocket
   | Some payload ->
     if receive_time < 0.0001 then
       Printf.eprintf "[receive] tight loop! receive_time=%.6fs len=%d\n%!" receive_time (String.length payload);
@@ -543,7 +621,7 @@ let rec websocket_handler t request websocket current_channels =
 
 let route path t =
   Dream.get path (fun request ->
-    Dream.websocket (fun websocket ->
+    Dream.websocket ~close:false (fun websocket ->
       incr connection_count;
       Printf.eprintf "[ws] new connection, total=%d\n%!" !connection_count;
       Lwt.catch
