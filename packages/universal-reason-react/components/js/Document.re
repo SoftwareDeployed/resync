@@ -34,7 +34,6 @@ let make = (
       | Some(value) => value
       | None => React.null
       }}
-      <DocumentNextScript serializedState=serializedState scripts=scripts />
       {serializedQueries != ""
         ? <script
             type_="text/json"
@@ -42,6 +41,7 @@ let make = (
             dangerouslySetInnerHTML={"__html": ScriptJsonEscape.escape(serializedQueries)}
           />
         : React.null}
+      <DocumentNextScript serializedState=serializedState scripts=scripts />
     </body>
   </DocumentHtml>;
 };
