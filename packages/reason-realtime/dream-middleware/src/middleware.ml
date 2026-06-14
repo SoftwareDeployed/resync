@@ -557,7 +557,13 @@ let handle_json_message_with_io t request current_channels json ~send ~close
     match assoc_string "channel" json with
     | Some channel ->
       let* () = unsubscribe channel in
-      Lwt.return (List.filter (fun c -> c <> channel) current_channels)
+      let next_channels = List.filter (fun c -> c <> channel) current_channels in
+      let* () =
+        match next_channels with
+        | [] -> close ()
+        | _ -> Lwt.return_unit
+      in
+      Lwt.return next_channels
     | None -> Lwt.return current_channels)
   | Some "mutation" -> (
       match (assoc_string "actionId" json, assoc_json "action" json) with
@@ -636,7 +642,7 @@ let handle_json_message_with_io t request current_channels json ~send ~close
 let handle_json_message t request websocket current_channels json =
   handle_json_message_with_io t request current_channels json
     ~send:(fun message -> send_websocket t websocket message)
-    ~close:(fun () -> Dream.close_websocket websocket)
+    ~close:(fun () -> close_websocket_safely websocket)
     ~subscribe:(fun channel -> subscribe_websocket t request websocket channel)
     ~unsubscribe:(fun channel -> remove_websocket_from_channel t channel websocket)
 
@@ -675,7 +681,7 @@ let handle_message_with_io t request current_channels message ~send ~close
 let handle_message t request websocket current_channels message =
   handle_message_with_io t request current_channels message
     ~send:(fun msg -> send_websocket t websocket msg)
-    ~close:(fun () -> Dream.close_websocket websocket)
+    ~close:(fun () -> close_websocket_safely websocket)
     ~subscribe:(fun channel -> subscribe_websocket t request websocket channel)
     ~unsubscribe:(fun channel -> remove_websocket_from_channel t channel websocket)
 
