@@ -878,6 +878,68 @@ module Synced = {
       | None => None
       };
 
+    let pendingActionRecordsRef:
+      ref(array(StoreCache.action_record(action))) = ref([||]);
+    let settledActionIdsRef: ref(array(string)) = ref([||]);
+
+    let hasSettledActionId = actionId =>
+      settledActionIdsRef.contents->Js.Array.some(~f=id => id == actionId);
+
+    let rememberSettledActionId = actionId =>
+      if (!hasSettledActionId(actionId)) {
+        let next =
+          settledActionIdsRef.contents->Js.Array.concat(~other=[|actionId|]);
+        let length = Array.length(next);
+        settledActionIdsRef.contents =
+          if (length > 200) {
+            Js.Array.slice(~start=length - 200, ~end_=length, next);
+          } else {
+            next;
+          };
+      };
+
+    let findPendingActionRecord = actionId => {
+      let records = pendingActionRecordsRef.contents;
+      let rec loop = index =>
+        if (index >= Array.length(records)) {
+          None;
+        } else {
+          let record = records[index];
+          if (record.id == actionId) {
+            Some(record);
+          } else {
+            loop(index + 1);
+          };
+        };
+      loop(0);
+    };
+
+    let putPendingActionRecord = (record: StoreCache.action_record(action)) =>
+      pendingActionRecordsRef.contents =
+        pendingActionRecordsRef.contents
+        ->Js.Array.filter(~f=(current: StoreCache.action_record(action)) =>
+            current.id != record.id
+          )
+        ->Js.Array.concat(~other=[|record|]);
+
+    let removePendingActionRecord = actionId =>
+      pendingActionRecordsRef.contents =
+        pendingActionRecordsRef.contents
+        ->Js.Array.filter(~f=(current: StoreCache.action_record(action)) =>
+            current.id != actionId
+          );
+
+    let markActionSettledInMemory = actionId => {
+      removePendingActionRecord(actionId);
+      rememberSettledActionId(actionId);
+    };
+
+    let getActionRecord = (~id, ()) =>
+      switch (findPendingActionRecord(id)) {
+      | Some(record) => Js.Promise.resolve(Some(record))
+      | None => cacheGetAction(~id, ())
+      };
+
     /* Emit through the controller for stable snapshot and queued dispatch */
     let emitEvent = (event: store_event) => Controller.emit(event);
 
@@ -1091,7 +1153,9 @@ module Synced = {
             status: StoreActionLedger.statusToString(Pending),
           };
         };
-      let persistPromise = cachePutAction(cacheRecordOfLedger(nextRecord));
+      let cacheRecord = cacheRecordOfLedger(nextRecord);
+      putPendingActionRecord(cacheRecord);
+      let persistPromise = cachePutAction(cacheRecord);
       if (sent) {
         Controller.scheduleAckTimeout(
           nextRecord.id,
@@ -1103,6 +1167,7 @@ module Synced = {
 
     and failTimedOutAction = (~actionId, ~action) => {
       let message = "Timed out waiting for acknowledgement";
+      markActionSettledInMemory(actionId);
       refreshOptimisticState();
       StoreRuntimeLifecycle.markActionSettled(lifecycle, actionId);
       emitEvent(
@@ -1132,6 +1197,12 @@ module Synced = {
                 | Syncing =>
                   if (record.retryCount >= StoreActionLedger.maxRetries) {
                     let ledgerRecord = ledgerRecordOfCache(record);
+                    let failedRecord = {
+                      ...record,
+                      status: StoreActionLedger.statusToString(Failed),
+                      error: Some("Timed out waiting for acknowledgement"),
+                    };
+                    putPendingActionRecord(failedRecord);
                     Js.Promise.then_(
                       _ =>
                         failTimedOutAction(
@@ -1140,11 +1211,7 @@ module Synced = {
                             ledgerRecord.action |> Schema.action_of_json,
                           ),
                         ),
-                      cachePutAction({
-                        ...record,
-                        status: StoreActionLedger.statusToString(Failed),
-                        error: Some("Timed out waiting for acknowledgement"),
-                      }),
+                      cachePutAction(failedRecord),
                     );
                   } else {
                     let nextRecord = {
@@ -1152,6 +1219,7 @@ module Synced = {
                       retryCount: record.retryCount + 1,
                     };
                     let nextLedger = ledgerRecordOfCache(nextRecord);
+                    putPendingActionRecord(nextRecord);
                     Js.Promise.then_(
                       _ => sendQueuedRecord(nextLedger),
                       cachePutAction(nextRecord),
@@ -1160,7 +1228,7 @@ module Synced = {
                 }
               | None => failTimedOutAction(~actionId, ~action=None)
               },
-            cacheGetAction(~id=actionId, ()),
+            getActionRecord(~id=actionId, ()),
           );
         ();
       | Server => ()
@@ -1192,6 +1260,7 @@ module Synced = {
               (),
             );
           let cacheRecord = cacheRecordOfLedger(ledgerRecord);
+          putPendingActionRecord(cacheRecord);
           actions.set(nextState);
           let sendAndBroadcast = () =>
             sendQueuedRecord(ledgerRecord)
@@ -1318,7 +1387,10 @@ module Synced = {
         let _ = 
           Js.Promise.then_(
             cacheRecord => {
-              if (shouldAcceptAckForCacheRecord(cacheRecord)) {
+              if (
+                !hasSettledActionId(actionId)
+                && shouldAcceptAckForCacheRecord(cacheRecord)
+              ) {
                 let ledgerRecord =
                   Option.map(ledgerRecordOfCache, cacheRecord);
                 let persistPromise =
@@ -1329,7 +1401,8 @@ module Synced = {
                       status: StoreActionLedger.statusToString(Acked),
                     })
                   | None => Js.Promise.resolve()
-                };
+                  };
+                markActionSettledInMemory(actionId);
                 Js.Promise.then_(
                   _ => {
                     if (shouldApplySideEffects()) {
@@ -1364,7 +1437,7 @@ module Synced = {
                 Js.Promise.resolve();
               };
             },
-            cacheGetAction(~id=actionId, ()),
+            getActionRecord(~id=actionId, ()),
           );
         ();
       | "error" =>
@@ -1376,7 +1449,10 @@ module Synced = {
         let _ =
           Js.Promise.then_(
             cacheRecord => {
-              if (shouldAcceptAckForCacheRecord(cacheRecord)) {
+              if (
+                !hasSettledActionId(actionId)
+                && shouldAcceptAckForCacheRecord(cacheRecord)
+              ) {
                 let ledgerRecord =
                   Option.map(ledgerRecordOfCache, cacheRecord);
                 let persistPromise =
@@ -1385,10 +1461,11 @@ module Synced = {
                     cachePutAction({
                       ...record,
                       status: StoreActionLedger.statusToString(Failed),
-                      error: Some(message),
-                    })
+                        error: Some(message),
+                      })
                   | None => Js.Promise.resolve()
-                };
+                  };
+                markActionSettledInMemory(actionId);
                 Js.Promise.then_(
                   _ => {
                     if (shouldApplySideEffects()) {
@@ -1413,7 +1490,7 @@ module Synced = {
                 Js.Promise.resolve();
               };
             },
-            cacheGetAction(~id=actionId, ()),
+            getActionRecord(~id=actionId, ()),
           );
         ();
       | _ => ()

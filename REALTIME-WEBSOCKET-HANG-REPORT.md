@@ -80,3 +80,36 @@ builds use the patched dependencies.
 - Expose a realtime server health metric for unmatched send attempts.
 - Avoid treating `Lwt.pick` as a hard timeout around code paths that can spin
   synchronously before yielding.
+
+## Related Finding: No-Cache Mutation Ack Timeout
+
+SurgStack later reproduced a different failure: a `run_report` mutation rendered
+completed report rows from PostgreSQL, but the UI still showed `Timed out
+waiting for acknowledgement`.
+
+Browser-side Playwright frame capture isolated the test page from manual
+browser activity. The page used one realtime WebSocket and received a batch
+containing the `run_report` ack plus report run/result/artifact snapshots. The
+snapshots rendered correctly, proving the server, PostgreSQL work, and
+WebSocket delivery path had completed.
+
+The remaining failure was in the client store runtime:
+
+- `StoreActionLedger.ackTimeoutMs` is 5000 ms.
+- SurgStack's synced store uses `cache: None`.
+- `StoreOffline.handleAckTimeout` read the pending action only through the
+  cache adapter.
+- With no cache, `cacheGetAction` always returned `None`, so the first
+  5-second timeout became terminal and rejected the mutation promise.
+- A valid server ack that arrived later could update query snapshots, but it
+  could not reverse the already rejected mutation promise.
+
+Executor now keeps an in-memory pending action ledger inside
+`StoreOffline.Synced`. Persistent cache remains a durability layer, not the only
+source of pending mutation truth. Timeout handling and ack handling read the
+in-memory ledger first, then fall back to persistent cache. Settled action IDs
+are remembered briefly so duplicate late acks are ignored for no-cache stores.
+
+DX follow-up: add a package-level browser test for a no-cache synced store where
+a valid ack arrives after the first ack-timeout window but before final retry
+exhaustion.
