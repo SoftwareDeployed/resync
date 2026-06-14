@@ -51,14 +51,31 @@ module Multiplexed = {
     baseUrl: string,
     disposedRef: ref(bool),
     idleCloseRef: ref(bool),
+    pingIntervalRef: ref(option(int)),
     reconnectTimeoutRef: ref(option(int)),
     pendingMutationsRef: ref(array(pending_mutation)),
+    lastPingRef: ref(float),
+    lastPongRef: ref(float),
   };
 
   type subscription_handle = { channel: string, id: int };
 
+  let pingIntervalMs = 5000;
+  let pingTimeoutMs = 15000.0;
+
+  external setInterval: (unit => unit, int) => int = "setInterval";
+  external clearInterval: int => unit = "clearInterval";
   external setTimeout: (unit => unit, int) => int = "setTimeout";
   external clearTimeout: int => unit = "clearTimeout";
+
+  let clearPingInterval = (t: t) => {
+    switch (t.pingIntervalRef.contents) {
+    | Some(intervalId) =>
+      clearInterval(intervalId);
+      t.pingIntervalRef := None;
+    | None => ()
+    };
+  };
 
   let clearReconnectTimeout = (t: t) => {
     switch (t.reconnectTimeoutRef.contents) {
@@ -77,8 +94,11 @@ module Multiplexed = {
     baseUrl,
     disposedRef: ref(false),
     idleCloseRef: ref(false),
+    pingIntervalRef: ref(None),
     reconnectTimeoutRef: ref(None),
     pendingMutationsRef: ref([||]),
+    lastPingRef: ref(Js.Date.now()),
+    lastPongRef: ref(Js.Date.now()),
   };
 
   let unsubscribeFrameString = (subscription: string) =>
@@ -100,7 +120,24 @@ module Multiplexed = {
       let ws: websocket = WebSocket.make(url->Webapi.Url.href);
       t.websocketRef := Some(ws);
 
+      let sendPing = () => {
+        switch (t.websocketRef.contents) {
+        | Some(currentWs) when currentWs == ws && ws->WebSocket.readyState == 1 =>
+          ws->WebSocket.send_string(RealtimeClient.pingFrameString());
+          t.lastPingRef := Js.Date.now();
+          if (t.lastPingRef.contents -. t.lastPongRef.contents > pingTimeoutMs) {
+            Js.Console.warn("RealtimeClientMultiplexed: Ping timeout, closing connection");
+            ws->WebSocket.close;
+          };
+        | _ => ()
+        };
+      };
+
       WebSocket.onOpen(ws, () => {
+        t.lastPingRef := Js.Date.now();
+        t.lastPongRef := Js.Date.now();
+        clearPingInterval(t);
+        t.pingIntervalRef := Some(setInterval(sendPing, pingIntervalMs));
         /* Send select for all active subscriptions */
         t.subscriptionsRef.contents
         ->Js.Dict.entries
@@ -146,8 +183,14 @@ module Multiplexed = {
           };
         if (isCurrentSocket) {
           t.websocketRef := None;
+          clearPingInterval(t);
         };
         if (isCurrentSocket && !t.disposedRef.contents && !wasIdleClose) {
+          t.subscriptionsRef.contents
+          ->Js.Dict.entries
+          ->Js.Array.forEach(~f=((_, callbacks)) =>
+              callbacks->Js.Array.forEach(~f=callback => callback.onClose())
+            );
           t.reconnectTimeoutRef :=
             Some(
               setTimeout(
@@ -163,20 +206,24 @@ module Multiplexed = {
 
       WebSocket.onMessage(ws, event => {
         let data: string = event##data;
+        t.lastPongRef := Js.Date.now();
         switch (StoreJson.tryParse(data)) {
         | Some(json) =>
-          switch (
-            StoreJson.field(json, "channel")
-            |> Option.map(Melange_json.Primitives.string_of_json)
-          ) {
-          | Some(channel) =>
-            switch (Js.Dict.get(t.subscriptionsRef.contents, channel)) {
-            | Some(callbacks) =>
-              /* Route message to this channel's callbacks */
-              switch (
-                StoreJson.field(json, "type")
-                |> Option.map(Melange_json.Primitives.string_of_json)
-              ) {
+          let messageType =
+            StoreJson.field(json, "type")
+            |> Option.map(Melange_json.Primitives.string_of_json);
+          switch (messageType) {
+          | Some("pong") => ()
+          | _ =>
+            switch (
+              StoreJson.field(json, "channel")
+              |> Option.map(Melange_json.Primitives.string_of_json)
+            ) {
+            | Some(channel) =>
+              switch (Js.Dict.get(t.subscriptionsRef.contents, channel)) {
+              | Some(callbacks) =>
+                /* Route message to this channel's callbacks */
+                switch (messageType) {
               | Some("patch") =>
                 let payload =
                   switch (StoreJson.field(json, "payload")) {
@@ -274,9 +321,10 @@ module Multiplexed = {
                   );
               | _ => ()
               }
+              | None => ()
+              }
             | None => ()
             }
-          | None => ()
           }
         | None => ()
         };
@@ -409,6 +457,7 @@ module Multiplexed = {
           });
       if (removed && !hasActive()) {
         clearReconnectTimeout(t);
+        clearPingInterval(t);
         switch (t.websocketRef.contents) {
         | Some(ws) =>
           t.idleCloseRef := true;
@@ -424,6 +473,7 @@ module Multiplexed = {
   let dispose = (t: t) => {
     t.disposedRef := true;
     clearReconnectTimeout(t);
+    clearPingInterval(t);
     t.subscriptionsRef := Js.Dict.empty();
     switch (t.websocketRef.contents) {
     | Some(ws) =>
