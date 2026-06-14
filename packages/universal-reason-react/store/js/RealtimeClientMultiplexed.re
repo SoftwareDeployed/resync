@@ -141,6 +141,116 @@ module Multiplexed = {
       }),
     );
 
+  let rec routeMessage = (t: t, json: StoreJson.json) => {
+    let messageType =
+      StoreJson.field(json, "type")
+      |> Option.map(Melange_json.Primitives.string_of_json);
+    switch (messageType) {
+    | Some("batch") =>
+      switch (StoreJson.field(json, "messages")) {
+      | Some(rawMessages) =>
+        switch (
+          StoreJson.tryDecode(
+            Melange_json.Primitives.array_of_json(message => message),
+            rawMessages,
+          )
+        ) {
+        | Some(messages) =>
+          messages->Js.Array.forEach(~f=message => routeMessage(t, message))
+        | None => ()
+        }
+      | None => ()
+      }
+    | Some("pong") => ()
+    | Some("ack") => notifyAck(t, json)
+    | _ =>
+      switch (
+        StoreJson.field(json, "channel")
+        |> Option.map(Melange_json.Primitives.string_of_json)
+      ) {
+      | Some(channel) =>
+        switch (Js.Dict.get(t.subscriptionsRef.contents, channel)) {
+        | Some(callbacks) =>
+          switch (messageType) {
+          | Some("patch") =>
+            let payload =
+              switch (StoreJson.field(json, "payload")) {
+              | Some(payload) => payload
+              | None => json
+              };
+            let timestamp =
+              switch (
+                StoreJson.optionalField(
+                  ~json,
+                  ~fieldName="timestamp",
+                  ~decode=Melange_json.Primitives.float_of_json,
+                )
+              ) {
+              | Some(value) => value
+              | None => Js.Date.now()
+              };
+            callbacks
+            ->Js.Array.forEach(
+                ~f=callback => callback.onPatch(~payload, ~timestamp),
+              );
+          | Some("snapshot") =>
+            let payload =
+              StoreJson.requiredField(
+                ~json,
+                ~fieldName="payload",
+                ~decode=value => value,
+              );
+            callbacks->Js.Array.forEach(~f=callback => callback.onSnapshot(payload));
+          | Some("ack") =>
+            notifyAck(t, json)
+          | Some("custom") =>
+            let payload =
+              StoreJson.requiredField(
+                ~json,
+                ~fieldName="payload",
+                ~decode=value => value,
+              );
+            callbacks->Js.Array.forEach(~f=callback =>
+                switch (callback.onCustom) {
+                | Some(handler) => handler(payload)
+                | None => ()
+                }
+              );
+          | Some("media") =>
+            let payload =
+              StoreJson.requiredField(
+                ~json,
+                ~fieldName="payload",
+                ~decode=value => value,
+              );
+            callbacks->Js.Array.forEach(~f=callback =>
+                switch (callback.onMedia) {
+                | Some(handler) => handler(payload)
+                | None => ()
+                }
+              );
+          | Some("error") =>
+            let message =
+              StoreJson.requiredField(
+                ~json,
+                ~fieldName="message",
+                ~decode=Melange_json.Primitives.string_of_json,
+              );
+            callbacks->Js.Array.forEach(~f=callback =>
+                switch (callback.onError) {
+                | Some(handler) => handler(message)
+                | None => ()
+                }
+              );
+          | _ => ()
+          }
+        | None => ()
+        }
+      | None => ()
+      }
+    };
+  };
+
   let rec connect = (t: t) => {
     if (!t.disposedRef.contents) {
       t.idleCloseRef := false;
@@ -242,125 +352,7 @@ module Multiplexed = {
           let data: string = event##data;
           t.lastPongRef := Js.Date.now();
           switch (StoreJson.tryParse(data)) {
-          | Some(json) =>
-            let messageType =
-              StoreJson.field(json, "type")
-              |> Option.map(Melange_json.Primitives.string_of_json);
-            switch (messageType) {
-            | Some("pong") => ()
-            | Some("ack") => notifyAck(t, json)
-            | _ =>
-              switch (
-                StoreJson.field(json, "channel")
-                |> Option.map(Melange_json.Primitives.string_of_json)
-              ) {
-              | Some(channel) =>
-                switch (Js.Dict.get(t.subscriptionsRef.contents, channel)) {
-                | Some(callbacks) =>
-                  /* Route message to this channel's callbacks */
-                  switch (messageType) {
-                | Some("patch") =>
-                  let payload =
-                    switch (StoreJson.field(json, "payload")) {
-                    | Some(payload) => payload
-                    | None => json
-                    };
-                  let timestamp =
-                    switch (
-                      StoreJson.optionalField(
-                        ~json,
-                        ~fieldName="timestamp",
-                        ~decode=Melange_json.Primitives.float_of_json,
-                      )
-                    ) {
-                    | Some(value) => value
-                    | None => Js.Date.now()
-                    };
-                  callbacks
-                  ->Js.Array.forEach(
-                      ~f=callback => callback.onPatch(~payload, ~timestamp),
-                    );
-                | Some("snapshot") =>
-                  let payload =
-                    StoreJson.requiredField(
-                      ~json,
-                      ~fieldName="payload",
-                      ~decode=value => value,
-                    );
-                  callbacks
-                  ->Js.Array.forEach(~f=callback => callback.onSnapshot(payload));
-                | Some("ack") =>
-                  let actionId =
-                    StoreJson.requiredField(
-                      ~json,
-                      ~fieldName="actionId",
-                      ~decode=Melange_json.Primitives.string_of_json,
-                    );
-                  let status =
-                    StoreJson.requiredField(
-                      ~json,
-                      ~fieldName="status",
-                      ~decode=Melange_json.Primitives.string_of_json,
-                    );
-                  let error =
-                    StoreJson.optionalField(
-                      ~json,
-                      ~fieldName="error",
-                      ~decode=Melange_json.Primitives.string_of_json,
-                    );
-                  callbacks
-                  ->Js.Array.forEach(
-                      ~f=callback => callback.onAck(actionId, status, error),
-                    );
-                | Some("custom") =>
-                  let payload =
-                    StoreJson.requiredField(
-                      ~json,
-                      ~fieldName="payload",
-                      ~decode=value => value,
-                    );
-                  callbacks
-                  ->Js.Array.forEach(~f=callback =>
-                      switch (callback.onCustom) {
-                      | Some(handler) => handler(payload)
-                      | None => ()
-                      }
-                    );
-                | Some("media") =>
-                  let payload =
-                    StoreJson.requiredField(
-                      ~json,
-                      ~fieldName="payload",
-                      ~decode=value => value,
-                    );
-                  callbacks
-                  ->Js.Array.forEach(~f=callback =>
-                      switch (callback.onMedia) {
-                      | Some(handler) => handler(payload)
-                      | None => ()
-                      }
-                    );
-                | Some("error") =>
-                  let message =
-                    StoreJson.requiredField(
-                      ~json,
-                      ~fieldName="message",
-                      ~decode=Melange_json.Primitives.string_of_json,
-                    );
-                  callbacks
-                  ->Js.Array.forEach(~f=callback =>
-                      switch (callback.onError) {
-                      | Some(handler) => handler(message)
-                      | None => ()
-                      }
-                    );
-                | _ => ()
-                }
-                | None => ()
-                }
-              | None => ()
-              }
-            }
+          | Some(json) => routeMessage(t, json)
           | None => ()
           };
         };
