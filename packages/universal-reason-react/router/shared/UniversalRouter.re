@@ -299,6 +299,11 @@ type routerApi = {
     (~id: string, ~params: Params.t=?, ~searchParams: SearchParams.t=?, unit) => unit,
 };
 
+module RouteBoundary = {
+  [@react.component]
+  let make = (~children) => children;
+};
+
 type contextValueWithState('state) = {
   router: t('state),
   basePath: string,
@@ -807,6 +812,8 @@ let renderMatched = (~matchResult: matchResult('state), ~router: t('state)) => {
   let _ = router;
   let params = matchResult.params;
   let searchParams = matchResult.searchParams;
+  let leafKey =
+    matchResult.pathname ++ "?" ++ SearchParams.toString(matchResult.searchParams);
 
   let rec loop = routes =>
     switch (routes) {
@@ -819,6 +826,7 @@ let renderMatched = (~matchResult: matchResult('state), ~router: t('state)) => {
             module Page = (val page: PAGE);
             Page.make(~params, ~searchParams, ())
           };
+        let leaf = <RouteBoundary key=leafKey> leaf </RouteBoundary>;
 
         switch (currentRoute.layout) {
         | None => leaf
