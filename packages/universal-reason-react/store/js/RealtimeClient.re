@@ -258,14 +258,6 @@ module Socket = {
       ~baseUrl,
     );
 
-  let channelConnectionStateKey =
-      (~eventUrl: string, ~baseUrl: string, ~channelId: string) =>
-    connectionStateKey(~eventUrl, ~baseUrl)
-    ++ ":"
-    ++ string_of_int(String.length(channelId))
-    ++ ":"
-    ++ channelId;
-
   let clearPingInterval = state =>
     switch (state.pingIntervalId) {
     | Some(intervalId) =>
@@ -559,12 +551,7 @@ module Socket = {
     let disposedRef = ref(false);
 
     let channelId = channelIdOfSubscription(subscription);
-    let state =
-      getOrCreateStateByKey(
-        ~key=channelConnectionStateKey(~eventUrl, ~baseUrl, ~channelId),
-        ~eventUrl,
-        ~baseUrl,
-      );
+    let state = getOrCreateState(~eventUrl, ~baseUrl);
 
     let callbacks = {
       id: callbackId,
