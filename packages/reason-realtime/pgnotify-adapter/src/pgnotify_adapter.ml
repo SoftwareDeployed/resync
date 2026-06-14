@@ -18,6 +18,8 @@ type t = {
   polling : bool ref;
 }
 
+let empty_read_backoff_seconds = 0.01
+
 let create ~db_uri () =
   {
     db_uri;
@@ -63,24 +65,80 @@ let lwt_socket_of_connection conn =
   |> file_descr_of_socket
   |> Lwt_unix.of_unix_file_descr ~blocking:false ~set_flags:false
 
-let connect t =
+let quote_identifier identifier =
+  let buffer = Buffer.create (String.length identifier + 2) in
+  Buffer.add_char buffer '"';
+  String.iter
+    (fun char ->
+      if char = '"' then
+        Buffer.add_string buffer "\"\""
+      else
+        Buffer.add_char buffer char)
+    identifier;
+  Buffer.add_char buffer '"';
+  Buffer.contents buffer
+
+let close_connection_locked t =
+  match !(t.conn) with
+  | None ->
+      t.socket := None
+  | Some conn ->
+      t.conn := None;
+      t.socket := None;
+      (try conn#finish with _ -> ())
+
+let exec_command_on_conn (conn : Postgresql.connection) query =
+  let result = conn#exec query in
+  if result#status = Postgresql.Command_ok then
+    ()
+  else
+    failwith result#error
+
+let replay_listens (conn : Postgresql.connection) handlers =
+  Hashtbl.iter
+    (fun channel channel_handlers ->
+      match channel_handlers with
+      | [] -> ()
+      | _ ->
+          exec_command_on_conn conn
+            (Printf.sprintf "LISTEN %s" (quote_identifier channel)))
+    handlers
+
+let rec connect t =
   Lwt_mutex.with_lock t.mutex (fun () ->
       match !(t.conn) with
-      | Some _ -> Lwt.return_unit
+      | Some conn when conn#status = Postgresql.Ok -> Lwt.return_unit
+      | Some _ ->
+          close_connection_locked t;
+          connect_fresh_locked t
       | None ->
-          let host, port, user, password, dbname = parse_uri t.db_uri in
-          try
-            let conn =
-              new Postgresql.connection ~host ~port ~dbname ~user ~password ()
-            in
-            if conn#status = Postgresql.Ok then (
-              t.conn := Some conn;
-              t.socket := Some (lwt_socket_of_connection conn);
-              Lwt.return_unit)
-            else
-              Lwt.fail_with conn#error_message
-          with Postgresql.Error error ->
-            Lwt.fail_with (Postgresql.string_of_error error))
+          connect_fresh_locked t)
+
+and connect_fresh_locked t =
+  let host, port, user, password, dbname = parse_uri t.db_uri in
+  try
+    let conn =
+      new Postgresql.connection ~host ~port ~dbname ~user ~password ()
+    in
+    if conn#status = Postgresql.Ok then (
+      try
+        let socket = lwt_socket_of_connection conn in
+        replay_listens conn t.handlers;
+        t.conn := Some conn;
+        t.socket := Some socket;
+        Lwt.return_unit
+      with exn ->
+        (try conn#finish with _ -> ());
+        Lwt.fail exn)
+    else
+      Lwt.fail_with conn#error_message
+  with Postgresql.Error error ->
+    Lwt.fail_with (Postgresql.string_of_error error)
+
+let close_connection t =
+  Lwt_mutex.with_lock t.mutex (fun () ->
+      close_connection_locked t;
+      Lwt.return_unit)
 
 let with_connection t f =
   let* () = connect t in
@@ -92,13 +150,28 @@ let with_connection t f =
 let wait_for_input t =
   match !(t.socket) with
   | Some socket ->
-      Lwt.pick
-        [
-          Lwt_unix.wait_read socket;
-          (let* () = Lwt_unix.sleep 1.0 in
-           Lwt.return_unit);
-        ]
-  | None -> Lwt_unix.sleep 1.0
+      Lwt.catch
+        (fun () ->
+          Lwt.pick
+            [
+              Lwt_unix.wait_read socket;
+              (let* () = Lwt_unix.sleep 1.0 in
+               Lwt.return_unit);
+            ])
+        (fun exn ->
+          Printf.eprintf "[pgnotify] listener reconnect after socket failure: %s\n%!"
+            (Printexc.to_string exn);
+          let* () = close_connection t in
+          Lwt_unix.sleep empty_read_backoff_seconds)
+  | None ->
+      Lwt.catch
+        (fun () ->
+          let* () = connect t in
+          Lwt_unix.sleep empty_read_backoff_seconds)
+        (fun exn ->
+          Printf.eprintf "[pgnotify] listener reconnect failed: %s\n%!"
+            (Printexc.to_string exn);
+          Lwt_unix.sleep 1.0)
 
 let run_command t query =
   with_connection t (fun conn ->
@@ -120,19 +193,6 @@ let validate_channel channel =
     Lwt.fail_with "Invalid PostgreSQL channel name: contains NUL byte"
   else
     Lwt.return_unit
-
-let quote_identifier identifier =
-  let buffer = Buffer.create (String.length identifier + 2) in
-  Buffer.add_char buffer '"';
-  String.iter
-    (fun char ->
-      if char = '"' then
-        Buffer.add_string buffer "\"\""
-      else
-        Buffer.add_char buffer char)
-    identifier;
-  Buffer.add_char buffer '"';
-  Buffer.contents buffer
 
 let parse_payload payload =
   let json = Yojson.Safe.from_string payload in
@@ -191,24 +251,33 @@ let rec poll t =
       Lwt.catch
         (fun () ->
           with_connection t (fun conn ->
-              try
-                conn#consume_input;
+              conn#consume_input;
+              if conn#status <> Postgresql.Ok then
+                Lwt.fail_with "PostgreSQL notification connection is not OK"
+              else
                 let rec drain acc =
                   match conn#notifies with
                   | None -> List.rev acc
                   | Some notification ->
                       drain ((notification.name, notification.extra) :: acc)
                 in
-                Lwt.return (drain [])
-              with
-              | Postgresql.Error _ -> Lwt.return []
-              | Failure _ -> Lwt.return []))
-        (fun _ -> Lwt.return [])
+                Lwt.return (drain [])))
+        (fun exn ->
+          Printf.eprintf "[pgnotify] listener reconnect after input failure: %s\n%!"
+            (Printexc.to_string exn);
+          let* () = close_connection t in
+          let* () = Lwt_unix.sleep empty_read_backoff_seconds in
+          Lwt.return [])
     in
     let* () =
       Lwt_list.iter_p
         (fun (channel, payload) -> dispatch t channel payload)
         notifications
+    in
+    let* () =
+      match notifications with
+      | [] -> Lwt_unix.sleep empty_read_backoff_seconds
+      | _ -> Lwt.return_unit
     in
     poll t)
 
@@ -223,14 +292,7 @@ let start t =
 
 let stop t =
   t.polling := false;
-  Lwt_mutex.with_lock t.mutex (fun () ->
-      match !(t.conn) with
-      | None -> Lwt.return_unit
-      | Some conn ->
-          t.conn := None;
-          t.socket := None;
-          conn#finish;
-          Lwt.return_unit)
+  close_connection t
 
 let subscribe t ~channel ~handler =
   let* () = validate_channel channel in

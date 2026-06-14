@@ -149,4 +149,52 @@ let suite =
           | Some message when String.contains message 'c' -> ()
           | Some message -> Alcotest.fail ("Unexpected notification payload: " ^ message)
           | None -> Alcotest.fail "Expected notification after subscribe churn");
+      Alcotest.test_case "listener reconnects and replays active subscriptions" `Quick
+        (fun () ->
+          let adapter = Pgnotify_adapter.create ~db_uri:(db_uri ()) () in
+          let channel = "resync_test_reconnect" in
+          let received = ref None in
+          let handler ?wrap:_ message =
+            received := Some message;
+            Lwt.return_unit
+          in
+          let force_listener_disconnect () =
+            Lwt_mutex.with_lock adapter.Pgnotify_adapter.mutex (fun () ->
+                match !(adapter.Pgnotify_adapter.conn) with
+                | None -> Lwt.return_unit
+                | Some conn ->
+                    safe_finish conn;
+                    Lwt.return_unit)
+          in
+          let result =
+            Lwt_main.run
+              (let* () = Pgnotify_adapter.start adapter in
+               let* () = Pgnotify_adapter.subscribe adapter ~channel ~handler in
+               let* () = force_listener_disconnect () in
+               let* () = Lwt_unix.sleep 0.2 in
+               let sender = make_sender_connection () in
+               let _notify_result =
+                 try
+                   let result =
+                     sender#exec
+                       (Printf.sprintf
+                          "NOTIFY \"%s\", '%s'"
+                          channel
+                          "{\"type\":\"patch\",\"payload\":{\"reconnected\":true}}")
+                   in
+                   safe_finish sender;
+                   result
+                 with exn ->
+                   safe_finish sender;
+                   raise exn
+               in
+               let* result = wait_for_message received in
+               let* () = Pgnotify_adapter.unsubscribe adapter ~channel in
+               let* () = Pgnotify_adapter.stop adapter in
+               Lwt.return result)
+          in
+          match result with
+          | Some message when String.contains message 'r' -> ()
+          | Some message -> Alcotest.fail ("Unexpected notification payload: " ^ message)
+          | None -> Alcotest.fail "Expected notification after listener reconnect");
     ] )
