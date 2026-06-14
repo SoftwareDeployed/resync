@@ -218,12 +218,13 @@ let with_in_memory_action_guard t ~mutation_name ~action_id callback =
       Lwt.async (fun () ->
         Lwt.catch
           (fun () ->
-             let* result = callback () in
-             (match result with
+            let* result = callback () in
+            (match result with
               | Ack (Ok ()) -> Hashtbl.replace t.in_memory_actions key `Ok
+              | Ack_after_commit _ -> Hashtbl.replace t.in_memory_actions key `Ok
               | Ack (Error msg) -> Hashtbl.replace t.in_memory_actions key (`Failed msg)
               | NoAck -> Hashtbl.remove t.in_memory_actions key);
-             Lwt.wakeup_later wake result;
+            Lwt.wakeup_later wake result;
              Lwt.return_unit)
           (fun exn ->
              let msg = Printexc.to_string exn in
@@ -299,6 +300,17 @@ let run_mutation_with_guard t request ~action_id ~mutation_name action =
 let send_mutation_result ~send ~channel ~action_id current_channels = function
   | Ack (Ok ()) ->
       let* () = send (ack_message ~channel ~action_id ~status:"ok" ()) in
+      Lwt.return current_channels
+  | Ack_after_commit after_commit ->
+      let* () = send (ack_message ~channel ~action_id ~status:"ok" ()) in
+      let* () =
+        Lwt.catch
+          after_commit
+          (fun exn ->
+            Printf.eprintf "[mutation] after_commit failed for %s: %s\n%!"
+              action_id (Printexc.to_string exn);
+            Lwt.return_unit)
+      in
       Lwt.return current_channels
   | Ack (Error error) ->
       let* () = send (ack_message ~channel ~action_id ~status:"error" ~error ()) in

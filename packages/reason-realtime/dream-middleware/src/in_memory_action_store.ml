@@ -16,6 +16,9 @@ let with_guard _db ~mutation_name ~action_id callback =
         | Ack (Ok ()) ->
           Hashtbl.replace tbl key `Ok;
           Lwt.return (Ack (Ok ()))
+        | Ack_after_commit _ as result ->
+          Hashtbl.replace tbl key `Ok;
+          Lwt.return result
         | Ack (Error msg) ->
           Hashtbl.replace tbl key (`Failed msg);
           Lwt.return (Ack (Error msg))

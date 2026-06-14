@@ -163,6 +163,34 @@ let suite =
     let payload = Middleware.ack_message ~channel:"" ~action_id:"a-1" ~status:"ok" () in
     if !sent = [ payload ] then ()
     else Alcotest.fail "Expected ok ack payload");
+  Alcotest.test_case "mutation after_commit runs after ack" `Quick (fun () ->
+    let adapter = Fake_adapter.create () in
+    let events = ref [] in
+    let handle_mutation _broadcast _request ~db:_ ~action_id:_ ~mutation_name:_ _action =
+      Lwt.return
+        (Mutation_result.Ack_after_commit
+           (fun () ->
+             events := "after_commit" :: !events;
+             Lwt.return_unit))
+    in
+    let runtime = make_runtime ~handle_mutation ~use_db:Test_db.use_unused adapter in
+    let _ =
+      Lwt_main.run
+        (Middleware.handle_message_with_io runtime request []
+           "{\"type\":\"mutation\",\"actionId\":\"after-1\",\"action\":{\"kind\":\"noop\"}}"
+           ~send:(fun _message ->
+             events := "ack" :: !events;
+             Lwt.return_unit)
+           ~close:(fun () -> Lwt.return_unit)
+           ~subscribe:(fun channel -> Lwt.return_some channel)
+           ~unsubscribe:(fun _channel -> Lwt.return_unit))
+    in
+    match !events with
+    | [ "after_commit"; "ack" ] -> ()
+    | events ->
+        Alcotest.fail
+          ("Expected ack before after_commit, got "
+          ^ String.concat ", " (List.rev events)));
   Alcotest.test_case "mutation duplicate skips handler" `Quick (fun () ->
     let adapter = Fake_adapter.create () in
     let call_count = ref 0 in

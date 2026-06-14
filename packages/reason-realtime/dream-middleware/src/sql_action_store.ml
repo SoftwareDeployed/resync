@@ -337,7 +337,7 @@ let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id call
                    "Action %s.%s was claimed by another transaction but no committed result was found"
                    mutation_name action_id))
          | Ok `Claimed ->
-           let finish_success () =
+           let finish_success result =
              let* release_result = exec_unit db_module "RELEASE SAVEPOINT resync_action_handler" in
              match release_result with
              | Error err -> ack_caqti_error err
@@ -345,7 +345,7 @@ let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id call
                let* commit_result = Db.commit () in
                (match commit_result with
                 | Error err -> ack_caqti_error err
-                | Ok () -> Lwt.return (Ack (Ok ())))
+                | Ok () -> Lwt.return result)
            in
            let finish_failure msg =
              let truncated = truncate_msg msg in
@@ -379,7 +379,8 @@ let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id call
                 (fun () ->
                   let* result = callback () in
                   match result with
-                  | Ack (Ok ()) -> finish_success ()
+                  | Ack (Ok ()) -> finish_success (Ack (Ok ()))
+                  | Ack_after_commit _ as result -> finish_success result
                   | Ack (Error msg) -> finish_failure msg
                   | NoAck -> finish_noack ())
                 (fun exn -> finish_failure (Printexc.to_string exn))))
