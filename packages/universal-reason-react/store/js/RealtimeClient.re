@@ -227,8 +227,7 @@ module Socket = {
   /* Global websocket state per URL combination */
   let globalStatesRef: ref(Js.Dict.t(multiplexed_state)) = ref(Js.Dict.empty());
 
-  let getOrCreateState = (~eventUrl: string, ~baseUrl: string) => {
-    let key = connectionStateKey(~eventUrl, ~baseUrl);
+  let getOrCreateStateByKey = (~key: string, ~eventUrl: string, ~baseUrl: string) => {
     switch (globalStatesRef.contents->Js.Dict.get(key)) {
     | Some(state) => state
     | None =>
@@ -251,6 +250,21 @@ module Socket = {
       state
     };
   };
+
+  let getOrCreateState = (~eventUrl: string, ~baseUrl: string) =>
+    getOrCreateStateByKey(
+      ~key=connectionStateKey(~eventUrl, ~baseUrl),
+      ~eventUrl,
+      ~baseUrl,
+    );
+
+  let channelConnectionStateKey =
+      (~eventUrl: string, ~baseUrl: string, ~channelId: string) =>
+    connectionStateKey(~eventUrl, ~baseUrl)
+    ++ ":"
+    ++ string_of_int(String.length(channelId))
+    ++ ":"
+    ++ channelId;
 
   let clearPingInterval = state =>
     switch (state.pingIntervalId) {
@@ -541,11 +555,16 @@ module Socket = {
        ~eventUrl: string,
        ~baseUrl: string,
        ()) => {
-    let state = getOrCreateState(~eventUrl, ~baseUrl);
     let callbackId = UUID.make();
     let disposedRef = ref(false);
 
     let channelId = channelIdOfSubscription(subscription);
+    let state =
+      getOrCreateStateByKey(
+        ~key=channelConnectionStateKey(~eventUrl, ~baseUrl, ~channelId),
+        ~eventUrl,
+        ~baseUrl,
+      );
 
     let callbacks = {
       id: callbackId,
