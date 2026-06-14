@@ -269,6 +269,12 @@ module Socket = {
     | None => ()
     };
 
+  let isCurrentWebSocket = (state, ws) =>
+    switch (state.websocket) {
+    | Some(current) => current == ws
+    | None => false
+    };
+
   let disposeState = state => {
     state.isClosing = true;
     clearPingInterval(state);
@@ -434,71 +440,77 @@ module Socket = {
         };
 
         let sendPing = () => {
-          if (ws->WebSocket.readyState == 1) {
+          if (isCurrentWebSocket(state, ws) && ws->WebSocket.readyState == 1) {
             let _ = sendFrame(state, pingFrameString());
             updateLastPing(state);
           };
           let connState = state.connectionState;
-          if (connState.last_ping -. connState.last_pong > pingTimeoutMs) {
+          if (isCurrentWebSocket(state, ws) && connState.last_ping -. connState.last_pong > pingTimeoutMs) {
             Js.Console.warn("RealtimeClient: Ping timeout, closing connection");
             ws->WebSocket.close;
           };
         };
 
         WebSocket.onOpen(ws, () => {
-          state.isConnecting = false;
-          clearPingInterval(state);
-          state.pingIntervalId = Some(setInterval(sendPing, Float.to_int(pingIntervalMs)));
-          /* Send select for all active subscriptions */
-          let subs = Js.Dict.entries(state.subscriptions);
-          for (i in 0 to Array.length(subs) - 1) {
-            let (_, callbacks) = subs[i];
-            let callbacks = activeCallbacks(callbacks);
-            if (Array.length(callbacks) > 0) {
-              callbacks
-              ->Js.Array.map(~f=callback => (callback.subscription, callback.updatedAt))
-              ->uniqueSelectRequests
-              ->Js.Array.forEach(~f=((subscription, updatedAt)) => {
-                  let _ = sendFrame(state, selectFrameString(subscription, updatedAt));
-                  ();
-                });
-              callbacks->Js.Array.forEach(~f=callbacks => callbacks.onOpen());
+          if (isCurrentWebSocket(state, ws)) {
+            state.isConnecting = false;
+            clearPingInterval(state);
+            state.pingIntervalId = Some(setInterval(sendPing, Float.to_int(pingIntervalMs)));
+            /* Send select for all active subscriptions */
+            let subs = Js.Dict.entries(state.subscriptions);
+            for (i in 0 to Array.length(subs) - 1) {
+              let (_, callbacks) = subs[i];
+              let callbacks = activeCallbacks(callbacks);
+              if (Array.length(callbacks) > 0) {
+                callbacks
+                ->Js.Array.map(~f=callback => (callback.subscription, callback.updatedAt))
+                ->uniqueSelectRequests
+                ->Js.Array.forEach(~f=((subscription, updatedAt)) => {
+                    let _ = sendFrame(state, selectFrameString(subscription, updatedAt));
+                    ();
+                  });
+                callbacks->Js.Array.forEach(~f=callbacks => callbacks.onOpen());
+              };
             };
           };
         });
 
         WebSocket.onClose(ws, () => {
-          state.websocket = None;
-          state.isConnecting = false;
-          clearPingInterval(state);
-          if (!state.isClosing) {
-            /* Notify all subscriptions of close */
-            let subs = Js.Dict.entries(state.subscriptions);
-            for (i in 0 to Array.length(subs) - 1) {
-              let (_, callbacks) = subs[i];
-              activeCallbacks(callbacks)
-              ->Js.Array.forEach(~f=callbacks => callbacks.onClose());
+          if (isCurrentWebSocket(state, ws)) {
+            state.websocket = None;
+            state.isConnecting = false;
+            clearPingInterval(state);
+            if (!state.isClosing) {
+              /* Notify all subscriptions of close */
+              let subs = Js.Dict.entries(state.subscriptions);
+              for (i in 0 to Array.length(subs) - 1) {
+                let (_, callbacks) = subs[i];
+                activeCallbacks(callbacks)
+                ->Js.Array.forEach(~f=callbacks => callbacks.onClose());
+              };
+              /* Reconnect after delay */
+              clearReconnectTimeout(state);
+              state.reconnectTimeoutId = Some(
+                setTimeout(
+                  () => {
+                    state.reconnectTimeoutId = None;
+                    connect(state);
+                  },
+                  250,
+                ),
+              );
             };
-            /* Reconnect after delay */
-            clearReconnectTimeout(state);
-            state.reconnectTimeoutId = Some(
-              setTimeout(
-                () => {
-                  state.reconnectTimeoutId = None;
-                  connect(state);
-                },
-                250,
-              ),
-            );
           };
         });
 
         WebSocket.onMessage(ws, event => {
-          let data: string = event##data;
-          updateLastPong(state);
-          switch (StoreJson.tryParse(data)) {
-          | Some(json) => routeMessage(state, json)
-          | None => ()
+          if (isCurrentWebSocket(state, ws)) {
+            let data: string = event##data;
+            updateLastPong(state);
+            switch (StoreJson.tryParse(data)) {
+            | Some(json) => routeMessage(state, json)
+            | None => ()
+            };
           };
         });
       };
