@@ -557,7 +557,7 @@ let suite =
       failwith "Failed to construct websocket for detach test"
     in
     Hashtbl.replace runtime.Middleware.channels "room-1"
-    [{ websocket; current_subscriptions = ["room-1"]; pending_sends = []; send_in_progress = false; closed = false }];
+    [{ connection_id = 1; websocket; current_subscriptions = ["room-1"]; pending_sends = []; send_in_progress = false; closed = false }];
     let _ = Lwt_main.run (Middleware.detach_websocket runtime websocket) in
     if List.mem "room-1" !(adapter.unsubscribed) then ()
     else Alcotest.fail "Expected detach to unsubscribe channel");
@@ -570,6 +570,7 @@ let suite =
       Hashtbl.replace runtime.Middleware.channels "room-closing"
         [
           {
+            connection_id = 1;
             websocket = closing_websocket;
             current_subscriptions = [ "room-closing" ];
             pending_sends = [];
@@ -758,9 +759,9 @@ let suite =
       failwith "Failed to construct websocket for detach test"
     in
     Hashtbl.replace runtime.Middleware.channels "room-a"
-    [{ websocket; current_subscriptions = ["room-a"]; pending_sends = []; send_in_progress = false; closed = false }];
+    [{ connection_id = 1; websocket; current_subscriptions = ["room-a"]; pending_sends = []; send_in_progress = false; closed = false }];
     Hashtbl.replace runtime.Middleware.channels "room-b"
-    [{ websocket; current_subscriptions = ["room-b"]; pending_sends = []; send_in_progress = false; closed = false }];
+    [{ connection_id = 1; websocket; current_subscriptions = ["room-b"]; pending_sends = []; send_in_progress = false; closed = false }];
     let _ = Lwt_main.run (Middleware.detach_websocket runtime websocket) in
     if List.mem "room-a" !(adapter.unsubscribed) && List.mem "room-b" !(adapter.unsubscribed)
     then ()
@@ -781,6 +782,7 @@ let suite =
       in
       let subscriber : Middleware.subscriber =
         {
+          connection_id = 1;
           websocket;
           current_subscriptions = [ "room-a" ];
           pending_sends = [];
@@ -872,6 +874,7 @@ let suite =
       in
       let subscriber : Middleware.subscriber =
         {
+          connection_id = 1;
           websocket;
           current_subscriptions = [];
           pending_sends = [];

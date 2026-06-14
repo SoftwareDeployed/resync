@@ -3,6 +3,12 @@ open Lwt.Syntax
 module T = Caqti_type
 open Mutation_result
 
+let log fmt =
+  Printf.ksprintf
+    (fun message ->
+      Printf.eprintf "[resync-sql %.6f] %s\n%!" (Unix.gettimeofday ()) message)
+    fmt
+
 let table_name mutation_name = "_resync_actions_" ^ mutation_name
 
 let truncate_msg msg =
@@ -65,6 +71,13 @@ type check_result =
   | `Already_failed of string
   | `New
   ]
+
+let storage_label = function
+  | Per_mutation_table { table; _ } -> "per_mutation:" ^ table
+  | Generic_table _ -> "generic:_resync_actions"
+
+let mutation_label ~mutation_name ~action_id =
+  Printf.sprintf "mutation=%s action=%s" mutation_name action_id
 
 let table_exists (module Db : Caqti_lwt.CONNECTION) table =
   let query =
@@ -180,6 +193,8 @@ let resolve_storage db ~mutation_name =
                  (match per_mutation_table with Some table -> table | None -> "<invalid mutation table name>"))))
 
 let check (module Db : Caqti_lwt.CONNECTION) storage ~mutation_name ~action_id =
+  log "check.begin %s storage=%s"
+    (mutation_label ~mutation_name ~action_id) (storage_label storage);
   let* result =
     match storage with
     | Per_mutation_table { table; _ } ->
@@ -199,13 +214,28 @@ let check (module Db : Caqti_lwt.CONNECTION) storage ~mutation_name ~action_id =
   in
   match result with
   | Error err ->
-    Printf.eprintf "[sql_action_store] check failed for %s.%s: %s\n%!" mutation_name action_id (Caqti_error.show err);
+    log "check.error %s error=%s"
+      (mutation_label ~mutation_name ~action_id) (Caqti_error.show err);
     Lwt.return (Error err)
-  | Ok None -> Lwt.return (Ok `New)
-  | Ok (Some ("ok", _)) -> Lwt.return (Ok `Already_ok)
-  | Ok (Some ("failed", Some msg)) -> Lwt.return (Ok (`Already_failed msg))
-  | Ok (Some ("failed", None)) -> Lwt.return (Ok (`Already_failed ""))
-  | Ok (Some (_, _)) -> Lwt.return (Ok `New)
+  | Ok None ->
+    log "check.end %s result=new" (mutation_label ~mutation_name ~action_id);
+    Lwt.return (Ok `New)
+  | Ok (Some ("ok", _)) ->
+    log "check.end %s result=already_ok"
+      (mutation_label ~mutation_name ~action_id);
+    Lwt.return (Ok `Already_ok)
+  | Ok (Some ("failed", Some msg)) ->
+    log "check.end %s result=already_failed"
+      (mutation_label ~mutation_name ~action_id);
+    Lwt.return (Ok (`Already_failed msg))
+  | Ok (Some ("failed", None)) ->
+    log "check.end %s result=already_failed_empty"
+      (mutation_label ~mutation_name ~action_id);
+    Lwt.return (Ok (`Already_failed ""))
+  | Ok (Some (_, _)) ->
+    log "check.end %s result=unknown_status_new"
+      (mutation_label ~mutation_name ~action_id);
+    Lwt.return (Ok `New)
 
 let claim_action (module Db : Caqti_lwt.CONNECTION) storage ~mutation_name ~action_id =
   match storage with
@@ -276,57 +306,105 @@ let record_failure_status (module Db : Caqti_lwt.CONNECTION) storage ~mutation_n
 
 let record_failed (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id ~msg =
   let truncated = truncate_msg msg in
-  Printf.eprintf "[sql_action_store] record_failed for %s.%s: %s\n%!" mutation_name action_id msg;
+  log "record_failed.begin %s msg=%s"
+    (mutation_label ~mutation_name ~action_id) msg;
   let db_module = (module Db : Caqti_lwt.CONNECTION) in
   (* Clear any leaked aborted transaction before touching the action ledger. *)
+  log "record_failed.rollback_before.begin %s"
+    (mutation_label ~mutation_name ~action_id);
   let* () = best_effort_rollback db_module in
+  log "record_failed.rollback_before.end %s"
+    (mutation_label ~mutation_name ~action_id);
+  log "record_failed.resolve_storage.begin %s"
+    (mutation_label ~mutation_name ~action_id);
   let* storage = resolve_storage db_module ~mutation_name in
   match storage with
   | Ok storage ->
+    log "record_failed.resolve_storage.end %s storage=%s"
+      (mutation_label ~mutation_name ~action_id) (storage_label storage);
+    log "record_failed.write.begin %s"
+      (mutation_label ~mutation_name ~action_id);
     let* result =
       record_failure_status db_module storage ~mutation_name ~action_id ~error_message:(Some truncated)
     in
     (match result with
-     | Ok () -> Lwt.return (Ok ())
-     | Error err -> return_error_after_rollback db_module err)
-  | Error (`Caqti err) -> return_error_after_rollback db_module err
-  | Error (`Msg msg) -> Lwt.return (Error (local_error msg))
+     | Ok () ->
+       log "record_failed.write.end %s"
+         (mutation_label ~mutation_name ~action_id);
+       Lwt.return (Ok ())
+     | Error err ->
+       log "record_failed.write.error %s error=%s"
+         (mutation_label ~mutation_name ~action_id) (Caqti_error.show err);
+       return_error_after_rollback db_module err)
+  | Error (`Caqti err) ->
+    log "record_failed.resolve_storage.error %s error=%s"
+      (mutation_label ~mutation_name ~action_id) (Caqti_error.show err);
+    return_error_after_rollback db_module err
+  | Error (`Msg msg) ->
+    log "record_failed.resolve_storage.error %s error=%s"
+      (mutation_label ~mutation_name ~action_id) msg;
+    Lwt.return (Error (local_error msg))
 
 let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id callback =
   let db_module = (module Db : Caqti_lwt.CONNECTION) in
   let ack_error message = Lwt.return (Ack (Error message)) in
   let ack_caqti_error err =
+    log "guard.caqti_error %s error=%s"
+      (mutation_label ~mutation_name ~action_id) (Caqti_error.show err);
     let* () = best_effort_rollback db_module in
     ack_error (Caqti_error.show err)
   in
+  log "guard.begin %s" (mutation_label ~mutation_name ~action_id);
   (* Clear any leaked aborted transaction before touching the action ledger. *)
+  log "guard.rollback_before.begin %s" (mutation_label ~mutation_name ~action_id);
   let* () = best_effort_rollback db_module in
+  log "guard.rollback_before.end %s" (mutation_label ~mutation_name ~action_id);
+  log "guard.resolve_storage.begin %s" (mutation_label ~mutation_name ~action_id);
   let* storage = resolve_storage db_module ~mutation_name in
   match storage with
   | Error (`Caqti err) -> ack_caqti_error err
-  | Error (`Msg msg) -> ack_error msg
+  | Error (`Msg msg) ->
+    log "guard.resolve_storage.error %s error=%s"
+      (mutation_label ~mutation_name ~action_id) msg;
+    ack_error msg
   | Ok storage ->
+    log "guard.resolve_storage.end %s storage=%s"
+      (mutation_label ~mutation_name ~action_id) (storage_label storage);
     let* check_result = check db_module storage ~mutation_name ~action_id in
     match check_result with
     | Error err -> ack_caqti_error err
-    | Ok `Already_ok -> Lwt.return (Ack (Ok ()))
-    | Ok (`Already_failed msg) -> Lwt.return (Ack (Error msg))
+    | Ok `Already_ok ->
+      log "guard.end %s result=already_ok"
+        (mutation_label ~mutation_name ~action_id);
+      Lwt.return (Ack (Ok ()))
+    | Ok (`Already_failed msg) ->
+      log "guard.end %s result=already_failed"
+        (mutation_label ~mutation_name ~action_id);
+      Lwt.return (Ack (Error msg))
     | Ok `New ->
+      log "guard.tx_start.begin %s" (mutation_label ~mutation_name ~action_id);
       let* start_result = Db.start () in
       match start_result with
       | Error err -> ack_caqti_error err
       | Ok () ->
+        log "guard.tx_start.end %s" (mutation_label ~mutation_name ~action_id);
         (*
           The action row is inserted before the callback so concurrent replays
           of the same action id block on the primary key. The savepoint keeps
           that claim intact even when user SQL aborts the mutation work.
         *)
+        log "guard.claim.begin %s" (mutation_label ~mutation_name ~action_id);
         let* claim_result = claim_action db_module storage ~mutation_name ~action_id in
         (match claim_result with
          | Error err -> ack_caqti_error err
          | Ok `Duplicate ->
+           log "guard.claim.duplicate %s" (mutation_label ~mutation_name ~action_id);
            let* replay_result = check db_module storage ~mutation_name ~action_id in
+           log "guard.duplicate.rollback.begin %s"
+             (mutation_label ~mutation_name ~action_id);
            let* () = best_effort_rollback db_module in
+           log "guard.duplicate.rollback.end %s"
+             (mutation_label ~mutation_name ~action_id);
            (match replay_result with
             | Error err -> ack_error (Caqti_error.show err)
             | Ok `Already_ok -> Lwt.return (Ack (Ok ()))
@@ -337,22 +415,49 @@ let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id call
                    "Action %s.%s was claimed by another transaction but no committed result was found"
                    mutation_name action_id))
          | Ok `Claimed ->
+           log "guard.claim.end %s result=claimed"
+             (mutation_label ~mutation_name ~action_id);
            let finish_success result =
+             log "guard.release_savepoint.begin %s result=%s"
+               (mutation_label ~mutation_name ~action_id)
+               (match result with
+                | Ack (Ok ()) -> "ack_ok"
+                | Ack (Error _) -> "ack_error"
+                | Ack_after_commit _ -> "ack_after_commit"
+                | NoAck -> "no_ack");
              let* release_result = exec_unit db_module "RELEASE SAVEPOINT resync_action_handler" in
              match release_result with
              | Error err -> ack_caqti_error err
              | Ok () ->
+               log "guard.release_savepoint.end %s"
+                 (mutation_label ~mutation_name ~action_id);
+               log "guard.commit.begin %s"
+                 (mutation_label ~mutation_name ~action_id);
                let* commit_result = Db.commit () in
                (match commit_result with
                 | Error err -> ack_caqti_error err
-                | Ok () -> Lwt.return result)
+                | Ok () ->
+                  log "guard.commit.end %s result=%s"
+                    (mutation_label ~mutation_name ~action_id)
+                    (match result with
+                     | Ack (Ok ()) -> "ack_ok"
+                     | Ack (Error _) -> "ack_error"
+                     | Ack_after_commit _ -> "ack_after_commit"
+                     | NoAck -> "no_ack");
+                  Lwt.return result)
            in
            let finish_failure msg =
              let truncated = truncate_msg msg in
+             log "guard.failure.rollback_savepoint.begin %s error=%s"
+               (mutation_label ~mutation_name ~action_id) msg;
              let* rollback_result = exec_unit db_module "ROLLBACK TO SAVEPOINT resync_action_handler" in
              match rollback_result with
              | Error err -> ack_caqti_error err
              | Ok () ->
+               log "guard.failure.rollback_savepoint.end %s"
+                 (mutation_label ~mutation_name ~action_id);
+               log "guard.failure.update_status.begin %s"
+                 (mutation_label ~mutation_name ~action_id);
                let* record_result =
                  update_status db_module storage ~mutation_name ~action_id
                    ~status:"failed" ~error_message:(Some truncated)
@@ -360,30 +465,57 @@ let with_guard (module Db : Caqti_lwt.CONNECTION) ~mutation_name ~action_id call
                (match record_result with
                 | Error err -> ack_caqti_error err
                 | Ok () ->
+                  log "guard.failure.update_status.end %s"
+                    (mutation_label ~mutation_name ~action_id);
+                  log "guard.failure.commit.begin %s"
+                    (mutation_label ~mutation_name ~action_id);
                   let* commit_result = Db.commit () in
                   (match commit_result with
                    | Error err -> ack_caqti_error err
-                   | Ok () -> Lwt.return (Ack (Error msg))))
+                   | Ok () ->
+                     log "guard.failure.commit.end %s"
+                       (mutation_label ~mutation_name ~action_id);
+                     Lwt.return (Ack (Error msg))))
            in
            let finish_noack () =
+             log "guard.noack.rollback.begin %s"
+               (mutation_label ~mutation_name ~action_id);
              let* rollback_result = Db.rollback () in
              match rollback_result with
              | Error err -> Lwt.return (Ack (Error (Caqti_error.show err)))
-             | Ok () -> Lwt.return NoAck
+             | Ok () ->
+               log "guard.noack.rollback.end %s"
+                 (mutation_label ~mutation_name ~action_id);
+               Lwt.return NoAck
            in
+           log "guard.savepoint.begin %s" (mutation_label ~mutation_name ~action_id);
            let* savepoint_result = exec_unit db_module "SAVEPOINT resync_action_handler" in
            (match savepoint_result with
             | Error err -> ack_caqti_error err
             | Ok () ->
+              log "guard.savepoint.end %s" (mutation_label ~mutation_name ~action_id);
               Lwt.catch
                 (fun () ->
+                  log "guard.callback.begin %s"
+                    (mutation_label ~mutation_name ~action_id);
                   let* result = callback () in
+                  log "guard.callback.end %s result=%s"
+                    (mutation_label ~mutation_name ~action_id)
+                    (match result with
+                     | Ack (Ok ()) -> "ack_ok"
+                     | Ack (Error _) -> "ack_error"
+                     | Ack_after_commit _ -> "ack_after_commit"
+                     | NoAck -> "no_ack");
                   match result with
                   | Ack (Ok ()) -> finish_success (Ack (Ok ()))
                   | Ack_after_commit _ as result -> finish_success result
                   | Ack (Error msg) -> finish_failure msg
                   | NoAck -> finish_noack ())
-                (fun exn -> finish_failure (Printexc.to_string exn))))
+                (fun exn ->
+                  log "guard.callback.exception %s error=%s"
+                    (mutation_label ~mutation_name ~action_id)
+                    (Printexc.to_string exn);
+                  finish_failure (Printexc.to_string exn))))
 
 include (struct
   let with_guard = with_guard
