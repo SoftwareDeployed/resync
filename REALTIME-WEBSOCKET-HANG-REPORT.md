@@ -142,3 +142,56 @@ counters.
 DX follow-up: add an integration test that leaves a closed websocket in a
 subscriber list, broadcasts to the channel, and asserts the subscriber is
 removed before the next broadcast.
+
+## Related Finding: Queued WebSocket Frames Waiting For Ping Or Close
+
+SurgStack later reproduced a separate intermittent hang where the server did
+not spin, but already-sent client frames were not delivered to middleware until
+another frame, ping, or close event woke the socket.
+
+The isolated reproduction did not mount the React app. A Playwright page opened
+one direct WebSocket to `/_events_v12`, sent three `select` frames, then sent a
+burst containing `unsubscribe`, multiple `select` frames, and a `create_report`
+mutation. Before the fix, realtime logs showed the first one or two frames in a
+burst being handled immediately, then a later frame appearing roughly 15
+seconds later when the probe timed out or closed the socket. The delayed frame
+had not reached the middleware, SQL pool, mutation dispatcher, or send queue.
+
+The root cause was in `httpun-ws`:
+
+- `Websocket_connection` keeps a `frame_queue` for parsed frames.
+- When the current payload became `Complete`, `_next_read_operation` only
+  advanced the queue for selected parser states.
+- A completed payload could therefore leave another already-parsed frame queued
+  internally while the runtime yielded and waited for a future socket read.
+- A ping, close, or new client frame eventually woke the parser, which made the
+  stale queued frame appear much later.
+
+Executor now vendors `httpun-ws` 0.2.0 at
+`vendor/httpun-ws-drain-frame-queue`. The patch changes
+`lib/websocket_connection.ml` so a completed payload advances the frame queue
+and recurses before yielding, while preserving parser-error handling.
+
+Regression coverage was added in the vendored package:
+
+- `completed payload advances queued frame` parses two frames from one socket
+  read, drains only the first payload, calls `next_read_operation`, and asserts
+  the second queued frame is handled without another socket read.
+
+Verification on June 14, 2026:
+
+- `opam exec -- dune exec --root vendor/httpun-ws-drain-frame-queue ./lib_test/test_httpun_ws.exe`
+- `opam exec -- dune build --root vendor/httpun-ws-drain-frame-queue httpun-ws.install httpun-ws-lwt.install httpun-ws-lwt-unix.install @runtest --display=short`
+- `opam exec -- dune build packages/reason-realtime/dream-middleware packages/universal-reason-react/store/js --display=short`
+- SurgStack containers pinned executor commit `caa30a085343a4bcd88e6cdf031e9b2e43c2c2f2` and `httpun-ws` to `/home/opam/executor-full-stack-pin/vendor/httpun-ws-drain-frame-queue`.
+- Raw direct-WebSocket probe `raw-1781473908948` received initial
+  `enterprise-demo`, `reports-demo`, and `commissions-demo` snapshots in 25 ms.
+  The second mutation ack arrived 58 ms after the unsubscribe/select/mutation
+  burst.
+- `docker compose run --rm browser-tests pnpm exec playwright test tests/browser/smoke.spec.ts -g "creates, runs, charts, and exports reports repeatedly"` passed in both Chromium and mobile Chrome. Each project ran the 10-iteration create/run/chart/export workflow.
+
+DX follow-up: SurgStack bootstrap currently performs multiple reinstall passes
+after an executor HEAD change: `httpun-ws`, then `gluten`, then `gluten-lwt`
+and downstream packages, then `dream-httpaf/dream`, then `resync`. This
+rebuilds `resync` several times and makes dependency debugging slow. Collapse
+the bootstrap into one dependency reinstall plan after all pins are applied.
