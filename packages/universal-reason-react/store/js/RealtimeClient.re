@@ -570,6 +570,7 @@ module Socket = {
       | Some(callbacks) => callbacks
       | None => [||]
       };
+    let hadActiveSubscription = Array.length(activeCallbacks(existing)) > 0;
     Js.Dict.set(
       state.subscriptions,
       channelId,
@@ -589,7 +590,10 @@ module Socket = {
     switch (state.websocket) {
     | Some(ws) =>
       if (ws->WebSocket.readyState == 1) {
-        let _ = sendFrame(state, selectFrameString(subscription, updatedAt));
+        if (!hadActiveSubscription) {
+          let _ = sendFrame(state, selectFrameString(subscription, updatedAt));
+          ();
+        };
         onOpen();
       }
     | None => ()
