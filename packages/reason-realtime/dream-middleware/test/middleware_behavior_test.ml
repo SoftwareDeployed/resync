@@ -7,10 +7,20 @@ module Fake_adapter = struct
     subscriptions : (string, handler) Hashtbl.t;
     unsubscribed : string list ref;
     fail_subscribe : bool ref;
+    block_unsubscribe : bool ref;
+    unsubscribe_started : bool ref;
+    release_unsubscribe : unit Lwt.u option ref;
   }
 
-  let create ?(fail_subscribe = false) () =
-    { subscriptions = Hashtbl.create 8; unsubscribed = ref []; fail_subscribe = ref fail_subscribe }
+  let create ?(fail_subscribe = false) ?(block_unsubscribe = false) () =
+    {
+      subscriptions = Hashtbl.create 8;
+      unsubscribed = ref [];
+      fail_subscribe = ref fail_subscribe;
+      block_unsubscribe = ref block_unsubscribe;
+      unsubscribe_started = ref false;
+      release_unsubscribe = ref None;
+    }
 
   let start _ = Lwt.return_unit
   let stop _ = Lwt.return_unit
@@ -26,7 +36,13 @@ module Fake_adapter = struct
   let unsubscribe t ~channel =
     t.unsubscribed := channel :: !(t.unsubscribed);
     Hashtbl.remove t.subscriptions channel;
-    Lwt.return_unit
+    if !(t.block_unsubscribe) then begin
+      t.unsubscribe_started := true;
+      let promise, release = Lwt.wait () in
+      t.release_unsubscribe := Some release;
+      promise
+    end
+    else Lwt.return_unit
 end
 
 let request = Dream.request ""
@@ -42,6 +58,27 @@ let make_runtime
   let packed = Adapter.pack (module Fake_adapter) adapter_state in
   Middleware.create ~adapter:packed ~resolve_subscription ~load_snapshot
   ?handle_mutation ?handle_mutation_without_db ?handle_media ~action_store ~use_db ()
+
+let rec wait_until ?(remaining = 100) predicate =
+  if predicate () then Lwt.return_unit
+  else if remaining <= 0 then Lwt.fail_with "condition was not reached"
+  else
+    let* () = Lwt.pause () in
+    wait_until ~remaining:(remaining - 1) predicate
+
+let make_test_websocket () =
+  let captured = ref None in
+  let response =
+    Lwt_main.run
+      (Dream.websocket ~close:false (fun websocket ->
+        captured := Some websocket;
+        Lwt.return_unit))
+  in
+  match !captured with
+  | Some websocket -> websocket
+  | None ->
+      ignore (Dream_pure.Message.get_websocket response);
+      failwith "Expected websocket"
 
 let suite =
   ( "middleware websocket behavior", [
@@ -496,6 +533,55 @@ let suite =
     let _ = Lwt_main.run (Middleware.detach_websocket runtime websocket) in
     if List.mem "room-1" !(adapter.unsubscribed) then ()
     else Alcotest.fail "Expected detach to unsubscribe channel");
+  Alcotest.test_case "detaching one websocket does not block another subscribe" `Quick
+    (fun () ->
+      let adapter = Fake_adapter.create ~block_unsubscribe:true () in
+      let runtime = make_runtime adapter in
+      let closing_websocket = make_test_websocket () in
+      let next_websocket = make_test_websocket () in
+      Hashtbl.replace runtime.Middleware.channels "room-closing"
+        [
+          {
+            websocket = closing_websocket;
+            current_subscriptions = [ "room-closing" ];
+            pending_sends = [];
+            send_in_progress = false;
+            closed = false;
+          };
+        ];
+      Lwt_main.run
+        (let detach = Middleware.detach_websocket runtime closing_websocket in
+         let* () = wait_until (fun () -> !(adapter.unsubscribe_started)) in
+         let* subscribe_result =
+           Lwt.pick
+             [
+               (let* result =
+                  Middleware.subscribe_websocket runtime request next_websocket
+                    "room-next"
+                in
+                Lwt.return (`Subscribed result));
+               (let* () = Lwt_unix.sleep 0.05 in
+                Lwt.return `Timed_out);
+             ]
+         in
+         (match !(adapter.release_unsubscribe) with
+          | Some release -> Lwt.wakeup_later release ()
+          | None -> Alcotest.fail "Expected blocked unsubscribe release");
+         let* () = detach in
+         match subscribe_result with
+         | `Subscribed (Some "room-next") -> Lwt.return_unit
+         | `Subscribed _ -> Alcotest.fail "Expected second websocket to subscribe"
+         | `Timed_out ->
+             Alcotest.fail
+               "Second websocket subscription waited for close unsubscribe");
+      Alcotest.(check bool)
+        "closing channel removed"
+        false
+        (Hashtbl.mem runtime.Middleware.channels "room-closing");
+      Alcotest.(check bool)
+        "new channel subscribed"
+        true
+        (Hashtbl.mem runtime.Middleware.channels "room-next"));
   Alcotest.test_case "select allows multiple subscriptions on same websocket" `Quick (fun () ->
     let adapter = Fake_adapter.create () in
     let runtime = make_runtime adapter in

@@ -337,39 +337,50 @@ let unsubscribe_channel t channel =
             Lwt.return_unit)
     | None -> Lwt.return_unit
   in
-  let* () = Adapter.unsubscribe t.adapter ~channel in
-  Hashtbl.remove t.channels channel;
-  Lwt.return_unit
+  Lwt.catch
+    (fun () -> Adapter.unsubscribe t.adapter ~channel)
+    (fun exn ->
+      Printf.eprintf "[ws] adapter unsubscribe failed for %s: %s\n%!"
+        channel (Printexc.to_string exn);
+      Lwt.return_unit)
 
 let remove_websocket_from_channel t channel websocket =
-  Lwt_mutex.with_lock t.channels_mutex (fun () ->
-    match Hashtbl.find_opt t.channels channel with
-    | None -> Lwt.return_unit
-    | Some subscribers ->
-        let removed =
-          subscribers
-          |> List.filter (fun subscriber -> subscriber.websocket == websocket)
-        in
-        let remaining =
-          subscribers
-          |> List.filter (fun subscriber -> subscriber.websocket != websocket)
-        in
-        removed
-        |> List.iter (fun subscriber ->
-             subscriber.current_subscriptions <- List.filter (fun c -> c <> channel) subscriber.current_subscriptions;
-             if subscriber.current_subscriptions = [] then begin
-               subscriber.closed <- true;
-               subscriber.pending_sends <- [];
-               subscriber.send_in_progress <- false
-             end);
-        if List.length remaining = List.length subscribers then
-          Lwt.return_unit
-        else if remaining = [] then
-          unsubscribe_channel t channel
-        else begin
-          Hashtbl.replace t.channels channel remaining;
-          Lwt.return_unit
-        end)
+  let* should_unsubscribe =
+    Lwt_mutex.with_lock t.channels_mutex (fun () ->
+      match Hashtbl.find_opt t.channels channel with
+      | None -> Lwt.return_false
+      | Some subscribers ->
+          let removed =
+            subscribers
+            |> List.filter (fun subscriber -> subscriber.websocket == websocket)
+          in
+          let remaining =
+            subscribers
+            |> List.filter (fun subscriber -> subscriber.websocket != websocket)
+          in
+          removed
+          |> List.iter (fun subscriber ->
+               subscriber.current_subscriptions <- List.filter (fun c -> c <> channel) subscriber.current_subscriptions;
+               if subscriber.current_subscriptions = [] then begin
+                 subscriber.closed <- true;
+                 subscriber.pending_sends <- [];
+                 subscriber.send_in_progress <- false
+               end);
+          if List.length remaining = List.length subscribers then
+            Lwt.return_false
+          else if remaining = [] then begin
+            Hashtbl.remove t.channels channel;
+            Lwt.return_true
+          end
+          else begin
+            Hashtbl.replace t.channels channel remaining;
+            Lwt.return_false
+          end)
+  in
+  if should_unsubscribe then
+    unsubscribe_channel t channel
+  else
+    Lwt.return_unit
 
 let channels_for_websocket t websocket =
   Hashtbl.fold
@@ -687,7 +698,7 @@ let rec websocket_handler t request websocket current_channels =
 
 let route path t =
   Dream.get path (fun request ->
-    Dream.websocket ~close:false (fun websocket ->
+    Dream.websocket (fun websocket ->
       incr connection_count;
       Printf.eprintf "[ws] new connection, total=%d\n%!" !connection_count;
       Lwt.catch
