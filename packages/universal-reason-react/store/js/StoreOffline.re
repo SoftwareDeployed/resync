@@ -1236,7 +1236,7 @@ module Synced = {
 
     /* Core dispatch implementation with ledger persistence and optimistic broadcast.
        This is the actual workhorse that executes the dispatch. */
-    let rec executeDispatch = (action: action) =>
+    let rec executeDispatchWithId = (actionId: string, action: action) =>
       switch (sourceRef.contents) {
       | Some(actions) =>
         let currentState = actions.get();
@@ -1250,7 +1250,6 @@ module Synced = {
         | Deny(reason) => Error(reason)
         | Allow =>
           let nextState = Schema.reduce(~state=currentState, ~action);
-          let actionId = UUID.make();
           StoreRuntimeLifecycle.markActionPending(lifecycle, actionId);
           let ledgerRecord =
             StoreActionLedger.make(
@@ -1285,6 +1284,9 @@ module Synced = {
       | None => Error("Store is not mounted")
       }
 
+    and executeDispatch = (action: action) =>
+      executeDispatchWithId(UUID.make(), action)
+
     /* Public dispatch that respects controller emission gating.
        When emitted during an active listener batch, dispatch is queued
        and executed after the batch completes. This prevents reentrancy
@@ -1307,34 +1309,46 @@ module Synced = {
 
     let dispatchForMutation = (action: action): Js.Promise.t(unit) =>
       Js.Promise.make((~resolve, ~reject) => {
-        let settleWithActionId = actionId => {
-          let listenerIdRef = ref(None);
-          let cleanup = () =>
-            switch (listenerIdRef.contents) {
-            | Some(listenerId) => Controller.unsubscribe(listenerId)
-            | None => ()
-            };
-          let listener = event =>
-            switch (event) {
-            | StoreEvents.ActionAcked({actionId: ackedActionId, _}) when ackedActionId == actionId =>
-              cleanup();
-              let unitValue = ();
-              resolve(. unitValue);
-            | StoreEvents.ActionFailed({actionId: failedActionId, message, _}) when failedActionId == actionId =>
-              cleanup();
-              reject(. Failure(message));
-            | _ => ()
-            };
-          listenerIdRef := Some(Controller.subscribe(listener));
-        };
+        let actionId = UUID.make();
+        let listenerIdRef = ref(None);
+        let settledRef = ref(false);
+        let cleanup = () =>
+          switch (listenerIdRef.contents) {
+          | Some(listenerId) =>
+            Controller.unsubscribe(listenerId);
+            listenerIdRef := None;
+          | None => ()
+          };
+        let resolveOnce = () =>
+          if (!settledRef.contents) {
+            settledRef := true;
+            cleanup();
+            let unitValue = ();
+            resolve(. unitValue);
+          };
+        let rejectOnce = error =>
+          if (!settledRef.contents) {
+            settledRef := true;
+            cleanup();
+            reject(. error);
+          };
+        let listener = event =>
+          switch (event) {
+          | StoreEvents.ActionAcked({actionId: ackedActionId, _}) when ackedActionId == actionId =>
+            resolveOnce()
+          | StoreEvents.ActionFailed({actionId: failedActionId, message, _}) when failedActionId == actionId =>
+            rejectOnce(Failure(message))
+          | _ => ()
+          };
+        listenerIdRef := Some(Controller.subscribe(listener));
         let run = () =>
           try({
-            switch (executeDispatch(action)) {
-            | Ok(actionId) => settleWithActionId(actionId)
-            | Error(reason) => reject(. Failure(reason))
+            switch (executeDispatchWithId(actionId, action)) {
+            | Ok(_) => ()
+            | Error(reason) => rejectOnce(Failure(reason))
             };
           }) {
-          | error => reject(. error)
+          | error => rejectOnce(error)
           };
         if (Controller.isEmitting()) {
           Controller.queueDispatch(run);
