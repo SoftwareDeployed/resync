@@ -8,6 +8,7 @@ let connection_count = ref 0
 let message_count = ref 0
 let last_log_time = ref 0.0
 let next_connection_id = ref 0
+let detached_connection_ids : (int, unit) Hashtbl.t = Hashtbl.create 128
 
 let log fmt =
   Printf.ksprintf
@@ -29,6 +30,12 @@ type pending_send = {
   payload : string;
   timestamp : float;
 }
+
+type send_outcome =
+  [ `Sent
+  | `Timeout
+  | `Error
+  ]
 
 type subscriber = {
   connection_id : int;
@@ -128,18 +135,24 @@ let send_with_timeout ?connection_id websocket message =
         Lwt.pick
         [
           (let* () = Dream.send websocket message in
-           Lwt.return "sent");
+           Lwt.return `Sent);
           (let* () = Lwt_unix.sleep 2.0 in
-           Lwt.return "timeout");
+           Lwt.return `Timeout);
         ]
       in
-      log "%ssend.%s elapsed=%.3f len=%d" label outcome
+      let outcome_label =
+        match outcome with
+        | `Sent -> "sent"
+        | `Timeout -> "timeout"
+        | `Error -> "error"
+      in
+      log "%ssend.%s elapsed=%.3f len=%d" label outcome_label
         (Unix.gettimeofday () -. started) (String.length message);
-      Lwt.return_unit)
+      Lwt.return outcome)
     (fun exn ->
       log "%ssend.error elapsed=%.3f error=%s" label
         (Unix.gettimeofday () -. started) (Printexc.to_string exn);
-      Lwt.return_unit)
+      Lwt.return `Error)
 
 let max_send_batch_size = 32
 
@@ -158,7 +171,50 @@ let batch_payload payloads =
         ^ String.concat "," payloads
         ^ "]}")
 
-let rec drain_subscriber_sends subscriber =
+let mark_connection_detached connection_id =
+  if Hashtbl.mem detached_connection_ids connection_id then
+    false
+  else begin
+    Hashtbl.replace detached_connection_ids connection_id ();
+    if !connection_count > 0 then decr connection_count;
+    true
+  end
+
+let detach_subscriber_after_send_failure t subscriber =
+  let first_detach = mark_connection_detached subscriber.connection_id in
+  log "conn=%d detach_send_failure.begin first=%b total=%d"
+    subscriber.connection_id first_detach !connection_count;
+  subscriber.closed <- true;
+  subscriber.pending_sends <- [];
+  subscriber.send_in_progress <- false;
+  let channels = subscriber.current_subscriptions in
+  subscriber.current_subscriptions <- [];
+  let* removed_channels =
+    Lwt_mutex.with_lock t.channels_mutex (fun () ->
+      let removed =
+        channels
+        |> List.filter (fun channel ->
+             match Hashtbl.find_opt t.channels channel with
+             | None -> false
+             | Some subscribers ->
+                 let remaining =
+                   subscribers
+                   |> List.filter (fun item -> item.websocket != subscriber.websocket)
+                 in
+                 if remaining = [] then
+                   Hashtbl.remove t.channels channel
+                 else
+                   Hashtbl.replace t.channels channel remaining;
+                 List.length remaining <> List.length subscribers)
+      in
+      Lwt.return removed)
+  in
+  log "conn=%d detach_send_failure.end removed=%d channels=%s"
+    subscriber.connection_id (List.length removed_channels)
+    (String.concat "," removed_channels);
+  Lwt.return_unit
+
+let rec drain_subscriber_sends t subscriber =
   if subscriber.closed then begin
     log "conn=%d send_queue.closed_drop pending=%d"
       subscriber.connection_id (List.length subscriber.pending_sends);
@@ -181,21 +237,34 @@ let rec drain_subscriber_sends subscriber =
         subscriber.connection_id batch_count (List.length rest)
         (Unix.gettimeofday () -. pending.timestamp);
       (match batch_payload payloads with
-      | None -> drain_subscriber_sends subscriber
+      | None -> drain_subscriber_sends t subscriber
       | Some payload ->
-          let* () =
-            send_with_timeout ~connection_id:subscriber.connection_id
-              subscriber.websocket payload
-          in
-          drain_subscriber_sends subscriber)
+      let* outcome =
+        send_with_timeout ~connection_id:subscriber.connection_id
+          subscriber.websocket payload
+      in
+      match outcome with
+      | `Sent -> drain_subscriber_sends t subscriber
+      | `Timeout
+      | `Error ->
+          log "conn=%d send_queue.detach_after_%s"
+            subscriber.connection_id
+            (match outcome with
+             | `Timeout -> "timeout"
+             | `Error -> "error"
+             | `Sent -> "sent");
+          subscriber.closed <- true;
+          subscriber.pending_sends <- [];
+          subscriber.send_in_progress <- false;
+          detach_subscriber_after_send_failure t subscriber)
 
-let schedule_subscriber_drain subscriber =
+and schedule_subscriber_drain t subscriber =
   log "conn=%d send_queue.schedule_drain" subscriber.connection_id;
   Lwt.async (fun () ->
       let* () = Lwt_unix.sleep 0.01 in
-      drain_subscriber_sends subscriber)
+      drain_subscriber_sends t subscriber)
 
-let enqueue_subscriber_send subscriber payload =
+and enqueue_subscriber_send t subscriber payload =
   if subscriber.closed then begin
     log "conn=%d send_queue.enqueue_ignored_closed len=%d"
       subscriber.connection_id (String.length payload);
@@ -221,7 +290,7 @@ let enqueue_subscriber_send subscriber payload =
     if not subscriber.send_in_progress then begin
       subscriber.send_in_progress <- true;
       log "conn=%d send_queue.start_drain" subscriber.connection_id;
-      schedule_subscriber_drain subscriber;
+      schedule_subscriber_drain t subscriber;
       Lwt.return_unit
     end else
       Lwt.return_unit
@@ -229,8 +298,10 @@ let enqueue_subscriber_send subscriber payload =
 
 let send_websocket ?connection_id t websocket message =
   match find_subscriber_for_websocket t websocket with
-  | Some subscriber -> enqueue_subscriber_send subscriber message
-  | None -> send_with_timeout ?connection_id websocket message
+  | Some subscriber -> enqueue_subscriber_send t subscriber message
+  | None ->
+      let* _ = send_with_timeout ?connection_id websocket message in
+      Lwt.return_unit
 
 let make_broadcast_fn t target wrap =
   let wrapped = wrap ~channel:target "" in
@@ -243,7 +314,7 @@ let make_broadcast_fn t target wrap =
         (fun subscriber ->
           Lwt.catch
             (fun () ->
-              let* () = enqueue_subscriber_send subscriber wrapped in
+              let* () = enqueue_subscriber_send t subscriber wrapped in
               let send_time = Unix.gettimeofday () -. send_start in
               log "broadcast.enqueue channel=%s conn=%d elapsed=%.3f"
                 target subscriber.connection_id send_time;
@@ -621,8 +692,12 @@ let detach_websocket ?connection_id t websocket =
     | Some id -> Printf.sprintf "conn=%d " id
     | None -> ""
   in
-  decr connection_count;
-  log "%sdetach.begin total=%d" label !connection_count;
+  let first_detach =
+    match connection_id with
+    | Some id -> mark_connection_detached id
+    | None -> true
+  in
+  log "%sdetach.begin first=%b total=%d" label first_detach !connection_count;
   let* channels = channels_for_websocket_and_mark_closed t websocket in
   log "%sdetach.channels count=%d channels=%s" label (List.length channels)
     (String.concat "," channels);
@@ -746,7 +821,7 @@ let subscribe_websocket ?(connection_id = 0) t request websocket channel =
               (fun () ->
                 log "conn=%d subscribe.snapshot_enqueue.begin channel=%s"
                   connection_id channel;
-                let* () = enqueue_subscriber_send subscriber (wrap_snapshot ~channel snapshot) in
+                let* () = enqueue_subscriber_send t subscriber (wrap_snapshot ~channel snapshot) in
                 log "conn=%d subscribe.snapshot_enqueue.end channel=%s closed=%b"
                   connection_id channel subscriber.closed;
                 Lwt.return_true)

@@ -113,3 +113,32 @@ are remembered briefly so duplicate late acks are ignored for no-cache stores.
 DX follow-up: add a package-level browser test for a no-cache synced store where
 a valid ack arrives after the first ack-timeout window but before final retry
 exhaustion.
+
+## Related Finding: Stale Subscribers After Send Failure
+
+The repeated SurgStack report workflow exposed another middleware bug after the
+no-cache timeout fix. Browser frame capture showed valid mutation frames being
+sent, but later mutations were delayed while the realtime server broadcasted to
+many old connection IDs.
+
+Realtime logs showed broadcast fan-out to stale subscribers whose writers were
+already closed:
+
+- `send.error ... Failure("cannot write to closed writer")`
+- `send.timeout elapsed=2.0 ...`
+- the same closed connection IDs remained in channel subscriber lists and were
+  retried on later broadcasts
+
+The cleanup path existed for `Dream.receive = None`, but `send_with_timeout`
+swallowed send errors and timeouts as `unit`. The send queue therefore had no
+signal that the subscriber should be detached.
+
+Executor now returns a send outcome from `send_with_timeout`. Subscriber send
+queues detach their websocket from channel lists on timeout or send error, drop
+queued messages, and mark the connection as closed. Detach is idempotent by
+connection ID so a later receive-close event cannot double-decrement connection
+counters.
+
+DX follow-up: add an integration test that leaves a closed websocket in a
+subscriber list, broadcasts to the channel, and asserts the subscriber is
+removed before the next broadcast.

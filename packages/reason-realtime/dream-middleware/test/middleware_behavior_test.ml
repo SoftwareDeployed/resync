@@ -621,7 +621,7 @@ let suite =
       Hashtbl.replace runtime.Middleware.channels "room-a" [ subscriber ];
       Hashtbl.replace runtime.Middleware.channels "room-b" [ subscriber ];
       Lwt_main.run
-        (let* () = Middleware.enqueue_subscriber_send subscriber "{}" in
+        (let* () = Middleware.enqueue_subscriber_send runtime subscriber "{}" in
          let detach = Middleware.detach_websocket runtime websocket in
          let* () = wait_until (fun () -> !(adapter.unsubscribe_started)) in
          Alcotest.(check bool)
@@ -803,6 +803,8 @@ let suite =
     else Alcotest.fail "Expected detach to unsubscribe all channels");
   Alcotest.test_case "send queue schedules async drain" `Quick
     (fun () ->
+      let adapter = Fake_adapter.create () in
+      let runtime = make_runtime adapter in
       let captured = ref None in
       let _response =
         Lwt_main.run
@@ -825,7 +827,7 @@ let suite =
           closed = false;
         }
       in
-      Lwt_main.run (Middleware.enqueue_subscriber_send subscriber "{}");
+      Lwt_main.run (Middleware.enqueue_subscriber_send runtime subscriber "{}");
       Alcotest.(check int)
         "enqueue should return before drain"
         1
@@ -905,6 +907,8 @@ let suite =
         (Hashtbl.mem adapter.subscriptions "room-adapter-fail"));
   Alcotest.test_case "closed subscriber drops queued sends" `Quick
     (fun () ->
+      let adapter = Fake_adapter.create () in
+      let runtime = make_runtime adapter in
       let captured = ref None in
       let _response =
         Lwt_main.run
@@ -927,7 +931,7 @@ let suite =
           closed = true;
         }
       in
-      Lwt_main.run (Middleware.enqueue_subscriber_send subscriber "{}");
+      Lwt_main.run (Middleware.enqueue_subscriber_send runtime subscriber "{}");
       Alcotest.(check int)
         "closed subscriber should not queue"
         0
