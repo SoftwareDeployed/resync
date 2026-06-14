@@ -132,7 +132,9 @@ let enqueue_subscriber_send subscriber payload =
   subscriber.pending_sends <- pending_sends;
   if not subscriber.send_in_progress then (
     subscriber.send_in_progress <- true;
-    Lwt.async (fun () -> drain_subscriber_sends subscriber));
+    Lwt.async (fun () ->
+        let* () = Lwt.pause () in
+        drain_subscriber_sends subscriber));
   Lwt.return_unit
 
 let send_websocket t websocket message =

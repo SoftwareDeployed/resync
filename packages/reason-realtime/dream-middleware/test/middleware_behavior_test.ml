@@ -646,4 +646,35 @@ let suite =
     if List.mem "room-a" !(adapter.unsubscribed) && List.mem "room-b" !(adapter.unsubscribed)
     then ()
     else Alcotest.fail "Expected detach to unsubscribe all channels");
+  Alcotest.test_case "send queue defers websocket writes until next turn" `Quick
+    (fun () ->
+      let captured = ref None in
+      let _response =
+        Lwt_main.run
+          (Dream.websocket ~close:false (fun websocket ->
+             captured := Some websocket;
+             Lwt.return_unit))
+      in
+      let websocket =
+        match !captured with
+        | Some websocket -> websocket
+        | None -> Alcotest.fail "Expected websocket"
+      in
+      let subscriber : Middleware.subscriber =
+        {
+          websocket;
+          current_subscriptions = [ "room-a" ];
+          pending_sends = [];
+          send_in_progress = false;
+        }
+      in
+      Lwt_main.run (Middleware.enqueue_subscriber_send subscriber "{}");
+      Alcotest.(check int)
+        "enqueue should not drain synchronously"
+        1
+        (List.length subscriber.pending_sends);
+      Alcotest.(check bool)
+        "drain worker should be scheduled"
+        true
+        subscriber.send_in_progress);
 ] )
