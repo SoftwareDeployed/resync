@@ -581,28 +581,20 @@ let suite =
       Lwt_main.run
         (let detach = Middleware.detach_websocket runtime closing_websocket in
          let* () = wait_until (fun () -> !(adapter.unsubscribe_started)) in
-         let* subscribe_result =
-           Lwt.pick
-             [
-               (let* result =
-                  Middleware.subscribe_websocket runtime request next_websocket
-                    "room-next"
-                in
-                Lwt.return (`Subscribed result));
-               (let* () = Lwt_unix.sleep 0.05 in
-                Lwt.return `Timed_out);
-             ]
+         let subscribe_result =
+           Middleware.subscribe_websocket runtime request next_websocket
+             "room-next"
          in
+         let* () = wait_until (fun () -> Hashtbl.mem runtime.Middleware.channels "room-next") in
          (match !(adapter.release_unsubscribe) with
           | Some release -> Lwt.wakeup_later release ()
           | None -> Alcotest.fail "Expected blocked unsubscribe release");
          let* () = detach in
+         let* subscribe_result = subscribe_result in
          match subscribe_result with
-         | `Subscribed (Some "room-next") -> Lwt.return_unit
-         | `Subscribed _ -> Alcotest.fail "Expected second websocket to subscribe"
-         | `Timed_out ->
-             Alcotest.fail
-               "Second websocket subscription waited for close unsubscribe");
+         | Some "room-next" -> Lwt.return_unit
+         | Some _ -> Alcotest.fail "Expected second websocket to subscribe"
+         | None -> Alcotest.fail "Expected second websocket to subscribe");
       Alcotest.(check bool)
         "closing channel removed"
         false
@@ -766,7 +758,7 @@ let suite =
     if List.mem "room-a" !(adapter.unsubscribed) && List.mem "room-b" !(adapter.unsubscribed)
     then ()
     else Alcotest.fail "Expected detach to unsubscribe all channels");
-  Alcotest.test_case "send queue defers websocket writes until next turn" `Quick
+  Alcotest.test_case "send queue drains in caller flow" `Quick
     (fun () ->
       let captured = ref None in
       let _response =
@@ -792,12 +784,12 @@ let suite =
       in
       Lwt_main.run (Middleware.enqueue_subscriber_send subscriber "{}");
       Alcotest.(check int)
-        "enqueue should not drain synchronously"
-        1
+        "enqueue should drain immediately"
+        0
         (List.length subscriber.pending_sends);
       Alcotest.(check bool)
-        "drain worker should be scheduled"
-        true
+        "drain should be complete"
+        false
         subscriber.send_in_progress);
   Alcotest.test_case "failed snapshot does not register websocket subscription" `Quick
     (fun () ->

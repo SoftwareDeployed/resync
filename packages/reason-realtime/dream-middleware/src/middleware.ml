@@ -187,13 +187,12 @@ let enqueue_subscriber_send subscriber payload =
     log "conn=%d send_queue.enqueued len=%d pending=%d draining=%b"
       subscriber.connection_id (String.length payload)
       (List.length subscriber.pending_sends) subscriber.send_in_progress;
-    if not subscriber.send_in_progress then (
+    if not subscriber.send_in_progress then begin
       subscriber.send_in_progress <- true;
       log "conn=%d send_queue.start_drain" subscriber.connection_id;
-      Lwt.async (fun () ->
-          let* () = Lwt.pause () in
-          drain_subscriber_sends subscriber));
-    Lwt.return_unit
+      drain_subscriber_sends subscriber
+    end else
+      Lwt.return_unit
   end
 
 let send_websocket ?connection_id t websocket message =
