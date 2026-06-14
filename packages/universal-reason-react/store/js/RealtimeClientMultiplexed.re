@@ -101,6 +101,31 @@ module Multiplexed = {
     lastPongRef: ref(Js.Date.now()),
   };
 
+  let optionalStringField = (~json, ~fieldName) =>
+    StoreJson.optionalField(
+      ~json,
+      ~fieldName,
+      ~decode=Melange_json.Primitives.string_of_json,
+    );
+
+  let notifyAck = (t: t, json: StoreJson.json) =>
+    switch (
+      optionalStringField(~json, ~fieldName="actionId"),
+      optionalStringField(~json, ~fieldName="status"),
+    ) {
+    | (Some(actionId), Some(status)) =>
+      let error = optionalStringField(~json, ~fieldName="error");
+      t.subscriptionsRef.contents
+      ->Js.Dict.entries
+      ->Js.Array.forEach(~f=((_, callbacks)) =>
+          callbacks
+          ->Js.Array.forEach(~f=callback =>
+              callback.onAck(actionId, status, error)
+            )
+        );
+    | _ => ()
+    };
+
   let unsubscribeFrameString = (subscription: string) =>
     StoreJson.stringify(
       json => json,
@@ -214,6 +239,7 @@ module Multiplexed = {
             |> Option.map(Melange_json.Primitives.string_of_json);
           switch (messageType) {
           | Some("pong") => ()
+          | Some("ack") => notifyAck(t, json)
           | _ =>
             switch (
               StoreJson.field(json, "channel")
