@@ -141,6 +141,23 @@ let send_with_timeout ?connection_id websocket message =
         (Unix.gettimeofday () -. started) (Printexc.to_string exn);
       Lwt.return_unit)
 
+let max_send_batch_size = 32
+
+let rec take_pending_batch remaining acc = function
+  | [] -> (List.rev acc, [])
+  | rest when remaining <= 0 -> (List.rev acc, rest)
+  | item :: rest -> take_pending_batch (remaining - 1) (item :: acc) rest
+
+let batch_payload payloads =
+  match payloads with
+  | [] -> None
+  | [ payload ] -> Some payload
+  | payloads ->
+      Some
+        ("{\"type\":\"batch\",\"messages\":["
+        ^ String.concat "," payloads
+        ^ "]}")
+
 let rec drain_subscriber_sends subscriber =
   if subscriber.closed then begin
     log "conn=%d send_queue.closed_drop pending=%d"
@@ -153,16 +170,30 @@ let rec drain_subscriber_sends subscriber =
       log "conn=%d send_queue.empty" subscriber.connection_id;
       subscriber.send_in_progress <- false;
       Lwt.return_unit
-  | pending :: rest ->
-      subscriber.pending_sends <- rest;
-      log "conn=%d send_queue.drain_one remaining=%d age=%.3f"
-        subscriber.connection_id (List.length rest)
-        (Unix.gettimeofday () -. pending.timestamp);
-      let* () =
-        send_with_timeout ~connection_id:subscriber.connection_id
-          subscriber.websocket pending.payload
+  | pending :: _ ->
+      let batch, rest =
+        take_pending_batch max_send_batch_size [] subscriber.pending_sends
       in
-      drain_subscriber_sends subscriber
+      subscriber.pending_sends <- rest;
+      let payloads = List.map (fun pending -> pending.payload) batch in
+      let batch_count = List.length payloads in
+      log "conn=%d send_queue.drain_batch count=%d remaining=%d age=%.3f"
+        subscriber.connection_id batch_count (List.length rest)
+        (Unix.gettimeofday () -. pending.timestamp);
+      (match batch_payload payloads with
+      | None -> drain_subscriber_sends subscriber
+      | Some payload ->
+          let* () =
+            send_with_timeout ~connection_id:subscriber.connection_id
+              subscriber.websocket payload
+          in
+          drain_subscriber_sends subscriber)
+
+let schedule_subscriber_drain subscriber =
+  log "conn=%d send_queue.schedule_drain" subscriber.connection_id;
+  Lwt.async (fun () ->
+      let* () = Lwt_unix.sleep 0.01 in
+      drain_subscriber_sends subscriber)
 
 let enqueue_subscriber_send subscriber payload =
   if subscriber.closed then begin
@@ -190,7 +221,8 @@ let enqueue_subscriber_send subscriber payload =
     if not subscriber.send_in_progress then begin
       subscriber.send_in_progress <- true;
       log "conn=%d send_queue.start_drain" subscriber.connection_id;
-      drain_subscriber_sends subscriber
+      schedule_subscriber_drain subscriber;
+      Lwt.return_unit
     end else
       Lwt.return_unit
   end
@@ -559,6 +591,30 @@ let channels_for_websocket t websocket =
       else acc)
     t.channels []
 
+let channels_for_websocket_and_mark_closed t websocket =
+  Lwt_mutex.with_lock t.channels_mutex (fun () ->
+    let channels =
+      Hashtbl.fold
+        (fun channel subscribers acc ->
+          let matches =
+            List.filter (fun subscriber -> subscriber.websocket == websocket)
+              subscribers
+          in
+          matches
+          |> List.iter (fun subscriber ->
+               log "conn=%d detach.mark_closed channel=%s pending=%d draining=%b"
+                 subscriber.connection_id channel
+                 (List.length subscriber.pending_sends)
+                 subscriber.send_in_progress;
+               subscriber.closed <- true;
+               subscriber.pending_sends <- [];
+               subscriber.send_in_progress <- false;
+               subscriber.current_subscriptions <- []);
+          if matches = [] then acc else channel :: acc)
+        t.channels []
+    in
+    Lwt.return channels)
+
 let detach_websocket ?connection_id t websocket =
   let label =
     match connection_id with
@@ -567,7 +623,7 @@ let detach_websocket ?connection_id t websocket =
   in
   decr connection_count;
   log "%sdetach.begin total=%d" label !connection_count;
-  let channels = channels_for_websocket t websocket in
+  let* channels = channels_for_websocket_and_mark_closed t websocket in
   log "%sdetach.channels count=%d channels=%s" label (List.length channels)
     (String.concat "," channels);
   let* () =

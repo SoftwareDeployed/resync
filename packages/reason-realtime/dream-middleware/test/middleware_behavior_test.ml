@@ -603,6 +603,49 @@ let suite =
         "new channel subscribed"
         true
         (Hashtbl.mem runtime.Middleware.channels "room-next"));
+  Alcotest.test_case "detach closes multiplexed subscriber before unsubscribe awaits" `Quick
+    (fun () ->
+      let adapter = Fake_adapter.create ~block_unsubscribe:true () in
+      let runtime = make_runtime adapter in
+      let websocket = make_test_websocket () in
+      let subscriber : Middleware.subscriber =
+        {
+          connection_id = 1;
+          websocket;
+          current_subscriptions = [ "room-a"; "room-b" ];
+          pending_sends = [];
+          send_in_progress = false;
+          closed = false;
+        }
+      in
+      Hashtbl.replace runtime.Middleware.channels "room-a" [ subscriber ];
+      Hashtbl.replace runtime.Middleware.channels "room-b" [ subscriber ];
+      Lwt_main.run
+        (let* () = Middleware.enqueue_subscriber_send subscriber "{}" in
+         let detach = Middleware.detach_websocket runtime websocket in
+         let* () = wait_until (fun () -> !(adapter.unsubscribe_started)) in
+         Alcotest.(check bool)
+           "subscriber should be closed while unsubscribe is pending"
+           true subscriber.closed;
+         Alcotest.(check int)
+           "queued sends should be dropped before unsubscribe completes"
+           0 (List.length subscriber.pending_sends);
+         Alcotest.(check bool)
+           "drain should be stopped before unsubscribe completes"
+           false subscriber.send_in_progress;
+         adapter.block_unsubscribe := false;
+         (match !(adapter.release_unsubscribe) with
+          | Some release -> Lwt.wakeup_later release ()
+          | None -> Alcotest.fail "Expected blocked unsubscribe release");
+         detach);
+      Alcotest.(check bool)
+        "room-a removed"
+        false
+        (Hashtbl.mem runtime.Middleware.channels "room-a");
+      Alcotest.(check bool)
+        "room-b removed"
+        false
+        (Hashtbl.mem runtime.Middleware.channels "room-b"));
   Alcotest.test_case "select allows multiple subscriptions on same websocket" `Quick (fun () ->
     let adapter = Fake_adapter.create () in
     let runtime = make_runtime adapter in
@@ -758,7 +801,7 @@ let suite =
     if List.mem "room-a" !(adapter.unsubscribed) && List.mem "room-b" !(adapter.unsubscribed)
     then ()
     else Alcotest.fail "Expected detach to unsubscribe all channels");
-  Alcotest.test_case "send queue drains in caller flow" `Quick
+  Alcotest.test_case "send queue schedules async drain" `Quick
     (fun () ->
       let captured = ref None in
       let _response =
@@ -784,11 +827,21 @@ let suite =
       in
       Lwt_main.run (Middleware.enqueue_subscriber_send subscriber "{}");
       Alcotest.(check int)
-        "enqueue should drain immediately"
+        "enqueue should return before drain"
+        1
+        (List.length subscriber.pending_sends);
+      Alcotest.(check bool)
+        "drain should be scheduled"
+        true
+        subscriber.send_in_progress;
+      subscriber.closed <- true;
+      Lwt_main.run (Lwt_unix.sleep 0.05);
+      Alcotest.(check int)
+        "scheduled drain should drop closed queue"
         0
         (List.length subscriber.pending_sends);
       Alcotest.(check bool)
-        "drain should be complete"
+        "scheduled drain should complete for closed queue"
         false
         subscriber.send_in_progress);
   Alcotest.test_case "failed snapshot does not register websocket subscription" `Quick

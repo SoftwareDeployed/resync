@@ -324,7 +324,7 @@ module Socket = {
     callbacks->Js.Array.filter(~f=callbacks => !callbacks.disposed.contents);
 
   /* Route message to the correct subscription based on channel */
-  let routeMessage = (state, json: StoreJson.json) => {
+  let rec routeMessage = (state, json: StoreJson.json) => {
     let messageKind =
       switch (StoreJson.field(json, "type")) {
       | Some(rawType) =>
@@ -332,6 +332,16 @@ module Socket = {
       | None => None
       };
     switch (messageKind) {
+    | Some("batch") =>
+      switch (StoreJson.field(json, "messages")) {
+      | Some(rawMessages) =>
+        switch (StoreJson.tryDecode(Melange_json.Primitives.array_of_json(message => message), rawMessages)) {
+        | Some(messages) =>
+          messages->Js.Array.forEach(~f=message => routeMessage(state, message))
+        | None => ()
+        }
+      | None => ()
+      }
     | Some("pong") => updateLastPong(state)
     | _ =>
       switch (StoreJson.field(json, "channel")) {
