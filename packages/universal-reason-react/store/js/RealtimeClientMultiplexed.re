@@ -465,12 +465,11 @@ module Multiplexed = {
       t.subscriptionsRef := subs;
 
       if (removed && Js.Array.length(remaining) == 0) {
-        let _ =
-          t.websocketRef.contents
-          |> Option.map(ws => {
-              ws->WebSocket.send_string(unsubscribeFrameString(handle.channel))
-            });
-        ();
+        switch (t.websocketRef.contents) {
+        | Some(ws) when ws->WebSocket.readyState == 1 =>
+          ws->WebSocket.send_string(unsubscribeFrameString(handle.channel))
+        | _ => ()
+        };
       };
 
       /* If no more subscriptions, close connection */
