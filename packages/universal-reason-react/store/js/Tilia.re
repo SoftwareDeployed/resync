@@ -6,6 +6,7 @@ module Core = {
     "source";
   type signal('a);
   [@mel.module "tilia/dist/index.mjs"] external lift: signal('a) => 'a = "lift";
+  [@mel.get] external value: signal('a) => 'a = "value";
   [@mel.module "tilia/dist/index.mjs"]
   external signal: 'a => (signal('a), 'a => unit) = "signal";
   [@mel.module "tilia/dist/index.mjs"] external observe: _ => unit = "observe";

@@ -194,7 +194,7 @@ let useRawQueryResultForIdentity = (~channel, ~paramsHash, ~skip) => {
   let key = makeKey(~channel, ~paramsHash);
   let cache = getQueryCache();
   let signal = useQuerySignal(~cache, ~key, ~channel, ~skip);
-  skip ? Loading : signal->Tilia.Core.lift;
+  skip ? Loading : signal->Tilia.Core.value;
 };
 
 [@platform js]
