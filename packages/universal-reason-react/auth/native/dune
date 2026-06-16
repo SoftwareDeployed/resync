@@ -1,0 +1,7 @@
+(library
+ (name universal_reason_react_auth_native)
+ (public_name resync.universal_reason_react_auth_native)
+ (modules Auth)
+ (wrapped false)
+ (libraries universal_reason_react_store_native)
+ (modes native))

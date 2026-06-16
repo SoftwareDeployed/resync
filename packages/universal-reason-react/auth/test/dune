@@ -1,0 +1,16 @@
+(executable
+ (name auth_test)
+ (modules auth_test)
+ (libraries
+  alcotest
+  universal_reason_react_auth_native)
+ (modes native))
+
+(alias
+ (name auth-tests)
+ (deps auth_test.exe))
+
+(rule
+ (alias runtest)
+ (deps (:exe auth_test.exe))
+ (action (run %{exe})))

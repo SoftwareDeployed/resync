@@ -1,0 +1,9 @@
+(library
+ (name universal_reason_react_auth_js)
+ (public_name resync.universal_reason_react_auth_js)
+ (modules Auth)
+ (wrapped false)
+ (libraries universal_reason_react_store_js)
+ (modes melange)
+ (preprocess
+  (pps melange.ppx)))
