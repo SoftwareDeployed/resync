@@ -38,14 +38,18 @@ let make = (~afterSet=((_next: 'a) => ()), ~mount: option(actions('a) => unit)=?
           setValue(next);
           afterSet(next);
         };
-
-        switch (mount) {
-        | Some(runMount) => runMount(actions)
-        | None => ()
-        };
       })
     | Server => initial
     };
+
+  (switch%platform (Runtime.platform) {
+   | Client =>
+     switch (mount) {
+     | Some(runMount) => runMount(actions)
+     | None => ()
+     };
+   | Server => ()
+   });
 
   {
     value,

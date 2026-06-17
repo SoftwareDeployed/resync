@@ -67,6 +67,98 @@ module Multiplexed = {
   external clearInterval: int => unit = "clearInterval";
   external setTimeout: (unit => unit, int) => int = "setTimeout";
   external clearTimeout: int => unit = "clearTimeout";
+  [@mel.scope "window"] external window: Webapi.Dom.Window.t = "window";
+  type response;
+  [@mel.get] external responseOk: response => bool = "ok";
+  external fetch: string => Js.Promise.t(response) = "fetch";
+
+  type ready_probe = {mutable delay: int, mutable timer: option(int), mutable probing: bool};
+  let readyProbeState: ref(Js.Dict.t(ready_probe)) = ref(Js.Dict.empty());
+
+  let closeOnPageHide = (socket: websocket) => {
+    let close = _event =>
+      if (socket->WebSocket.readyState == 0 || socket->WebSocket.readyState == 1) {
+        socket->WebSocket.close;
+      };
+    Webapi.Dom.Window.addEventListenerWithOptions(
+      "pagehide",
+      close,
+      {"capture": false, "once": true, "passive": true},
+      window,
+    );
+    Webapi.Dom.Window.addEventListenerWithOptions(
+      "beforeunload",
+      close,
+      {"capture": false, "once": true, "passive": true},
+      window,
+    );
+  };
+
+  let readyUrlOfHref = href => {
+    let url = Webapi.Url.make(href);
+    Webapi.Url.setProtocol(url, Webapi.Url.protocol(url) == "wss:" ? "https:" : "http:");
+    Webapi.Url.setPathname(url, "/readyz");
+    Webapi.Url.setSearch(url, "");
+    Webapi.Url.setHash(url, "");
+    Webapi.Url.href(url);
+  };
+
+  let rec openWhenReady = (href, openSocket) => {
+    let probes = readyProbeState.contents;
+    let probe =
+      switch (Js.Dict.get(probes, href)) {
+      | Some(probe) => probe
+      | None =>
+        let probe = {delay: 250, timer: None, probing: false};
+        Js.Dict.set(probes, href, probe);
+        readyProbeState := probes;
+        probe;
+      };
+    if (!probe.probing) {
+      let retry = () => {
+        switch (probe.timer) {
+        | Some(timer) => clearTimeout(timer)
+        | None => ()
+        };
+        let delay = probe.delay;
+        probe.delay = min(max(probe.delay * 2, 500), 10000);
+        probe.timer =
+          Some(
+            setTimeout(
+              () => {
+                probe.timer = None;
+                openWhenReady(href, openSocket);
+              },
+              delay,
+            ),
+          );
+      };
+      probe.probing = true;
+      fetch(readyUrlOfHref(href))
+      |> Js.Promise.then_(response => {
+           probe.probing = false;
+           if (responseOk(response)) {
+             probe.delay = 250;
+             openSocket();
+           } else {
+             retry();
+           };
+           Js.Promise.resolve();
+         })
+      |> Js.Promise.catch(_error => {
+           probe.probing = false;
+           retry();
+           Js.Promise.resolve();
+         })
+      |> ignore;
+    };
+  };
+
+  let resetReadyBackoff = href =>
+    switch (Js.Dict.get(readyProbeState.contents, href)) {
+    | Some(probe) => probe.delay = 250
+    | None => ()
+    };
 
   let clearPingInterval = (t: t) => {
     switch (t.pingIntervalRef.contents) {
@@ -257,9 +349,16 @@ module Multiplexed = {
       let url = Webapi.Url.makeWith(t.eventUrl, ~base=t.baseUrl);
       let isSecure = Webapi.Url.protocol(url) == "https:";
       url->Webapi.Url.setProtocol(isSecure ? "wss" : "ws");
+      let href = url->Webapi.Url.href;
 
-      let ws: websocket = WebSocket.make(url->Webapi.Url.href);
-      t.websocketRef := Some(ws);
+      let openSocket = () => {
+        switch (t.websocketRef.contents) {
+        | Some(_) => ()
+        | None when t.disposedRef.contents => ()
+        | None =>
+        let ws: websocket = WebSocket.make(href);
+        t.websocketRef := Some(ws);
+        closeOnPageHide(ws);
 
       let sendPing = () => {
         switch (t.websocketRef.contents) {
@@ -274,8 +373,9 @@ module Multiplexed = {
         };
       };
 
-      WebSocket.onOpen(ws, () => {
+      let handleOpen = () => {
         if (isCurrentSocket(t, ws)) {
+          resetReadyBackoff(href);
           t.lastPingRef := Js.Date.now();
           t.lastPongRef := Js.Date.now();
           clearPingInterval(t);
@@ -314,7 +414,9 @@ module Multiplexed = {
             let _ = sendAction(~actionId, ~action, t);
           });
         };
-      });
+      };
+
+      WebSocket.onOpen(ws, handleOpen);
 
       WebSocket.onClose(ws, () => {
         let wasIdleClose = t.idleCloseRef.contents;
@@ -341,7 +443,7 @@ module Multiplexed = {
                   t.reconnectTimeoutRef := None;
                   connect(t);
                 },
-                250,
+                1000,
               ),
             );
         };
@@ -357,6 +459,14 @@ module Multiplexed = {
           };
         };
       });
+
+      if (ws->WebSocket.readyState == 1) {
+        let _ = setTimeout(handleOpen, 0);
+        ();
+      };
+        };
+      };
+      openWhenReady(href, openSocket);
     };
   }
 

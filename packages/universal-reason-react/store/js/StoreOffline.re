@@ -1671,6 +1671,7 @@ module Synced = {
     let handleScopeChange = (~actions: StoreSource.actions(state), nextState: state): Js.Promise.t(unit) => {
       let scopeGeneration = nextScopeGeneration();
       Controller.disposeConnectionHandle();
+      let bootPromise = startSubscription(~scopeGeneration, nextState);
       cacheGetState(
         ~scopeKey=Schema.scopeKeyOfState(nextState),
         (),
@@ -1695,10 +1696,10 @@ module Synced = {
                persistConfirmedState(~broadcast=false, baseState);
                actions.set(baseState);
                refreshOptimisticState();
-               startSubscription(~scopeGeneration, baseState);
              };
            },
          );
+      bootPromise;
     };
 
     let hydrateStore = () => {
