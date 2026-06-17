@@ -1672,33 +1672,35 @@ module Synced = {
       let scopeGeneration = nextScopeGeneration();
       Controller.disposeConnectionHandle();
       let bootPromise = startSubscription(~scopeGeneration, nextState);
-      cacheGetState(
-        ~scopeKey=Schema.scopeKeyOfState(nextState),
-        (),
-      )
-      |> Js.Promise.then_(
-           (persistedState: option(StoreCache.state_record(state))) => {
-             if (!isCurrentScopeGeneration(scopeGeneration)) {
-               Js.Promise.resolve();
-             } else {
-               let persisted =
-                 switch (persistedState) {
-                 | Some(record) => Some(record.state)
-                 | None => None
-                 };
-               let baseState =
-                 StoreRuntimeHelpers.selectHydrationBase(
-                   ~initialState=nextState,
-                   ~persistedState=persisted,
-                   ~timestampOfState=Schema.timestampOfState,
-                 );
-               confirmedStateRef := baseState;
-               persistConfirmedState(~broadcast=false, baseState);
-               actions.set(baseState);
-               refreshOptimisticState();
-             };
-           },
-         );
+      let _ =
+        cacheGetState(
+          ~scopeKey=Schema.scopeKeyOfState(nextState),
+          (),
+        )
+        |> Js.Promise.then_(
+             (persistedState: option(StoreCache.state_record(state))) => {
+               if (!isCurrentScopeGeneration(scopeGeneration)) {
+                 Js.Promise.resolve();
+               } else {
+                 let persisted =
+                   switch (persistedState) {
+                   | Some(record) => Some(record.state)
+                   | None => None
+                   };
+                 let baseState =
+                   StoreRuntimeHelpers.selectHydrationBase(
+                     ~initialState=nextState,
+                     ~persistedState=persisted,
+                     ~timestampOfState=Schema.timestampOfState,
+                   );
+                 confirmedStateRef := baseState;
+                 persistConfirmedState(~broadcast=false, baseState);
+                 actions.set(baseState);
+                 refreshOptimisticState();
+                 Js.Promise.resolve();
+               };
+             },
+           );
       bootPromise;
     };
 
