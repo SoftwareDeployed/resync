@@ -1239,6 +1239,30 @@ let current_id_expression (table : table) = table_id_expression "NEW" table
 
 let deleted_id_expression (table : table) = table_id_expression "OLD" table
 
+(* Row payloads emitted by direct triggers must match the JSON shape produced
+   by user-written queries: timestamp/timestamptz columns are delivered as
+   epoch milliseconds, not Postgres' default ISO-8601 text. *)
+let row_json_expression record_name (table : table) =
+  let is_timestamp_column (column : column) =
+    match column.sql_type with Timestamp | Timestamptz -> true | _ -> false
+  in
+  if not (List.exists is_timestamp_column table.columns) then
+    Printf.sprintf "to_jsonb(%s)" record_name
+  else
+    let fields =
+      table.columns
+      |> List.map (fun (column : column) ->
+             let value =
+               match column.sql_type with
+               | Timestamp | Timestamptz ->
+                   Printf.sprintf "EXTRACT(EPOCH FROM %s.%s) * 1000" record_name column.name
+               | _ -> Printf.sprintf "%s.%s" record_name column.name
+             in
+             Printf.sprintf "'%s', %s" column.name value)
+      |> String.concat ", "
+    in
+    Printf.sprintf "json_build_object(%s)" fields
+
 let list_hd_opt = function head :: _ -> Some head | [] -> None
 
 let parent_id_column (table : table) =
@@ -1306,10 +1330,11 @@ let direct_trigger_sql (schema : schema) (table : table) =
           let channel_assignment = Option.value (direct_channel_assignment table) ~default:"channel_name := NULL;" in
           let new_payload : string =
             Printf.sprintf
-              "json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', TG_OP, 'data', CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE to_jsonb(NEW) END)"
+              "json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', TG_OP, 'data', CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE %s END)"
               (sql_string_literal table.name)
               (Printf.sprintf "CASE WHEN TG_OP = 'DELETE' THEN %s ELSE %s END"
                  (deleted_id_expression table) (current_id_expression table))
+              (row_json_expression "NEW" table)
           in
           let old_channel_check : string =
             Printf.sprintf
@@ -1349,10 +1374,11 @@ let direct_trigger_sql (schema : schema) (table : table) =
       let channel_assignment = Option.value (direct_channel_assignment table) ~default:"channel_name := NULL;" in
       let new_payload =
         Printf.sprintf
-          "json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', TG_OP, 'data', CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE to_jsonb(NEW) END)"
+          "json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', TG_OP, 'data', CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE %s END)"
           (sql_string_literal table.name)
           (Printf.sprintf "CASE WHEN TG_OP = 'DELETE' THEN %s ELSE %s END"
              (deleted_id_expression table) (current_id_expression table))
+          (row_json_expression "NEW" table)
       in
       Some
         (String.concat "\n"
@@ -1404,12 +1430,13 @@ let views_broadcast_trigger_sql (schema : schema) (table : table) =
       | None ->
           Some
             (Printf.sprintf
-               "DROP TRIGGER IF EXISTS %s ON %s;\nDROP FUNCTION IF EXISTS %s();\n\nCREATE OR REPLACE FUNCTION %s()\nRETURNS TRIGGER AS $$\nDECLARE\n  view_record RECORD;\n  channel_name TEXT;\n  payload JSON;\nBEGIN\n  IF TG_OP = 'DELETE' THEN\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', 'DELETE');\n    FOR view_record IN\n      SELECT DISTINCT %s FROM %s\n    LOOP\n      channel_name := view_record.%s::text;\n      IF channel_name IS NOT NULL THEN\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n    END LOOP;\n    RETURN OLD;\n  END IF;\n  payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', TG_OP, 'data', to_jsonb(NEW));\n  FOR view_record IN\n      SELECT DISTINCT %s FROM %s\n    LOOP\n      channel_name := view_record.%s::text;\n      IF channel_name IS NOT NULL THEN\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n    END LOOP;\n  RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER %s\nAFTER INSERT OR UPDATE OR DELETE ON %s\nFOR EACH ROW EXECUTE FUNCTION %s();"
+               "DROP TRIGGER IF EXISTS %s ON %s;\nDROP FUNCTION IF EXISTS %s();\n\nCREATE OR REPLACE FUNCTION %s()\nRETURNS TRIGGER AS $$\nDECLARE\n  view_record RECORD;\n  channel_name TEXT;\n  payload JSON;\nBEGIN\n  IF TG_OP = 'DELETE' THEN\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', 'DELETE');\n    FOR view_record IN\n      SELECT DISTINCT %s FROM %s\n    LOOP\n      channel_name := view_record.%s::text;\n      IF channel_name IS NOT NULL THEN\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n    END LOOP;\n    RETURN OLD;\n  END IF;\n  payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', TG_OP, 'data', %s);\n  FOR view_record IN\n      SELECT DISTINCT %s FROM %s\n    LOOP\n      channel_name := view_record.%s::text;\n      IF channel_name IS NOT NULL THEN\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n    END LOOP;\n  RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER %s\nAFTER INSERT OR UPDATE OR DELETE ON %s\nFOR EACH ROW EXECUTE FUNCTION %s();"
                function_name table.name function_name function_name
                (sql_string_literal table.name) (deleted_id_expression table)
                config.channel_column config.view_table
                config.channel_column
                (sql_string_literal table.name) (current_id_expression table)
+               (row_json_expression "NEW" table)
                config.channel_column config.view_table
                config.channel_column
                function_name table.name function_name)

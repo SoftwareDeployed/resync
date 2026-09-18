@@ -717,12 +717,12 @@ let subscribe_websocket ?(connection_id = 0) t request websocket channel =
   log "conn=%d subscribe.begin channel=%s" connection_id channel;
   Lwt.catch
     (fun () ->
-      let snapshot_start = Unix.gettimeofday () in
-      log "conn=%d subscribe.snapshot.begin channel=%s" connection_id channel;
-      let* snapshot = t.load_snapshot request channel in
-      log "conn=%d subscribe.snapshot.end channel=%s elapsed=%.3f len=%d"
-        connection_id channel (Unix.gettimeofday () -. snapshot_start)
-        (String.length snapshot);
+      (* Register the subscriber (and the adapter LISTEN on first
+         subscription) BEFORE computing the snapshot. Previously the snapshot
+         query ran first, so a commit landing between the query and the
+         LISTEN registration was silently missed by the new subscriber. With
+         this order, earlier commits are reflected in the snapshot and later
+         ones are delivered as patches. *)
       let* register_result =
         Lwt_mutex.with_lock t.channels_mutex (fun () ->
           log "conn=%d subscribe.mutex.enter channel=%s" connection_id channel;
@@ -816,6 +816,12 @@ let subscribe_websocket ?(connection_id = 0) t request websocket channel =
             connection_id channel (Printexc.to_string exn);
           Lwt.return_none
       | Ok subscriber ->
+          let snapshot_start = Unix.gettimeofday () in
+          log "conn=%d subscribe.snapshot.begin channel=%s" connection_id channel;
+          let* snapshot = t.load_snapshot request channel in
+          log "conn=%d subscribe.snapshot.end channel=%s elapsed=%.3f len=%d"
+            connection_id channel (Unix.gettimeofday () -. snapshot_start)
+            (String.length snapshot);
           let* snapshot_sent =
             Lwt.catch
               (fun () ->

@@ -855,6 +855,13 @@ module Synced = {
     let replayNeededRef: ref(bool) = ref(false);
     let scopeGenerationRef: ref(int) = ref(0);
     let pendingScopeReadyRef: ref(option((int, unit => unit))) = ref(None);
+    /* Last scope for which handleScopeChange actually ran. Optimistic state
+       updates trail confirmed updates asynchronously, so a stale replay can
+       briefly re-set a scope the confirmed state already left; comparing
+       against the confirmed scope would then fire a spurious scope change
+         (dispose + reconnect + resubscribe) that resurrects the stale scope's
+         snapshot. */
+    let lastHandledScopeRef: ref(option(string)) = ref(None);
 
     /* Initialize the SyncController that owns connection state, timers,
        listeners, and queued dispatch behavior. */
@@ -1513,13 +1520,28 @@ module Synced = {
 
     let handleSnapshot = (snapshotJson: StoreJson.json) => {
       let snapshotState = Schema.state_of_json(snapshotJson);
-      /* Ordering contract: snapshot application, persistence, and optimistic
-         replay complete before any future snapshot-adjacent events fire. Raw
-         snapshot transport frames are intentionally not part of the public
-         event surface. */
-      confirmedStateRef := snapshotState;
-      persistConfirmedState(~broadcast=true, snapshotState);
-      refreshOptimisticState();
+      /* Drop snapshots for scopes the store has already moved off. A scope
+         change disposes and recreates the connection; a replayed or in-flight
+         snapshot from the previous channel must not clobber the state of the
+         scope we navigated to (e.g. resurrecting a just-deleted selection). */
+      let scopeMatches =
+        switch (sourceRef.contents) {
+        | Some(actions) =>
+          Schema.scopeKeyOfState(actions.get())
+          == Schema.scopeKeyOfState(snapshotState)
+        | None => true
+        };
+      if (!scopeMatches) {
+        ();
+      } else {
+        /* Ordering contract: snapshot application, persistence, and optimistic
+           replay complete before any future snapshot-adjacent events fire. Raw
+           snapshot transport frames are intentionally not part of the public
+           event surface. */
+        confirmedStateRef := snapshotState;
+        persistConfirmedState(~broadcast=true, snapshotState);
+        refreshOptimisticState();
+      };
     };
 
     let handlePatch = (~payload: StoreJson.json, ~timestamp: float) => {
@@ -1669,6 +1691,7 @@ module Synced = {
       };
 
     let handleScopeChange = (~actions: StoreSource.actions(state), nextState: state): Js.Promise.t(unit) => {
+      lastHandledScopeRef := Some(Schema.scopeKeyOfState(nextState));
       let scopeGeneration = nextScopeGeneration();
       Controller.disposeConnectionHandle();
       let bootPromise = startSubscription(~scopeGeneration, nextState);
@@ -1678,8 +1701,8 @@ module Synced = {
           (),
         )
         |> Js.Promise.then_(
-             (persistedState: option(StoreCache.state_record(state))) => {
-               if (!isCurrentScopeGeneration(scopeGeneration)) {
+              (persistedState: option(StoreCache.state_record(state))) => {
+                if (!isCurrentScopeGeneration(scopeGeneration)) {
                  Js.Promise.resolve();
                } else {
                  let persisted =
@@ -1731,18 +1754,22 @@ module Synced = {
       | Client =>
         let source =
           StoreSource.make(
-            ~afterSet=nextState => {
-              let newScopeKey = Schema.scopeKeyOfState(nextState);
-              let oldScopeKey = Schema.scopeKeyOfState(confirmedStateRef.contents);
-              if (newScopeKey != oldScopeKey) {
-                switch (sourceRef.contents) {
-                | Some(actions) =>
-                  let _ = handleScopeChange(~actions, nextState);
-                  ();
-                | None => ()
-                };
-              };
-            },
+             ~afterSet=nextState => {
+               let newScopeKey = Schema.scopeKeyOfState(nextState);
+               let scopeChanged =
+                 switch (lastHandledScopeRef.contents) {
+                 | Some(lastScope) => newScopeKey != lastScope
+                 | None => true
+                 };
+               if (scopeChanged) {
+                 switch (sourceRef.contents) {
+                 | Some(actions) =>
+                   let _ = handleScopeChange(~actions, nextState);
+                   ();
+                 | None => ()
+                 };
+               };
+             },
             ~mount=
               actions => {
                 sourceRef := Some(actions);

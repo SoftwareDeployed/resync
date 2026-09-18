@@ -316,14 +316,33 @@ let useAutoScroll = (messages, isStreaming, streamingText) => {
         };
       };
       Webapi.Dom.Element.addEventListener("scroll", onScroll, el);
+      /* Pin on DOM mutations while sticky: Streamdown reveals streamed content
+         progressively, decoupled from store commits, so render-driven scrolls
+         alone can lag behind growth by a full chunk. Scrolling in the same
+         frame as the growth keeps the list pinned. */
+      let observer =
+        Webapi.Dom.MutationObserver.make((_records, _observer) =>
+          if (shouldStickToBottomRef^) {
+            scrollToBottom();
+          }
+        );
+      Webapi.Dom.MutationObserver.observe(
+        el,
+        [%obj {childList: true, subtree: true, characterData: true}],
+        observer,
+      );
       Some(() => {
         Webapi.Dom.Element.removeEventListener("scroll", onScroll, el);
+        Webapi.Dom.MutationObserver.disconnect(observer);
       });
     | None => None
     };
   });
 
-  React.useEffect3(
+  /* useLayoutEffect so the stick-scroll lands synchronously after the DOM
+     commit (before paint); a passive effect can slip a frame behind content
+     growth and briefly leave the list un-pinned during streaming. */
+  React.useLayoutEffect3(
     () => {
       if (shouldStickToBottomRef^) {
         scheduleScrollToBottom(scrollRafId, shouldStickToBottomRef);

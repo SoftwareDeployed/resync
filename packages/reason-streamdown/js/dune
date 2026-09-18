@@ -3,7 +3,7 @@
  (public_name resync.reason_streamdown_js)
  (modules Streamdown)
  (wrapped false)
- (libraries reason-react melange.js)
+ (libraries reason-react melange.js universal_reason_react_components_js)
  (modes melange)
  (preprocess
   (pps

@@ -87,6 +87,8 @@ let () =
 - assembling `Dream.sql_pool`, `Dream.logger`, and `Dream.router`
 - running `Dream.run`
 
+It also registers a `GET /readyz` route that returns `200 ok`. The client store probes this endpoint (with exponential backoff) before opening the realtime websocket, so it must respond before the websocket is attempted; serving it from the builder keeps every demo server compatible without a per-app route.
+
 ### Manual Setup (legacy)
 
 If you need full control over the Dream pipeline, you can still wire things manually:

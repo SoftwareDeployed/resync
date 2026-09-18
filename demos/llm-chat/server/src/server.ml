@@ -130,7 +130,17 @@ let get_config request thread_id =
   in
   let state : Model.t = {
     threads;
-    current_thread_id = Option.map (fun (_thread : Model.Thread.t) -> thread_id) thread_info;
+    (* Echo the selection: the client only subscribes to a thread channel after
+       selecting that thread. The create-thread mutation can commit seconds
+       after the first snapshot is requested under load (the subscription goes
+       out with the optimistic state change, the mutation via the ledger), so
+       a missing row here does NOT mean the thread is gone — reporting
+       current_thread_id=None would flap the route back to "/" and, since
+       current=None unsubscribes, wedge the client there. The new thread row
+       itself arrives via its INSERT patch after commit. Deleting the current
+       thread never re-subscribes (current becomes None first), so this echo
+       cannot resurrect deleted selections. *)
+    current_thread_id = Some thread_id;
     messages;
     updated_at = max latest_thread_at latest_message_at;
   } in
@@ -144,22 +154,15 @@ let resolve_subscription request selection =
   match RealtimeSubscription.decode_channel selection with
   | None -> Lwt.return_none
   | Some thread_id ->
-      let* thread_info =
+      (* Always record the view, even when the thread row is not committed yet
+         (the create-thread mutation can lag the subscription): views are not
+         FK-constrained, and broadcast_to_views fan-outs must reach this
+         channel while the create is in flight. *)
+      let* () =
         Dream.sql request (fun db ->
-          RealtimeSchema.Queries.GetThread.find_opt
-            db
-            RealtimeSchema.Queries.GetThread.caqti_type
-            thread_id)
+          RealtimeSchema.Mutations.RecordThreadView.exec db thread_id)
       in
-      (match thread_info with
-       | Some _ ->
-           let* () =
-             Dream.sql request (fun db ->
-               RealtimeSchema.Mutations.RecordThreadView.exec db thread_id)
-           in
-           Lwt.return_some thread_id
-       | None ->
-           Lwt.return_some thread_id)
+      Lwt.return_some thread_id
 
 let ollama_url () =
   match Sys.getenv_opt "LLM_CHAT_OLLAMA_URL" with

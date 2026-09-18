@@ -21,8 +21,13 @@ CREATE TABLE messages (
   created_at timestamptz NOT NULL DEFAULT NOW()
 );
 
+-- No FK to threads: a view must be recordable the moment a client subscribes
+-- to a thread channel, which can happen before the create-thread mutation
+-- commits (the subscription follows the optimistic state change). With the
+-- FK, that window left the channel out of broadcast_to_views fan-outs and the
+-- client permanently missed other threads' patches.
 CREATE TABLE IF NOT EXISTS active_thread_views (
-  thread_id uuid REFERENCES threads(id) ON DELETE CASCADE,
+  thread_id uuid,
   PRIMARY KEY (thread_id)
 );
 

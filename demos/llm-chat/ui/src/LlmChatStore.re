@@ -237,7 +237,16 @@ let reduceStream = (streaming, event) =>
   | StreamComplete(_threadId, id) =>
     let isCurrent = isCurrentStream(~streaming, ~id);
     {
-      activeStreams: streaming.activeStreams->Belt.Map.String.remove(id),
+      /* Keep the ghost entry only for the current stream: the final persist
+         patch can still lag the streamed text, and dropping the entry early
+         briefly swaps the bubble to shorter persisted content (a visible
+         scroll jump). reconcilePatch removes it once the persisted row covers
+         the stream. Non-current streams aren't rendered, so clean them up
+         immediately. */
+      activeStreams:
+        isCurrent
+          ? streaming.activeStreams
+          : streaming.activeStreams->Belt.Map.String.remove(id),
       currentStreamId: isCurrent ? None : streaming.currentStreamId,
       currentThreadId: isCurrent ? None : streaming.currentThreadId,
       isStreaming: isCurrent ? false : streaming.isStreaming,
@@ -362,12 +371,42 @@ let updateOfPatch = (patch: patch, state: state): state =>
 let reconcilePatch = (patch, streaming) =>
   switch (patch) {
   | MessagesPatch(StoreCrud.Upsert(msg)) =>
+    let streamedText =
+      streaming.activeStreams
+      ->Belt.Map.String.get(msg.id)
+      ->Belt.Option.getWithDefault("");
+    let isLiveStream =
+      switch (streaming.currentStreamId) {
+      | Some(currentId) => currentId == msg.id
+      | None => false
+      };
+    let persistedCoversStream =
+      if (streamedText == "") {
+        true;
+      } else {
+        let prefixLength = String.length(streamedText);
+        String.length(msg.content) >= prefixLength
+        && String.sub(msg.content, 0, prefixLength) == streamedText;
+      };
     {
-      activeStreams: streaming.activeStreams->Belt.Map.String.remove(msg.id),
+      /* Never drop the ghost entry for the currently-streaming message: the
+         server persists per chunk, and removing the entry mid-stream resets
+         the streamed accumulator so the next token concatenates stale +
+         new content (a doubled bubble). After the stream ends, drop the entry
+         once the persisted row covers everything streamed; dropping it earlier
+         briefly shrinks the bubble and visibly jumps the pinned scroll. Also:
+         never clear streamError here — batch delivery can place message
+         patches after a stream_error frame, and wiping it would lose the
+         error before it renders. New streams reset streamError via
+         StreamStarted. */
+      activeStreams:
+        !isLiveStream && persistedCoversStream
+          ? streaming.activeStreams->Belt.Map.String.remove(msg.id)
+          : streaming.activeStreams,
       currentStreamId: streaming.currentStreamId,
       currentThreadId: streaming.currentThreadId,
       isStreaming: streaming.isStreaming,
-      streamError: None,
+      streamError: streaming.streamError,
     }
   | _ => streaming
   };

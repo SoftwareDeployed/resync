@@ -1,0 +1,2 @@
+- When a mutation times out due to the backend being unavailable, once the backend becomes available again it does the mutation but doesn't update the local state.
+- When you navigate to a page using the router, the scroll position of the page should reset to the top of the page. There should be an option to disable this behavior in the link component as well.

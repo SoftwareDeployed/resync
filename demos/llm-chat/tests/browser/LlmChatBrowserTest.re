@@ -989,6 +989,46 @@ let runStreamErrorScenario = (~browser, ~baseUrl, ~mock) => {
      });
 };
 
+/* Convergence is eventual: poll both tabs until their message lists match and
+   contain the prompt, instead of comparing at a single point in time. */
+let rec waitForTabConvergence = (~pageA, ~pageB, ~prompt, ~label, ~attemptsLeft) => {
+  let readListText = page =>
+    page->Playwright.evaluateString(
+      "document.getElementById('message-list')?.textContent || ''",
+    );
+  readListText(pageA)
+  |> then_(textA =>
+       readListText(pageB)
+       |> then_(textB =>
+            if (textA == textB && textA->includes(prompt)) {
+              Js.log("[PASS] " ++ label);
+              resolve();
+            } else if (attemptsLeft <= 0) {
+              reject(
+                BrowserTestUtils.makeError(
+                  label
+                  ++ " failed: tabs did not converge. textA="
+                  ++ textA
+                  ++ " | textB="
+                  ++ textB,
+                ),
+              );
+            } else {
+              BrowserTestUtils.sleep(200)
+              |> then_(_ =>
+                   waitForTabConvergence(
+                     ~pageA,
+                     ~pageB,
+                     ~prompt,
+                     ~label,
+                     ~attemptsLeft=attemptsLeft - 1,
+                   )
+                 );
+            }
+          )
+     );
+};
+
 let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
   Js.log("Running cross-tab realtime sync scenario...");
   let prompt =
@@ -1089,24 +1129,16 @@ let runCrossTabRealtimeSyncScenario = (~browser, ~baseUrl) => {
                              ~label="Cross-tab sync: sender tokens never render in a second ghost bubble",
                            )
                          )
-                      |> then_(_ =>
-                           pageA->Playwright.evaluateString(
-                             "document.getElementById('message-list')?.textContent || ''"
-                           )
-                         )
-                      |> then_(textA =>
-                           pageB->Playwright.evaluateString(
-                             "document.getElementById('message-list')?.textContent || ''"
-                           )
-                           |> then_(textB =>
-                                BrowserTestUtils.assertTrue(
-                                  ~label="Cross-tab sync: both tabs converge to same final text",
-                                  textA == textB && textA->includes(prompt) == true,
-                                  ~details="Expected both tabs to converge to identical final transcript",
-                                )
-                              )
-                         )
-                      |> then_(_ =>
+                       |> then_(_ =>
+                            waitForTabConvergence(
+                              ~pageA,
+                              ~pageB,
+                              ~prompt,
+                              ~label="Cross-tab sync: both tabs converge to same final text",
+                              ~attemptsLeft=50,
+                            )
+                          )
+                       |> then_(_ =>
                            pageB->Playwright.evaluateString(
                              "document.querySelectorAll('.message--assistant').length.toString()"
                            )
@@ -1445,6 +1477,20 @@ let runThreadDeletionScenario = (~browser, ~baseUrl) => {
      })
 };
 
+/* Poll until the route holds a thread id different from [previousThreadId].
+   More robust than a fixed sleep: thread creation + route push can outlast
+   800ms when the suite has many pages/connections open. */
+let waitForThreadRouteChange = (~page, ~previousThreadId, ~label) =>
+  waitForExpressionTrue(
+    ~page,
+    ~expression=
+      "(() => { var id = window.location.pathname.split('/').filter(Boolean).slice(-1)[0] || ''; return id !== '' && id !== '"
+      ++ previousThreadId
+      ++ "'; })() ? 'true' : 'false'",
+    ~label,
+    ~attemptsLeft=100,
+  );
+
 let runDeleteInactiveThreadKeepsActiveScenario = (~browser, ~baseUrl) => {
   Js.log("Running inactive thread deletion scenario...");
   browser
@@ -1454,11 +1500,23 @@ let runDeleteInactiveThreadKeepsActiveScenario = (~browser, ~baseUrl) => {
        ->Playwright.goto(baseUrl ++ "/")
        |> then_(_ => page->Playwright.waitForSelector("#thread-list"))
        |> then_(_ => page->Playwright.click("#new-thread-button"))
-       |> then_(_ => BrowserTestUtils.sleep(800))
+       |> then_(_ =>
+            waitForThreadRouteChange(
+              ~page,
+              ~previousThreadId="",
+              ~label="Inactive delete: first thread route ready",
+            )
+          )
        |> then_(_ => readCurrentThreadId(page))
        |> then_(inactiveThreadId =>
             page->Playwright.click("#new-thread-button")
-            |> then_(_ => BrowserTestUtils.sleep(800))
+            |> then_(_ =>
+                 waitForThreadRouteChange(
+                   ~page,
+                   ~previousThreadId=inactiveThreadId,
+                   ~label="Inactive delete: second thread route ready",
+                 )
+               )
             |> then_(_ => readCurrentThreadId(page))
             |> then_(activeThreadId =>
                  page->Playwright.click("#delete-thread-" ++ inactiveThreadId)
@@ -1534,30 +1592,49 @@ let runDbSyncScenario = (~browser, ~baseUrl) => {
        |> then_(countBefore => {
             /* Delete the thread directly via the test endpoint (simulates DB deletion) */
             readCurrentThreadId(page)
-            |> then_(threadId => {
-                 Js.log2("DB sync: deleting thread", threadId);
-                 page
-                 ->Playwright.evaluateString(
-                   baseUrl ++ "/api/test/delete-thread/" ++ threadId
-                   |> js => "fetch('" ++ js ++ "', { method: 'POST' }).then(r => r.text())"
-                 )
-                 |> then_(_ => BrowserTestUtils.sleep(1000))
-                 |> then_(_ =>
-                      page->Playwright.evaluateString(
-                        "document.querySelectorAll('.thread-item').length.toString()"
-                      )
-                    )
-                 |> then_(countAfter => {
-                      let before = int_of_string(countBefore);
-                      let after_ = int_of_string(countAfter);
-                      BrowserTestUtils.assertTrue(
-                        ~label="DB sync: thread removed from UI after direct DB deletion",
-                        after_ < before,
-                        ~details=
-                          "Before: " ++ countBefore ++ ", After: " ++ countAfter,
-                      );
-                    })
-               })
+             |> then_(threadId => {
+                  Js.log2("DB sync: deleting thread", threadId);
+                  let threadIdsScript =
+                    "Array.from(document.querySelectorAll('.thread-item')).map(el => el.id).join(',')";
+                  page
+                  ->Playwright.evaluateString(threadIdsScript)
+                  |> then_(idsBefore => {
+                       Js.log2("DB sync: ids before:", idsBefore);
+                       page->Playwright.evaluateString(
+                         baseUrl ++ "/api/test/delete-thread/" ++ threadId
+                         |> js => "fetch('" ++ js ++ "', { method: 'POST' }).then(r => r.text())"
+                       );
+                     })
+                  |> then_(_ => BrowserTestUtils.sleep(1000))
+                  |> then_(_ =>
+                       page->Playwright.evaluateString(
+                         "document.querySelectorAll('.thread-item').length.toString()"
+                       )
+                     )
+                  |> then_(countAfter =>
+                       page
+                       ->Playwright.evaluateString(threadIdsScript)
+                       |> then_(idsAfter => {
+                            Js.log("DB sync: counts before=" ++ countBefore ++ " after=" ++ countAfter);
+                            Js.log2("DB sync: ids after:", idsAfter);
+                            /* Assert the deleted thread is gone from the UI
+                               (the scenario's intent). A raw count comparison
+                               is not reliable here: the shared IndexedDB
+                               action ledger can replay a pending create from
+                               an earlier page onto this one, changing the
+                               count independently of the deletion. */
+                            waitForExpressionTrue(
+                              ~page,
+                              ~expression=
+                                "document.querySelector('#thread-item-"
+                                ++ threadId
+                                ++ "') === null ? 'true' : 'false'",
+                              ~label="DB sync: thread removed from UI after direct DB deletion",
+                              ~attemptsLeft=50,
+                            );
+                          })
+                     );
+                })
           })
     )
   |> catch(error => {

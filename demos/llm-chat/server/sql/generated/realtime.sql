@@ -142,7 +142,7 @@ BEGIN
       channel_name := NEW.thread_id::text;
     END IF;
   END IF;
-  payload := json_build_object('type', 'patch', 'table', 'messages', 'id', CASE WHEN TG_OP = 'DELETE' THEN to_jsonb(OLD.id) ELSE to_jsonb(NEW.id) END, 'action', TG_OP, 'data', CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE to_jsonb(NEW) END);
+  payload := json_build_object('type', 'patch', 'table', 'messages', 'id', CASE WHEN TG_OP = 'DELETE' THEN to_jsonb(OLD.id) ELSE to_jsonb(NEW.id) END, 'action', TG_OP, 'data', CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE json_build_object('id', NEW.id, 'thread_id', NEW.thread_id, 'role', NEW.role, 'content', NEW.content, 'created_at', EXTRACT(EPOCH FROM NEW.created_at) * 1000) END);
   IF channel_name IS NOT NULL THEN
     PERFORM pg_notify(channel_name, payload::text);
   END IF;

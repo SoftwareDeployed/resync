@@ -1,5 +1,5 @@
 {
-  "schema_hash": "8381c1bc8f6f29fa619ea6a76dc43c16",
+  "schema_hash": "4bc23b10a76b811a815cf7d7abd158ce",
   "tables": [
     {
       "table_name": "threads",
@@ -100,11 +100,7 @@
           "nullable": true,
           "primary_key": false,
           "default": null,
-          "foreign_key": {
-            "column": "thread_id",
-            "referenced_table": "threads",
-            "referenced_column": "id"
-          }
+          "foreign_key": null
         }
       ],
       "id_column": null,
