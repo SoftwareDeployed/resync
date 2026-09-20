@@ -2053,43 +2053,90 @@ let runReconnectionScenario = (~browser, ~baseUrl, ~serverRef) => {
               ~attemptsLeft=50,
             )
           )
+       /* Wait for the first exchange to finish streaming before killing the
+          server: the send button is disabled while isStreaming, and an
+          in-flight stream would otherwise never settle offline. */
+       |> then_(_ =>
+            waitForSelectorText(
+              ~page,
+              ~selector="#message-list",
+              ~expected="Mock assistant saw " ++ prompt,
+              ~label="Reconnection: initial reply streamed",
+              ~attemptsLeft=150,
+            )
+          )
+       |> then_(_ =>
+            waitForExpressionTrue(
+              ~page,
+              ~expression=
+                "document.querySelector('#send-button') && !document.querySelector('#send-button').disabled ? 'true' : 'false'",
+              ~label="Reconnection: send button re-enabled (stream settled)",
+              ~attemptsLeft=100,
+            )
+          )
        |> then_(_ => readCurrentThreadId(page))
        |> then_(threadId => {
             Js.log2("Reconnection: threadId", threadId);
             /* Stop server */
             switch (serverRef.contents) {
-            | Some(server) =>
-                LlmChatTestServer.stop(server)
-                |> then_(_ => {
-                     serverRef := None;
-                     Js.log("Reconnection: server stopped");
-                     let msgId = UUID.make();
-                     let sql =
-                       "INSERT INTO messages (id, thread_id, role, content) VALUES ('"
-                       ++ msgId
-                       ++ "', '"
-                       ++ threadId
-                       ++ "', 'assistant', 'Message while disconnected')";
-                     execSql(sql);
-                     BrowserTestUtils.sleep(1000);
-                   })
-                |> then_(_ => {
-                     Js.log("Reconnection: restarting server...");
-                     LlmChatTestServer.start();
-                   })
-                |> then_(newServer => {
-                     serverRef := Some(newServer);
-                     BrowserTestUtils.sleep(2500)
+             | Some(server) =>
+                 LlmChatTestServer.stop(server)
+                 |> then_(_ => {
+                      serverRef := None;
+                      Js.log("Reconnection: server stopped");
+                      let msgId = UUID.make();
+                      let sql =
+                        "INSERT INTO messages (id, thread_id, role, content) VALUES ('"
+                        ++ msgId
+                        ++ "', '"
+                        ++ threadId
+                        ++ "', 'assistant', 'Message while disconnected')";
+                      execSql(sql);
+                      BrowserTestUtils.sleep(1000);
+                    })
+                /* Send a NEW message while the backend is unavailable: it must
+                   queue, redispatch after revival, and converge the local
+                   state (known bug regression guard). */
+                |> then_(_ =>
+                     page
+                     ->Playwright.fill("#prompt-input", "Offline redispatch prompt")
+                     |> then_(_ => page->Playwright.click("#send-button"))
                      |> then_(_ =>
                           waitForSelectorText(
                             ~page,
                             ~selector="#message-list",
-                            ~expected="Message while disconnected",
-                            ~label="Reconnection: client received missed message after reconnect",
-                            ~attemptsLeft=100,
+                            ~expected="Offline redispatch prompt",
+                            ~label="Reconnection: offline send appears optimistically",
+                            ~attemptsLeft=50,
                           )
                         )
-                   })
+                   )
+                 |> then_(_ => {
+                      Js.log("Reconnection: restarting server...");
+                      LlmChatTestServer.start();
+                    })
+                 |> then_(newServer => {
+                      serverRef := Some(newServer);
+                      BrowserTestUtils.sleep(2500)
+                      |> then_(_ =>
+                           waitForSelectorText(
+                             ~page,
+                             ~selector="#message-list",
+                             ~expected="Message while disconnected",
+                             ~label="Reconnection: client received missed message after reconnect",
+                             ~attemptsLeft=100,
+                           )
+                         )
+                      |> then_(_ =>
+                           waitForSelectorText(
+                             ~page,
+                             ~selector="#message-list",
+                             ~expected="Mock assistant saw Offline redispatch prompt",
+                             ~label="Reconnection: offline-sent message redispatched and reply streamed",
+                             ~attemptsLeft=150,
+                           )
+                         )
+                    })
             | None =>
                 reject(BrowserTestUtils.makeError("Reconnection: no server to stop"))
             };

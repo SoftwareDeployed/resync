@@ -26,6 +26,20 @@ body {
   overflow: hidden;
 }
 
+.connection-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #664d03;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffe69c;
+}
+
 .thread-sidebar {
   width: 250px;
   flex-shrink: 0;

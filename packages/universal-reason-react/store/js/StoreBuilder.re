@@ -602,6 +602,8 @@ module Runtime = {
     type listener_id = StoreEvents.listener_id;
     type store_event = StoreEvents.store_event(action);
     type listener = StoreEvents.listener(action);
+    type connection_status = StoreRuntimeTypes.connection_status;
+    type status = StoreRuntimeTypes.status;
 
     let empty: t;
     let hydrateStore: unit => t;
@@ -667,6 +669,7 @@ module Runtime = {
     module Hooks: {
       let useStore: unit => t;
       let useStreaming: unit => streaming_state;
+      let useConnectionStatus: unit => status;
       let useQuery:
         (module QueryRegistryTypes.QueryModule with type params = 'p and type row = 'r,
          'p,

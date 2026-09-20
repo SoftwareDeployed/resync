@@ -356,6 +356,60 @@ let useAutoScroll = (messages, isStreaming, streamingText) => {
 [@platform native]
 let useAutoScroll = (_messages, _isStreaming, _streamingText) => ();
 
+type connectionBanner = {
+  disconnected: bool,
+  pendingActions: int,
+};
+
+[@platform js]
+let useConnectionBanner = () => {
+  let statusValue = LlmChatStore.Hooks.useConnectionStatus();
+  let (hasConnectedOnce, setHasConnectedOnce) = React.useState(() => false);
+  let (graceElapsed, setGraceElapsed) = React.useState(() => false);
+  React.useEffect0(() => {
+    switch (statusValue.connection) {
+    | Open when !hasConnectedOnce => setHasConnectedOnce(_ => true)
+    | _ => ()
+    };
+    None;
+  });
+  React.useEffect0(() => {
+    let timerId =
+      Js.Global.setTimeout(~f=() => setGraceElapsed(_ => true), 2500);
+    Some(() => Js.Global.clearTimeout(timerId));
+  });
+  let disconnected =
+    switch (statusValue.connection) {
+    | Open => false
+    /* Before the first successful open, only complain once the initial
+       connection grace window has passed (avoids flashing on page load). */
+    | WaitingForOpen => hasConnectedOnce || graceElapsed
+    | NotApplicable => graceElapsed && !hasConnectedOnce
+    };
+  Some({disconnected, pendingActions: statusValue.pendingActions});
+};
+
+[@platform native]
+let useConnectionBanner = () => None;
+
+module ConnectionBanner = {
+  [@react.component]
+  let make = (~state: option(connectionBanner)) =>
+    switch (state) {
+    | Some({disconnected: true, pendingActions}) =>
+      <div className="connection-banner" id="connection-banner">
+        {React.string(
+           pendingActions > 0
+             ? "You're offline — "
+               ++ string_of_int(pendingActions)
+               ++ " message(s) queued. They'll send automatically when the connection returns."
+             : "Connection lost — reconnecting…",
+         )}
+      </div>;
+    | _ => React.null;
+    };
+};
+
 module View = {
   [@react.component]
   let make =
@@ -390,6 +444,7 @@ module View = {
       let hasCurrentStreamRow =
         hasCurrentStreamAssistantMessage(~messages, streaming);
       let isStreaming = isStreamingForThread(~currentThreadId, streaming);
+      let connectionBanner = useConnectionBanner();
       let renderedMessages =
         appendCurrentStreamMessage(
           ~messages,
@@ -421,7 +476,9 @@ module View = {
 
       useAutoScroll(messages, isStreaming, streamingText);
 
-      <div className="chat-layout">
+      <>
+        <ConnectionBanner state={connectionBanner} />
+        <div className="chat-layout">
         <div className="thread-sidebar" id="thread-list">
           <button
             className="new-thread-button"
@@ -548,7 +605,8 @@ module View = {
                </div>
              : React.null}
         </div>
-      </div>;
+      </div>
+      </>;
     });
 };
 

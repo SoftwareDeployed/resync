@@ -513,9 +513,28 @@ module Local = {
     let useMutationFn = RuntimeHooks.mutationFn;
     let useMutationResult = RuntimeHooks.mutationResult;
 
+    /* React hook mirroring StoreRuntimeLifecycle.status: re-renders whenever
+       the connection state or pending-work counters change. */
+    let useConnectionStatus = () => {
+      let (statusValue, setStatusValue) =
+        React.useState(() => StoreRuntimeLifecycle.status(lifecycle));
+      React.useEffect0(() => {
+        let listenerId =
+          StoreRuntimeLifecycle.subscribeStatus(
+            lifecycle,
+            s => setStatusValue(_ => s),
+          );
+        Some(() =>
+          StoreRuntimeLifecycle.unsubscribeStatus(lifecycle, listenerId)
+        );
+      });
+      statusValue;
+    };
+
     module Hooks = {
       let useStore = Context.useStore;
       let useStreaming = useStreaming;
+      let useConnectionStatus = useConnectionStatus;
       let useQuery = useQuery;
       let useQueryResult = useQueryResult;
       let useQueryStore = useQueryStore;
@@ -534,6 +553,8 @@ module Local = {
     let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let status = () => StoreRuntimeLifecycle.status(lifecycle);
 
+    type connection_status = StoreRuntimeTypes.connection_status;
+    type status = StoreRuntimeTypes.status;
     type status_listener_id = StoreEvents.listener_id;
     let subscribeStatus = callback =>
       StoreRuntimeLifecycle.subscribeStatus(lifecycle, callback);
@@ -1887,9 +1908,28 @@ module Synced = {
     let useMutationFn = RuntimeHooks.mutationFn;
     let useMutationResult = RuntimeHooks.mutationResult;
 
+    /* React hook mirroring StoreRuntimeLifecycle.status: re-renders whenever
+       the connection state or pending-work counters change. */
+    let useConnectionStatus = () => {
+      let (statusValue, setStatusValue) =
+        React.useState(() => StoreRuntimeLifecycle.status(lifecycle));
+      React.useEffect0(() => {
+        let listenerId =
+          StoreRuntimeLifecycle.subscribeStatus(
+            lifecycle,
+            s => setStatusValue(_ => s),
+          );
+        Some(() =>
+          StoreRuntimeLifecycle.unsubscribeStatus(lifecycle, listenerId)
+        );
+      });
+      statusValue;
+    };
+
     module Hooks = {
       let useStore = Context.useStore;
       let useStreaming = useStreaming;
+      let useConnectionStatus = useConnectionStatus;
       let useQuery = useQuery;
       let useQueryResult = useQueryResult;
       let useQueryStore = useQueryStore;
@@ -1908,6 +1948,8 @@ module Synced = {
     let whenIdle = () => StoreRuntimeLifecycle.whenIdle(lifecycle);
     let status = () => StoreRuntimeLifecycle.status(lifecycle);
 
+    type connection_status = StoreRuntimeTypes.connection_status;
+    type status = StoreRuntimeTypes.status;
     type status_listener_id = StoreEvents.listener_id;
     let subscribeStatus = callback =>
       StoreRuntimeLifecycle.subscribeStatus(lifecycle, callback);
