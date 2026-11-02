@@ -1,7 +1,7 @@
 (library
  (name video_chat_native)
  (public_name resync.video_chat_native)
- (modules Model Constants RealtimeSchema)
+ (modules Model Constants)
  (wrapped false)
  (libraries
    caqti
@@ -12,7 +12,6 @@
    str)
  (preprocess
   (pps
-   realtime_schema_ppx
    server-reason-react.browser_ppx
    server-reason-react.melange_ppx
    melange-json-native.ppx))

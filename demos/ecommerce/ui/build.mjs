@@ -1,6 +1,5 @@
 import Esbuild from "esbuild";
 import Path from "path";
-/* import extractClientComponents from "../../packages/esbuild-plugin/plugin.mjs"; */
 
 import extractClientComponents from "../../../../../_opam/lib/server-reason-react/esbuild-plugin/plugin.mjs";
 

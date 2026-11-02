@@ -109,13 +109,12 @@ packages/
   reason-realtime/
     pgnotify-adapter/       # PostgreSQL LISTEN/NOTIFY adapter
     dream-middleware/       # Dream websocket middleware
-  esbuild-plugin/           # Client component extraction
   universal-reason-react/   # Also: components, lucide-icons, intl
 
 demos/
   ecommerce/                # Full demo: DB, realtime, SSR
     server/sql/             # Annotated SQL files (source of truth)
-      generated/            # Auto-generated triggers, migrations, snapshots
+      generated/            # Auto-generated realtime triggers (realtime.sql)
     server/src/             # Dream server
     ui/src/                 # Client UI (Reason React)
     shared/js/              # Shared types (Model.re, RealtimeSchema.ml)
