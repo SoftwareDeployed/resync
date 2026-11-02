@@ -93,7 +93,7 @@ After the basics are working, move to:
 - **[SQL annotations](realtime-schema.sql-annotations.md)** - Annotated SQL syntax for tables, queries, mutations, and broadcasts.
 - **[SQL queries](realtime-schema.queries.md)** - Named realtime queries and how to use them from server code.
 - **[SQL mutations](realtime-schema.mutations.md)** - Named realtime mutations and mutation handling flow.
-- **[Generated artifacts](realtime-schema.generated-artifacts.md)** - What the generated SQL, snapshot, and migrations contain.
+- **[Generated artifacts](realtime-schema.generated-artifacts.md)** - What the generated realtime trigger SQL contains.
 - **[Streaming lifecycle](realtime.streaming-lifecycle.md)** - End-to-end flow from mutation dispatch to realtime patch delivery.
 
 ### Setup Guides

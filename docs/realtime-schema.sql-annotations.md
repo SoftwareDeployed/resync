@@ -186,8 +186,8 @@ The middleware automatically makes every mutation idempotent by wrapping it in a
 
 1. Write annotated SQL in `server/sql/`.
 2. Run the schema/codegen step.
-3. Commit the generated `realtime.sql`, snapshot, and migrations.
-4. Apply migrations to Postgres.
+3. Commit the generated `realtime.sql`.
+4. Apply the schema and triggers to Postgres with the demo init script.
 5. Use the generated OCaml metadata in queries, mutations, and trigger wiring.
 
 ## What to look for in generated output

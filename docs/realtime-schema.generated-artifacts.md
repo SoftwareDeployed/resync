@@ -1,6 +1,6 @@
 # Generated artifacts
 
-Annotated SQL produces several generated outputs.
+Annotated SQL produces generated trigger SQL, plus OCaml query/mutation modules at compile time.
 
 ## `generated/realtime.sql`
 
@@ -18,21 +18,9 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-The exact body is longer, but that is the essential shape: build a patch payload, send it to the row’s channel, and let the realtime adapter fan it out.
+The exact body is longer, but that is the essential shape: build a patch payload, send it to the row's channel, and let the realtime adapter fan it out.
 
-## `generated/schema_snapshot.json`
-
-Stores schema metadata used to detect changes and generate migrations.
-
-This snapshot is what lets the generator decide whether it should emit a fresh migration or just regenerate the existing artifacts.
-
-## `generated/migrations/*.sql`
-
-Incremental SQL migrations generated when the schema changes.
-
-The migrations are still plain SQL, so you can inspect them before applying them with `psql` or your demo init script.
-
-**Note:** Not all demos have migrations. The `llm-chat` demo uses migrations (see `demos/llm-chat/server/sql/generated/migrations/`), while the `ecommerce` and `todo-multiplayer` demos use direct schema application.
+Regenerate with the per-demo script (e.g. `pnpm run schema:generate` for ecommerce), which only writes `realtime.sql`. There is no snapshot or migration output; schema changes are applied directly (schema.sql + realtime.sql) by the demo init scripts, which drop and recreate the demo database.
 
 ## Trigger Functions
 
@@ -50,19 +38,19 @@ Each annotated table generates a trigger function. For example:
 
 ## OCaml metadata
 
-The PPX emits OCaml metadata for tables, queries, and mutations so server code can reference generated names instead of duplicating SQL strings.
+The PPX emits OCaml modules for queries and mutations so server code can reference generated names instead of duplicating SQL strings.
 
-That is why server code can call `RealtimeSchema.Queries.GetInventoryList.sql` or `RealtimeSchema.Mutations.CreateList.sql` without hardcoding the SQL in OCaml.
+Server code can call `RealtimeSchema.Queries.GetInventoryList.sql` or `RealtimeSchema.Mutations.CreateList.sql` without hardcoding the SQL in OCaml.
 
 For mutations, the PPX also emits a complete Caqti module: `param_type`, `request`, and `exec`. This lets you run schema-defined mutations directly without hand-writing Caqti request boilerplate.
 
 ## Workflow
 
 1. Edit annotated SQL.
-2. Regenerate outputs.
-3. Review the generated SQL and snapshot.
-4. Apply the migration SQL to Postgres.
-5. Commit the source SQL plus generated artifacts together.
+2. Regenerate `realtime.sql` (`pnpm run <demo>:schema:generate`).
+3. Review the generated SQL.
+4. Re-apply schema + triggers to Postgres with the demo init script (e.g. `pnpm run ecommerce:db:init`).
+5. Commit the source SQL plus generated triggers together.
 
 ## Concrete repository examples
 
@@ -70,12 +58,6 @@ For mutations, the PPX also emits a complete Caqti module: `param_type`, `reques
 - `demos/todo-multiplayer/server/sql/generated/realtime.sql` — todo list and todo child-table triggers.
 - `demos/ecommerce/shared/native/dune` — enables `realtime_schema_ppx` for the shared schema module.
 - `demos/todo-multiplayer/shared/native/dune` — same PPX setup for the multiplayer demo.
-
-## Examples in this repo
-
-- `demos/ecommerce/server/sql/generated/` - triggers and snapshot
-- `demos/todo-multiplayer/server/sql/generated/` - triggers and snapshot
-- `demos/llm-chat/server/sql/generated/` - triggers, snapshot, and migrations
 
 ## Related docs
 

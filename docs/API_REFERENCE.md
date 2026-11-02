@@ -1331,19 +1331,6 @@ Stop listening on a channel and remove handlers.
 
 The `[%realtime_schema "..."]` PPX generates per-query and per-mutation modules with ready-to-use Caqti helpers.
 
-### Table modules
-
-Every `@table` emits a module under `RealtimeSchema.Tables.*` with a `caqti_type` for the table record:
-
-```reason
-module Tables.Inventory = struct
-  let name = "inventory"
-  let id_column = Some "id"
-  let composite_key = []
-  let caqti_type = Caqti_type.product(...) [@@platform native]
-end
-```
-
 ### Query modules
 
 Every `@query` emits a module under `RealtimeSchema.Queries.*` with:
@@ -1352,8 +1339,6 @@ Every `@query` emits a module under `RealtimeSchema.Queries.*` with:
 module Queries.GetInventoryList = struct
   let name = "get_inventory_list"
   let sql = "SELECT ..."
-  let json_columns = ["period_list"]
-  let handler = Sql
 
   type row = {
     id : string;
@@ -1370,8 +1355,15 @@ module Queries.GetInventoryList = struct
   let find_request row_type = Caqti_request.Infix.(param_type ->? row_type)(sql) [@@platform native]
   let collect (module Db : Caqti_lwt.CONNECTION) row_type params = ... [@@platform native]
   let find_opt (module Db : Caqti_lwt.CONNECTION) row_type params = ... [@@platform native]
+  let channel params = "..." (* subscription channel for the query *)
+  let paramsHash params = "..."
+  let decodeRow json = ... (* StoreJson.json => row *)
+  let row_to_json row = ... (* row => StoreJson.json *)
+  let execute (module Db : Caqti_lwt.CONNECTION) params = ... [@@platform native]
 end
 ```
+
+`channel`, `paramsHash`, `decodeRow`, `row_to_json`, and `execute` satisfy the `QueryModule` contract used by `useQueryStore`.
 
 ### Mutation modules
 
@@ -1381,7 +1373,6 @@ Every `@mutation` emits a module under `RealtimeSchema.Mutations.*` with:
 module Mutations.AddTodo = struct
   let name = "add_todo"
   let sql = "INSERT INTO todos ..."
-  let handler = Sql
 
   let param_type = Caqti_type.t2(Caqti_type.string, Caqti_type.string) [@@platform native]
   let request = Caqti_request.Infix.(param_type ->. Caqti_type.unit)(sql) [@@platform native]

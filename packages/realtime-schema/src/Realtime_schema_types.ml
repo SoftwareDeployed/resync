@@ -91,18 +91,4 @@ type schema = {
   tables : table list;
   queries : query list;
   mutations : mutation list;
-  source_files : string list;
-  schema_hash : string;
-}
-
-type table_snapshot = {
-  table_name : string;
-  columns : column list;
-  id_column : string option;
-  composite_key : string list;
-}
-
-type snapshot = {
-  schema_hash : string;
-  tables : table_snapshot list;
 }

@@ -3,16 +3,7 @@ open Realtime_schema_utils
 open Ppxlib
 open Ast_builder.Default
 
-let indent block =
-  block
-  |> String.split_on_char '\n'
-  |> List.map (fun line -> if trim line = "" then "" else "  " ^ line)
-  |> String.concat "\n"
-
-(* AST-building helper functions using Ast_builder *)
 let estring_of_string ~loc s = pexp_constant ~loc (Pconst_string (s, loc, None))
-
-let eint_of_int ~loc n = pexp_constant ~loc (Pconst_integer (string_of_int n, None))
 
 let eident_of_string ~loc s = pexp_ident ~loc (Located.mk ~loc (Lident s))
 
@@ -126,22 +117,7 @@ let caqti_type_expr_for_columns_ast ~loc ~type_name (columns : (string * sql_typ
       pexp_apply ~loc (eident_of_string ~loc "@@")
         [(Nolabel, product_expr); (Nolabel, projection_chain)]
 
-let elident_of_strings ~loc = function
-  | [s] -> Lident s
-  | xs ->
-      let rec make = function
-        | [] -> assert false
-        | [x] -> Lident x
-        | x :: ys -> Ldot (make ys, x)
-      in
-      make (List.rev xs)
-
-let elident_of_mods ~loc mods name =
-  List.fold_right (fun a b -> Ldot (b, a)) mods (Lident name)
-
 let eunit_ast ~loc = pexp_construct ~loc (Located.mk ~loc (Lident "()")) None
-
-let eapply_ast ~loc func args = pexp_apply ~loc func args
 
 let elist_ast ~loc exprs = pexp_array ~loc exprs
 
@@ -243,50 +219,6 @@ let string_conversion_fn ocaml_type =
   | "float" | "Float" | "Timestamp" | "Timestamptz" -> "string_of_float"
   | _ -> ""
 
-let encode_params_code_ast ~loc (params : query_param list) =
-  match params with
-  | [] ->
-      pstr_value ~loc Nonrecursive
-        [ value_binding ~loc ~pat:(pvar ~loc "encodeParams")
-            ~expr:(pexp_fun ~loc Nolabel None (ppat_construct ~loc (Located.mk ~loc (Lident "()")) None)
-                     (epath_of_strings ~loc ["Melange_json"; "Primitives"; "unit_to_json"] |> fun fn ->
-                      pexp_apply ~loc fn [(Nolabel, eunit_ast ~loc)])) ]
-  | _ ->
-      let dict_binding =
-        value_binding ~loc ~pat:(pvar ~loc "dict")
-          ~expr:(pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "empty"]) [(Nolabel, eunit_ast ~loc)])
-      in
-      let set_calls =
-        params
-        |> List.map (fun (param : query_param) ->
-               let field_name =
-                 match param.payload_key with
-                 | Some key -> sanitize_identifier key
-                 | None -> Printf.sprintf "param_%d" param.index
-               in
-               let json_fn = epath_of_strings ~loc ["Melange_json"; "Primitives"; ocaml_type_to_json_fn param.ocaml_type] in
-               pexp_apply ~loc (epath_of_strings ~loc ["Js"; "Dict"; "set"])
-                 [ (Nolabel, eident_of_string ~loc "dict");
-                   (Nolabel, estring_of_string ~loc field_name);
-                   ( Nolabel,
-                     pexp_apply ~loc json_fn
-                       [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "p") (Located.mk ~loc (Lident field_name))) ] ) ])
-      in
-      let body =
-        List.fold_right
-          (fun call acc -> pexp_sequence ~loc call acc)
-          set_calls
-          (store_json_dict_to_json_ast ~loc (eident_of_string ~loc "dict"))
-      in
-      pstr_value ~loc Nonrecursive
-        [ value_binding ~loc ~pat:(pvar ~loc "encodeParams")
-            ~expr:(pexp_fun ~loc Nolabel None
-                     (ppat_constraint ~loc (pvar ~loc "p")
-                        (ptyp_constr ~loc (Located.mk ~loc (Lident "params")) []))
-                     (pexp_let ~loc Nonrecursive [dict_binding] body)) ]
-
-(* AST-building versions of record literals *)
-
 let ocaml_type_of_sql_type_ast ~loc (sql_type : sql_type) : expression =
   match sql_type with
   | Uuid -> econstr_ast ~loc "Uuid" None
@@ -355,81 +287,13 @@ let column_record_literal_ast ~loc (column : column) : expression =
     Located.mk ~loc (Lident "definition_sql"), estring_of_string ~loc column.definition_sql;
   ] None
 
-let table_record_literal_ast ~loc (table : table) : expression =
-  let columns_expr = elist_of_exprs ~loc (List.map (column_record_literal_ast ~loc) table.columns) in
-  pexp_record ~loc [
-    Located.mk ~loc (Lident "name"), estring_of_string ~loc table.name;
-    Located.mk ~loc (Lident "columns"), columns_expr;
-    Located.mk ~loc (Lident "id_column"),
-      (match table.id_column with
-       | None -> enone_ast ~loc
-       | Some v -> esome_ast ~loc (estring_of_string ~loc v));
-    Located.mk ~loc (Lident "composite_key"), elist_of_exprs ~loc (List.map (estring_of_string ~loc) table.composite_key);
-    Located.mk ~loc (Lident "broadcast_channel"), broadcast_channel_to_ast ~loc table.broadcast_channel;
-    Located.mk ~loc (Lident "broadcast_parent"), broadcast_parent_to_ast ~loc table.broadcast_parent;
-    Located.mk ~loc (Lident "broadcast_to_views"), broadcast_to_views_to_ast ~loc table.broadcast_to_views;
-    Located.mk ~loc (Lident "create_sql"), estring_of_string ~loc table.create_sql;
-    Located.mk ~loc (Lident "source_file"), estring_of_string ~loc table.source_file;
-  ] None
-
 let string_of_handler_ast ~loc = function
   | Sql -> econstr_ast ~loc "Sql" None
   | Ocaml -> econstr_ast ~loc "Ocaml" None
 
-let query_record_literal_ast ~loc (query : query) : expression =
-  pexp_record ~loc [
-    Located.mk ~loc (Lident "name"), estring_of_string ~loc query.name;
-    Located.mk ~loc (Lident "sql"), estring_of_string ~loc query.sql;
-    Located.mk ~loc (Lident "source_file"), estring_of_string ~loc query.source_file;
-     Located.mk ~loc (Lident "cache_key"),
-       (match query.cache_key with
-       | None -> enone_ast ~loc
-       | Some v -> esome_ast ~loc (estring_of_string ~loc v));
-     Located.mk ~loc (Lident "return_table"),
-       (match query.return_table with
-       | None -> enone_ast ~loc
-       | Some v -> esome_ast ~loc (estring_of_string ~loc v));
-    Located.mk ~loc (Lident "json_columns"), elist_of_exprs ~loc (List.map (estring_of_string ~loc) query.json_columns);
-    Located.mk ~loc (Lident "params_metadata"), params_literal_ast ~loc query.params;
-    Located.mk ~loc (Lident "handler"), string_of_handler_ast ~loc query.handler;
-  ] None
-
-let mutation_record_literal_ast ~loc (mutation : mutation) : expression =
-  pexp_record ~loc [
-    Located.mk ~loc (Lident "name"), estring_of_string ~loc mutation.name;
-    Located.mk ~loc (Lident "sql"), estring_of_string ~loc mutation.sql;
-    Located.mk ~loc (Lident "source_file"), estring_of_string ~loc mutation.source_file;
-    Located.mk ~loc (Lident "params_metadata"), params_literal_ast ~loc mutation.params;
-    Located.mk ~loc (Lident "handler"), string_of_handler_ast ~loc mutation.handler;
-  ] None
-
-(* AST-building versions of type declarations *)
-
 let column_type_annotation_ast ~loc (column : column) : core_type =
   let type_str = ocaml_type_string_of_sql_type column.sql_type in
   ptyp_constr ~loc (Located.mk ~loc (Lident type_str)) []
-
-let record_type_declaration_ast ~loc (table : table) : structure_item =
-  let type_name = type_name_of_table table.name in
-  let label_decls =
-    table.columns
-    |> List.map (fun (column : column) ->
-         label_declaration
-           ~loc
-           ~name:(Located.mk ~loc (sanitize_identifier column.name))
-           ~mutable_:Immutable
-           ~type_:(column_type_annotation_ast ~loc column))
-  in
-  pstr_type ~loc Nonrecursive [
-    type_declaration
-      ~loc
-      ~name:(Located.mk ~loc type_name)
-      ~params:[]
-      ~cstrs:[]
-      ~private_:Public
-      ~manifest:None
-      ~kind:(Ptype_record label_decls)
-  ]
 
 let params_type_declaration_ast ~loc (params : query_param list) : structure_item =
   match params with
@@ -503,68 +367,9 @@ let mutation_to_action_binding_ast ~loc (mutation : mutation) : structure_item =
     [ value_binding ~loc ~pat:(pvar ~loc "toAction")
         ~expr:(pexp_fun ~loc Nolabel None params_pat action_expr) ]
 
-let caqti_type_constructor_sql_type_ast ~loc = function
-  | Uuid | Varchar | Text | Json | Jsonb | Custom _ -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "string")))
-  | Int -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "int")))
-  | Bigint -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "int64")))
-  | Boolean -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "bool")))
-  | Timestamp | Timestamptz -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "float")))
-
 let table_caqti_type_declaration_ast ~loc (table : table) : structure_item =
   let columns = List.map (fun (c : column) -> (c.name, c.sql_type)) table.columns in
   pstr_eval ~loc (caqti_type_expr_for_columns_ast ~loc ~type_name:(type_name_of_table table.name) columns) []
-
-let table_module_declaration_ast ~loc (table : table) : structure_item list =
-  let module_name = module_name_of_table table.name in
-  (* let name = "table_name" *)
-  let name_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "name")
-          ~expr:(estring_of_string ~loc table.name) ]
-  in
-  (* let id_column = Some "col" | None *)
-  let id_column_expr =
-    match table.id_column with
-    | None -> pexp_construct ~loc (Located.mk ~loc (Lident "None")) None
-    | Some value ->
-        pexp_construct ~loc (Located.mk ~loc (Lident "Some"))
-          (Some (estring_of_string ~loc value))
-  in
-  let id_column_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "id_column")
-          ~expr:id_column_expr ]
-  in
-  (* let composite_key = ["col1"; "col2"] *)
-  let composite_key_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "composite_key")
-          ~expr:(elist_of_exprs ~loc (List.map (estring_of_string ~loc) table.composite_key)) ]
-  in
-  (* let caqti_type = ... *)
-  let caqti_type_structure_item = table_caqti_type_declaration_ast ~loc table in
-  let caqti_type_expr =
-    match caqti_type_structure_item.pstr_desc with
-    | Pstr_eval (expr, _) -> expr
-    | _ -> assert false
-  in
-  let caqti_type_binding =
-    let vb = value_binding ~loc ~pat:(pvar ~loc "caqti_type") ~expr:caqti_type_expr in
-    let vb = {vb with pvb_attributes = [platform_attribute ~loc "native"]} in
-    pstr_value ~loc Nonrecursive [vb]
-  in
-  let structure_items = [ name_binding; id_column_binding; composite_key_binding; caqti_type_binding ] in
-  let module_expr = pmod_structure ~loc structure_items in
-  let mod_binding =
-    { pmb_name = Located.mk ~loc (Some module_name);
-      pmb_expr = module_expr;
-      pmb_attributes = [];
-      pmb_loc = loc }
-  in
-  [ pstr_module ~loc mod_binding ]
 
 let params_hash_code_ast ~loc (params : query_param list) =
   let string_expr_for_param param =
@@ -686,21 +491,6 @@ let row_to_json_code_ast ~loc (columns : (string * sql_type) list) =
 let query_module_declaration_ast ~loc (tables : table list) (query : query) : structure_item list =
   let mod_name = module_name_of_table query.name in
   let inferred_columns = Realtime_schema_pg_query.infer_select_columns tables query.return_table query.sql in
-  let params_metadata_expr =
-    elist_of_exprs ~loc
-      (List.map
-         (fun (param : query_param) ->
-           pexp_tuple ~loc
-             [eint_of_int ~loc param.index; estring_of_string ~loc param.ocaml_type; estring_of_string ~loc param.sql_type])
-         query.params)
-  in
-  let return_table_expr =
-    match query.return_table with
-    | None -> enone_ast ~loc
-    | Some v -> esome_ast ~loc (estring_of_string ~loc v)
-  in
-  let json_columns_expr = elist_of_exprs ~loc (List.map (estring_of_string ~loc) query.json_columns) in
-  let handler_expr = string_of_handler_ast ~loc query.handler in
   let row_columns = Option.value inferred_columns ~default:[] in
   let row_type_decl =
     if row_columns = [] then
@@ -741,22 +531,6 @@ let query_module_declaration_ast ~loc (tables : table list) (query : query) : st
     pstr_value ~loc Nonrecursive
       [ value_binding ~loc ~pat:(pvar ~loc "sql") ~expr:(estring_of_string ~loc query.sql) ]
   in
-  let params_metadata_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc ~pat:(pvar ~loc "params_metadata") ~expr:params_metadata_expr ]
-  in
-  let return_table_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc ~pat:(pvar ~loc "return_table") ~expr:return_table_expr ]
-  in
-  let json_columns_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc ~pat:(pvar ~loc "json_columns") ~expr:json_columns_expr ]
-  in
-  let handler_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc ~pat:(pvar ~loc "handler") ~expr:handler_expr ]
-  in
   let caqti_type_binding = native_value_binding ~loc "caqti_type" caqti_type_expr in
   let param_type_binding = native_value_binding ~loc "param_type" param_type_expr in
   let request_binding =
@@ -796,7 +570,6 @@ let query_module_declaration_ast ~loc (tables : table list) (query : query) : st
   let params_type_binding = params_type_declaration_ast ~loc query.params in
   let channel_binding = channel_function_code_ast ~loc tables query in
   let params_hash_binding = params_hash_code_ast ~loc query.params in
-  let encode_params_binding = encode_params_code_ast ~loc query.params in
   let decode_row_binding = decode_row_code_ast ~loc row_columns in
   let row_to_json_binding = row_to_json_code_ast ~loc row_columns in
   let execute_binding =
@@ -848,10 +621,6 @@ let query_module_declaration_ast ~loc (tables : table list) (query : query) : st
   let structure_items = [
     name_binding;
     sql_binding;
-    params_metadata_binding;
-    return_table_binding;
-    json_columns_binding;
-    handler_binding;
     row_type_decl;
     caqti_type_binding;
     param_type_binding;
@@ -862,7 +631,6 @@ let query_module_declaration_ast ~loc (tables : table list) (query : query) : st
     params_type_binding;
     channel_binding;
     params_hash_binding;
-    encode_params_binding;
     decode_row_binding;
     row_to_json_binding;
     execute_binding;
@@ -1123,15 +891,6 @@ let dispatch_function_for_mutation_ast ~loc (mutation : mutation) : structure_it
 
 let mutation_module_declaration_ast ~loc (mutation : mutation) : structure_item list =
   let mod_name = module_name_of_table mutation.name in
-  let params_metadata_expr =
-    elist_of_exprs ~loc
-      (List.map
-         (fun (param : query_param) ->
-           pexp_tuple ~loc
-             [eint_of_int ~loc param.index; estring_of_string ~loc param.ocaml_type; estring_of_string ~loc param.sql_type])
-         mutation.params)
-  in
-  let handler_expr = string_of_handler_ast ~loc mutation.handler in
   let param_type_expr = mutation_param_type_expr_ast ~loc mutation.params in
   let request_expr =
     let request_builder =
@@ -1151,14 +910,6 @@ let mutation_module_declaration_ast ~loc (mutation : mutation) : structure_item 
     pstr_value ~loc Nonrecursive
       [ value_binding ~loc ~pat:(pvar ~loc "sql") ~expr:(estring_of_string ~loc mutation.sql) ]
   in
-  let params_metadata_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc ~pat:(pvar ~loc "params_metadata") ~expr:params_metadata_expr ]
-  in
-  let handler_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc ~pat:(pvar ~loc "handler") ~expr:handler_expr ]
-  in
   let param_type_binding = native_value_binding ~loc "param_type" param_type_expr in
   let request_binding = native_value_binding ~loc "request" request_expr in
   let exec_binding =
@@ -1172,7 +923,6 @@ let mutation_module_declaration_ast ~loc (mutation : mutation) : structure_item 
                  (Nolabel, epath_of_strings ~loc ["Caqti_lwt"; "or_fail"]) ])))
   in
   let params_type_binding = params_type_declaration_ast ~loc mutation.params in
-  let encode_params_binding = encode_params_code_ast ~loc mutation.params in
   let to_action_binding = mutation_to_action_binding_ast ~loc mutation in
   let dispatch_items =
     match dispatch_function_for_mutation_ast ~loc mutation with
@@ -1182,13 +932,10 @@ let mutation_module_declaration_ast ~loc (mutation : mutation) : structure_item 
   let structure_items = [
     name_binding;
     sql_binding;
-    params_metadata_binding;
-    handler_binding;
     param_type_binding;
     request_binding;
     exec_binding;
     params_type_binding;
-    encode_params_binding;
     to_action_binding;
   ] @ dispatch_items in
   [ pstr_module ~loc
@@ -1229,11 +976,6 @@ let direct_channel_assignment (table : table) =
            "SELECT generated_channel.channel_name::text INTO channel_name FROM (%s) AS generated_channel(channel_name) LIMIT 1;"
            query_sql)
   | None -> None
-
-let maybe_touch_premise column_name_expr =
-  Printf.sprintf
-    "IF channel_name IS NOT NULL THEN\n    BEGIN\n      UPDATE premise SET updated_at = NOW() WHERE id = %s::uuid;\n    EXCEPTION WHEN undefined_table THEN\n      NULL;\n    END;\n  END IF;"
-    column_name_expr
 
 let current_id_expression (table : table) = table_id_expression "NEW" table
 
@@ -1313,16 +1055,16 @@ let direct_trigger_sql (schema : schema) (table : table) =
           let query_row_sql = replace_first_param (embedded_query_sql query.sql) "row_id" in
           let ready_sql : string =
             Printf.sprintf
-               "DROP TRIGGER IF EXISTS %s ON %s;\nDROP FUNCTION IF EXISTS %s();\n\nCREATE OR REPLACE FUNCTION %s()\nRETURNS TRIGGER AS $$\nDECLARE\n  row_id uuid;\n  current_record RECORD;\n  channel_name TEXT;\n  old_channel_name TEXT;\n  payload JSON;\n  payload_data JSONB;\n  old_payload JSON;\n  did_broadcast BOOLEAN := FALSE;\nBEGIN\n  IF TG_OP = 'DELETE' THEN\n    channel_name := OLD.%s::text;\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', 'DELETE');\n    IF channel_name IS NOT NULL THEN\n      PERFORM pg_notify(channel_name, payload::text);\n    END IF;\n    %s\n    RETURN OLD;\n  END IF;\n  IF TG_OP = 'UPDATE' AND OLD.%s::text IS DISTINCT FROM NEW.%s::text THEN\n    old_channel_name := OLD.%s::text;\n    IF old_channel_name IS NOT NULL THEN\n      old_payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', 'DELETE');\n      PERFORM pg_notify(old_channel_name, old_payload::text);\n    END IF;\n  END IF;\n  row_id := NEW.%s;\n  FOR current_record IN\n    %s\n  LOOP\n    did_broadcast := TRUE;\n    channel_name := current_record.%s::text;\n    %s\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', to_jsonb(current_record.%s), 'action', TG_OP, 'data', payload_data);\n    IF channel_name IS NOT NULL THEN\n      PERFORM pg_notify(channel_name, payload::text);\n    END IF;\n    %s\n  END LOOP;\n  IF TG_OP = 'UPDATE' AND NOT did_broadcast THEN\n    channel_name := OLD.%s::text;\n    IF channel_name IS NOT NULL THEN\n      payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', 'DELETE');\n      PERFORM pg_notify(channel_name, payload::text);\n      %s\n    END IF;\n  END IF;\n  RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER %s\nAFTER INSERT OR UPDATE OR DELETE ON %s\nFOR EACH ROW EXECUTE FUNCTION %s();"
-                function_name table.name function_name function_name column_name
-                (sql_string_literal table.name) (deleted_id_expression table)
-                (maybe_touch_premise "channel_name") column_name column_name column_name
-                (sql_string_literal table.name) (deleted_id_expression table) id_column
-                query_row_sql column_name (query_data_assignment_sql "current_record" query)
-                (sql_string_literal table.name) id_column
-                (maybe_touch_premise "channel_name") column_name
-                (sql_string_literal table.name) (deleted_id_expression table)
-                (maybe_touch_premise "channel_name") function_name table.name function_name
+               "DROP TRIGGER IF EXISTS %s ON %s;\nDROP FUNCTION IF EXISTS %s();\n\nCREATE OR REPLACE FUNCTION %s()\nRETURNS TRIGGER AS $$\nDECLARE\n  row_id uuid;\n  current_record RECORD;\n  channel_name TEXT;\n  old_channel_name TEXT;\n  payload JSON;\n  payload_data JSONB;\n  old_payload JSON;\n  did_broadcast BOOLEAN := FALSE;\nBEGIN\n  IF TG_OP = 'DELETE' THEN\n    channel_name := OLD.%s::text;\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', 'DELETE');\n    IF channel_name IS NOT NULL THEN\n      PERFORM pg_notify(channel_name, payload::text);\n    END IF;\n    RETURN OLD;\n  END IF;\n  IF TG_OP = 'UPDATE' AND OLD.%s::text IS DISTINCT FROM NEW.%s::text THEN\n    old_channel_name := OLD.%s::text;\n    IF old_channel_name IS NOT NULL THEN\n      old_payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', 'DELETE');\n      PERFORM pg_notify(old_channel_name, old_payload::text);\n    END IF;\n  END IF;\n  row_id := NEW.%s;\n  FOR current_record IN\n    %s\n  LOOP\n    did_broadcast := TRUE;\n    channel_name := current_record.%s::text;\n    %s\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', to_jsonb(current_record.%s), 'action', TG_OP, 'data', payload_data);\n    IF channel_name IS NOT NULL THEN\n      PERFORM pg_notify(channel_name, payload::text);\n    END IF;\n  END LOOP;\n  IF TG_OP = 'UPDATE' AND NOT did_broadcast THEN\n    channel_name := OLD.%s::text;\n    IF channel_name IS NOT NULL THEN\n      payload := json_build_object('type', 'patch', 'table', %s, 'id', %s, 'action', 'DELETE');\n      PERFORM pg_notify(channel_name, payload::text);\n    END IF;\n  END IF;\n  RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER %s\nAFTER INSERT OR UPDATE OR DELETE ON %s\nFOR EACH ROW EXECUTE FUNCTION %s();"
+               function_name table.name function_name function_name column_name
+               (sql_string_literal table.name) (deleted_id_expression table)
+               column_name column_name column_name
+               (sql_string_literal table.name) (deleted_id_expression table) id_column
+               query_row_sql column_name (query_data_assignment_sql "current_record" query)
+               (sql_string_literal table.name) id_column
+               column_name
+               (sql_string_literal table.name) (deleted_id_expression table)
+               function_name table.name function_name
           in
           Some ready_sql
       | _ ->
@@ -1358,17 +1100,16 @@ let direct_trigger_sql (schema : schema) (table : table) =
                  "  " ^ channel_assignment;
                  "  " ^ old_channel_check;
                  "  payload := " ^ new_payload ^ ";";
-                 "  IF channel_name IS NOT NULL THEN";
-                 "    PERFORM pg_notify(channel_name, payload::text);";
-                 "  END IF;";
-                 "  " ^ (maybe_touch_premise "channel_name");
-                 "  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;";
-                 "END;";
-                 "$$ LANGUAGE plpgsql;";
-                 "";
-                 "CREATE TRIGGER " ^ function_name;
-                 "AFTER INSERT OR UPDATE OR DELETE ON " ^ table.name;
-                 "FOR EACH ROW EXECUTE FUNCTION " ^ function_name ^ "();" ]))
+                  "  IF channel_name IS NOT NULL THEN";
+                  "    PERFORM pg_notify(channel_name, payload::text);";
+                  "  END IF;";
+                  "  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;";
+                  "END;";
+                  "$$ LANGUAGE plpgsql;";
+                  "";
+                  "CREATE TRIGGER " ^ function_name;
+                  "AFTER INSERT OR UPDATE OR DELETE ON " ^ table.name;
+                  "FOR EACH ROW EXECUTE FUNCTION " ^ function_name ^ "();" ]))
   | Some _ ->
       let function_name = "realtime_notify_" ^ table.name in
       let channel_assignment = Option.value (direct_channel_assignment table) ~default:"channel_name := NULL;" in
@@ -1393,13 +1134,12 @@ let direct_trigger_sql (schema : schema) (table : table) =
              "BEGIN";
              "  " ^ channel_assignment;
              "  payload := " ^ new_payload ^ ";";
-             "  IF channel_name IS NOT NULL THEN";
-             "    PERFORM pg_notify(channel_name, payload::text);";
-             "  END IF;";
-             "  " ^ (maybe_touch_premise "channel_name");
-             "  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;";
-             "END;";
-              "$$ LANGUAGE plpgsql;";
+              "  IF channel_name IS NOT NULL THEN";
+              "    PERFORM pg_notify(channel_name, payload::text);";
+              "  END IF;";
+              "  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;";
+              "END;";
+               "$$ LANGUAGE plpgsql;";
               "";
               "CREATE TRIGGER " ^ function_name;
               "AFTER INSERT OR UPDATE OR DELETE ON " ^ table.name;
@@ -1448,8 +1188,6 @@ let parent_fk_column (child_table : table) parent_table =
          | Some foreign_key when foreign_key.referenced_table = parent_table -> Some column.name
          | _ -> None)
 
-let table_has_column (table : table) column_name = column_by_name table column_name <> None
-
 let parent_query_sql (schema : schema) query_name =
   schema.queries |> List.find_opt (fun (query : query) -> query.name = query_name)
 
@@ -1465,9 +1203,6 @@ let parent_channel_from_query (parent_table : table) parent_query_sql =
         "(SELECT generated_channel.channel_name::text FROM (%s) AS generated_channel(channel_name) LIMIT 1)"
         query_sql
   | None -> "NULL"
-
-let parent_touch_sql (parent_table : table) =
-  if table_has_column parent_table "premise_id" then maybe_touch_premise "parent_record.premise_id::text" else ""
 
 let parent_broadcast_trigger_sql (schema : schema) (child_table : table) =
   match child_table.broadcast_parent with
@@ -1487,17 +1222,15 @@ let parent_broadcast_trigger_sql (schema : schema) (child_table : table) =
                let function_name = "realtime_notify_" ^ child_table.name ^ "_parent" in
                let parent_row_sql = replace_first_param (embedded_query_sql query.sql) "parent_row_id" in
                Some
-                  (Printf.sprintf
-                     "DROP TRIGGER IF EXISTS %s ON %s;\nDROP FUNCTION IF EXISTS %s();\n\nCREATE OR REPLACE FUNCTION %s()\nRETURNS TRIGGER AS $$\nDECLARE\n  parent_row_id uuid;\n  parent_record RECORD;\n  channel_name TEXT;\n  payload JSON;\n  payload_data JSONB;\n  did_broadcast BOOLEAN := FALSE;\nBEGIN\n  parent_row_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.%s ELSE NEW.%s END;\n  IF parent_row_id IS NULL THEN\n    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;\n  END IF;\n  FOR parent_record IN\n    %s\n  LOOP\n    did_broadcast := TRUE;\n    channel_name := %s;\n    %s\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', to_jsonb(parent_record.%s), 'action', 'UPDATE', 'data', payload_data);\n    IF channel_name IS NOT NULL THEN\n      PERFORM pg_notify(channel_name, payload::text);\n    END IF;\n    %s\n  END LOOP;\n  IF NOT did_broadcast THEN\n    %s\n    IF channel_name IS NOT NULL THEN\n      payload := json_build_object('type', 'patch', 'table', %s, 'id', to_jsonb(parent_row_id), 'action', 'DELETE');\n      PERFORM pg_notify(channel_name, payload::text);\n      %s\n    END IF;\n  END IF;\n  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER %s\nAFTER INSERT OR UPDATE OR DELETE ON %s\nFOR EACH ROW EXECUTE FUNCTION %s();"
-                     function_name child_table.name function_name function_name parent_fk parent_fk
-                     parent_row_sql (parent_channel_from_query parent_table parent_row_sql)
-                     (query_data_assignment_sql "parent_record" query)
-                     (sql_string_literal parent.parent_table) parent_id_column
-                     (parent_touch_sql parent_table)
-                     (delete_channel_lookup_sql parent_table)
-                     (sql_string_literal parent.parent_table)
-                     (maybe_touch_premise "channel_name")
-                    function_name child_table.name function_name))
+              (Printf.sprintf
+                      "DROP TRIGGER IF EXISTS %s ON %s;\nDROP FUNCTION IF EXISTS %s();\n\nCREATE OR REPLACE FUNCTION %s()\nRETURNS TRIGGER AS $$\nDECLARE\n  parent_row_id uuid;\n  parent_record RECORD;\n  channel_name TEXT;\n  payload JSON;\n  payload_data JSONB;\n  did_broadcast BOOLEAN := FALSE;\nBEGIN\n  parent_row_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.%s ELSE NEW.%s END;\n  IF parent_row_id IS NULL THEN\n    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;\n  END IF;\n  FOR parent_record IN\n    %s\n  LOOP\n    did_broadcast := TRUE;\n    channel_name := %s;\n    %s\n    payload := json_build_object('type', 'patch', 'table', %s, 'id', to_jsonb(parent_record.%s), 'action', 'UPDATE', 'data', payload_data);\n    IF channel_name IS NOT NULL THEN\n      PERFORM pg_notify(channel_name, payload::text);\n    END IF;\n  END LOOP;\n  IF NOT did_broadcast THEN\n    %s\n    IF channel_name IS NOT NULL THEN\n      payload := json_build_object('type', 'patch', 'table', %s, 'id', to_jsonb(parent_row_id), 'action', 'DELETE');\n      PERFORM pg_notify(channel_name, payload::text);\n    END IF;\n  END IF;\n  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER %s\nAFTER INSERT OR UPDATE OR DELETE ON %s\nFOR EACH ROW EXECUTE FUNCTION %s();"
+                      function_name child_table.name function_name function_name parent_fk parent_fk
+                      parent_row_sql (parent_channel_from_query parent_table parent_row_sql)
+                      (query_data_assignment_sql "parent_record" query)
+                      (sql_string_literal parent.parent_table) parent_id_column
+                      (delete_channel_lookup_sql parent_table)
+                      (sql_string_literal parent.parent_table)
+                     function_name child_table.name function_name))
       | _ -> None)
 
 let reverse_parent_triggers_sql (schema : schema) (source_table : table) =
@@ -1540,19 +1273,17 @@ let reverse_parent_triggers_sql (schema : schema) (source_table : table) =
                        in
                        let parent_row_sql = replace_first_param (embedded_query_sql query.sql) "parent_row_id" in
                        Some
-                         (Printf.sprintf
-                            "DROP TRIGGER IF EXISTS %s ON %s;\nDROP FUNCTION IF EXISTS %s();\n\nCREATE OR REPLACE FUNCTION %s()\nRETURNS TRIGGER AS $$\nDECLARE\n  source_row_id uuid;\n  parent_row_id uuid;\n  parent_record RECORD;\n  channel_name TEXT;\n  payload JSON;\n  payload_data JSONB;\n  did_broadcast BOOLEAN;\nBEGIN\n  source_row_id := %s;\n  IF source_row_id IS NULL THEN\n    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;\n  END IF;\n  FOR parent_row_id IN\n    SELECT DISTINCT %s FROM %s WHERE %s\n  LOOP\n    did_broadcast := FALSE;\n    FOR parent_record IN\n      %s\n    LOOP\n      did_broadcast := TRUE;\n      channel_name := %s;\n      %s\n      payload := json_build_object('type', 'patch', 'table', %s, 'id', to_jsonb(parent_record.%s), 'action', 'UPDATE', 'data', payload_data);\n      IF channel_name IS NOT NULL THEN\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n      %s\n    END LOOP;\n    IF NOT did_broadcast THEN\n      %s\n      IF channel_name IS NOT NULL THEN\n        payload := json_build_object('type', 'patch', 'table', %s, 'id', to_jsonb(parent_row_id), 'action', 'DELETE');\n        PERFORM pg_notify(channel_name, payload::text);\n        %s\n      END IF;\n    END IF;\n  END LOOP;\n  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER %s\nAFTER INSERT OR UPDATE OR DELETE ON %s\nFOR EACH ROW EXECUTE FUNCTION %s();"
-                            function_name source_table.name function_name function_name source_id_expr parent_fk
-                            child_table.name bridge_filter parent_row_sql
-                            (parent_channel_from_query parent_table parent_row_sql)
-                            (query_data_assignment_sql "parent_record" query)
-                            (sql_string_literal parent.parent_table)
-                            parent_id_column
-                            (parent_touch_sql parent_table)
-                            (delete_channel_lookup_sql parent_table)
-                            (sql_string_literal parent.parent_table)
-                            (maybe_touch_premise "channel_name")
-                            function_name source_table.name function_name))
+                          (Printf.sprintf
+                             "DROP TRIGGER IF EXISTS %s ON %s;\nDROP FUNCTION IF EXISTS %s();\n\nCREATE OR REPLACE FUNCTION %s()\nRETURNS TRIGGER AS $$\nDECLARE\n  source_row_id uuid;\n  parent_row_id uuid;\n  parent_record RECORD;\n  channel_name TEXT;\n  payload JSON;\n  payload_data JSONB;\n  did_broadcast BOOLEAN;\nBEGIN\n  source_row_id := %s;\n  IF source_row_id IS NULL THEN\n    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;\n  END IF;\n  FOR parent_row_id IN\n    SELECT DISTINCT %s FROM %s WHERE %s\n  LOOP\n    did_broadcast := FALSE;\n    FOR parent_record IN\n      %s\n    LOOP\n      did_broadcast := TRUE;\n      channel_name := %s;\n      %s\n      payload := json_build_object('type', 'patch', 'table', %s, 'id', to_jsonb(parent_record.%s), 'action', 'UPDATE', 'data', payload_data);\n      IF channel_name IS NOT NULL THEN\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n    END LOOP;\n    IF NOT did_broadcast THEN\n      %s\n      IF channel_name IS NOT NULL THEN\n        payload := json_build_object('type', 'patch', 'table', %s, 'id', to_jsonb(parent_row_id), 'action', 'DELETE');\n        PERFORM pg_notify(channel_name, payload::text);\n      END IF;\n    END IF;\n  END LOOP;\n  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;\nEND;\n$$ LANGUAGE plpgsql;\n\nCREATE TRIGGER %s\nAFTER INSERT OR UPDATE OR DELETE ON %s\nFOR EACH ROW EXECUTE FUNCTION %s();"
+                             function_name source_table.name function_name function_name source_id_expr parent_fk
+                             child_table.name bridge_filter parent_row_sql
+                             (parent_channel_from_query parent_table parent_row_sql)
+                             (query_data_assignment_sql "parent_record" query)
+                             (sql_string_literal parent.parent_table)
+                             parent_id_column
+                             (delete_channel_lookup_sql parent_table)
+                             (sql_string_literal parent.parent_table)
+                             function_name source_table.name function_name))
              | _ -> None))
 
 let generated_triggers_sql (schema : schema) =
@@ -1566,201 +1297,6 @@ let generated_triggers_sql (schema : schema) =
             direct @ views @ parent @ reverse)
   in
   String.concat "\n\n" parts
-
-let mutation_action_table_sql (mutation : mutation) =
-  Printf.sprintf
-    "CREATE TABLE IF NOT EXISTS _resync_actions_%s (\n\
-    \  action_id uuid PRIMARY KEY,\n\
-    \  status text NOT NULL CHECK (status IN ('ok', 'failed')),\n\
-    \  processed_at timestamptz NOT NULL DEFAULT NOW(),\n\
-    \  error_message text\n\
-    );"
-    mutation.name
-
-let mutation_action_tables_sql (schema : schema) =
-  schema.mutations
-  |> List.map mutation_action_table_sql
-  |> String.concat "\n\n"
-
-let migration_version () =
-  let tm = Unix.gmtime (Unix.time ()) in
-  Printf.sprintf "%04d%02d%02d%02d%02d%02d"
-    (tm.Unix.tm_year + 1900) (tm.Unix.tm_mon + 1) tm.Unix.tm_mday tm.Unix.tm_hour
-    tm.Unix.tm_min tm.Unix.tm_sec
-
-let snapshot_to_yojson (snapshot : snapshot) =
-  let column_to_yojson (column : column) =
-    `Assoc
-      [ ("name", `String column.name);
-        ("sql_type", `String column.sql_type_raw);
-        ("nullable", `Bool column.nullable);
-        ("primary_key", `Bool column.primary_key);
-        ("default", option_map `Null (fun value -> `String value) column.default);
-        ( "foreign_key",
-          match column.foreign_key with
-          | None -> `Null
-          | Some foreign_key ->
-              `Assoc
-                [ ("column", `String foreign_key.column);
-                  ("referenced_table", `String foreign_key.referenced_table);
-                  ("referenced_column", `String foreign_key.referenced_column) ] ) ]
-  in
-  let table_to_yojson (table : table_snapshot) =
-    `Assoc
-      [ ("table_name", `String table.table_name);
-        ("columns", `List (List.map column_to_yojson table.columns));
-        ("id_column", option_map `Null (fun value -> `String value) table.id_column);
-        ("composite_key", `List (List.map (fun value -> `String value) table.composite_key)) ]
-  in
-  `Assoc
-    [ ("schema_hash", `String snapshot.schema_hash);
-      ("tables", `List (List.map table_to_yojson snapshot.tables)) ]
-
-let snapshot_of_yojson json =
-  let open Yojson.Safe.Util in
-  let column_of_yojson json =
-    let foreign_key =
-      match json |> member "foreign_key" with
-      | `Null -> None
-      | foreign_key_json ->
-          Some
-            {
-              column = foreign_key_json |> member "column" |> to_string;
-              referenced_table = foreign_key_json |> member "referenced_table" |> to_string;
-              referenced_column = foreign_key_json |> member "referenced_column" |> to_string;
-            }
-    in
-    {
-      name = json |> member "name" |> to_string;
-      sql_type = json |> member "sql_type" |> to_string |> sql_type_of_string;
-      sql_type_raw = json |> member "sql_type" |> to_string;
-      nullable = json |> member "nullable" |> to_bool;
-      primary_key = json |> member "primary_key" |> to_bool;
-      default = (match json |> member "default" with `Null -> None | value -> Some (to_string value));
-      foreign_key;
-      definition_sql = "";
-    }
-  in
-  let table_of_yojson json =
-    {
-      table_name = json |> member "table_name" |> to_string;
-      columns = json |> member "columns" |> to_list |> List.map column_of_yojson;
-      id_column = (match json |> member "id_column" with `Null -> None | value -> Some (to_string value));
-      composite_key = json |> member "composite_key" |> to_list |> List.map to_string;
-    }
-  in
-  {
-    schema_hash = json |> member "schema_hash" |> to_string;
-    tables = json |> member "tables" |> to_list |> List.map table_of_yojson;
-  }
-
-let column_signature (column : column) =
-  ( column.sql_type_raw,
-    column.nullable,
-    column.primary_key,
-    column.default,
-    Option.map (fun foreign_key -> (foreign_key.referenced_table, foreign_key.referenced_column)) column.foreign_key )
-
-let fk_constraint_name table_name column_name = Printf.sprintf "%s_%s_fkey" table_name column_name
-
-let alter_statements_for_column ~table_name old_column new_column =
-  let statements = ref [] in
-  if old_column.sql_type_raw <> new_column.sql_type_raw then
-    statements :=
-      Printf.sprintf "ALTER TABLE %s ALTER COLUMN %s TYPE %s;" table_name new_column.name new_column.sql_type_raw
-      :: !statements;
-  if old_column.nullable <> new_column.nullable then
-    statements :=
-      Printf.sprintf "ALTER TABLE %s ALTER COLUMN %s %s NOT NULL;" table_name new_column.name
-        (if new_column.nullable then "DROP" else "SET")
-      :: !statements;
-  if old_column.default <> new_column.default then
-    statements :=
-      (match new_column.default with
-      | Some default ->
-          Printf.sprintf "ALTER TABLE %s ALTER COLUMN %s SET DEFAULT %s;" table_name new_column.name default
-      | None ->
-          Printf.sprintf "ALTER TABLE %s ALTER COLUMN %s DROP DEFAULT;" table_name new_column.name)
-      :: !statements;
-  let old_fk = Option.map (fun foreign_key -> (foreign_key.referenced_table, foreign_key.referenced_column)) old_column.foreign_key in
-  let new_fk = Option.map (fun foreign_key -> (foreign_key.referenced_table, foreign_key.referenced_column)) new_column.foreign_key in
-  if old_fk <> new_fk then (
-    statements :=
-      Printf.sprintf "ALTER TABLE %s DROP CONSTRAINT IF EXISTS %s;" table_name (fk_constraint_name table_name new_column.name)
-      :: !statements;
-    match new_column.foreign_key with
-    | Some foreign_key ->
-        statements :=
-          Printf.sprintf
-            "ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s(%s);"
-            table_name (fk_constraint_name table_name new_column.name) new_column.name
-            foreign_key.referenced_table foreign_key.referenced_column
-          :: !statements
-    | None -> ());
-  List.rev !statements
-
-let diff_tables ~(old_snapshot : snapshot) ~(new_schema : schema) =
-  let old_by_name = Hashtbl.create (List.length old_snapshot.tables) in
-  List.iter (fun (table : table_snapshot) -> Hashtbl.replace old_by_name table.table_name table) old_snapshot.tables;
-  let new_by_name = Hashtbl.create (List.length new_schema.tables) in
-  List.iter (fun (table : table) -> Hashtbl.replace new_by_name table.name table) new_schema.tables;
-  let statements = ref [] in
-  List.iter
-    (fun (table : table_snapshot) ->
-      if not (Hashtbl.mem new_by_name table.table_name) then
-        statements := Printf.sprintf "DROP TABLE IF EXISTS %s CASCADE;" table.table_name :: !statements)
-    old_snapshot.tables;
-  List.iter
-    (fun (table : table) ->
-      match Hashtbl.find_opt old_by_name table.name with
-      | None -> statements := table.create_sql :: !statements
-      | Some old_table ->
-          let old_columns = Hashtbl.create (List.length old_table.columns) in
-          List.iter (fun (column : column) -> Hashtbl.replace old_columns column.name column) old_table.columns;
-          let new_columns = Hashtbl.create (List.length table.columns) in
-          List.iter (fun (column : column) -> Hashtbl.replace new_columns column.name column) table.columns;
-          List.iter
-            (fun (column : column) ->
-              if not (Hashtbl.mem new_columns column.name) then
-                statements :=
-                  Printf.sprintf "ALTER TABLE %s DROP COLUMN IF EXISTS %s CASCADE;" table.name column.name
-                  :: !statements)
-            old_table.columns;
-          List.iter
-            (fun (column : column) ->
-              match Hashtbl.find_opt old_columns column.name with
-              | None ->
-                  statements :=
-                    Printf.sprintf "ALTER TABLE %s ADD COLUMN %s;" table.name column.definition_sql :: !statements
-              | Some old_column ->
-                  statements := List.rev_append (alter_statements_for_column ~table_name:table.name old_column column) !statements)
-            table.columns;
-          if old_table.composite_key <> table.composite_key && table.composite_key <> [] then
-            statements :=
-              Printf.sprintf "ALTER TABLE %s DROP CONSTRAINT IF EXISTS %s_pkey;" table.name table.name
-              :: Printf.sprintf "ALTER TABLE %s ADD PRIMARY KEY (%s);" table.name (String.concat ", " table.composite_key)
-              :: !statements)
-    new_schema.tables;
-  List.rev !statements
-
-let migration_sql ?previous_snapshot (schema : schema) =
-  let version = migration_version () in
-  let statements =
-    match previous_snapshot with
-    | None -> List.map (fun (table : table) -> table.create_sql) schema.tables
-    | Some snapshot -> diff_tables ~old_snapshot:snapshot ~new_schema:schema
-  in
-  let statements =
-    statements
-    @ [
-        mutation_action_tables_sql schema;
-        "CREATE TABLE IF NOT EXISTS schema_migrations (version varchar PRIMARY KEY, applied_at timestamp NOT NULL DEFAULT NOW());";
-        generated_triggers_sql schema;
-        Printf.sprintf "INSERT INTO schema_migrations (version) VALUES (%S) ON CONFLICT (version) DO NOTHING;" version;
-      ]
-  in
-  (version, String.concat "\n\n" statements ^ "\n")
-
 
 let dispatch_mutation_ast ~loc (mutations : mutation list) : structure_item =
   let cases =
@@ -1782,8 +1318,6 @@ let dispatch_mutation_ast ~loc (mutations : mutation list) : structure_item =
             (pexp_match ~loc (eident_of_string ~loc "mutation_name") (cases @ [default_case]))))
   in
   native_value_binding ~loc "dispatch_mutation" expr
-
-
 
 let pcd_simple ~loc name =
   constructor_declaration ~loc
@@ -2125,401 +1659,15 @@ let mutation_actions_module_ast ~loc (mutations : mutation list) : structure_ite
        ~expr:(pmod_structure ~loc items))
 
 let module_source_ast (schema : schema) ~loc : Parsetree.structure =
-  (* --- Type declarations --- *)
-
-  (* type sql_type = Uuid | Varchar | Text | ... | Custom of string *)
-  let sql_type_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "sql_type")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_variant [
-          pcd_simple ~loc "Uuid";
-          pcd_simple ~loc "Varchar";
-          pcd_simple ~loc "Text";
-          pcd_simple ~loc "Int";
-          pcd_simple ~loc "Bigint";
-          pcd_simple ~loc "Boolean";
-          pcd_simple ~loc "Timestamp";
-          pcd_simple ~loc "Timestamptz";
-          pcd_simple ~loc "Json";
-          pcd_simple ~loc "Jsonb";
-          pcd_with_arg ~loc "Custom" (tstring ~loc);
-        ])
-    ]
-  in
-
-  (* type foreign_key = { column : string; referenced_table : string; referenced_column : string; } *)
-  let foreign_key_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "foreign_key")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_record [
-          label_declaration ~loc ~name:(Located.mk ~loc "column") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "referenced_table") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "referenced_column") ~mutable_:Immutable ~type_:(tstring ~loc);
-        ])
-    ]
-  in
-
-  (* type broadcast_channel = Column of string | Computed of string | Conditional of string | Subquery of string *)
-  let broadcast_channel_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "broadcast_channel")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_variant [
-          pcd_with_arg ~loc "Column" (tstring ~loc);
-          pcd_with_arg ~loc "Computed" (tstring ~loc);
-          pcd_with_arg ~loc "Conditional" (tstring ~loc);
-          pcd_with_arg ~loc "Subquery" (tstring ~loc);
-        ])
-    ]
-  in
-
-  (* type broadcast_parent = { parent_table : string; query_name : string; } *)
-  let broadcast_parent_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "broadcast_parent")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_record [
-          label_declaration ~loc ~name:(Located.mk ~loc "parent_table") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "query_name") ~mutable_:Immutable ~type_:(tstring ~loc);
-        ])
-    ]
-  in
-
-  (* type broadcast_to_views = { view_table : string; channel_column : string; } *)
-  let broadcast_to_views_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "broadcast_to_views")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_record [
-          label_declaration ~loc ~name:(Located.mk ~loc "view_table") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "channel_column") ~mutable_:Immutable ~type_:(tstring ~loc);
-        ])
-    ]
-  in
-
-  (* type column_metadata = { ... } *)
-  let column_metadata_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "column_metadata")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_record [
-          label_declaration ~loc ~name:(Located.mk ~loc "name") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "sql_type") ~mutable_:Immutable ~type_:(tident ~loc "sql_type");
-          label_declaration ~loc ~name:(Located.mk ~loc "sql_type_raw") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "nullable") ~mutable_:Immutable ~type_:(tbool ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "primary_key") ~mutable_:Immutable ~type_:(tbool ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "default") ~mutable_:Immutable ~type_:(toption ~loc (tstring ~loc));
-          label_declaration ~loc ~name:(Located.mk ~loc "foreign_key") ~mutable_:Immutable ~type_:(toption ~loc (tident ~loc "foreign_key"));
-          label_declaration ~loc ~name:(Located.mk ~loc "definition_sql") ~mutable_:Immutable ~type_:(tstring ~loc);
-        ])
-    ]
-  in
-
-  (* type table_metadata = { ... } *)
-  let table_metadata_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "table_metadata")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_record [
-          label_declaration ~loc ~name:(Located.mk ~loc "name") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "columns") ~mutable_:Immutable ~type_:(tlist ~loc (tident ~loc "column_metadata"));
-          label_declaration ~loc ~name:(Located.mk ~loc "id_column") ~mutable_:Immutable ~type_:(toption ~loc (tstring ~loc));
-          label_declaration ~loc ~name:(Located.mk ~loc "composite_key") ~mutable_:Immutable ~type_:(tlist ~loc (tstring ~loc));
-          label_declaration ~loc ~name:(Located.mk ~loc "broadcast_channel") ~mutable_:Immutable ~type_:(toption ~loc (tident ~loc "broadcast_channel"));
-          label_declaration ~loc ~name:(Located.mk ~loc "broadcast_parent") ~mutable_:Immutable ~type_:(toption ~loc (tident ~loc "broadcast_parent"));
-          label_declaration ~loc ~name:(Located.mk ~loc "broadcast_to_views") ~mutable_:Immutable ~type_:(toption ~loc (tident ~loc "broadcast_to_views"));
-          label_declaration ~loc ~name:(Located.mk ~loc "create_sql") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "source_file") ~mutable_:Immutable ~type_:(tstring ~loc);
-        ])
-    ]
-  in
-
-  (* type handler = Sql | Ocaml *)
-  let handler_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "handler")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_variant [
-          pcd_simple ~loc "Sql";
-          pcd_simple ~loc "Ocaml";
-        ])
-    ]
-  in
-
-  (* type query_param = { index : int; column_ref : (string * string) option; payload_key : string option; ocaml_type : string; sql_type : string; } *)
-  let query_param_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "query_param")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_record [
-          label_declaration ~loc ~name:(Located.mk ~loc "index") ~mutable_:Immutable ~type_:(tint ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "column_ref") ~mutable_:Immutable ~type_:(toption ~loc (tpair ~loc));
-          label_declaration ~loc ~name:(Located.mk ~loc "payload_key") ~mutable_:Immutable ~type_:(toption ~loc (tstring ~loc));
-          label_declaration ~loc ~name:(Located.mk ~loc "ocaml_type") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "sql_type") ~mutable_:Immutable ~type_:(tstring ~loc);
-        ])
-    ]
-  in
-
-  (* type query_metadata = { ... } *)
-  let query_metadata_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "query_metadata")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_record [
-          label_declaration ~loc ~name:(Located.mk ~loc "name") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "sql") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "source_file") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "cache_key") ~mutable_:Immutable ~type_:(toption ~loc (tstring ~loc));
-          label_declaration ~loc ~name:(Located.mk ~loc "return_table") ~mutable_:Immutable ~type_:(toption ~loc (tstring ~loc));
-          label_declaration ~loc ~name:(Located.mk ~loc "json_columns") ~mutable_:Immutable ~type_:(tlist ~loc (tstring ~loc));
-          label_declaration ~loc ~name:(Located.mk ~loc "params_metadata") ~mutable_:Immutable ~type_:(tlist ~loc (tident ~loc "query_param"));
-          label_declaration ~loc ~name:(Located.mk ~loc "handler") ~mutable_:Immutable ~type_:(tident ~loc "handler");
-        ])
-    ]
-  in
-
-  (* type mutation_metadata = { ... } *)
-  let mutation_metadata_decl =
-    pstr_type ~loc Nonrecursive [
-      type_declaration ~loc
-        ~name:(Located.mk ~loc "mutation_metadata")
-        ~params:[]
-        ~cstrs:[]
-        ~private_:Public
-        ~manifest:None
-        ~kind:(Ptype_record [
-          label_declaration ~loc ~name:(Located.mk ~loc "name") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "sql") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "source_file") ~mutable_:Immutable ~type_:(tstring ~loc);
-          label_declaration ~loc ~name:(Located.mk ~loc "params_metadata") ~mutable_:Immutable ~type_:(tlist ~loc (tident ~loc "query_param"));
-          label_declaration ~loc ~name:(Located.mk ~loc "handler") ~mutable_:Immutable ~type_:(tident ~loc "handler");
-        ])
-    ]
-  in
-
-  (* Table record type declarations (from existing AST function) *)
-  let table_type_decls = schema.tables |> List.map (record_type_declaration_ast ~loc) in
-
-  (* --- Value bindings --- *)
-
-  (* let schema_hash = "..." *)
-  let schema_hash_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "schema_hash")
-          ~expr:(estring_of_string ~loc schema.schema_hash) ]
-  in
-
-  (* let source_files = [...] *)
-  let source_files_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "source_files")
-          ~expr:(elist_of_exprs ~loc (List.map (estring_of_string ~loc) schema.source_files)) ]
-  in
-
-  (* let tables : table_metadata list = [...] *)
-  let tables_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "tables")
-          ~expr:(elist_of_exprs ~loc (List.map (table_record_literal_ast ~loc) schema.tables)) ]
-  in
-
-  (* let queries : query_metadata list = [...] *)
-  let queries_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "queries")
-          ~expr:(elist_of_exprs ~loc (List.map (query_record_literal_ast ~loc) schema.queries)) ]
-  in
-
-  (* let mutations : mutation_metadata list = [...] *)
-  let mutations_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "mutations")
-          ~expr:(elist_of_exprs ~loc (List.map (mutation_record_literal_ast ~loc) schema.mutations)) ]
-  in
-
-  (* let generated_triggers_sql = "..." *)
-  let triggers_sql = generated_triggers_sql schema in
-  let generated_triggers_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "generated_triggers_sql")
-          ~expr:(estring_of_string ~loc triggers_sql) ]
-  in
-
-  (* let latest_migration_sql = "..." *)
-  let _, migration_sql_str = migration_sql schema in
-  let latest_migration_binding =
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "latest_migration_sql")
-          ~expr:(estring_of_string ~loc migration_sql_str) ]
-  in
-
-  (* --- Function definitions --- *)
-
-  (* let find_query name = List.find_opt (fun (query : query_metadata) -> query.name = name) queries *)
-  let find_query_fn =
-    let query_pat = ppat_constraint ~loc (pvar ~loc "query") (tident ~loc "query_metadata") in
-    let pred =
-      pexp_apply ~loc (eident_of_string ~loc "=")
-        [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "query") (Located.mk ~loc (Lident "name")));
-          (Nolabel, eident_of_string ~loc "name") ]
-    in
-    let find_opt_call = pexp_apply ~loc
-      (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "List", "find_opt"))))
-      [ (Nolabel, pexp_fun ~loc Nolabel None query_pat pred);
-        (Nolabel, eident_of_string ~loc "queries") ] in
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "find_query")
-          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "name") find_opt_call) ]
-  in
-
-  (* let find_mutation name = List.find_opt (fun (mutation : mutation_metadata) -> mutation.name = name) mutations *)
-  let find_mutation_fn =
-    let mutation_pat = ppat_constraint ~loc (pvar ~loc "mutation") (tident ~loc "mutation_metadata") in
-    let pred =
-      pexp_apply ~loc (eident_of_string ~loc "=")
-        [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "mutation") (Located.mk ~loc (Lident "name")));
-          (Nolabel, eident_of_string ~loc "name") ]
-    in
-    let find_opt_call = pexp_apply ~loc
-      (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "List", "find_opt"))))
-      [ (Nolabel, pexp_fun ~loc Nolabel None mutation_pat pred);
-        (Nolabel, eident_of_string ~loc "mutations") ] in
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "find_mutation")
-          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "name") find_opt_call) ]
-  in
-
-  (* let find_table name = List.find_opt (fun (table : table_metadata) -> table.name = name) tables *)
-  let find_table_fn =
-    let table_pat = ppat_constraint ~loc (pvar ~loc "table") (tident ~loc "table_metadata") in
-    let pred =
-      pexp_apply ~loc (eident_of_string ~loc "=")
-        [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "table") (Located.mk ~loc (Lident "name")));
-          (Nolabel, eident_of_string ~loc "name") ]
-    in
-    let find_opt_call = pexp_apply ~loc
-      (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "List", "find_opt"))))
-      [ (Nolabel, pexp_fun ~loc Nolabel None table_pat pred);
-        (Nolabel, eident_of_string ~loc "tables") ] in
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "find_table")
-          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "name") find_opt_call) ]
-  in
-
-  (* let find_column table_name column_name =
-       match find_table table_name with
-       | Some table -> List.find_opt (fun (column : column_metadata) -> column.name = column_name) table.columns
-       | None -> None *)
-  let find_column_fn =
-    let col_pat = ppat_constraint ~loc (pvar ~loc "column") (tident ~loc "column_metadata") in
-    let col_pred =
-      pexp_apply ~loc (eident_of_string ~loc "=")
-        [ (Nolabel, pexp_field ~loc (eident_of_string ~loc "column") (Located.mk ~loc (Lident "name")));
-          (Nolabel, eident_of_string ~loc "column_name") ]
-    in
-    let col_find = pexp_apply ~loc
-      (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "List", "find_opt"))))
-      [ (Nolabel, pexp_fun ~loc Nolabel None col_pat col_pred);
-        (Nolabel, pexp_field ~loc (eident_of_string ~loc "table") (Located.mk ~loc (Lident "columns"))) ] in
-    let some_case = case
-      ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some")) (Some (pvar ~loc "table")))
-      ~guard:None
-      ~rhs:col_find in
-    let none_case = case
-      ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "None")) None)
-      ~guard:None
-      ~rhs:(enone_ast ~loc) in
-    let find_table_call = pexp_apply ~loc (eident_of_string ~loc "find_table") [(Nolabel, eident_of_string ~loc "table_name")] in
-    let match_expr = pexp_match ~loc find_table_call [some_case; none_case] in
-    let body = pexp_fun ~loc Nolabel None (pvar ~loc "column_name") match_expr in
-    pstr_value ~loc Nonrecursive
-      [ value_binding ~loc
-          ~pat:(pvar ~loc "find_column")
-          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "table_name") body) ]
-  in
-
-  (* let table_name name = match find_table name with Some table -> table.name | None -> name *)
+  (* The injected module surface is intentionally minimal: only what demos
+     and the store runtime consume. Metadata listings, embedded SQL text
+     and lookup helpers were removed because nothing consumed them and
+     they bloated the client bundle. *)
   let table_name_fn =
-    let some_case = case
-      ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "Some")) (Some (pvar ~loc "table")))
-      ~guard:None
-      ~rhs:(pexp_field ~loc (eident_of_string ~loc "table") (Located.mk ~loc (Lident "name"))) in
-    let none_case = case
-      ~lhs:(ppat_construct ~loc (Located.mk ~loc (Lident "None")) None)
-      ~guard:None
-      ~rhs:(eident_of_string ~loc "name") in
-    let find_table_call = pexp_apply ~loc (eident_of_string ~loc "find_table") [(Nolabel, eident_of_string ~loc "name")] in
-    let match_expr = pexp_match ~loc find_table_call [some_case; none_case] in
     pstr_value ~loc Nonrecursive
       [ value_binding ~loc
           ~pat:(pvar ~loc "table_name")
-          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "name") match_expr) ]
-  in
-
-  (* --- Module declarations --- *)
-
-  (* module Tables = struct ... end *)
-  let tables_module_items =
-    schema.tables |> List.map (table_module_declaration_ast ~loc) |> List.concat
-  in
-  let tables_module =
-    pstr_module ~loc
-      (module_binding ~loc
-         ~name:(Located.mk ~loc (Some "Tables"))
-         ~expr:(pmod_structure ~loc tables_module_items))
+          ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "name") (eident_of_string ~loc "name")) ]
   in
 
   (* module Queries = struct ... end *)
@@ -2552,31 +1700,7 @@ let module_source_ast (schema : schema) ~loc : Parsetree.structure =
 
   (* Assemble the inner structure *)
   let inner_items = [
-    sql_type_decl;
-    foreign_key_decl;
-    broadcast_channel_decl;
-    broadcast_parent_decl;
-    broadcast_to_views_decl;
-    column_metadata_decl;
-    table_metadata_decl;
-    handler_decl;
-    query_param_decl;
-    query_metadata_decl;
-    mutation_metadata_decl;
-  ] @ table_type_decls @ [
-    schema_hash_binding;
-    source_files_binding;
-    tables_binding;
-    queries_binding;
-    mutations_binding;
-    generated_triggers_binding;
-    latest_migration_binding;
-    find_query_fn;
-    find_mutation_fn;
-    find_table_fn;
-    find_column_fn;
     table_name_fn;
-    tables_module;
     queries_module;
     mutation_actions_module;
     mutations_module;
@@ -2604,29 +1728,8 @@ let ensure_directory path =
   else
     Unix.mkdir path 0o755
 
-let write_generated_artifacts ~sql_dir ~triggers_path ~snapshot_path ~migrations_dir =
+let write_generated_artifacts ~sql_dir ~triggers_path =
   let schema = Realtime_schema_parser.parse_directory sql_dir in
   ensure_directory (Filename.dirname triggers_path);
-  ensure_directory (Filename.dirname snapshot_path);
-  ensure_directory migrations_dir;
   write_file triggers_path (generated_triggers_sql schema ^ "\n");
-  let snapshot = snapshot_of_schema schema in
-  let previous_snapshot =
-    if Sys.file_exists snapshot_path then
-      Some (snapshot_of_yojson (Yojson.Safe.from_file snapshot_path))
-    else
-      None
-  in
-  let should_write_migration =
-    match previous_snapshot with
-    | Some previous -> previous.schema_hash <> snapshot.schema_hash
-    | None -> true
-  in
-  if should_write_migration then (
-    let version, migration = migration_sql ?previous_snapshot schema in
-    let migration_path = Filename.concat migrations_dir (Printf.sprintf "migration_%s_schema.sql" version) in
-    write_file migration_path migration;
-    write_file snapshot_path (Yojson.Safe.pretty_to_string (snapshot_to_yojson snapshot) ^ "\n"))
-  else if not (Sys.file_exists snapshot_path) then
-    write_file snapshot_path (Yojson.Safe.pretty_to_string (snapshot_to_yojson snapshot) ^ "\n");
   schema

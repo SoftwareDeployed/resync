@@ -122,8 +122,6 @@ let sql_type_to_string = function
   | Jsonb -> "jsonb"
   | Custom value -> value
 
-let digest_string value = Digest.string value |> Digest.to_hex
-
 let read_file file_path =
   let channel = open_in_bin file_path in
   Fun.protect
@@ -168,17 +166,3 @@ let string_of_broadcast_channel = function
   | Computed value -> "computed=" ^ value
   | Conditional value -> "conditional=" ^ value
   | Subquery value -> "subquery=" ^ value
-
-let snapshot_of_schema (schema : schema) =
-  let tables =
-    List.map
-      (fun (table : table) ->
-        {
-          table_name = table.name;
-          columns = table.columns;
-          id_column = table.id_column;
-          composite_key = table.composite_key;
-        })
-      schema.tables
-  in
-  { schema_hash = schema.schema_hash; tables }

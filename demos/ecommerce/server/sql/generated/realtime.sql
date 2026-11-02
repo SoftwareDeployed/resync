@@ -19,13 +19,6 @@ BEGIN
     IF channel_name IS NOT NULL THEN
       PERFORM pg_notify(channel_name, payload::text);
     END IF;
-    IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = channel_name::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
     RETURN OLD;
   END IF;
   IF TG_OP = 'UPDATE' AND OLD.premise_id::text IS DISTINCT FROM NEW.premise_id::text THEN
@@ -63,26 +56,12 @@ GROUP BY i.id, i.premise_id, i.name, i.description, i.quantity
     IF channel_name IS NOT NULL THEN
       PERFORM pg_notify(channel_name, payload::text);
     END IF;
-    IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = channel_name::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
   END LOOP;
   IF TG_OP = 'UPDATE' AND NOT did_broadcast THEN
     channel_name := OLD.premise_id::text;
     IF channel_name IS NOT NULL THEN
       payload := json_build_object('type', 'patch', 'table', 'inventory', 'id', to_jsonb(OLD.id), 'action', 'DELETE');
       PERFORM pg_notify(channel_name, payload::text);
-      IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = channel_name::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
     END IF;
   END IF;
   RETURN NEW;
@@ -142,26 +121,12 @@ GROUP BY i.id, i.premise_id, i.name, i.description, i.quantity
       IF channel_name IS NOT NULL THEN
         PERFORM pg_notify(channel_name, payload::text);
       END IF;
-      IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = parent_record.premise_id::text::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
     END LOOP;
     IF NOT did_broadcast THEN
       SELECT premise_id::text INTO channel_name FROM inventory WHERE id = parent_row_id;
       IF channel_name IS NOT NULL THEN
         payload := json_build_object('type', 'patch', 'table', 'inventory', 'id', to_jsonb(parent_row_id), 'action', 'DELETE');
         PERFORM pg_notify(channel_name, payload::text);
-        IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = channel_name::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
       END IF;
     END IF;
   END LOOP;
@@ -217,26 +182,12 @@ GROUP BY i.id, i.premise_id, i.name, i.description, i.quantity
     IF channel_name IS NOT NULL THEN
       PERFORM pg_notify(channel_name, payload::text);
     END IF;
-    IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = parent_record.premise_id::text::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
   END LOOP;
   IF NOT did_broadcast THEN
     SELECT premise_id::text INTO channel_name FROM inventory WHERE id = parent_row_id;
     IF channel_name IS NOT NULL THEN
       payload := json_build_object('type', 'patch', 'table', 'inventory', 'id', to_jsonb(parent_row_id), 'action', 'DELETE');
       PERFORM pg_notify(channel_name, payload::text);
-      IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = channel_name::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
     END IF;
   END IF;
   RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;

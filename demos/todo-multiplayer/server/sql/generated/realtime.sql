@@ -19,13 +19,6 @@ BEGIN
     IF channel_name IS NOT NULL THEN
       PERFORM pg_notify(channel_name, payload::text);
     END IF;
-    IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = channel_name::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
     RETURN OLD;
   END IF;
   IF TG_OP = 'UPDATE' AND OLD.id::text IS DISTINCT FROM NEW.id::text THEN
@@ -46,26 +39,12 @@ BEGIN
     IF channel_name IS NOT NULL THEN
       PERFORM pg_notify(channel_name, payload::text);
     END IF;
-    IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = channel_name::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
   END LOOP;
   IF TG_OP = 'UPDATE' AND NOT did_broadcast THEN
     channel_name := OLD.id::text;
     IF channel_name IS NOT NULL THEN
       payload := json_build_object('type', 'patch', 'table', 'todo_lists', 'id', to_jsonb(OLD.id), 'action', 'DELETE');
       PERFORM pg_notify(channel_name, payload::text);
-      IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = channel_name::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
     END IF;
   END IF;
   RETURN NEW;
@@ -99,13 +78,6 @@ BEGIN
   payload := json_build_object('type', 'patch', 'table', 'todos', 'id', CASE WHEN TG_OP = 'DELETE' THEN to_jsonb(OLD.id) ELSE to_jsonb(NEW.id) END, 'action', TG_OP, 'data', CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE json_build_object('id', NEW.id, 'list_id', NEW.list_id, 'text', NEW.text, 'completed', NEW.completed, 'created_at', EXTRACT(EPOCH FROM NEW.created_at) * 1000) END);
   IF channel_name IS NOT NULL THEN
     PERFORM pg_notify(channel_name, payload::text);
-  END IF;
-  IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = channel_name::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
   END IF;
   RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END;
@@ -142,20 +114,12 @@ BEGIN
     IF channel_name IS NOT NULL THEN
       PERFORM pg_notify(channel_name, payload::text);
     END IF;
-    
   END LOOP;
   IF NOT did_broadcast THEN
     SELECT id::text INTO channel_name FROM todo_lists WHERE id = parent_row_id;
     IF channel_name IS NOT NULL THEN
       payload := json_build_object('type', 'patch', 'table', 'todo_lists', 'id', to_jsonb(parent_row_id), 'action', 'DELETE');
       PERFORM pg_notify(channel_name, payload::text);
-      IF channel_name IS NOT NULL THEN
-    BEGIN
-      UPDATE premise SET updated_at = NOW() WHERE id = channel_name::uuid;
-    EXCEPTION WHEN undefined_table THEN
-      NULL;
-    END;
-  END IF;
     END IF;
   END IF;
   RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;

@@ -188,13 +188,21 @@ let parse_column fragment =
       if sql_type_raw = "" then
         None
       else
+        let has_not_null =
+          Str.string_match (Str.regexp_case_fold {|.*not null.*|}) normalized 0
+        in
+        let primary_key =
+          Str.string_match (Str.regexp_case_fold {|.*primary key.*|}) normalized 0
+        in
+        (* A PRIMARY KEY column is implicitly NOT NULL in Postgres. *)
+        let nullable = not (has_not_null || primary_key) in
         Some
           {
             name;
             sql_type = sql_type_of_string sql_type_raw;
             sql_type_raw;
-            nullable = not (Str.string_match (Str.regexp_case_fold {|.*not null.*|}) normalized 0);
-            primary_key = Str.string_match (Str.regexp_case_fold {|.*primary key.*|}) normalized 0;
+            nullable;
+            primary_key;
             default = parse_default fragment;
             foreign_key = parse_inline_foreign_key name fragment;
             definition_sql = trim fragment;
@@ -659,8 +667,4 @@ let parse_directory directory =
       ([], [], []) files
   in
   let tables = topological_tables tables in
-  let hash_input =
-    String.concat "\n--FILE--\n"
-      (List.map (fun file_path -> file_path ^ "\n" ^ read_file file_path) files)
-  in
-  { tables; queries; mutations; source_files = List.map Filename.basename files; schema_hash = digest_string hash_input }
+  { tables; queries; mutations }
