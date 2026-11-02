@@ -31,6 +31,8 @@ val with_middleware :
 
 val with_routes : Dream.route list -> t -> t
 
+val ui_routes : doc_root:string -> Dream.route list
+
 val with_pre_start : (unit -> unit) -> t -> t
 
 val run : t -> unit

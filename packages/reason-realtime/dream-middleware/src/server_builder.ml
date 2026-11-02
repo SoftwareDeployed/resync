@@ -86,6 +86,14 @@ let with_middleware
 
 let with_routes routes t = { t with extra_routes = t.extra_routes @ routes }
 
+(* Shared routes every demo UI needs: static assets under doc_root, the
+   esbuild bundle pair, and a favicon. *)
+let ui_routes ~doc_root =
+  [ Dream.get "/static/**" (Dream.static doc_root)
+  ; Dream.get "/app.js" (fun req -> Dream.from_filesystem doc_root "Index.re.js" req)
+  ; Dream.get "/style.css" (fun req -> Dream.from_filesystem doc_root "Index.re.css" req)
+  ; Dream.get "/favicon.ico" (fun _ -> Dream.respond ~status:`No_Content "") ]
+
 let with_pre_start f t = { t with pre_start = f :: t.pre_start }
 
 let run t =

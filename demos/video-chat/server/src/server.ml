@@ -294,12 +294,11 @@ let () =
     ~handle_media
     ~handle_disconnect
   |> Server_builder.with_pre_start (fun () -> Lwt.async media_polling_loop)
-  |> Server_builder.with_routes [
-    Dream.get "/" (fun _ ->
-      Dream.html "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Video Chat</title><link rel='stylesheet' href='/style.css'></head><body><div id='root'></div><script type='module' src='/app.js'></script></body></html>");
-    Dream.get "/room/**" (fun _ ->
-      Dream.html "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Video Chat</title><link rel='stylesheet' href='/style.css'></head><body><div id='root'></div><script type='module' src='/app.js'></script></body></html>");
-    Dream.get "/app.js" (fun req -> Dream.from_filesystem doc_root "Index.re.js" req);
-    Dream.get "/style.css" (fun req -> Dream.from_filesystem doc_root "Index.re.css" req);
-  ]
+  |> Server_builder.with_routes (
+       let html_shell =
+         Dream.html "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Video Chat</title><link rel='stylesheet' href='/style.css'></head><body><div id='root'></div><script type='module' src='/app.js'></script></body></html>"
+       in
+       Server_builder.ui_routes ~doc_root
+       @ [ Dream.get "/" (fun _ -> html_shell); Dream.get "/room/**" (fun _ -> html_shell) ]
+     )
   |> Server_builder.run

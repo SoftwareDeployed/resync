@@ -706,12 +706,10 @@ let () =
     ~dispatch_mutation
     ~handle_mutation:(handle_mutation with_background_db)
     ~validate_mutation
-  |> Server_builder.with_routes [
-    Dream.get "/static/**" (Dream.static doc_root);
-    Dream.get "/app.js" (fun req -> Dream.from_filesystem doc_root "Index.re.js" req);
-    Dream.get "/style.css" (fun req -> Dream.from_filesystem doc_root "Index.re.css" req);
-    Dream.get "/favicon.ico" (fun _ -> Dream.respond ~status:`No_Content "");
-    Dream.get "/" (fun req ->
+  |> Server_builder.with_routes (
+       Server_builder.ui_routes ~doc_root
+       @ [
+           Dream.get "/" (fun req ->
       let* thread_rows = Dream.sql req (fun db ->
         RealtimeSchema.Queries.GetThreads.collect
           db
@@ -764,4 +762,5 @@ let () =
       Dream.json "{\"status\":\"deleted_all\"}");
     Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
   ]
+  )
   |> Server_builder.run
