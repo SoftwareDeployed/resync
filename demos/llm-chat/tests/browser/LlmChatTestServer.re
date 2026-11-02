@@ -6,16 +6,18 @@ let start = () =>
   TestServer.buildAndStart(
     ~buildArgs=[|
       "build",
+      "--build-dir",
+      "_build_browser_tests",
       "demos/llm-chat/ui/src/.build_stamp",
       "demos/llm-chat/server/src/server.exe",
     |],
-     ~spawnArgs=[|
-       "LLM_CHAT_DOC_ROOT=./_build/default/demos/llm-chat/ui/src",
-        "SERVER_PORT=" ++ Js.Int.toString(defaultPort),
-       "SERVER_INTERFACE=127.0.0.1",
-       "DB_URL=postgres://executor:executor-password@localhost:5432/executor_db",
-       "./_build/default/demos/llm-chat/server/src/server.exe",
-     |],
+      ~spawnArgs=[|
+        "LLM_CHAT_DOC_ROOT=./_build_browser_tests/default/demos/llm-chat/ui/src",
+         "SERVER_PORT=" ++ Js.Int.toString(defaultPort),
+        "SERVER_INTERFACE=127.0.0.1",
+        "DB_URL=postgres://executor:executor-password@localhost:5432/executor_db",
+        "./_build_browser_tests/default/demos/llm-chat/server/src/server.exe",
+      |],
     ~baseUrl,
     ~timeoutLabel="llm-chat browser test server",
     (),

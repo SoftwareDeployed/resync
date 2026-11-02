@@ -13,16 +13,18 @@ let start = () =>
   TestServer.buildAndStart(
     ~buildArgs=[|
       "build",
+      "--build-dir",
+      "_build_browser_tests",
       "demos/ecommerce/ui/src/.build_stamp",
       "demos/ecommerce/server/src/server.exe",
     |],
     ~spawnArgs=[|
-      "ECOMMERCE_DOC_ROOT=./_build/default/demos/ecommerce/ui/src",
+      "ECOMMERCE_DOC_ROOT=./_build_browser_tests/default/demos/ecommerce/ui/src",
       "API_BASE_URL=" ++ baseUrl,
       "DB_URL=" ++ getDbUrl(),
       "SERVER_INTERFACE=127.0.0.1",
       "SERVER_PORT=" ++ Js.Int.toString(defaultPort),
-      "./_build/default/demos/ecommerce/server/src/server.exe",
+      "./_build_browser_tests/default/demos/ecommerce/server/src/server.exe",
     |],
     ~baseUrl,
     ~timeoutLabel="ecommerce browser test server",

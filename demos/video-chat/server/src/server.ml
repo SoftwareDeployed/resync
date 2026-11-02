@@ -295,10 +295,13 @@ let () =
     ~handle_disconnect
   |> Server_builder.with_pre_start (fun () -> Lwt.async media_polling_loop)
   |> Server_builder.with_routes (
-       let html_shell =
-         Dream.html "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Video Chat</title><link rel='stylesheet' href='/style.css'></head><body><div id='root'></div><script type='module' src='/app.js'></script></body></html>"
+       (* Dream responses are one-shot streams: build a fresh shell per
+          request, never share a response object across requests. *)
+       let shell_body =
+         "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Video Chat</title><link rel='stylesheet' href='/style.css'></head><body><div id='root'></div><script type='module' src='/app.js'></script></body></html>"
        in
+       let html_shell _request = Dream.html shell_body in
        Server_builder.ui_routes ~doc_root
-       @ [ Dream.get "/" (fun _ -> html_shell); Dream.get "/room/**" (fun _ -> html_shell) ]
+       @ [ Dream.get "/" html_shell; Dream.get "/room/**" html_shell ]
      )
   |> Server_builder.run
