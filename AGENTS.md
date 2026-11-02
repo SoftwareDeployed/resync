@@ -8,6 +8,8 @@ Resync is a framework for building realtime universal (SSR + client) Reason Reac
 
 ## Build & Run
 
+**Note:** The Dune development server with a watch process is already running in the background. There is no need to attempt a build or start the server. Edited files are picked up and rebuilt automatically.
+
 ```bash
 # Install dependencies
 pnpm install
