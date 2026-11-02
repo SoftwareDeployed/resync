@@ -1,0 +1,8 @@
+(executable
+ (name realtime_schema_codegen_test)
+ (libraries alcotest realtime_schema)
+ (modes native))
+
+(alias
+ (name realtime-schema-tests)
+ (deps realtime_schema_codegen_test.exe))
