@@ -37,13 +37,16 @@ let find_param_refs (json : Yojson.Basic.t) =
        | `Assoc fields -> (
            match List.assoc_opt "ParamRef" fields with
            | Some (`Assoc pfields) -> (
-               match get_string_field pfields "number" with
-               | Some num_str -> (
-                   try
-                     let index = int_of_string num_str in
-                     Some (index, path)
-                   with Failure _ -> None)
-               | None -> None)
+               match pfields with
+               | _ when List.mem_assoc "number" pfields -> (
+                   match List.assoc "number" pfields with
+                   | `Int index -> Some (index, path)
+                   | `Float index -> Some (int_of_float index, path)
+                   | `String num_str -> (
+                       try Some (int_of_string num_str, path)
+                       with Failure _ -> None)
+                   | _ -> None)
+               | _ -> None)
            | _ -> None)
        | _ -> None)
 
@@ -59,18 +62,35 @@ let find_field_in_path path key =
   loop path
 
 let find_parent_named path name =
+  (* Paths returned by find_param_refs are outermost-first; the nearest
+     enclosing wrapper is the LAST matching entry, so scan from the end.
+     A path entry is (key, value): match wrappers either by the key we
+     descended through (e.g. ("A_Expr", fields)) or by an inner field. *)
+  let matches (key, value) =
+    match value with
+    | `Assoc fields -> key = name || List.mem_assoc name fields
+    | _ -> false
+  in
   let rec loop = function
     | [] -> None
-    | (_, `Assoc fields) :: rest when List.mem_assoc name fields -> Some fields
-    | _ :: rest -> loop rest
+    | (entry : (string * Yojson.Basic.t)) :: rest ->
+        (match loop rest with
+         | Some fields -> Some fields
+         | None ->
+             (match entry with
+              | (_, `Assoc fields) when matches entry -> Some fields
+              | _ -> None))
   in
   loop path
 
 let get_relation_name (stmt_fields : (string * Yojson.Basic.t) list) =
   match List.assoc_opt "relation" stmt_fields with
   | Some (`Assoc rel_fields) -> (
+      (* pg_query emits relation -> relname directly in some statement
+         shapes and relation -> RangeVar -> relname in others. *)
       match List.assoc_opt "RangeVar" rel_fields with
       | Some (`Assoc rv_fields) -> get_string_field rv_fields "relname"
+      | None -> get_string_field rel_fields "relname"
       | _ -> None)
   | _ -> None
 
@@ -286,33 +306,42 @@ let build_alias_map (from_clause : Yojson.Basic.t option) =
   | _ -> ());
   map
 
-let resolve_column_ref_with_alias alias_map (expr : Yojson.Basic.t) =
+let rec resolve_column_ref_with_alias alias_map (expr : Yojson.Basic.t) =
+  let extract_fields_list (cr_fields : (string * Yojson.Basic.t) list) =
+    match List.assoc_opt "fields" cr_fields with
+    | Some (`List fields_list) ->
+        let names =
+          List.filter_map
+            (fun (f : Yojson.Basic.t) ->
+              match f with
+              | `Assoc ffields -> (
+                  match List.assoc_opt "String" ffields with
+                  | Some (`Assoc sfields) -> get_string_field sfields "str"
+                  | _ -> None)
+              | _ -> None)
+            fields_list
+        in
+        (match names with
+        | [col] -> Some (None, col)
+        | [alias; col] -> (
+            match Hashtbl.find_opt alias_map alias with
+            | Some table_name -> Some (Some table_name, col)
+            | None -> Some (Some alias, col))
+        | _ -> None)
+    | _ -> None
+  in
   match expr with
   | `Assoc fields -> (
-      match List.assoc_opt "ColumnRef" fields with
-      | Some (`Assoc cr_fields) -> (
-          match List.assoc_opt "fields" cr_fields with
-          | Some (`List fields_list) -> (
-              let names =
-                List.filter_map
-                  (fun (f : Yojson.Basic.t) ->
-                    match f with
-                    | `Assoc ffields -> (
-                        match List.assoc_opt "String" ffields with
-                        | Some (`Assoc sfields) -> get_string_field sfields "str"
-                        | _ -> None)
-                    | _ -> None)
-                  fields_list
-              in
-              match names with
-              | [col] -> Some (None, col)
-              | [alias; col] -> (
-                  match Hashtbl.find_opt alias_map alias with
-                  | Some table_name -> Some (Some table_name, col)
-                  | None -> Some (Some alias, col))
-              | _ -> None)
-          | _ -> None)
-      | _ -> None)
+      (* See through casts like (p.unit)::text = $1 *)
+      match List.assoc_opt "TypeCast" fields with
+      | Some (`Assoc tc_fields) -> (
+          match List.assoc_opt "arg" tc_fields with
+          | Some arg -> resolve_column_ref_with_alias alias_map arg
+          | None -> None)
+      | _ -> (
+          match List.assoc_opt "ColumnRef" fields with
+          | Some (`Assoc cr_fields) -> extract_fields_list cr_fields
+          | _ -> None))
   | _ -> None
 
 let resolve_select tables (stmt_fields : (string * Yojson.Basic.t) list) =

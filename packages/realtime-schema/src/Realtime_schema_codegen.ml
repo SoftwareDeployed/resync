@@ -158,7 +158,10 @@ let mutation_param_type_expr_ast ~loc params =
   | [ p1; p2; p3 ] -> pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "t3")))) [(Nolabel, type_of_param p1); (Nolabel, type_of_param p2); (Nolabel, type_of_param p3)]
   | [ p1; p2; p3; p4 ] -> pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "t4")))) [(Nolabel, type_of_param p1); (Nolabel, type_of_param p2); (Nolabel, type_of_param p3); (Nolabel, type_of_param p4)]
   | [ p1; p2; p3; p4; p5 ] -> pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "t5")))) [(Nolabel, type_of_param p1); (Nolabel, type_of_param p2); (Nolabel, type_of_param p3); (Nolabel, type_of_param p4); (Nolabel, type_of_param p5)]
-  | _ -> pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "unit")))
+  | [ p1; p2; p3; p4; p5; p6 ] -> pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "t6")))) [(Nolabel, type_of_param p1); (Nolabel, type_of_param p2); (Nolabel, type_of_param p3); (Nolabel, type_of_param p4); (Nolabel, type_of_param p5); (Nolabel, type_of_param p6)]
+  | [ p1; p2; p3; p4; p5; p6; p7 ] -> pexp_apply ~loc (pexp_ident ~loc (Located.mk ~loc (Ldot (Lident "Caqti_type", "t7")))) [(Nolabel, type_of_param p1); (Nolabel, type_of_param p2); (Nolabel, type_of_param p3); (Nolabel, type_of_param p4); (Nolabel, type_of_param p5); (Nolabel, type_of_param p6); (Nolabel, type_of_param p7)]
+  | params ->
+      failwith (Printf.sprintf "realtime_schema: mutations and queries support at most 7 parameters, got %d" (List.length params))
 
 let params_literal_ast ~loc params =
   let param_to_record_expr param =
@@ -199,6 +202,7 @@ let ocaml_type_to_json_fn ocaml_type =
   match ocaml_type with
   | "string" | "Uuid" | "Varchar" | "Text" -> "string_to_json"
   | "int" | "Int" | "Bigint" -> "int_to_json"
+  | "int64" -> "int64_to_json"
   | "bool" | "Boolean" -> "bool_to_json"
   | "float" | "Float" | "Timestamp" | "Timestamptz" -> "float_to_json"
   | _ -> "string_to_json"
@@ -207,6 +211,7 @@ let ocaml_type_of_json_fn ocaml_type =
   match ocaml_type with
   | "string" | "Uuid" | "Varchar" | "Text" -> "string_of_json"
   | "int" | "Int" | "Bigint" -> "int_of_json"
+  | "int64" -> "int64_of_json"
   | "bool" | "Boolean" -> "bool_of_json"
   | "float" | "Float" | "Timestamp" | "Timestamptz" -> "float_of_json"
   | _ -> "string_of_json"
@@ -215,6 +220,7 @@ let string_conversion_fn ocaml_type =
   match ocaml_type with
   | "string" | "Uuid" | "Varchar" | "Text" -> ""
   | "int" | "Int" | "Bigint" -> "string_of_int"
+  | "int64" -> "Int64.to_string"
   | "bool" | "Boolean" -> "string_of_bool"
   | "float" | "Float" | "Timestamp" | "Timestamptz" -> "string_of_float"
   | _ -> ""
@@ -1483,7 +1489,13 @@ let payload_of_json_function_ast ~loc (mutation : mutation) : structure_item opt
                   (Labelled "fieldName", estring_of_string ~loc field_name);
                   (Labelled "decode", decode_arg) ]))
     in
-    let record_expr = pexp_record ~loc fields None in
+    let record_expr =
+      (* Annotate so structurally identical payload types (e.g. two
+         mutations with {id; quantity}) cannot be confused by inference. *)
+      pexp_constraint ~loc
+        (pexp_record ~loc fields None)
+        (ptyp_constr ~loc (Located.mk ~loc (Lident type_name)) [])
+    in
     Some (pstr_value ~loc Nonrecursive
       [ value_binding ~loc ~pat:(pvar ~loc fn_name)
           ~expr:(pexp_fun ~loc Nolabel None (pvar ~loc "p") record_expr) ])
