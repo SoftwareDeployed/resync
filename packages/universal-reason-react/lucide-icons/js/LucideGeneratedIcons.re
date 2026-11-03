@@ -261,6 +261,65 @@ module IconActivity = {
     );
 };
 
+module IconAd = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "18d9xh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 13H6"),
+      |],
+    },
+    {
+      key: "ss28p3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 15v-4a2 2 0 0 0-4 0v4"),
+      |],
+    },
+    {
+      key: "b3f847",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 14.5a.5.5 0 0 0 .5.5h1a2.5 2.5 0 0 0 2.5-2.5v-1A2.5 2.5 0 0 0 15.5 9h-1a.5.5 0 0 0-.5.5z"),
+      |],
+    },
+    {
+      key: "qneu4z",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("2"),
+        LucideIconTypes.Y("5"),
+        LucideIconTypes.Width("20"),
+        LucideIconTypes.Height("14"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="ad",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconAirVent = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -768,52 +827,6 @@ module IconAlarmSmoke = {
   ) =>
     LucideIconRenderer.render(
       ~name="alarm-smoke",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconAlbum = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1m3agn",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("18"),
-        LucideIconTypes.Height("18"),
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("3"),
-        LucideIconTypes.Rx("2"),
-        LucideIconTypes.Ry("2"),
-      |],
-    },
-    {
-      key: "1wcwz3",
-      tag: LucideIconTypes.Polyline,
-      attrs: [|
-        LucideIconTypes.Points("11 3 11 11 14 8 17 11 17 3"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="album",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -2433,50 +2446,20 @@ module IconAnchor = {
     );
 };
 
-module IconAngry = {
+module IconAngle = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
+      key: "c24i48",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
+        LucideIconTypes.D("M3 3v16a2 2 0 0 0 2 2h16"),
       |],
     },
     {
-      key: "epbg0q",
+      key: "jhvw44",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 16s-1.5-2-4-2-4 2-4 2"),
-      |],
-    },
-    {
-      key: "olxxln",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M7.5 8 10 9"),
-      |],
-    },
-    {
-      key: "1j6cij",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m14 9 2.5-1"),
-      |],
-    },
-    {
-      key: "qbtxuw",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 10h.01"),
-      |],
-    },
-    {
-      key: "1qmjsl",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M15 10h.01"),
+        LucideIconTypes.D("M3 11a10 10 0 0 1 10 10"),
       |],
     },
   |];
@@ -2492,64 +2475,7 @@ module IconAngry = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="angry",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconAnnoyed = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
-      |],
-    },
-    {
-      key: "45n4r",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 15h8"),
-      |],
-    },
-    {
-      key: "1g203m",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 9h2"),
-      |],
-    },
-    {
-      key: "116p9w",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M14 9h2"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="annoyed",
+      ~name="angle",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -2981,7 +2907,73 @@ module IconArchive = {
     );
 };
 
-module IconArchiveRestore = {
+module IconArchiveArrowDown = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1wp1u1",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("20"),
+        LucideIconTypes.Height("5"),
+        LucideIconTypes.X("2"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "huy5ri",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 8v11a2 2 0 0 0 2 2h.343"),
+      |],
+    },
+    {
+      key: "yw7gyh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 8v11a2 2 0 0 1-2 2h-.343"),
+      |],
+    },
+    {
+      key: "1ne217",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 18 3 3 3-3"),
+      |],
+    },
+    {
+      key: "192myk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12v9"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="archive-arrow-down",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconArchiveArrowUp = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
       key: "1wp1u1",
@@ -3035,7 +3027,7 @@ module IconArchiveRestore = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="archive-restore",
+      ~name="archive-arrow-up",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -3161,13 +3153,61 @@ module IconArmchair = {
     );
 };
 
+module IconArmenianDram = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "cn0dty",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 10h8"),
+      |],
+    },
+    {
+      key: "lksjnm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 14h8"),
+      |],
+    },
+    {
+      key: "1gdsmd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 20V10a6 6 0 0 0-12 0"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="armenian-dram",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconArrowBigDown = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1eaqc3",
+      key: "1o3tkq",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 11a1 1 0 0 0 1 1h2.939a1 1 0 0 1 .75 1.811l-6.835 6.836a1.207 1.207 0 0 1-1.707 0L4.31 13.81a1 1 0 0 1 .75-1.811H8a1 1 0 0 0 1-1V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1z"),
+        LucideIconTypes.D("M9 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6a1 1 0 0 0 1 1h3.293a.707.707 0 0 1 .5 1.207l-7.086 7.086a1 1 0 0 1-1.414 0l-7.086-7.086a.707.707 0 0 1 .5-1.207H8a1 1 0 0 0 1-1z"),
       |],
     },
   |];
@@ -3198,10 +3238,10 @@ module IconArrowBigDown = {
 module IconArrowBigDownDash = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1hy3w3",
+      key: "1b91ra",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 11a1 1 0 0 0 1 1h2.939a1 1 0 0 1 .75 1.811l-6.835 6.836a1.207 1.207 0 0 1-1.707 0L4.31 13.81a1 1 0 0 1 .75-1.811H8a1 1 0 0 0 1-1V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1z"),
+        LucideIconTypes.D("M14 8a1 1 0 0 1 1 1v2a1 1 0 0 0 1 1h3.293a.707.707 0 0 1 .5 1.207l-6.939 6.939a1.207 1.207 0 0 1-1.708 0l-6.94-6.94a.707.707 0 0 1 .5-1.206H8a1 1 0 0 0 1-1V9a1 1 0 0 1 1-1z"),
       |],
     },
     {
@@ -3239,10 +3279,10 @@ module IconArrowBigDownDash = {
 module IconArrowBigLeft = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "aztept",
+      key: "qbhtmx",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M13 9a1 1 0 0 1-1-1V5.061a1 1 0 0 0-1.811-.75l-6.835 6.836a1.207 1.207 0 0 0 0 1.707l6.835 6.835a1 1 0 0 0 1.811-.75V16a1 1 0 0 1 1-1h6a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1z"),
+        LucideIconTypes.D("M10.793 19.793a.707.707 0 0 0 1.207-.5V16a1 1 0 0 1 1-1h6a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-6a1 1 0 0 1-1-1V4.707a.707.707 0 0 0-1.207-.5l-6.94 6.94a1.207 1.207 0 0 0 0 1.707z"),
       |],
     },
   |];
@@ -3273,10 +3313,10 @@ module IconArrowBigLeft = {
 module IconArrowBigLeftDash = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "p8w4w5",
+      key: "17jy80",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M13 9a1 1 0 0 1-1-1V5.061a1 1 0 0 0-1.811-.75l-6.835 6.836a1.207 1.207 0 0 0 0 1.707l6.835 6.835a1 1 0 0 0 1.811-.75V16a1 1 0 0 1 1-1h2a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1z"),
+        LucideIconTypes.D("M13 9a1 1 0 0 1-1-1V4.707a.707.707 0 0 0-1.207-.5l-6.94 6.94a1.207 1.207 0 0 0 0 1.707l6.94 6.94a.707.707 0 0 0 1.207-.5V16a1 1 0 0 1 1-1h2a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1z"),
       |],
     },
     {
@@ -3314,10 +3354,10 @@ module IconArrowBigLeftDash = {
 module IconArrowBigRight = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1232du",
+      key: "zee3eo",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11 9a1 1 0 0 0 1-1V5.061a1 1 0 0 1 1.811-.75l6.836 6.836a1.207 1.207 0 0 1 0 1.707l-6.836 6.835a1 1 0 0 1-1.811-.75V16a1 1 0 0 0-1-1H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"),
+        LucideIconTypes.D("M13.207 19.793a.707.707 0 0 1-1.207-.5V16a1 1 0 0 0-1-1H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h6a1 1 0 0 0 1-1V4.707a.707.707 0 0 1 1.207-.5l6.94 6.94a1.207 1.207 0 0 1 0 1.707z"),
       |],
     },
   |];
@@ -3348,10 +3388,10 @@ module IconArrowBigRight = {
 module IconArrowBigRightDash = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "67vhrh",
+      key: "9idyso",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11 9a1 1 0 0 0 1-1V5.061a1 1 0 0 1 1.811-.75l6.836 6.836a1.207 1.207 0 0 1 0 1.707l-6.836 6.835a1 1 0 0 1-1.811-.75V16a1 1 0 0 0-1-1H9a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"),
+        LucideIconTypes.D("M11 9a1 1 0 0 0 1-1V4.707a.707.707 0 0 1 1.207-.5l6.94 6.94a1.207 1.207 0 0 1 0 1.707l-6.94 6.94a.707.707 0 0 1-1.207-.5V16a1 1 0 0 0-1-1H9a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"),
       |],
     },
     {
@@ -3389,10 +3429,10 @@ module IconArrowBigRightDash = {
 module IconArrowBigUp = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "lh0v7k",
+      key: "106j91",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M9 13a1 1 0 0 0-1-1H5.061a1 1 0 0 1-.75-1.811l6.836-6.835a1.207 1.207 0 0 1 1.707 0l6.835 6.835a1 1 0 0 1-.75 1.811H16a1 1 0 0 0-1 1v6a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"),
+        LucideIconTypes.D("M9 19a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-6a1 1 0 0 1 1-1h3.293a.707.707 0 0 0 .5-1.207l-7.086-7.086a1 1 0 0 0-1.414 0l-7.086 7.086a.707.707 0 0 0 .5 1.207H8a1 1 0 0 1 1 1z"),
       |],
     },
   |];
@@ -3423,10 +3463,10 @@ module IconArrowBigUp = {
 module IconArrowBigUpDash = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "pnzqmc",
+      key: "q57loy",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M9 13a1 1 0 0 0-1-1H5.061a1 1 0 0 1-.75-1.811l6.836-6.835a1.207 1.207 0 0 1 1.707 0l6.835 6.835a1 1 0 0 1-.75 1.811H16a1 1 0 0 0-1 1v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"),
+        LucideIconTypes.D("M14 16a1 1 0 0 0 1-1v-2a1 1 0 0 1 1-1h3.293a.707.707 0 0 0 .5-1.207l-6.939-6.939a1.207 1.207 0 0 0-1.708 0l-6.94 6.94a.707.707 0 0 0 .5 1.206H8a1 1 0 0 1 1 1v2a1 1 0 0 0 1 1z"),
       |],
     },
     {
@@ -5318,24 +5358,24 @@ module IconArrowsUpFromLine = {
 module IconAsterisk = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1vza4d",
+      key: "s699le",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 6v12"),
+        LucideIconTypes.D("M12 5v14"),
       |],
     },
     {
-      key: "1ah31z",
+      key: "1h26g9",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17.196 9 6.804 15"),
+        LucideIconTypes.D("m18.065 8.496-12.125 7"),
       |],
     },
     {
-      key: "1b6pxd",
+      key: "k77sdm",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m6.804 9 10.392 6"),
+        LucideIconTypes.D("m5.94 8.504 12.125 7"),
       |],
     },
   |];
@@ -5352,6 +5392,40 @@ module IconAsterisk = {
   ) =>
     LucideIconRenderer.render(
       ~name="asterisk",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconAstroid = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1tipus",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.983 21.186a1 1 0 0 1-1.966 0 10 10 0 0 0-8.203-8.203 1 1 0 0 1 0-1.966 10 10 0 0 0 8.203-8.203 1 1 0 0 1 1.966 0 10 10 0 0 0 8.203 8.203 1 1 0 0 1 0 1.966 10 10 0 0 0-8.203 8.203"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="astroid",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -5525,6 +5599,179 @@ module IconAudioLines = {
     );
 };
 
+module IconAudioLinesOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "tkf9cx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 10v11"),
+      |],
+    },
+    {
+      key: "1rsffz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 3v1.35"),
+      |],
+    },
+    {
+      key: "hsexio",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 14v1"),
+      |],
+    },
+    {
+      key: "isohmc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 8v.35"),
+      |],
+    },
+    {
+      key: "1b0cqo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 5v7.35"),
+      |],
+    },
+    {
+      key: "1fnikh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 10v3"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "154ddg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 10v3"),
+      |],
+    },
+    {
+      key: "11sgs0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 6v11"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="audio-lines-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconAudioLinesX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "yhl04a",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 3v18"),
+      |],
+    },
+    {
+      key: "1ubbml",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 8v6.35"),
+      |],
+    },
+    {
+      key: "p7ous7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m17 17 5 5"),
+      |],
+    },
+    {
+      key: "1icuhc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 5v8.1"),
+      |],
+    },
+    {
+      key: "1fnikh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 10v3"),
+      |],
+    },
+    {
+      key: "154ddg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 10v3"),
+      |],
+    },
+    {
+      key: "gqnmv0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 17-5 5"),
+      |],
+    },
+    {
+      key: "11sgs0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 6v11"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="audio-lines-x",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconAudioWaveform = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -5548,6 +5795,49 @@ module IconAudioWaveform = {
   ) =>
     LucideIconRenderer.render(
       ~name="audio-waveform",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconAvocado = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "opbrel",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.465 3.464a5 5 0 017.07 0 5 5 0 010 7.072c-1.204 1.203-2.38 2.89-2.614 4.577A8 8 0 118.886 6.08c1.687-.235 3.375-1.41 4.579-2.615"),
+      |],
+    },
+    {
+      key: "1l1kct",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("10"),
+        LucideIconTypes.Cy("14"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="avocado",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -5698,6 +5988,47 @@ module IconAxis3d = {
     );
 };
 
+module IconAzerbaijaniManat = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1654pz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 4v16"),
+      |],
+    },
+    {
+      key: "1ekwy4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 20v-8a6 6 0 00-12 0v8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="azerbaijani-manat",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconBaby = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -5804,6 +6135,47 @@ module IconBackpack = {
   ) =>
     LucideIconRenderer.render(
       ~name="backpack",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBacon = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "15j3n2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.795 16.804c-.789-.79-1.09-2.018-.442-2.928 1.933-2.713 4.414-1.05 6.145-5.378 1.868-4.67 4.608-2.366 6.592-6.107.218-.412.78-.53 1.11-.2l5.005 5.005c.789.79 1.09 2.018.442 2.928-1.933 2.713-4.414 1.05-6.145 5.378-1.868 4.67-4.608 2.366-6.591 6.107-.22.412-.78.53-1.11.2z"),
+      |],
+    },
+    {
+      key: "191iws",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.5 18.5c2-5 5-2 7-7s5-2 7-7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="bacon",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -5961,10 +6333,10 @@ module IconBadgeCheck = {
       |],
     },
     {
-      key: "dzmm74",
+      key: "xofnsj",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m9 12 2 2 4-4"),
+        LucideIconTypes.D("m16 9-5.5 5.5L8 12"),
       |],
     },
   |];
@@ -6793,15 +7165,106 @@ module IconBaggageClaim = {
     );
 };
 
-module IconBan = {
+module IconBallWave = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "196cmz",
+      key: "17ivm9",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4.929 4.929 19.07 19.071"),
+        LucideIconTypes.D("M2 20c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"),
       |],
     },
+    {
+      key: "1i25wk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.757 13.243a2 6 45 1 0 8.486-8.486 2 6 45 1 0-8.486 8.486"),
+      |],
+    },
+    {
+      key: "1nw4tq",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("9"),
+        LucideIconTypes.R("6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="ball-wave",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBalloon = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "2nz4b",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 16v1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v1"),
+      |],
+    },
+    {
+      key: "7y7d82",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6a2 2 0 0 1 2 2"),
+      |],
+    },
+    {
+      key: "vqb5s3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 8c0 4-3.5 8-6 8s-6-4-6-8a6 6 0 0 1 12 0"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="balloon",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBan = {
+  let iconNode: LucideIconTypes.iconNode = [|
     {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
@@ -6809,6 +7272,13 @@ module IconBan = {
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "196cmz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.929 4.929 19.07 19.071"),
       |],
     },
   |];
@@ -6908,10 +7378,10 @@ module IconBandage = {
       |],
     },
     {
-      key: "dkbidh",
+      key: "1bcixs",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 6v11.5"),
+        LucideIconTypes.D("M18 6v12"),
       |],
     },
     {
@@ -6946,6 +7416,47 @@ module IconBandage = {
   ) =>
     LucideIconRenderer.render(
       ~name="bandage",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBangladeshiTaka = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1rv5si",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 5a2 2 0 0 1 4 0v12a4 4 0 0 0 8 0 2 2 0 0 0-4 0"),
+      |],
+    },
+    {
+      key: "oae0tv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 9h12"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="bangladeshi-taka",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -7153,6 +7664,70 @@ module IconBanknoteArrowUp = {
     );
 };
 
+module IconBanknoteCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "t4e5a5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11.748 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4.875"),
+      |],
+    },
+    {
+      key: "1b14m6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 19 2 2 4-4"),
+      |],
+    },
+    {
+      key: "yjnet6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 12h.01"),
+      |],
+    },
+    {
+      key: "c2rlol",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h.01"),
+      |],
+    },
+    {
+      key: "1c9p78",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="banknote-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconBanknoteX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -7289,38 +7864,38 @@ module IconBarcode = {
 module IconBarrel = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1qcnzb",
+      key: "101rs3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 3a41 41 0 0 0 0 18"),
+        LucideIconTypes.D("M10.5 2a34.5 34.5 0 000 20"),
       |],
     },
     {
-      key: "547vd4",
+      key: "op77mm",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14 3a41 41 0 0 1 0 18"),
+        LucideIconTypes.D("M13.5 2a34.5 34.5 0 010 20"),
       |],
     },
     {
-      key: "1wepyy",
+      key: "qzi5u0",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17 3a2 2 0 0 1 1.68.92 15.25 15.25 0 0 1 0 16.16A2 2 0 0 1 17 21H7a2 2 0 0 1-1.68-.92 15.25 15.25 0 0 1 0-16.16A2 2 0 0 1 7 3z"),
+        LucideIconTypes.D("M4.67 17h14.67"),
       |],
     },
     {
-      key: "1wh981",
+      key: "1fzc0z",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3.84 17h16.32"),
+        LucideIconTypes.D("M4.67 7h14.67"),
       |],
     },
     {
-      key: "19jf4x",
+      key: "161s4t",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3.84 7h16.32"),
+        LucideIconTypes.D("M6.23 3.06a19 19 0 000 17.88A2 2 0 008 22h8a2 2 0 001.77-1.06 19 19 0 000-17.88A2 2 0 0016 2H8a2 2 0 00-1.77 1.06"),
       |],
     },
   |];
@@ -8174,10 +8749,10 @@ module IconBeef = {
       |],
     },
     {
-      key: "5byaag",
+      key: "hvizuk",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m18.5 6 2.19 4.5a6.48 6.48 0 0 1-2.29 7.2C15.4 20.2 11 22 7 22a3 3 0 0 1-2.68-1.66L2.4 16.5"),
+        LucideIconTypes.D("m18.5 6 1.754 3.5a6.48 6.48 0 0 1-1.854 8.2C15.4 20.2 11 22 7 22a3 3 0 0 1-2.68-1.66L2.4 16.5"),
       |],
     },
     {
@@ -8203,6 +8778,75 @@ module IconBeef = {
   ) =>
     LucideIconRenderer.render(
       ~name="beef",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBeefOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "3w1grc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11.771 6.109a2.5 2.5 0 0 1 3.12 3.12"),
+      |],
+    },
+    {
+      key: "1xgl7b",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.852 12.185a6.5 6.5 0 0 0-9.035-9.04"),
+      |],
+    },
+    {
+      key: "3m3yc0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18.013 18.013C15.029 20.349 10.831 22 7 22a3 3 0 0 1-2.68-1.66L2.4 16.5"),
+      |],
+    },
+    {
+      key: "1rvkn7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18.5 6 2.19 4.5a6.48 6.48 0 0 1-.139 4.393"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "54713r",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.355 6.37a7 7 0 0 0-.075.23c-1.1 3.13-.78 3.9-3.18 6.08A3 3 0 0 0 5 18c3.356 0 6.993-1.267 9.85-3.151"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="beef-off",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -8359,6 +9003,47 @@ module IconBeerOff = {
     );
 };
 
+module IconBelarusianRuble = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "16et0b",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 16 L13 16"),
+      |],
+    },
+    {
+      key: "1d39ym",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="belarusian-ruble",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconBell = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -8400,6 +9085,61 @@ module IconBell = {
     );
 };
 
+module IconBellCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "vwvbt9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.268 21a2 2 0 0 0 3.464 0"),
+      |],
+    },
+    {
+      key: "sbrgsm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15 8 2 2 4-4"),
+      |],
+    },
+    {
+      key: "qcog4a",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.8607 4.4824A6 6 0 0 0 6 8C6 12.499 4.589 13.956 3.262 15.326"),
+      |],
+    },
+    {
+      key: "mxnnoh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.262 15.326A1 1 0 0 0 4 17H20A1 1 0 0 0 20.74 15.327C20.209 14.779 19.665 14.218 19.203 13.454"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="bell-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconBellDot = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -8410,18 +9150,18 @@ module IconBellDot = {
       |],
     },
     {
-      key: "1tip0g",
+      key: "xaq59h",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M13.916 2.314A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.74 7.327A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673 9 9 0 0 1-.585-.665"),
+        LucideIconTypes.D("M11.68 2.009A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673c-.824-.85-1.678-1.731-2.21-3.348"),
       |],
     },
     {
-      key: "1g0gzu",
+      key: "gq8acd",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("18"),
-        LucideIconTypes.Cy("8"),
+        LucideIconTypes.Cy("5"),
         LucideIconTypes.R("3"),
       |],
     },
@@ -9495,19 +10235,19 @@ module IconBitcoin = {
 module IconBlend = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "p2h5vp",
+      key: "1i12rt",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("9"),
+        LucideIconTypes.Cx("15"),
         LucideIconTypes.Cy("9"),
         LucideIconTypes.R("7"),
       |],
     },
     {
-      key: "19ennj",
+      key: "19bs8k",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("15"),
+        LucideIconTypes.Cx("9"),
         LucideIconTypes.Cy("15"),
         LucideIconTypes.R("7"),
       |],
@@ -9526,6 +10266,75 @@ module IconBlend = {
   ) =>
     LucideIconRenderer.render(
       ~name="blend",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBlender = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "11zxmj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 14a2 2 0 0 0-1.963 1.615l-1.018 5.193A1 1 0 0 0 6 22h12a1 1 0 0 0 .981-1.192l-1.018-5.193A2 2 0 0 0 16 14z"),
+      |],
+    },
+    {
+      key: "nxm2fw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m17 2-1 12"),
+      |],
+    },
+    {
+      key: "13bxiv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.006 14 7 2"),
+      |],
+    },
+    {
+      key: "1s61ad",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.565 8.787A5 5 0 0 0 12 8a5 5 0 0 1 4.56-.75"),
+      |],
+    },
+    {
+      key: "gel3rg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 2H5a2 2 0 0 0-2 2v5a2 2 0 0 0 .688 1.5"),
+      |],
+    },
+    {
+      key: "mhygvu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 18h.01"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="blender",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -9844,40 +10653,6 @@ module IconBluetoothSearching = {
     );
 };
 
-module IconBold = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "mg9rjx",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="bold",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconBolt = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -9994,6 +10769,75 @@ module IconBone = {
   ) =>
     LucideIconRenderer.render(
       ~name="bone",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBoneFracture = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1c7o5b",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 4.5a1 1 0 0 1 5 0 .5.5 0 0 0 .5.5 1 1 0 0 1 0 5c-.81 0-1.8-.7-2.5 0l-1.958 1.957a.15.15 0 0 1-.252-.072l-.493-2.07a.15.15 0 0 0-.111-.112l-2.072-.494a.15.15 0 0 1-.072-.252L14 7c.7-.7 0-1.69 0-2.5"),
+      |],
+    },
+    {
+      key: "5348lt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 20-1-2"),
+      |],
+    },
+    {
+      key: "2c7pv5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20 16-2-1"),
+      |],
+    },
+    {
+      key: "rpj1x4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m4 8 2 1"),
+      |],
+    },
+    {
+      key: "1r4zbp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m8 4 1 2"),
+      |],
+    },
+    {
+      key: "3u61yx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.698 14.19a.15.15 0 0 0 .112.112l2.074.489a.15.15 0 0 1 .072.252L10 17c-.7.7 0 1.69 0 2.5a1 1 0 0 1-5 0 .495.495 0 0 0-.5-.5 1 1 0 0 1 0-5c.81 0 1.8.7 2.5 0l1.956-1.957a.15.15 0 0 1 .252.072z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="bone-fracture",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -10179,6 +11023,47 @@ module IconBookAudio = {
   ) =>
     LucideIconRenderer.render(
       ~name="book-audio",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBookBookmark = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "x9x4jl",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 2v7.751a.25.25 0 00.407.195l2.28-1.834a.5.5 0 01.627 0l2.28 1.834A.25.25 0 0016 9.751V2"),
+      |],
+    },
+    {
+      key: "1889un",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 19.5v-15A2.5 2.5 0 016.5 2H19a1 1 0 011 1v18a1 1 0 01-1 1H6.5a1 1 0 010-5H20"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="book-bookmark",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -10584,39 +11469,39 @@ module IconBookImage = {
 module IconBookKey = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "ze14oc",
+      key: "4azifu",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m19 3 1 1"),
+        LucideIconTypes.D("M13 2H6.5A2.5 2.5 0 0 0 4 4.5v15"),
       |],
     },
     {
-      key: "1sppr8",
+      key: "qgmh37",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m20 2-4.5 4.5"),
+        LucideIconTypes.D("M17 2v6"),
       |],
     },
     {
-      key: "1xzogz",
+      key: "13vrzo",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20 7.898V21a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"),
+        LucideIconTypes.D("M17 4h2"),
       |],
     },
     {
-      key: "vtdg6h",
+      key: "192hzx",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 19.5v-15A2.5 2.5 0 0 1 6.5 2h7.844"),
+        LucideIconTypes.D("M20 15.2V21a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"),
       |],
     },
     {
-      key: "u49eql",
+      key: "y0i25j",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("14"),
-        LucideIconTypes.Cy("8"),
+        LucideIconTypes.Cx("17"),
+        LucideIconTypes.Cy("10"),
         LucideIconTypes.R("2"),
       |],
     },
@@ -10704,47 +11589,6 @@ module IconBookLock = {
     );
 };
 
-module IconBookMarked = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "sqw3rj",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M10 2v8l3-3 3 3V2"),
-      |],
-    },
-    {
-      key: "k3hazp",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="book-marked",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconBookMinus = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -10789,17 +11633,17 @@ module IconBookMinus = {
 module IconBookOpen = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1akyts",
+      key: "1f6ucr",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 7v14"),
+        LucideIconTypes.D("M12 5v16"),
       |],
     },
     {
-      key: "ruj8y",
+      key: "1fyvmf",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"),
+        LucideIconTypes.D("M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"),
       |],
     },
   |];
@@ -10830,10 +11674,10 @@ module IconBookOpen = {
 module IconBookOpenCheck = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "gj6g52",
+      key: "1f6ucr",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 21V7"),
+        LucideIconTypes.D("M12 5v16"),
       |],
     },
     {
@@ -10844,10 +11688,10 @@ module IconBookOpenCheck = {
       |],
     },
     {
-      key: "8arnkb",
+      key: "144kbk",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 6V4a1 1 0 0 0-1-1h-5a4 4 0 0 0-4 4 4 4 0 0 0-4-4H3a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h6a3 3 0 0 1 3 3 3 3 0 0 1 3-3h6a1 1 0 0 0 1-1v-1.3"),
+        LucideIconTypes.D("M22 6V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2h4.001A2 2 0 0022 17v-1.344"),
       |],
     },
   |];
@@ -10878,45 +11722,45 @@ module IconBookOpenCheck = {
 module IconBookOpenText = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1akyts",
+      key: "1f6ucr",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 7v14"),
+        LucideIconTypes.D("M12 5v16"),
       |],
     },
     {
-      key: "7q9ll5",
+      key: "weia3s",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 12h2"),
+        LucideIconTypes.D("M16 13h2"),
       |],
     },
     {
-      key: "msurwy",
+      key: "1n7gjm",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 8h2"),
+        LucideIconTypes.D("M16 9h2"),
       |],
     },
     {
-      key: "ruj8y",
+      key: "1fyvmf",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"),
+        LucideIconTypes.D("M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"),
       |],
     },
     {
-      key: "32wvfc",
+      key: "1cckiz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 12h2"),
+        LucideIconTypes.D("M6 13h2"),
       |],
     },
     {
-      key: "30oboj",
+      key: "1k7j9f",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 8h2"),
+        LucideIconTypes.D("M6 9h2"),
       |],
     },
   |];
@@ -10981,6 +11825,63 @@ module IconBookPlus = {
   ) =>
     LucideIconRenderer.render(
       ~name="book-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBookSearch = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "mcbepb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 22H5.5a1 1 0 0 1 0-5h4.501"),
+      |],
+    },
+    {
+      key: "12q7x1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 22-1.879-1.878"),
+      |],
+    },
+    {
+      key: "olfd5n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 19.5v-15A2.5 2.5 0 0 1 5.5 2H18a1 1 0 0 1 1 1v8"),
+      |],
+    },
+    {
+      key: "82mm0e",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("17"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="book-search",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -11258,10 +12159,10 @@ module IconBookUser = {
 module IconBookX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "dy991v",
+      key: "3lb6iw",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m14.5 7-5 5"),
+        LucideIconTypes.D("m14.5 7.5-5 5"),
       |],
     },
     {
@@ -11272,10 +12173,10 @@ module IconBookX = {
       |],
     },
     {
-      key: "s45iea",
+      key: "ko136h",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m9.5 7 5 5"),
+        LucideIconTypes.D("m9.5 7.5 5 5"),
       |],
     },
   |];
@@ -11306,10 +12207,10 @@ module IconBookX = {
 module IconBookmark = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1fy3hk",
+      key: "oz39mx",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"),
+        LucideIconTypes.D("M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"),
       |],
     },
   |];
@@ -11340,10 +12241,10 @@ module IconBookmark = {
 module IconBookmarkCheck = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "169p4p",
+      key: "oz39mx",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"),
+        LucideIconTypes.D("M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"),
       |],
     },
     {
@@ -11381,20 +12282,17 @@ module IconBookmarkCheck = {
 module IconBookmarkMinus = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1fy3hk",
+      key: "o6yqo3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"),
+        LucideIconTypes.D("M15 10H9"),
       |],
     },
     {
-      key: "1gty7f",
-      tag: LucideIconTypes.Line,
+      key: "oz39mx",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("15"),
-        LucideIconTypes.X2("9"),
-        LucideIconTypes.Y1("10"),
-        LucideIconTypes.Y2("10"),
+        LucideIconTypes.D("M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"),
       |],
     },
   |];
@@ -11422,33 +12320,75 @@ module IconBookmarkMinus = {
     );
 };
 
+module IconBookmarkOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "nigmce",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 19v1a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "hlvsa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.656 3H17a2 2 0 0 1 2 2v8.344"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="bookmark-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconBookmarkPlus = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1fy3hk",
+      key: "lw1j43",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"),
+        LucideIconTypes.D("M12 7v6"),
       |],
     },
     {
-      key: "1cppfj",
-      tag: LucideIconTypes.Line,
+      key: "o6yqo3",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("7"),
-        LucideIconTypes.Y2("13"),
+        LucideIconTypes.D("M15 10H9"),
       |],
     },
     {
-      key: "1gty7f",
-      tag: LucideIconTypes.Line,
+      key: "oz39mx",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("15"),
-        LucideIconTypes.X2("9"),
-        LucideIconTypes.Y1("10"),
-        LucideIconTypes.Y2("10"),
+        LucideIconTypes.D("M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"),
       |],
     },
   |];
@@ -11479,17 +12419,17 @@ module IconBookmarkPlus = {
 module IconBookmarkX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "169p4p",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"),
-      |],
-    },
-    {
       key: "3lb6iw",
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("m14.5 7.5-5 5"),
+      |],
+    },
+    {
+      key: "oz39mx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"),
       |],
     },
     {
@@ -12088,6 +13028,82 @@ module IconBoxes = {
     );
 };
 
+module IconBoxesLinked = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "dpdf3h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 6h2a2 2 0 0 1 2 2v5"),
+      |],
+    },
+    {
+      key: "643eh2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.21 15.202 18 17.4V22"),
+      |],
+    },
+    {
+      key: "g76p55",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.796 14.611A1.6 1.6 0 0 0 14 15.995v3.013a1.6 1.6 0 0 0 .797 1.384l2.4 1.392a1.6 1.6 0 0 0 1.606 0l2.4-1.392A1.6 1.6 0 0 0 22 19.008v-3.013a1.6 1.6 0 0 0-.796-1.384l-2.4-1.394a1.6 1.6 0 0 0-1.514-.051z"),
+      |],
+    },
+    {
+      key: "9mu234",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18 17.4 3.79-2.198"),
+      |],
+    },
+    {
+      key: "1qwzoc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.21 4.202 6 6.4V16a2 2 0 0 0 2 2h2"),
+      |],
+    },
+    {
+      key: "cbb3m8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.796 3.611A1.6 1.6 0 0 0 2 4.995v3.013a1.6 1.6 0 0 0 .797 1.384l2.4 1.392a1.6 1.6 0 0 0 1.606 0l2.4-1.392A1.6 1.6 0 0 0 10 8.008V4.995a1.6 1.6 0 0 0-.796-1.384l-2.4-1.394a1.6 1.6 0 0 0-1.514-.052z"),
+      |],
+    },
+    {
+      key: "11cxrz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6 6.4 3.79-2.198"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="boxes-linked",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconBraces = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -12180,52 +13196,52 @@ module IconBrain = {
       |],
     },
     {
-      key: "1e3is1",
+      key: "5nuw1p",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"),
+        LucideIconTypes.D("M15 13a4.17 4.17 0 01-3-4 4.17 4.17 0 01-3 4"),
       |],
     },
     {
-      key: "1gqd8o",
+      key: "18ldcf",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"),
+        LucideIconTypes.D("M17.707 6.294A3 3 0 1012 5a3 3 0 10-5.707 1.294"),
       |],
     },
     {
-      key: "iwvgf7",
+      key: "1sdu8q",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17.997 5.125a4 4 0 0 1 2.526 5.77"),
+        LucideIconTypes.D("M17.996 5.125a4 4 0 012.526 5.77"),
       |],
     },
     {
-      key: "efp6ie",
+      key: "7xqqvr",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 18a4 4 0 0 0 2-7.464"),
+        LucideIconTypes.D("M18 18a4 4 0 002-7.465"),
       |],
     },
     {
-      key: "1gq6am",
+      key: "t46ysz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"),
+        LucideIconTypes.D("M19.967 17.482a4 4 0 11-7.967.517 4 4 0 11-7.967-.517"),
       |],
     },
     {
-      key: "k1g0md",
+      key: "1y2m15",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 18a4 4 0 0 1-2-7.464"),
+        LucideIconTypes.D("M6 18a4 4 0 01-2-7.465"),
       |],
     },
     {
-      key: "q97ue3",
+      key: "3cw1ss",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6.003 5.125a4 4 0 0 0-2.526 5.77"),
+        LucideIconTypes.D("M6.004 5.125a4 4 0 00-2.526 5.77"),
       |],
     },
   |];
@@ -12256,41 +13272,6 @@ module IconBrain = {
 module IconBrainCircuit = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "l5xja",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"),
-      |],
-    },
-    {
-      key: "10igwf",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 13a4.5 4.5 0 0 0 3-4"),
-      |],
-    },
-    {
-      key: "105sqy",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6.003 5.125A3 3 0 0 0 6.401 6.5"),
-      |],
-    },
-    {
-      key: "ql3yin",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M3.477 10.896a4 4 0 0 1 .585-.396"),
-      |],
-    },
-    {
-      key: "2e4loj",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6 18a4 4 0 0 1-1.967-.516"),
-      |],
-    },
-    {
       key: "1ku699",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -12298,10 +13279,10 @@ module IconBrainCircuit = {
       |],
     },
     {
-      key: "105ag5",
+      key: "6s3bw4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 18h6a2 2 0 0 1 2 2v1"),
+        LucideIconTypes.D("M12 18h6a2 2 0 012 2v1"),
       |],
     },
     {
@@ -12312,46 +13293,78 @@ module IconBrainCircuit = {
       |],
     },
     {
-      key: "u6izg6",
+      key: "13l7kh",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 8V5a2 2 0 0 1 2-2"),
+        LucideIconTypes.D("M12 9a4.17 4.17 0 01-3 4"),
       |],
     },
     {
-      key: "ry7gng",
+      key: "gais5y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 8V5a2 2 0 012-2"),
+      |],
+    },
+    {
+      key: "1y2m15",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 18a4 4 0 01-2-7.465"),
+      |],
+    },
+    {
+      key: "3cw1ss",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.004 5.125a4 4 0 00-2.526 5.77"),
+      |],
+    },
+    {
+      key: "m2z1wm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.294 6.294A3 3 0 1112 5v13a4 4 0 11-7.967-.518"),
+      |],
+    },
+    {
+      key: "9zzywh",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("16"),
         LucideIconTypes.Cy("13"),
-        LucideIconTypes.R(".5"),
+        LucideIconTypes.R("0.5"),
+        LucideIconTypes.Fill("currentColor"),
       |],
     },
     {
-      key: "1aiba7",
+      key: "i2xui6",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("18"),
         LucideIconTypes.Cy("3"),
-        LucideIconTypes.R(".5"),
+        LucideIconTypes.R("0.5"),
+        LucideIconTypes.Fill("currentColor"),
       |],
     },
     {
-      key: "yhc1fs",
+      key: "1dobdp",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("20"),
         LucideIconTypes.Cy("21"),
-        LucideIconTypes.R(".5"),
+        LucideIconTypes.R("0.5"),
+        LucideIconTypes.Fill("currentColor"),
       |],
     },
     {
-      key: "1e43v0",
+      key: "r9nqlq",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("20"),
         LucideIconTypes.Cy("8"),
-        LucideIconTypes.R(".5"),
+        LucideIconTypes.R("0.5"),
+        LucideIconTypes.Fill("currentColor"),
       |],
     },
   |];
@@ -12403,10 +13416,10 @@ module IconBrainCog = {
       |],
     },
     {
-      key: "18epck",
+      key: "159shc",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m13.531 8.305-.383.923"),
+        LucideIconTypes.D("m13.53 8.305-.382.923"),
       |],
     },
     {
@@ -12424,45 +13437,45 @@ module IconBrainCog = {
       |],
     },
     {
-      key: "jcbbz1",
+      key: "14qhlz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17.598 6.5A3 3 0 1 0 12 5a3 3 0 0 0-5.63-1.446 3 3 0 0 0-.368 1.571 4 4 0 0 0-2.525 5.771"),
+        LucideIconTypes.D("M17.997 5.125a4 4 0 012.526 5.77"),
       |],
     },
     {
-      key: "1kkn7e",
+      key: "10tzm7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17.998 5.125a4 4 0 0 1 2.525 5.771"),
+        LucideIconTypes.D("M18 18a4 4 0 002-7.464"),
       |],
     },
     {
-      key: "18bmuc",
+      key: "19974p",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19.505 10.294a4 4 0 0 1-1.5 7.706"),
+        LucideIconTypes.D("M4.033 17.483A4 4 0 0011.46 20c.184-.31.896-.31 1.076 0a4 4 0 007.43-2.517"),
       |],
     },
     {
-      key: "uozx0d",
+      key: "17o2ag",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4.032 17.483A4 4 0 0 0 11.464 20c.18-.311.892-.311 1.072 0a4 4 0 0 0 7.432-2.516"),
+        LucideIconTypes.D("M6 18a4 4 0 01-2-7.464"),
       |],
     },
     {
-      key: "whdemb",
+      key: "1vafpg",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4.5 10.291A4 4 0 0 0 6 18"),
+        LucideIconTypes.D("M6.002 5.125a4 4 0 00-2.525 5.77"),
       |],
     },
     {
-      key: "1kqy2g",
+      key: "l6g9lk",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6.002 5.125a3 3 0 0 0 .4 1.375"),
+        LucideIconTypes.D("M6.293 6.294a3 3 0 01-.287-1.098l-.004-.07a3 3 0 015.968-.543c.05.02.057.01.059 0a3 3 0 015.968.542l-.004.071a3 3 0 01-.287 1.098"),
       |],
     },
     {
@@ -12502,6 +13515,103 @@ module IconBrainCog = {
   ) =>
     LucideIconRenderer.render(
       ~name="brain-cog",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBrainOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "17g6i2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 18v-6"),
+      |],
+    },
+    {
+      key: "tksvkr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 5v1.344"),
+      |],
+    },
+    {
+      key: "1nsar9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.707 6.293A3 3 0 1012 5a3 3 0 00-4.124-2.781"),
+      |],
+    },
+    {
+      key: "14qhlz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.997 5.125a4 4 0 012.526 5.77"),
+      |],
+    },
+    {
+      key: "1to9rp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19.644 19.644A4 4 0 0112 18a4 4 0 11-7.967-.517"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "1sftkt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 10.536a4 4 0 011.533 5.34"),
+      |],
+    },
+    {
+      key: "pom6ba",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.477 10.895a4 4 0 011.876-5.542"),
+      |],
+    },
+    {
+      key: "17o2ag",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 18a4 4 0 01-2-7.464"),
+      |],
+    },
+    {
+      key: "1daz6i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 13a4.17 4.17 0 002.166-1.5 4 4 0 00.138-.196"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="brain-off",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -12748,6 +13858,75 @@ module IconBrickWallShield = {
   ) =>
     LucideIconRenderer.render(
       ~name="brick-wall-shield",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBridge = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "o67grx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 9.728V16"),
+      |],
+    },
+    {
+      key: "podb55",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 9.728V16"),
+      |],
+    },
+    {
+      key: "o2hl4u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 20V4"),
+      |],
+    },
+    {
+      key: "uc7s7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 11-4-4A7.5 7.5 0 0 1 6 7l-4 4"),
+      |],
+    },
+    {
+      key: "142mmy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 16H2"),
+      |],
+    },
+    {
+      key: "1w1bmo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 20V4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="bridge",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -13016,6 +14195,61 @@ module IconBriefcaseMedical = {
     );
 };
 
+module IconBriefcasePlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "59v5n6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.354 20H4a2 2 0 01-2-2V8a2 2 0 012-2h16a2 2 0 012 2v3.354"),
+      |],
+    },
+    {
+      key: "13yhyp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 11.354V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"),
+      |],
+    },
+    {
+      key: "1ook5g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 17h6"),
+      |],
+    },
+    {
+      key: "1ckrd5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 14v6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="briefcase-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconBringToFront = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -13057,6 +14291,213 @@ module IconBringToFront = {
   ) =>
     LucideIconRenderer.render(
       ~name="bring-to-front",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBroccoli = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1g9r2w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 13a3 3 0 01-2.121-5.121"),
+      |],
+    },
+    {
+      key: "1ansp5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.606 14.204c-3.5 1.5-5.899 4.503-8.899 7.503A1 1 0 016 22c-2 0-4-2-4-4a1 1 0 01.293-.707c1.911-1.911 3.823-3.578 5.347-5.441"),
+      |],
+    },
+    {
+      key: "icunya",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.573 14.737A4 4 0 0114 11"),
+      |],
+    },
+    {
+      key: "cbikky",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.14 10.907a4 4 0 112.756-7.43A4 4 0 0116.7 4.48a2 2 0 012.82 2.82 4 4 0 011.002 6.805 4 4 0 11-7.51 1.59"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="broccoli",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBroom = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1yxz6l",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.5 10.5 22 2"),
+      |],
+    },
+    {
+      key: "1q75r6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.734 13.841a2 2 0 00-.314-2.42L12.58 9.58a2 2 0 00-2.421-.314l-7.657 4.461A1 1 0 002.3 15.3l6.403 6.403a1 1 0 001.571-.204z"),
+      |],
+    },
+    {
+      key: "11qwpn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m5 18 2-2"),
+      |],
+    },
+    {
+      key: "1rehuz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7.699 10.7 5.602 5.601"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="broom",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBroomSparkles = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1539x4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 2v2"),
+      |],
+    },
+    {
+      key: "1su5n0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 3h-2"),
+      |],
+    },
+    {
+      key: "1yxz6l",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.5 10.5 22 2"),
+      |],
+    },
+    {
+      key: "1q75r6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.734 13.841a2 2 0 00-.314-2.42L12.58 9.58a2 2 0 00-2.421-.314l-7.657 4.461A1 1 0 002.3 15.3l6.403 6.403a1 1 0 001.571-.204z"),
+      |],
+    },
+    {
+      key: "nmhudv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 15v4"),
+      |],
+    },
+    {
+      key: "1sj068",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 17h-4"),
+      |],
+    },
+    {
+      key: "a4sqb9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 4v4"),
+      |],
+    },
+    {
+      key: "11qwpn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m5 18 2-2"),
+      |],
+    },
+    {
+      key: "1cli1h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 6H2"),
+      |],
+    },
+    {
+      key: "1rehuz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7.699 10.7 5.602 5.601"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="broom-sparkles",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -13126,17 +14567,17 @@ module IconBrushCleaning = {
       |],
     },
     {
-      key: "iw8jdu",
+      key: "11gii7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19 13.99a1 1 0 0 0 1-1V12a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v.99a1 1 0 0 0 1 1"),
+        LucideIconTypes.D("M19 14a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1"),
       |],
     },
     {
-      key: "1soew8",
+      key: "bju7h4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M5 14h14l1.973 6.767A1 1 0 0 1 20 22H4a1 1 0 0 1-.973-1.233z"),
+        LucideIconTypes.D("M19 14H5l-1.973 6.767A1 1 0 0 0 4 22h16a1 1 0 0 0 .973-1.233z"),
       |],
     },
     {
@@ -13174,10 +14615,10 @@ module IconBrushCleaning = {
 module IconBubbles = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1tw9gg",
+      key: "y44lvh",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7.2 14.8a2 2 0 0 1 2 2"),
+        LucideIconTypes.D("M7.001 15.085A1.5 1.5 0 0 1 9 16.5"),
       |],
     },
     {
@@ -13346,6 +14787,13 @@ module IconBugOff = {
       |],
     },
     {
+      key: "vvueyn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.656 7H14a4 4 0 0 1 4 4v1.344"),
+      |],
+    },
+    {
       key: "qol33r",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -13353,17 +14801,10 @@ module IconBugOff = {
       |],
     },
     {
-      key: "vl8zik",
+      key: "1cu21y",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 7.13V6a3 3 0 0 0-5.14-2.1L8 2"),
-      |],
-    },
-    {
-      key: "sz915m",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M18 12.34V11a4 4 0 0 0-4-4h-1.3"),
+        LucideIconTypes.D("M17.123 17.123A6 6 0 0 1 6 14v-3a4 4 0 0 1 1.72-3.287"),
       |],
     },
     {
@@ -13381,10 +14822,10 @@ module IconBugOff = {
       |],
     },
     {
-      key: "1y15gv",
+      key: "qb08am",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 13h-3.34"),
+        LucideIconTypes.D("M22 13h-3.344"),
       |],
     },
     {
@@ -13395,6 +14836,13 @@ module IconBugOff = {
       |],
     },
     {
+      key: "1d7oge",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5a4 4 0 0 0 3.55 3.97"),
+      |],
+    },
+    {
       key: "82j7cp",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -13402,10 +14850,17 @@ module IconBugOff = {
       |],
     },
     {
-      key: "1njkjs",
+      key: "fmnt4t",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7.7 7.7A4 4 0 0 0 6 11v3a6 6 0 0 0 11.13 3.13"),
+        LucideIconTypes.D("m8 2 1.88 1.88"),
+      |],
+    },
+    {
+      key: "1bvup6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.712 4.06A3 3 0 0 1 15 6v1.13"),
       |],
     },
   |];
@@ -13631,7 +15086,7 @@ module IconBuilding = {
     );
 };
 
-module IconBuilding2 = {
+module IconBuildingComplex = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
       key: "a56b0p",
@@ -13681,7 +15136,90 @@ module IconBuilding2 = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="building-2",
+      ~name="building-complex",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconBuildingComplexPlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "a56b0p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 12h4"),
+      |],
+    },
+    {
+      key: "m393w2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 21v-3a2 2 0 013.05-1.702"),
+      |],
+    },
+    {
+      key: "1sr2af",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 8h4"),
+      |],
+    },
+    {
+      key: "xwg31i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 19h6"),
+      |],
+    },
+    {
+      key: "p613ng",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 7h2a2 2 0 012 2v4.355"),
+      |],
+    },
+    {
+      key: "tddt3s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 16v6"),
+      |],
+    },
+    {
+      key: "s5wgjh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 10H4a2 2 0 00-2 2v7a2 2 0 002 2h8.535"),
+      |],
+    },
+    {
+      key: "hmp3za",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 21V5a2 2 0 012-2h8a2 2 0 012 2v7.126"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="building-complex-plus",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -14287,35 +15825,35 @@ module IconCalculator = {
 module IconCalendar = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "1hopcy",
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("18"),
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("4"),
         LucideIconTypes.Rx("2"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
   |];
@@ -14346,39 +15884,39 @@ module IconCalendar = {
 module IconCalendar1 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "fy54vd",
+      key: "10p4bv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11 14h1v4"),
+        LucideIconTypes.D("M11 13h1v4"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
-      key: "12vinp",
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
         LucideIconTypes.X("3"),
-        LucideIconTypes.Y("4"),
+        LucideIconTypes.Y("3"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("18"),
         LucideIconTypes.Rx("2"),
@@ -14412,45 +15950,45 @@ module IconCalendar1 = {
 module IconCalendarArrowDown = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1waygx",
+      key: "17qdjf",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m14 18 4 4 4-4"),
+        LucideIconTypes.D("m14 17 4 4 4-4"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "irew45",
+      key: "1a00n0",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 14v8"),
+        LucideIconTypes.D("M18 13v8"),
       |],
     },
     {
-      key: "bse4f3",
+      key: "1qsorh",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 11.354V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.343"),
+        LucideIconTypes.D("M21 10.354V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h7.343"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
   |];
@@ -14478,48 +16016,186 @@ module IconCalendarArrowDown = {
     );
 };
 
+module IconCalendarArrowLeft = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "otl347",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 2v3"),
+      |],
+    },
+    {
+      key: "1338ky",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 9H3"),
+      |],
+    },
+    {
+      key: "1lqlf5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12.34V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2h-7.35"),
+      |],
+    },
+    {
+      key: "sbs6yb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 18h6"),
+      |],
+    },
+    {
+      key: "hun6sv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6 21-3-3 3-3"),
+      |],
+    },
+    {
+      key: "1ioesn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 2v3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="calendar-arrow-left",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCalendarArrowRight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "otl347",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 2v3"),
+      |],
+    },
+    {
+      key: "g53kbn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18 21 3-3h-6"),
+      |],
+    },
+    {
+      key: "fu7jzs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 12.34V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h7.35"),
+      |],
+    },
+    {
+      key: "1l7y10",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 18-3-3"),
+      |],
+    },
+    {
+      key: "1pudct",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9h18"),
+      |],
+    },
+    {
+      key: "1ioesn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 2v3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="calendar-arrow-right",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconCalendarArrowUp = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "ftkppy",
+      key: "1qa3u6",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m14 18 4-4 4 4"),
+        LucideIconTypes.D("m14 17 4-4 4 4"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "su0gjh",
+      key: "1ao88k",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 22v-8"),
+        LucideIconTypes.D("M18 21v-8"),
       |],
     },
     {
-      key: "1exg90",
+      key: "185mot",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 11.343V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9"),
+        LucideIconTypes.D("M21 10.343V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h9"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
   |];
@@ -14550,42 +16226,42 @@ module IconCalendarArrowUp = {
 module IconCalendarCheck = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "1hopcy",
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("18"),
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("4"),
         LucideIconTypes.Rx("2"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "19s6y9",
+      key: "1grp1n",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m9 16 2 2 4-4"),
+        LucideIconTypes.D("m9 15 2 2 4-4"),
       |],
     },
   |];
@@ -14616,38 +16292,80 @@ module IconCalendarCheck = {
 module IconCalendarCheck2 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1cmpym",
+      key: "1xn3iy",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M 19 3 L 5 3"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "102s58",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M 21 13 L 21 5"),
       |],
     },
     {
-      key: "bce9hv",
+      key: "1xylja",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 14V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"),
+        LucideIconTypes.D("M 21 5 A2 2 0 0 0 19 3"),
       |],
     },
     {
-      key: "8toen8",
+      key: "19jxbv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M 3 19 A2 2 0 0 0 5 21"),
       |],
     },
     {
-      key: "13tcca",
+      key: "1yylhw",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m16 20 2 2 4-4"),
+        LucideIconTypes.D("M 3 5 L 3 19"),
+      |],
+    },
+    {
+      key: "164twa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M 5 3 A2 2 0 0 0 3 5"),
+      |],
+    },
+    {
+      key: "1b14m6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 19 2 2 4-4"),
+      |],
+    },
+    {
+      key: "otl347",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 2v3"),
+      |],
+    },
+    {
+      key: "1pudct",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9h18"),
+      |],
+    },
+    {
+      key: "1n38e0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 21 L12.5 21"),
+      |],
+    },
+    {
+      key: "1ioesn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
   |];
@@ -14675,6 +16393,144 @@ module IconCalendarCheck2 = {
     );
 };
 
+module IconCalendarChevronsLeft = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "62wrx5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m11 21-3-3 3-3"),
+      |],
+    },
+    {
+      key: "otl347",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 2v3"),
+      |],
+    },
+    {
+      key: "1338ky",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 9H3"),
+      |],
+    },
+    {
+      key: "1476xe",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 11.5V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2h-4"),
+      |],
+    },
+    {
+      key: "6iupho",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m5 21-3-3 3-3"),
+      |],
+    },
+    {
+      key: "1ioesn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 2v3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="calendar-chevrons-left",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCalendarChevronsRight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1c4snd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m13 21 3-3-3-3"),
+      |],
+    },
+    {
+      key: "otl347",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 2v3"),
+      |],
+    },
+    {
+      key: "1ci517",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19 21 3-3-3-3"),
+      |],
+    },
+    {
+      key: "11xpaj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 11.5V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h4"),
+      |],
+    },
+    {
+      key: "1pudct",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9h18"),
+      |],
+    },
+    {
+      key: "1ioesn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 2v3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="calendar-chevrons-right",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconCalendarClock = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -14685,31 +16541,31 @@ module IconCalendarClock = {
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "1osxxc",
+      key: "7hb8p4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"),
+        LucideIconTypes.D("M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"),
       |],
     },
     {
-      key: "r794hk",
+      key: "numkqi",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h5"),
+        LucideIconTypes.D("M3 9h5.859"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
@@ -14763,10 +16619,10 @@ module IconCalendarCog = {
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
@@ -14798,38 +16654,38 @@ module IconCalendarCog = {
       |],
     },
     {
-      key: "htqkph",
+      key: "ybmb4k",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m20.772 16.852.924-.383"),
+        LucideIconTypes.D("m20.773 16.852.924-.383"),
       |],
     },
     {
-      key: "9w9pjp",
+      key: "1c2d3p",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m20.772 19.148.924.383"),
+        LucideIconTypes.D("m20.773 19.148.924.383"),
       |],
     },
     {
-      key: "1pvbig",
+      key: "1e6z1y",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 10.592V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"),
+        LucideIconTypes.D("M21 10.5V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h5.5"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
@@ -14869,77 +16725,77 @@ module IconCalendarCog = {
 module IconCalendarDays = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "1hopcy",
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("18"),
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("4"),
         LucideIconTypes.Rx("2"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "6423bh",
+      key: "1sbv64",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 14h.01"),
+        LucideIconTypes.D("M8 13h.01"),
       |],
     },
     {
-      key: "1etili",
+      key: "y0uutt",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 14h.01"),
+        LucideIconTypes.D("M12 13h.01"),
       |],
     },
     {
-      key: "1gbofw",
+      key: "wip0gl",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 14h.01"),
+        LucideIconTypes.D("M16 13h.01"),
       |],
     },
     {
-      key: "lrp35t",
+      key: "p3bg7i",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 18h.01"),
+        LucideIconTypes.D("M8 17h.01"),
       |],
     },
     {
-      key: "mhygvu",
+      key: "p32p05",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 18h.01"),
+        LucideIconTypes.D("M12 17h.01"),
       |],
     },
     {
-      key: "kzsmim",
+      key: "ql8jdd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 18h.01"),
+        LucideIconTypes.D("M16 17h.01"),
       |],
     },
   |];
@@ -14970,38 +16826,31 @@ module IconCalendarDays = {
 module IconCalendarFold = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "r586nh",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 20a2 2 0 0 0 2 2h10a2.4 2.4 0 0 0 1.706-.706l3.588-3.588A2.4 2.4 0 0 0 21 16V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "xl3app",
+      key: "4uit17",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 22v-5a1 1 0 0 1 1-1h5"),
+        LucideIconTypes.D("M21 15V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h10v-5a1 1 0 011-1za2.4 2.4 0 01-.706 1.706l-3.588 3.588A2.4 2.4 0 0115 21"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
-      |],
-    },
-    {
-      key: "8toen8",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
   |];
@@ -15032,38 +16881,38 @@ module IconCalendarFold = {
 module IconCalendarHeart = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "vxdnp4",
+      key: "1fsxpc",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12.127 22H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5.125"),
+        LucideIconTypes.D("M12.127 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v5.125"),
       |],
     },
     {
-      key: "15cy7q",
+      key: "1gk3ue",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14.62 18.8A2.25 2.25 0 1 1 18 15.836a2.25 2.25 0 1 1 3.38 2.966l-2.626 2.856a.998.998 0 0 1-1.507 0z"),
+        LucideIconTypes.D("M14.62 17.8A2.25 2.25 0 1118 14.836a2.25 2.25 0 113.38 2.966l-2.626 2.856a.998.998 0 01-1.507 0z"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
   |];
@@ -15094,38 +16943,38 @@ module IconCalendarHeart = {
 module IconCalendarMinus = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "xwg31i",
+      key: "987eiv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 19h6"),
+        LucideIconTypes.D("M16 18h6"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "1scpom",
+      key: "gcu0od",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8.5"),
+        LucideIconTypes.D("M21 14V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h8.3"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
   |];
@@ -15156,42 +17005,42 @@ module IconCalendarMinus = {
 module IconCalendarMinus2 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "1hopcy",
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("18"),
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("4"),
         LucideIconTypes.Rx("2"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "17e571",
+      key: "192ueg",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 16h4"),
+        LucideIconTypes.D("M10 15h4"),
       |],
     },
   |];
@@ -15222,38 +17071,10 @@ module IconCalendarMinus2 = {
 module IconCalendarOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "16swn3",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4.2 4.2A2 2 0 0 0 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 1.82-1.18"),
-      |],
-    },
-    {
-      key: "yhw86o",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21 15.5V6a2 2 0 0 0-2-2H9.5"),
-      |],
-    },
-    {
-      key: "4m81vk",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 2v4"),
-      |],
-    },
-    {
-      key: "1wap6i",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M3 10h7"),
-      |],
-    },
-    {
-      key: "quycpq",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21 10h-5.5"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
@@ -15261,6 +17082,34 @@ module IconCalendarOff = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "1g344v",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 9h-5.5"),
+      |],
+    },
+    {
+      key: "1q2djq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9h6"),
+      |],
+    },
+    {
+      key: "1g7ltu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.586 3.586A2 2 0 003 5v14a2 2 0 002 2h14a2 2 0 001.414-.586"),
+      |],
+    },
+    {
+      key: "1bwpd1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.656 3H19a2 2 0 012 2v10.344"),
       |],
     },
   |];
@@ -15291,45 +17140,45 @@ module IconCalendarOff = {
 module IconCalendarPlus = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "xwg31i",
+      key: "987eiv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 19h6"),
+        LucideIconTypes.D("M16 18h6"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "tddt3s",
+      key: "10aioa",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19 16v6"),
+        LucideIconTypes.D("M19 15v6"),
       |],
     },
     {
-      key: "1glfrc",
+      key: "jgwkxf",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 12.598V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8.5"),
+        LucideIconTypes.D("M21 11.5V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h8.3"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
   |];
@@ -15360,49 +17209,49 @@ module IconCalendarPlus = {
 module IconCalendarPlus2 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "1hopcy",
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("18"),
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("4"),
         LucideIconTypes.Rx("2"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "17e571",
+      key: "192ueg",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 16h4"),
+        LucideIconTypes.D("M10 15h4"),
       |],
     },
     {
-      key: "1thi36",
+      key: "1il4po",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 14v4"),
+        LucideIconTypes.D("M12 13v4"),
       |],
     },
   |];
@@ -15433,63 +17282,63 @@ module IconCalendarPlus2 = {
 module IconCalendarRange = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1hopcy",
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("18"),
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("4"),
         LucideIconTypes.Rx("2"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
-      key: "bkmgh3",
+      key: "1qbiup",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17 14h-6"),
+        LucideIconTypes.D("M17 13h-6"),
       |],
     },
     {
-      key: "bb0bb7",
+      key: "1x38vv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M13 18H7"),
+        LucideIconTypes.D("M13 17H7"),
       |],
     },
     {
-      key: "1qa3f1",
+      key: "1vezk1",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 14h.01"),
+        LucideIconTypes.D("M7 13h.01"),
       |],
     },
     {
-      key: "1bdyru",
+      key: "1sd3ek",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17 18h.01"),
+        LucideIconTypes.D("M17 17h.01"),
       |],
     },
   |];
@@ -15520,46 +17369,46 @@ module IconCalendarRange = {
 module IconCalendarSearch = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "1jrsq6",
+      key: "h6gkkz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 11.75V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.25"),
+        LucideIconTypes.D("M21 10.69V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h7.25"),
       |],
     },
     {
-      key: "13zax7",
+      key: "1dzjql",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m22 22-1.875-1.875"),
+        LucideIconTypes.D("m22 21-1.875-1.875"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
-      key: "1xkwt0",
+      key: "1hty4x",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("18"),
-        LucideIconTypes.Cy("18"),
+        LucideIconTypes.Cy("17"),
         LucideIconTypes.R("3"),
       |],
     },
@@ -15598,24 +17447,24 @@ module IconCalendarSync = {
       |],
     },
     {
-      key: "vu0qm5",
+      key: "jekqcd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m11 14 1.535-1.605a5 5 0 0 1 8 1.5"),
+        LucideIconTypes.D("m11 14 1.535-1.605a5 5 0 018 1.5"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "1qgeyt",
+      key: "n107hu",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m21 18-1.535 1.605a5 5 0 0 1-8-1.5"),
+        LucideIconTypes.D("m21 18-1.535 1.605a5 5 0 01-8-1.5"),
       |],
     },
     {
@@ -15626,24 +17475,24 @@ module IconCalendarSync = {
       |],
     },
     {
-      key: "mctw84",
+      key: "yafrba",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 8.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4.3"),
+        LucideIconTypes.D("M21 8.517V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h3.517"),
       |],
     },
     {
-      key: "1el30a",
+      key: "rnfnj5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h4"),
+        LucideIconTypes.D("M3 9h4"),
       |],
     },
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
   |];
@@ -15674,49 +17523,49 @@ module IconCalendarSync = {
 module IconCalendarX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1cmpym",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "1hopcy",
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("18"),
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("4"),
         LucideIconTypes.Rx("2"),
       |],
     },
     {
-      key: "8toen8",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "rymu2i",
+      key: "1gib57",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m14 14-4 4"),
+        LucideIconTypes.D("m14 13-4 4"),
       |],
     },
     {
-      key: "3sz06r",
+      key: "153uiq",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m10 14 4 4"),
+        LucideIconTypes.D("m10 13 4 4"),
       |],
     },
   |];
@@ -15747,45 +17596,45 @@ module IconCalendarX = {
 module IconCalendarX2 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1cmpym",
+      key: "otl347",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 2v4"),
+        LucideIconTypes.D("M16 2v3"),
       |],
     },
     {
-      key: "4m81vk",
+      key: "1a37d9",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 2v4"),
+        LucideIconTypes.D("m17 16 5 5"),
       |],
     },
     {
-      key: "3spt84",
+      key: "1b797a",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"),
+        LucideIconTypes.D("m17 21 5-5"),
       |],
     },
     {
-      key: "8toen8",
+      key: "14ws7l",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 10h18"),
+        LucideIconTypes.D("M21 12V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h8"),
       |],
     },
     {
-      key: "1k6ppv",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m17 22 5-5"),
+        LucideIconTypes.D("M3 9h18"),
       |],
     },
     {
-      key: "p7ous7",
+      key: "1ioesn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m17 17 5 5"),
+        LucideIconTypes.D("M8 2v3"),
       |],
     },
   |];
@@ -15984,6 +17833,130 @@ module IconCameraOff = {
     );
 };
 
+module IconCan = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "9pzxzq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 10.5a9 2.5 0 01-18 0v8a9 2.5 0 0018 0z"),
+      |],
+    },
+    {
+      key: "9bp7vi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 10.5A9 2.5 25.32 004.59 3.47 9 2.5 25.32 0021 10.5"),
+      |],
+    },
+    {
+      key: "13emm5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 10.5a9 2.5 0 016.527-2.405"),
+      |],
+    },
+    {
+      key: "1nnpid",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16.858a31 31 0 006 0"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="can",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCanSoda = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "8r63so",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m17 22 1.664-2.496a2 2 0 00.336-1.11V5.606a2 2 0 00-.336-1.11L17 2"),
+      |],
+    },
+    {
+      key: "mg6kv4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 22H6"),
+      |],
+    },
+    {
+      key: "10w3qr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 2H6"),
+      |],
+    },
+    {
+      key: "74xsq1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 17h14"),
+      |],
+    },
+    {
+      key: "1ic0q6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 7h14"),
+      |],
+    },
+    {
+      key: "p59xmm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7 22-1.664-2.496A2 2 0 015 18.394V5.606a2 2 0 01.336-1.11L7 2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="can-soda",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconCandy = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -16049,10 +18022,10 @@ module IconCandy = {
 module IconCandyCane = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "isaq8g",
+      key: "11kb8w",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M5.7 21a2 2 0 0 1-3.5-2l8.6-14a6 6 0 0 1 10.4 6 2 2 0 1 1-3.464-2 2 2 0 1 0-3.464-2Z"),
+        LucideIconTypes.D("m10.8 5 2.111 4.223"),
       |],
     },
     {
@@ -16063,24 +18036,24 @@ module IconCandyCane = {
       |],
     },
     {
-      key: "100a87",
+      key: "ccpt4b",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10.9 4.8 13 9"),
+        LucideIconTypes.D("m4.874 14.647 2.12 4.24"),
       |],
     },
     {
-      key: "ntfhaj",
+      key: "u5e8z4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m7.9 9.7 2 4.4"),
+        LucideIconTypes.D("M5.7 21a2 2 0 0 1-3.5-2l8.6-14a6 6 0 0 1 10.4 6 2 2 0 1 1-3.464-2 2 2 0 1 0-3.464-2z"),
       |],
     },
     {
-      key: "1x43jy",
+      key: "1k0qph",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4.9 14.7 7 18.9"),
+        LucideIconTypes.D("m7.906 9.712 2.005 4.411"),
       |],
     },
   |];
@@ -16214,6 +18187,75 @@ module IconCannabis = {
   ) =>
     LucideIconRenderer.render(
       ~name="cannabis",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCannabisOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1bqfb7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 22v-4c1.5 1.5 3.5 3 6 3 0-1.5-.5-3.5-2-5"),
+      |],
+    },
+    {
+      key: "1p520n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.988 8.327C13.902 6.054 13.365 3.82 12 2a9.3 9.3 0 0 0-1.445 2.9"),
+      |],
+    },
+    {
+      key: "q2itvb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.375 11.725C18.882 10.53 21 7.841 21 6c-2.324 0-5.08 1.296-6.662 2.684"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "j9amvs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21.024 15.378A15 15 0 0 0 22 15c-.426-1.279-2.67-2.557-4.25-2.907"),
+      |],
+    },
+    {
+      key: "8gmd5g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.995 6.992C5.714 6.4 4.29 6 3 6c0 2 2.5 5 4 6-1.5 0-4.5 1.5-5 3 3.5 1.5 6 1 6 1-1.5 1.5-2 3.5-2 5 2.5 0 4.5-1.5 6-3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="cannabis-off",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -16388,6 +18430,79 @@ module IconCar = {
   ) =>
     LucideIconRenderer.render(
       ~name="car",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCarBattery = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "xb9564",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 13h4"),
+      |],
+    },
+    {
+      key: "rpmtp7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 15v-4"),
+      |],
+    },
+    {
+      key: "n2sebz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 5v2"),
+      |],
+    },
+    {
+      key: "vm80m7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 13h4"),
+      |],
+    },
+    {
+      key: "h3tt00",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 5v2"),
+      |],
+    },
+    {
+      key: "uzf593",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("2"),
+        LucideIconTypes.Y("7"),
+        LucideIconTypes.Width("20"),
+        LucideIconTypes.Height("12"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="car-battery",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -16633,14 +18748,14 @@ module IconCardSim = {
       |],
     },
     {
-      key: "1aonk6",
+      key: "15l861",
       tag: LucideIconTypes.Rect,
       attrs: [|
         LucideIconTypes.X("8"),
         LucideIconTypes.Y("10"),
         LucideIconTypes.Width("8"),
         LucideIconTypes.Height("8"),
-        LucideIconTypes.Rx("1"),
+        LucideIconTypes.Rx("2"),
       |],
     },
   |];
@@ -16671,24 +18786,24 @@ module IconCardSim = {
 module IconCarrot = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "rfqxbe",
+      key: "1ta62j",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46"),
+        LucideIconTypes.D("M15 16a1 1 0 0 0-7-7q-4 4-5.987 12.385a.5.5 0 0 0 .602.602Q11 20 15 16l-3-3"),
       |],
     },
     {
-      key: "6b25w4",
+      key: "1svf7i",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z"),
+        LucideIconTypes.D("M15 9q4 4 7 0-3-4-7 0 4-4 0-7-4 3 0 7"),
       |],
     },
     {
-      key: "fn65lo",
+      key: "7t238r",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z"),
+        LucideIconTypes.D("m8 15-2.58-2.58"),
       |],
     },
   |];
@@ -16705,6 +18820,116 @@ module IconCarrot = {
   ) =>
     LucideIconRenderer.render(
       ~name="carrot",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCarton = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "9jv8ej",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 22V10a2 2 0 01.539-1.367L16 6H8L5.539 8.633A2 2 0 005 10v10a2 2 0 002 2h10a2 2 0 002-2V10a2 2 0 00-.539-1.367L16 6V3a1 1 0 00-1-1H9a1 1 0 00-1 1v3"),
+      |],
+    },
+    {
+      key: "gs3i43",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 10h8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="carton",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCartonOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "a96p2r",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 10H5v10a2 2 0 002 2h10a2 2 0 002-2v-1"),
+      |],
+    },
+    {
+      key: "1nhnq0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 22v-9"),
+      |],
+    },
+    {
+      key: "19phw3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.902 8.245 16 6h-4.343"),
+      |],
+    },
+    {
+      key: "afhpp5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 13.343V10a2 2 0 00-.539-1.367L16 6V3a1 1 0 00-1-1H9a1 1 0 00-.857.486"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "1798p5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.034 7.034 5.539 8.633A2 2 0 005 10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="carton-off",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -17208,6 +19433,139 @@ module IconCctv = {
     );
 };
 
+module IconCctvOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "e75roo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m12.309 6.652 4.797 2.401a1 1 0 0 1 .447 1.341l-.501 1.001.605.605h2.725a1 1 0 0 1 .894 1.447l-.724 1.448"),
+      |],
+    },
+    {
+      key: "1h9o5r",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.166 15.166-.719 1.439a1 1 0 0 1-1.342.447L3.61 12.3a2.92 2.92 0 0 1-1.3-3.91L3.69 5.6a2.9 2.9 0 0 1 .873-1.037"),
+      |],
+    },
+    {
+      key: "1askrb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 19h3.76a2 2 0 0 0 1.8-1.1l1.441-2.902"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "l40lih",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 21v-4"),
+      |],
+    },
+    {
+      key: "19b3jx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 9h.01"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="cctv-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCertificate = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1xtf46",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 10H6"),
+      |],
+    },
+    {
+      key: "gisnvv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.69 15.479 1.29 4.88a.5.5 0 01-.698.591l-1.843-.849a1 1 0 00-.879.001l-1.846.85a.5.5 0 01-.692-.593l1.29-4.88"),
+      |],
+    },
+    {
+      key: "1ml1d0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 6.675V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2h8"),
+      |],
+    },
+    {
+      key: "1pohh5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 14h4"),
+      |],
+    },
+    {
+      key: "1rjyw2",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("19"),
+        LucideIconTypes.Cy("13"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="certificate",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconChartArea = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -17529,6 +19887,47 @@ module IconChartBarStacked = {
   ) =>
     LucideIconRenderer.render(
       ~name="chart-bar-stacked",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconChartBellCurve = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "c24i48",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 3v16a2 2 0 0 0 2 2h16"),
+      |],
+    },
+    {
+      key: "5h6g7j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 16c3.5 0 2.5-10 6-10s2.5 10 6 10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="chart-bell-curve",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -18247,17 +20646,17 @@ module IconChartNoAxesCombined = {
       |],
     },
     {
-      key: "1g90b9",
+      key: "1s85h0",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 14v7"),
+        LucideIconTypes.D("M16 14.639V21"),
       |],
     },
     {
-      key: "1iqoj0",
+      key: "q45596",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20 10v11"),
+        LucideIconTypes.D("M20 10.656V21"),
       |],
     },
     {
@@ -18268,17 +20667,17 @@ module IconChartNoAxesCombined = {
       |],
     },
     {
-      key: "1yp0dc",
+      key: "1otddq",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 18v3"),
+        LucideIconTypes.D("M4 18.463V21"),
       |],
     },
     {
-      key: "n3cwzv",
+      key: "1t2idw",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 14v7"),
+        LucideIconTypes.D("M8 14.656V21"),
       |],
     },
   |];
@@ -18384,6 +20783,149 @@ module IconChartPie = {
   ) =>
     LucideIconRenderer.render(
       ~name="chart-pie",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconChartQuadrant = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "k5a9nd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 3v18"),
+      |],
+    },
+    {
+      key: "1i2n21",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12h18"),
+      |],
+    },
+    {
+      key: "80ll88",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 3v16a2 2 0 002 2h16"),
+      |],
+    },
+    {
+      key: "k94etj",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("17.5"),
+        LucideIconTypes.Cy("5.5"),
+        LucideIconTypes.R("0.5"),
+        LucideIconTypes.Fill("currentColor"),
+      |],
+    },
+    {
+      key: "16k0ni",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("19.5"),
+        LucideIconTypes.Cy("16.5"),
+        LucideIconTypes.R("0.5"),
+        LucideIconTypes.Fill("currentColor"),
+      |],
+    },
+    {
+      key: "1yzd8a",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("7.5"),
+        LucideIconTypes.Cy("16.5"),
+        LucideIconTypes.R("0.5"),
+        LucideIconTypes.Fill("currentColor"),
+      |],
+    },
+    {
+      key: "1v8giy",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("7.5"),
+        LucideIconTypes.Cy("7.5"),
+        LucideIconTypes.R("0.5"),
+        LucideIconTypes.Fill("currentColor"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="chart-quadrant",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconChartRadar = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "mnfbl",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v10"),
+      |],
+    },
+    {
+      key: "h34id",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 18 3.085-8.125L12 4.103 3.473 9.442l3.196 10.554z"),
+      |],
+    },
+    {
+      key: "rxmbgh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 9 10 3 6 9"),
+      |],
+    },
+    {
+      key: "4hdcm7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6 21 6-9 10-3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="chart-radar",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -18978,38 +21520,38 @@ module IconChessPawn = {
 module IconChessQueen = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "mqzwx6",
+      key: "1qgnha",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 20a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"),
+        LucideIconTypes.D("m10.68 5.499-.996 4.982a.65.65 0 01-1.131.295L5.885 7.663"),
       |],
     },
     {
-      key: "1js4gl",
+      key: "1tybta",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m12.474 5.943 1.567 5.34a1 1 0 0 0 1.75.328l2.616-3.402"),
+        LucideIconTypes.D("m13.32 5.5.995 4.98a.65.65 0 001.131.296l2.668-3.113"),
       |],
     },
     {
-      key: "r75r3f",
+      key: "ppcm61",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m20 9-3 9"),
+        LucideIconTypes.D("M20.428 8.952 17.5 18"),
       |],
     },
     {
-      key: "1joj19",
+      key: "1vltu5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m5.594 8.209 2.615 3.403a1 1 0 0 0 1.75-.329l1.567-5.34"),
+        LucideIconTypes.D("M4 20a2 2 0 012-2h12a2 2 0 012 2v1a1 1 0 01-1 1H5a1 1 0 01-1-1z"),
       |],
     },
     {
-      key: "1mfzj8",
+      key: "1cx6vq",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 18 4 9"),
+        LucideIconTypes.D("M6.5 18 3.571 8.952"),
       |],
     },
     {
@@ -19748,72 +22290,6 @@ module IconChevronsUpDown = {
     );
 };
 
-module IconChromium = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "xkve6t",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M10.88 21.94 15.46 14"),
-      |],
-    },
-    {
-      key: "19dcdn",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21.17 8H12"),
-      |],
-    },
-    {
-      key: "g8jz9m",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M3.95 6.06 8.54 14"),
-      |],
-    },
-    {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
-      |],
-    },
-    {
-      key: "4exip2",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("4"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="chromium",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconChurch = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -20503,10 +22979,10 @@ module IconCircleCheck = {
       |],
     },
     {
-      key: "dzmm74",
+      key: "xofnsj",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m9 12 2 2 4-4"),
+        LucideIconTypes.D("m16 9-5.5 5.5L8 12"),
       |],
     },
   |];
@@ -20747,6 +23223,206 @@ module IconCircleChevronUp = {
     );
 };
 
+module IconCircleChevronsDown = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "hpyt1r",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 14L12 17L15 14"),
+      |],
+    },
+    {
+      key: "19orua",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 8L12 11L15 8"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-chevrons-down",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleChevronsLeft = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "yiqvdq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 9L7 12L10 15"),
+      |],
+    },
+    {
+      key: "1czhyg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 9L13 12L16 15"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-chevrons-left",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleChevronsRight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1hxjqw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 15L17 12L14 9"),
+      |],
+    },
+    {
+      key: "1wss1f",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 15L11 12L8 9"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-chevrons-right",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleChevronsUp = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "x6fbge",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 10L12 7L9 10"),
+      |],
+    },
+    {
+      key: "ouerij",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 16L12 13L9 16"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-chevrons-up",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconCircleDashed = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -20830,8 +23506,107 @@ module IconCircleDashed = {
     );
 };
 
+module IconCircleDashedCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "upsxbf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.1 2.182a10 10 0 013.8 0"),
+      |],
+    },
+    {
+      key: "ms125y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.9 21.818a10 10 0 01-3.8 0"),
+      |],
+    },
+    {
+      key: "xofnsj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 9-5.5 5.5L8 12"),
+      |],
+    },
+    {
+      key: "iyn141",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.609 3.721a10 10 0 012.69 2.7"),
+      |],
+    },
+    {
+      key: "68e3e5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.182 13.9a10 10 0 010-3.8"),
+      |],
+    },
+    {
+      key: "wpakmt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20.279 17.609a10 10 0 01-2.7 2.69"),
+      |],
+    },
+    {
+      key: "w6g6ls",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21.818 10.1a10 10 0 010 3.8"),
+      |],
+    },
+    {
+      key: "sn8908",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.721 6.391a10 10 0 012.7-2.69"),
+      |],
+    },
+    {
+      key: "11rjuk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.391 20.279a10 10 0 01-2.69-2.7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-dashed-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconCircleDivide = {
   let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
     {
       key: "1jonct",
       tag: LucideIconTypes.Line,
@@ -20860,15 +23635,6 @@ module IconCircleDivide = {
         LucideIconTypes.X2("12"),
         LucideIconTypes.Y1("8"),
         LucideIconTypes.Y2("8"),
-      |],
-    },
-    {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
       |],
     },
   |];
@@ -20949,21 +23715,21 @@ module IconCircleDollarSign = {
 module IconCircleDot = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
-      |],
-    },
-    {
       key: "41hilf",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("1"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
       |],
     },
   |];
@@ -21143,6 +23909,15 @@ module IconCircleEllipsis = {
 module IconCircleEqual = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+    {
       key: "1101jm",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -21154,6 +23929,47 @@ module IconCircleEqual = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M7 14h10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-equal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleEuro = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1makmb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 9.4a4 4 0 1 0 0 5.2"),
+      |],
+    },
+    {
+      key: "gblrwe",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 12h5"),
       |],
     },
     {
@@ -21178,7 +23994,7 @@ module IconCircleEqual = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="circle-equal",
+      ~name="circle-euro",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -21255,6 +24071,75 @@ module IconCircleFadingArrowUp = {
   ) =>
     LucideIconRenderer.render(
       ~name="circle-fading-arrow-up",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleFadingPlay = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "175t95",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2a10 10 0 0 1 7.38 16.75"),
+      |],
+    },
+    {
+      key: "kmsa83",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"),
+      |],
+    },
+    {
+      key: "1vce0s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.5 8.875a10 10 0 0 0-.5 3"),
+      |],
+    },
+    {
+      key: "o3fkw4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.83 16a10 10 0 0 0 2.43 3.4"),
+      |],
+    },
+    {
+      key: "1szpfk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.636 5.235a10 10 0 0 1 .891-.857"),
+      |],
+    },
+    {
+      key: "9yhvd4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.644 21.42a10 10 0 0 0 7.631-.38"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-fading-play",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -21392,6 +24277,1274 @@ module IconCircleGauge = {
     );
 };
 
+module IconCircleLetterA = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "u4f7rb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 14H9"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "26tkhz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m8 16 3.453-7.648a.6.6 0 0 1 1.094 0L16 16"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-a",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterB = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "10umad",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h4.846a2.24 2.24 0 011.523.586 2 2 0 01.001 2.828 2.24 2.24 0 01-1.524.586H9.5a.5.5 0 01-.5-.5v-7a.5.5 0 01.5-.5H13a2 2 0 010 4"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-b",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterC = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "8xfhbo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 9.354a4 4 0 1 0 0 5.292"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-c",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterD = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1jpkd7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 8a4 4 0 010 8H9.412A.41.41 0 019 15.588V8.412A.41.41 0 019.412 8z"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-d",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterE = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1qch15",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 8H9.5a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .5.5H15"),
+      |],
+    },
+    {
+      key: "wrur8x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h4"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-e",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterF = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "14bvk2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16V8.5a.5.5 0 0 1 .5-.5H15"),
+      |],
+    },
+    {
+      key: "wrur8x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h4"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-f",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterG = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "qr2odw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.5 12H15v2.268a.88.88 0 01-.263.65A4 4 0 1112 8h2.5"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-g",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterH = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "ydmt1j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16V8"),
+      |],
+    },
+    {
+      key: "1pg9zw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 16V8"),
+      |],
+    },
+    {
+      key: "1c52cq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h6"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-h",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterI = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1sbj14",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 16V8"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-i",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterJ = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1l082q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 8v5a3 3 0 1 1-6 0"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-j",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterK = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "ydmt1j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16V8"),
+      |],
+    },
+    {
+      key: "12i9ze",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m11 12 4 4"),
+      |],
+    },
+    {
+      key: "r7kjba",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15 8-6 6"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-k",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterL = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "oor4up",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 8v7.5a.5.5 0 0 0 .5.5H15"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-l",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterM = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1triz2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 16.001v-7.5a.5.5 0 0 1 .9-.3l2.7 3.599a.5.5 0 0 0 .8 0l2.7-3.6a.5.5 0 0 1 .9.3v7.501"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-m",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterN = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "qirm77",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16V8.576a.496.496 0 01.937-.243l4.126 7.43A.496.496 0 0015 15.52V8"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-n",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterO = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "4exip2",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("4"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-o",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterP = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "15uh3t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h4a2 2 0 0 0 0-4H9.5a.5.5 0 0 0-.5.5V16"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-p",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterPOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1smka7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12h1a2 2 0 000-4H9.5a.5.5 0 00-.5.5V9"),
+      |],
+    },
+    {
+      key: "1wedyz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.652 21.31A10 10 0 012.691 8.348"),
+      |],
+    },
+    {
+      key: "1r8tn9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 22 2 2"),
+      |],
+    },
+    {
+      key: "1qahep",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.929 4.929a10 10 0 0116.729 4.483 10 10 0 01-2.588 9.658"),
+      |],
+    },
+    {
+      key: "16yar1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 14.657V16"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-p-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterQ = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "4exip2",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("4"),
+      |],
+    },
+    {
+      key: "fmqegn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 16-2.5-2.5"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-q",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterR = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "12i9ze",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m11 12 4 4"),
+      |],
+    },
+    {
+      key: "15uh3t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h4a2 2 0 0 0 0-4H9.5a.5.5 0 0 0-.5.5V16"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-r",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterS = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ihxbb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.5 8H11a2 2 0 100 4h2a2 2 0 110 4H9"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-s",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterT = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1sbj14",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 16V8"),
+      |],
+    },
+    {
+      key: "209ih4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 8h6"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-t",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterU = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "17gkvj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 8v5a3 3 0 1 1-6 0V8"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-u",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterV = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1arqi6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 8 2.525 7.66a.5.5 0 0 0 .95 0L15 8"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-v",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterW = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "crbxe1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 8-1.591 7.598a.497.497 0 01-.97.038l-.96-3.276a.5.5 0 00-.959 0l-.96 3.276a.496.496 0 01-.969-.038L8 8"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-w",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1u7o9k",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 16 6-8"),
+      |],
+    },
+    {
+      key: "1csz0j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 8 6 8"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-x",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterY = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ydu8c",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 8 3 4 3-4"),
+      |],
+    },
+    {
+      key: "tww15h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12v4"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-y",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCircleLetterZ = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "hctxk0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 8h5.501a.5.5 0 0 1 .37.836L9.13 15.164A.5.5 0 0 0 9.5 16H15"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-letter-z",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconCircleMinus = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -21472,118 +25625,6 @@ module IconCircleOff = {
   ) =>
     LucideIconRenderer.render(
       ~name="circle-off",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconCircleParking = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
-      |],
-    },
-    {
-      key: "1dfk2c",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 17V7h4a3 3 0 0 1 0 6H9"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="circle-parking",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconCircleParkingOff = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1sjx87",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12.656 7H13a3 3 0 0 1 2.984 3.307"),
-      |],
-    },
-    {
-      key: "e2beee",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M13 13H9"),
-      |],
-    },
-    {
-      key: "1kb595",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M19.071 19.071A1 1 0 0 1 4.93 4.93"),
-      |],
-    },
-    {
-      key: "1ooewy",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m2 2 20 20"),
-      |],
-    },
-    {
-      key: "5bsfdx",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8.357 2.687a10 10 0 0 1 12.956 12.956"),
-      |],
-    },
-    {
-      key: "ojradj",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 17V9"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="circle-parking-off",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -21708,6 +25749,87 @@ module IconCirclePercent = {
     );
 };
 
+module IconCirclePile = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "13j0tp",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "f1ur92",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "4ma0v8",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("16"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "1obnsp",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("20"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "p3m9r0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("4"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "1nvbw3",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("8"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="circle-pile",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconCirclePlay = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -21804,6 +25926,15 @@ module IconCirclePlus = {
 module IconCirclePoundSterling = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+    {
       key: "1i1are",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -21822,15 +25953,6 @@ module IconCirclePoundSterling = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M8 16h7"),
-      |],
-    },
-    {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
       |],
     },
   |];
@@ -21861,6 +25983,15 @@ module IconCirclePoundSterling = {
 module IconCirclePower = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+    {
       key: "xawao1",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -21872,15 +26003,6 @@ module IconCirclePower = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M7.998 9.003a5 5 0 1 0 8-.005"),
-      |],
-    },
-    {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
       |],
     },
   |];
@@ -22007,19 +26129,19 @@ module IconCircleSlash = {
 module IconCircleSlash2 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "y4kqgn",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M22 2 2 22"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "y4kqgn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 2 2 22"),
       |],
     },
   |];
@@ -22086,19 +26208,19 @@ module IconCircleSmall = {
 module IconCircleStar = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "285bvi",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M11.051 7.616a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.867l-1.156-1.152a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "285bvi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11.051 7.616a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.867l-1.156-1.152a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z"),
       |],
     },
   |];
@@ -22228,18 +26350,18 @@ module IconCircleUser = {
 module IconCircleUserRound = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1qehca",
+      key: "z69sun",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 20a6 6 0 0 0-12 0"),
+        LucideIconTypes.D("M17.925 20.056a6 6 0 0 0-11.851.001"),
       |],
     },
     {
-      key: "1h16sb",
+      key: "1gt34v",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("10"),
+        LucideIconTypes.Cy("11"),
         LucideIconTypes.R("4"),
       |],
     },
@@ -22455,31 +26577,31 @@ module IconCitrus = {
 module IconClapperboard = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1tn4o7",
+      key: "qash78",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"),
+        LucideIconTypes.D("m12.296 3.464 3.02 3.956"),
       |],
     },
     {
-      key: "iuk76l",
+      key: "1h7j8b",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m6.2 5.3 3.1 3.9"),
+        LucideIconTypes.D("M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z"),
       |],
     },
     {
-      key: "6hsd6n",
+      key: "4lm6w1",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m12.4 3.4 3.1 4"),
+        LucideIconTypes.D("M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"),
       |],
     },
     {
-      key: "ltgou9",
+      key: "zjj9t3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"),
+        LucideIconTypes.D("m6.18 5.276 3.1 3.899"),
       |],
     },
   |];
@@ -22496,6 +26618,145 @@ module IconClapperboard = {
   ) =>
     LucideIconRenderer.render(
       ~name="clapperboard",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconClefAlto = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "14ds90",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 4v16"),
+      |],
+    },
+    {
+      key: "udi1dj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 4.764a3 3 0 1 1-.152 4.327A4 4 0 0 1 10 12a4 4 0 0 1 3.848 2.909A3 3 0 1 1 14 19.236"),
+      |],
+    },
+    {
+      key: "n0nszo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 4v16"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="clef-alto",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconClefBass = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "6rud08",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 11h.01"),
+      |],
+    },
+    {
+      key: "1ngg9n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 6h.01"),
+      |],
+    },
+    {
+      key: "149hcj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 8c0-4 4-4 4-4 6 0 6 6 6 6 0 7-10 11-10 11"),
+      |],
+    },
+    {
+      key: "p5re1b",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("7"),
+        LucideIconTypes.Cy("8"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="clef-bass",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconClefTreble = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1v9z72",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.586 21.414a2 2 0 0 0 3.378-1.791L11.036 4.377a2 2 0 1 1 3.378 1.037C12.414 7.414 7 8 7 13a5 5 0 0 0 5 5 5 4 0 0 0 5-4 3 3 0 0 0-3-3 3 2 0 0 0-3 2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="clef-treble",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -22937,35 +27198,35 @@ module IconClipboardPaste = {
 module IconClipboardPen = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1oijnt",
+      key: "j91f56",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 4h2a2 2 0 0 1 2 2v2"),
+      |],
+    },
+    {
+      key: "16fuwn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21.34 15.664a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"),
+      |],
+    },
+    {
+      key: "120tdm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 22H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"),
+      |],
+    },
+    {
+      key: "ublpy",
       tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.Width("8"),
-        LucideIconTypes.Height("4"),
         LucideIconTypes.X("8"),
         LucideIconTypes.Y("2"),
+        LucideIconTypes.Width("8"),
+        LucideIconTypes.Height("4"),
         LucideIconTypes.Rx("1"),
-      |],
-    },
-    {
-      key: "cereej",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5.5"),
-      |],
-    },
-    {
-      key: "5ua5vh",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M4 13.5V6a2 2 0 0 1 2-2h2"),
-      |],
-    },
-    {
-      key: "1y4qbx",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M13.378 15.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"),
       |],
     },
   |];
@@ -23208,17 +27469,17 @@ module IconClipboardX = {
       |],
     },
     {
-      key: "1toa9n",
+      key: "1eaq8h",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m15 11-6 6"),
+        LucideIconTypes.D("m14.5 11.5-5 5"),
       |],
     },
     {
-      key: "wlibny",
+      key: "1exjew",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m9 11 6 6"),
+        LucideIconTypes.D("m9.5 11.5 5 5"),
       |],
     },
   |];
@@ -23249,19 +27510,19 @@ module IconClipboardX = {
 module IconClock = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "mmk7yg",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6l4 2"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "mmk7yg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l4 2"),
       |],
     },
   |];
@@ -23292,19 +27553,19 @@ module IconClock = {
 module IconClock1 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "miptyd",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6l2-4"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "miptyd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l2-4"),
       |],
     },
   |];
@@ -23335,19 +27596,19 @@ module IconClock1 = {
 module IconClock10 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "cedpoo",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6l-4-2"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "cedpoo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l-4-2"),
       |],
     },
   |];
@@ -23378,19 +27639,19 @@ module IconClock10 = {
 module IconClock11 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "ns39ag",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6l-2-4"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "ns39ag",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l-2-4"),
       |],
     },
   |];
@@ -23421,19 +27682,19 @@ module IconClock11 = {
 module IconClock12 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1ipuwl",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "1ipuwl",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6"),
       |],
     },
   |];
@@ -23464,19 +27725,19 @@ module IconClock12 = {
 module IconClock2 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1r2kuh",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6l4-2"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "1r2kuh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l4-2"),
       |],
     },
   |];
@@ -23507,19 +27768,19 @@ module IconClock2 = {
 module IconClock3 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "135r8i",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6h4"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "135r8i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6h4"),
       |],
     },
   |];
@@ -23550,19 +27811,19 @@ module IconClock3 = {
 module IconClock4 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "mmk7yg",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6l4 2"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "mmk7yg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l4 2"),
       |],
     },
   |];
@@ -23593,19 +27854,19 @@ module IconClock4 = {
 module IconClock5 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1287s9",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6l2 4"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "1287s9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l2 4"),
       |],
     },
   |];
@@ -23636,19 +27897,19 @@ module IconClock5 = {
 module IconClock6 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "wf7rdh",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v10"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "wf7rdh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v10"),
       |],
     },
   |];
@@ -23679,19 +27940,19 @@ module IconClock6 = {
 module IconClock7 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1095bu",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6l-2 4"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "1095bu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l-2 4"),
       |],
     },
   |];
@@ -23722,19 +27983,19 @@ module IconClock7 = {
 module IconClock8 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "imc3wl",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6l-4 2"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "imc3wl",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l-4 2"),
       |],
     },
   |];
@@ -23765,19 +28026,19 @@ module IconClock8 = {
 module IconClock9 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "u39vzm",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 6v6H8"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "u39vzm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6H8"),
       |],
     },
   |];
@@ -23915,6 +28176,116 @@ module IconClockArrowDown = {
     );
 };
 
+module IconClockArrowLeft = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "uc7jki",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l1.5.8"),
+      |],
+    },
+    {
+      key: "1lz5pu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.338 21.994a10 10 0 1 1 9.587-8.767"),
+      |],
+    },
+    {
+      key: "1le3fr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 18h8"),
+      |],
+    },
+    {
+      key: "dh5o1f",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18 22-4-4 4-4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="clock-arrow-left",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconClockArrowRight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "19cm8n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v6l2 1"),
+      |],
+    },
+    {
+      key: "xgp8as",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.5 21.885A10 10 0 1 1 22 12"),
+      |],
+    },
+    {
+      key: "1le3fr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 18h8"),
+      |],
+    },
+    {
+      key: "mordo3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18 22 4-4-4-4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="clock-arrow-right",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconClockArrowUp = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -23973,6 +28344,13 @@ module IconClockArrowUp = {
 module IconClockCheck = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
+      key: "1ujumx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21.95 13a10 10 0 1 0-8.685 8.92"),
+      |],
+    },
+    {
       key: "mmk7yg",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -23980,17 +28358,10 @@ module IconClockCheck = {
       |],
     },
     {
-      key: "17dhok",
+      key: "1b14m6",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 12a10 10 0 1 0-11 9.95"),
-      |],
-    },
-    {
-      key: "1eibut",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m22 16-5.5 5.5L14 19"),
+        LucideIconTypes.D("m16 19 2 2 4-4"),
       |],
     },
   |];
@@ -24245,10 +28616,10 @@ module IconCloudAlert = {
       |],
     },
     {
-      key: "xsb5ju",
+      key: "1namsd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17 18h.5a1 1 0 0 0 0-9h-1.79A7 7 0 1 0 7 17.708"),
+        LucideIconTypes.D("M8.128 16.949A7 7 0 1 1 15.71 8h1.79a1 1 0 0 1 0 9h-1.642"),
       |],
     },
   |];
@@ -24276,6 +28647,54 @@ module IconCloudAlert = {
     );
 };
 
+module IconCloudBackup = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "xpoh9y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 15.251A4.5 4.5 0 0 0 17.5 8h-1.79A7 7 0 1 0 3 13.607"),
+      |],
+    },
+    {
+      key: "q9yh32",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 11v4h4"),
+      |],
+    },
+    {
+      key: "1xm8iu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 19a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5 4.82 4.82 0 0 0-3.41 1.41L7 15"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="cloud-backup",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconCloudCheck = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -24286,10 +28705,10 @@ module IconCloudCheck = {
       |],
     },
     {
-      key: "9ho6ki",
+      key: "1xtj56",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M5 17.743A7 7 0 1 1 15.71 10h1.79a4.5 4.5 0 0 1 1.5 8.742"),
+        LucideIconTypes.D("M5.516 16.07A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 3.501 7.327"),
       |],
     },
   |];
@@ -24795,24 +29214,24 @@ module IconCloudMoonRain = {
 module IconCloudOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
+      key: "1uxyv8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.94 5.274A7 7 0 0 1 15.71 10h1.79a4.5 4.5 0 0 1 4.222 6.057"),
+      |],
+    },
+    {
+      key: "99tcn7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18.796 18.81A4.5 4.5 0 0 1 17.5 19H9A7 7 0 0 1 5.79 5.78"),
+      |],
+    },
+    {
       key: "1ooewy",
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("m2 2 20 20"),
-      |],
-    },
-    {
-      key: "yfwify",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"),
-      |],
-    },
-    {
-      key: "jlfiyv",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"),
       |],
     },
   |];
@@ -25178,6 +29597,68 @@ module IconCloudSunRain = {
     );
 };
 
+module IconCloudSync = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "adpv5j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m17 18-1.535 1.605a5 5 0 0 1-8-1.5"),
+      |],
+    },
+    {
+      key: "ex1ofj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 22v-4h-4"),
+      |],
+    },
+    {
+      key: "ziqt14",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20.996 15.251A4.5 4.5 0 0 0 17.495 8h-1.79a7 7 0 1 0-12.709 5.607"),
+      |],
+    },
+    {
+      key: "1j6gx1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 10v4h4"),
+      |],
+    },
+    {
+      key: "19q5h7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7 14 1.535-1.605a5 5 0 0 1 8 1.5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="cloud-sync",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconCloudUpload = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -25229,17 +29710,17 @@ module IconCloudUpload = {
 module IconCloudy = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "gqqjvc",
+      key: "44yre2",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17.5 21H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"),
+        LucideIconTypes.D("M17.5 12a1 1 0 1 1 0 9H9.006a7 7 0 1 1 6.702-9z"),
       |],
     },
     {
-      key: "1p2s76",
+      key: "leugyv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 10a3 3 0 0 0-3-3h-2.207a5.502 5.502 0 0 0-10.702.5"),
+        LucideIconTypes.D("M21.832 9A3 3 0 0 0 19 7h-2.207a5.5 5.5 0 0 0-10.72.61"),
       |],
     },
   |];
@@ -25445,146 +29926,6 @@ module IconCodeXml = {
     );
 };
 
-module IconCodepen = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "srzb37",
-      tag: LucideIconTypes.Polygon,
-      attrs: [|
-        LucideIconTypes.Points("12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"),
-      |],
-    },
-    {
-      key: "1t73f2",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("22"),
-        LucideIconTypes.Y2("15.5"),
-      |],
-    },
-    {
-      key: "ajlxae",
-      tag: LucideIconTypes.Polyline,
-      attrs: [|
-        LucideIconTypes.Points("22 8.5 12 15.5 2 8.5"),
-      |],
-    },
-    {
-      key: "susrui",
-      tag: LucideIconTypes.Polyline,
-      attrs: [|
-        LucideIconTypes.Points("2 15.5 12 8.5 22 15.5"),
-      |],
-    },
-    {
-      key: "2cldga",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("2"),
-        LucideIconTypes.Y2("8.5"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="codepen",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconCodesandbox = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "yt0hxn",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"),
-      |],
-    },
-    {
-      key: "fabo96",
-      tag: LucideIconTypes.Polyline,
-      attrs: [|
-        LucideIconTypes.Points("7.5 4.21 12 6.81 16.5 4.21"),
-      |],
-    },
-    {
-      key: "z377f1",
-      tag: LucideIconTypes.Polyline,
-      attrs: [|
-        LucideIconTypes.Points("7.5 19.79 7.5 14.6 3 12"),
-      |],
-    },
-    {
-      key: "9nrev1",
-      tag: LucideIconTypes.Polyline,
-      attrs: [|
-        LucideIconTypes.Points("21 12 16.5 14.6 16.5 19.79"),
-      |],
-    },
-    {
-      key: "1180pa",
-      tag: LucideIconTypes.Polyline,
-      attrs: [|
-        LucideIconTypes.Points("3.27 6.96 12 12.01 20.73 6.96"),
-      |],
-    },
-    {
-      key: "3z3uq6",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("22.08"),
-        LucideIconTypes.Y2("12"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="codesandbox",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconCoffee = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -25772,33 +30113,33 @@ module IconCog = {
 module IconCoins = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "3yglwk",
+      key: "bq4yh3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.744 17.736a6 6 0 1 1-7.48-7.48"),
+      |],
+    },
+    {
+      key: "11y1tn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 6h1v4"),
+      |],
+    },
+    {
+      key: "17snzx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6.134 14.768.866-.5 2 3.464"),
+      |],
+    },
+    {
+      key: "14bfc9",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("8"),
+        LucideIconTypes.Cx("16"),
         LucideIconTypes.Cy("8"),
         LucideIconTypes.R("6"),
-      |],
-    },
-    {
-      key: "t5s6rm",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M18.09 10.37A6 6 0 1 1 10.34 18"),
-      |],
-    },
-    {
-      key: "1obek4",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M7 6h1v4"),
-      |],
-    },
-    {
-      key: "1rbuyh",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m16.71 13.88.7.71-2.82 2.82"),
       |],
     },
   |];
@@ -25926,73 +30267,73 @@ module IconColumns3 = {
 module IconColumns3Cog = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1g2yzs",
+      key: "19s2bv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5.5"),
+        LucideIconTypes.D("M10.6 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v5.6"),
       |],
     },
     {
-      key: "11sv9r",
+      key: "3m78fa",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m14.3 19.6 1-.4"),
+        LucideIconTypes.D("m14.305 19.53.923-.382"),
       |],
     },
     {
-      key: "7lm50a",
+      key: "mv9izd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 3v7.5"),
+        LucideIconTypes.D("M15 3v7.6"),
       |],
     },
     {
-      key: "1t7mvx",
+      key: "qpfz85",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m15.2 16.9-.9-.3"),
+        LucideIconTypes.D("m15.229 16.852-.924-.383"),
       |],
     },
     {
-      key: "1j67ps",
+      key: "5xggr7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m16.6 21.7.3-.9"),
+        LucideIconTypes.D("m16.852 15.228-.383-.923"),
       |],
     },
     {
-      key: "1ei7r6",
+      key: "dpfhf9",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m16.8 15.3-.4-1"),
+        LucideIconTypes.D("m16.852 20.772-.383.924"),
       |],
     },
     {
-      key: "18r7jp",
+      key: "1reyyz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m19.1 15.2.3-.9"),
+        LucideIconTypes.D("m19.148 15.228.383-.923"),
       |],
     },
     {
-      key: "z2vh2",
+      key: "1goivc",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m19.6 21.7-.4-1"),
+        LucideIconTypes.D("m19.53 21.696-.382-.924"),
       |],
     },
     {
-      key: "19m87a",
+      key: "59dfo2",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m20.7 16.8 1-.4"),
+        LucideIconTypes.D("m20.773 16.852.922-.383"),
       |],
     },
     {
-      key: "1qgwi9",
+      key: "1lk755",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m21.7 19.4-.9-.3"),
+        LucideIconTypes.D("m20.773 19.148.922.383"),
       |],
     },
     {
@@ -26209,19 +30550,19 @@ module IconCommand = {
 module IconCompass = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "9ktpf1",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"),
-      |],
-    },
-    {
       key: "1mglay",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("12"),
         LucideIconTypes.R("10"),
+      |],
+    },
+    {
+      key: "9ktpf1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"),
       |],
     },
   |];
@@ -26307,39 +30648,46 @@ module IconComponent = {
 module IconComputer = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "wc9tft",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("14"),
-        LucideIconTypes.Height("8"),
-        LucideIconTypes.X("5"),
-        LucideIconTypes.Y("2"),
-        LucideIconTypes.Rx("2"),
-      |],
-    },
-    {
-      key: "w68u3i",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("20"),
-        LucideIconTypes.Height("8"),
-        LucideIconTypes.X("2"),
-        LucideIconTypes.Y("14"),
-        LucideIconTypes.Rx("2"),
-      |],
-    },
-    {
-      key: "rwmk9e",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6 18h2"),
-      |],
-    },
-    {
       key: "aqd8w3",
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M12 18h6"),
+      |],
+    },
+    {
+      key: "uhywen",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 18h.01"),
+      |],
+    },
+    {
+      key: "tn6mkg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 6h1"),
+      |],
+    },
+    {
+      key: "rlpjsu",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("2"),
+        LucideIconTypes.Y("14"),
+        LucideIconTypes.Width("20"),
+        LucideIconTypes.Height("8"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "fhup8x",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("4"),
+        LucideIconTypes.Y("2"),
+        LucideIconTypes.Width("16"),
+        LucideIconTypes.Height("12"),
+        LucideIconTypes.Rx("2"),
       |],
     },
   |];
@@ -26563,10 +30911,10 @@ module IconContact = {
       |],
     },
     {
-      key: "1waht3",
+      key: "k82dct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 22v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"),
+        LucideIconTypes.D("M7 21v-2a2 2 0 012-2h6a2 2 0 012 2v2"),
       |],
     },
     {
@@ -26577,20 +30925,20 @@ module IconContact = {
       |],
     },
     {
-      key: "itu57m",
+      key: "ilqhr7",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("11"),
+        LucideIconTypes.Cy("10"),
         LucideIconTypes.R("3"),
       |],
     },
     {
-      key: "12vinp",
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
         LucideIconTypes.X("3"),
-        LucideIconTypes.Y("4"),
+        LucideIconTypes.Y("3"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("18"),
         LucideIconTypes.Rx("2"),
@@ -26631,10 +30979,10 @@ module IconContactRound = {
       |],
     },
     {
-      key: "suqz9p",
+      key: "13n4mv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17.915 22a6 6 0 0 0-12 0"),
+        LucideIconTypes.D("M17.915 21a6 6 0 10-12 0"),
       |],
     },
     {
@@ -26645,20 +30993,20 @@ module IconContactRound = {
       |],
     },
     {
-      key: "4exip2",
+      key: "1gt34v",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
+        LucideIconTypes.Cy("11"),
         LucideIconTypes.R("4"),
       |],
     },
     {
-      key: "12vinp",
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
         LucideIconTypes.X("3"),
-        LucideIconTypes.Y("4"),
+        LucideIconTypes.Y("3"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("18"),
         LucideIconTypes.Rx("2"),
@@ -26797,45 +31145,66 @@ module IconContrast = {
 module IconCookie = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "laymnq",
+      key: "dukryu",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"),
+        LucideIconTypes.D("M11 17h.01"),
       |],
     },
     {
-      key: "ue8clq",
+      key: "1x76et",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8.5 8.5v.01"),
+        LucideIconTypes.D("M11.496 2c.324-.016.558.292.529.615a4 4 0 004.235 4.368.713.713 0 01.758.757 4 4 0 004.366 4.237c.323-.03.63.204.614.527a10 10 0 01-2.915 6.566A1 1 0 114.93 4.918 10 10 0 0111.496 2"),
       |],
     },
     {
-      key: "14dtrp",
+      key: "1mp3jc",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 15.5v.01"),
+        LucideIconTypes.D("M12 12h.01"),
       |],
     },
     {
-      key: "u5ubse",
+      key: "1f9h7w",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 12v.01"),
+        LucideIconTypes.D("M16 16h.01"),
       |],
     },
     {
-      key: "1hyl5a",
+      key: "ll0zb8",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11 17v.01"),
+        LucideIconTypes.D("M16 3h.01"),
       |],
     },
     {
-      key: "uct60s",
+      key: "uw58yv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 14v.01"),
+        LucideIconTypes.D("M21 4h.01"),
+      |],
+    },
+    {
+      key: "17axm7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 8h.01"),
+      |],
+    },
+    {
+      key: "1qa3f1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 14h.01"),
+      |],
+    },
+    {
+      key: "1jwowd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 8h.01"),
       |],
     },
   |];
@@ -27198,42 +31567,35 @@ module IconCopySlash = {
 module IconCopyX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1rg63v",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("18"),
-        LucideIconTypes.Y1("12"),
-        LucideIconTypes.Y2("18"),
-      |],
-    },
-    {
-      key: "ebkxgr",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("18"),
-        LucideIconTypes.Y1("18"),
-        LucideIconTypes.Y2("12"),
-      |],
-    },
-    {
-      key: "17jyea",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("14"),
-        LucideIconTypes.Height("14"),
-        LucideIconTypes.X("8"),
-        LucideIconTypes.Y("8"),
-        LucideIconTypes.Rx("2"),
-        LucideIconTypes.Ry("2"),
-      |],
-    },
-    {
-      key: "zix9uf",
+      key: "1qd6ae",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"),
+        LucideIconTypes.D("M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"),
+      |],
+    },
+    {
+      key: "1an92s",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("8"),
+        LucideIconTypes.Y("8"),
+        LucideIconTypes.Width("14"),
+        LucideIconTypes.Height("14"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "1simgt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m12.5 12.5 5 5"),
+      |],
+    },
+    {
+      key: "pc59mn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m12.5 17.5 5-5"),
       |],
     },
   |];
@@ -27293,49 +31655,6 @@ module IconCopyleft = {
   ) =>
     LucideIconRenderer.render(
       ~name="copyleft",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconCopyright = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
-      |],
-    },
-    {
-      key: "1i56pz",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M14.83 14.83a4 4 0 1 1 0-5.66"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="copyright",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -27808,6 +32127,149 @@ module IconCpu = {
     );
 };
 
+module IconCpuAi = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1lh1kg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 20v2"),
+      |],
+    },
+    {
+      key: "tus03m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v2"),
+      |],
+    },
+    {
+      key: "1arpx1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 9v6"),
+      |],
+    },
+    {
+      key: "1rnc9c",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 20v2"),
+      |],
+    },
+    {
+      key: "11trls",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 2v2"),
+      |],
+    },
+    {
+      key: "1t8f8n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12h2"),
+      |],
+    },
+    {
+      key: "7oei6x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 17h2"),
+      |],
+    },
+    {
+      key: "asdhe0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 7h2"),
+      |],
+    },
+    {
+      key: "1q8mjw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 12h2"),
+      |],
+    },
+    {
+      key: "1fpfkl",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 17h2"),
+      |],
+    },
+    {
+      key: "1o8tra",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 7h2"),
+      |],
+    },
+    {
+      key: "4gnj0m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 20v2"),
+      |],
+    },
+    {
+      key: "1i4yhu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 2v2"),
+      |],
+    },
+    {
+      key: "mvy7dd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 13h4"),
+      |],
+    },
+    {
+      key: "1ys9qo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 15v-4a2 2 0 014 0v4"),
+      |],
+    },
+    {
+      key: "1vbyd7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("4"),
+        LucideIconTypes.Y("4"),
+        LucideIconTypes.Width("16"),
+        LucideIconTypes.Height("16"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="cpu-ai",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconCreativeCommons = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -27881,6 +32343,13 @@ module IconCreditCard = {
         LucideIconTypes.Y2("10"),
       |],
     },
+    {
+      key: "mk7k0u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 14h2"),
+      |],
+    },
   |];
 
   [@react.component]
@@ -27895,6 +32364,295 @@ module IconCreditCard = {
   ) =>
     LucideIconRenderer.render(
       ~name="credit-card",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCreditCardCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1pfaq2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.5 19H4a2 2 0 01-2-2V7a2 2 0 012-2h16a2 2 0 012 2v4"),
+      |],
+    },
+    {
+      key: "1ir3d8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 10h20"),
+      |],
+    },
+    {
+      key: "mk7k0u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 14h2"),
+      |],
+    },
+    {
+      key: "uh5qu3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 17 2 2 4-4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="credit-card-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCreditCardMinus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "ljwgfh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 13V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2h8.536"),
+      |],
+    },
+    {
+      key: "jawrgs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 10H2"),
+      |],
+    },
+    {
+      key: "mk7k0u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 14h2"),
+      |],
+    },
+    {
+      key: "1ook5g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 17h6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="credit-card-minus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCreditCardPlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "19x2x0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 11.354V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2h8.536"),
+      |],
+    },
+    {
+      key: "jawrgs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 10H2"),
+      |],
+    },
+    {
+      key: "mk7k0u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 14h2"),
+      |],
+    },
+    {
+      key: "1ook5g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 17h6"),
+      |],
+    },
+    {
+      key: "1ckrd5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 14v6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="credit-card-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCreditCardReader = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "11t5ze",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 16v1"),
+      |],
+    },
+    {
+      key: "83jfh2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.963 7.734A1 1 0 0015.999 7H8.003a1 1 0 00-.964.734L4.073 18.467A2 2 0 006 21h12a2 2 0 001.927-2.532z"),
+      |],
+    },
+    {
+      key: "rj5azy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.678 8.5A2 2 0 012 7V5a2 2 0 012-2h16a2 2 0 012 2v2a2 2 0 01-.676 1.499"),
+      |],
+    },
+    {
+      key: "1em7wr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 21 2-14"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="credit-card-reader",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCreditCardX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "187u2m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.5 19H4a2 2 0 01-2-2V7a2 2 0 012-2h16a2 2 0 012 2v3.5"),
+      |],
+    },
+    {
+      key: "1ir3d8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 10h20"),
+      |],
+    },
+    {
+      key: "mk7k0u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 14h2"),
+      |],
+    },
+    {
+      key: "ozpm51",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.5 14.5 5 5"),
+      |],
+    },
+    {
+      key: "1bnlip",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21.5 14.5-5 5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="credit-card-x",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -28163,24 +32921,24 @@ module IconCrown = {
 module IconCuboid = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1u2ovd",
+      key: "1f8443",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m21.12 6.4-6.05-4.06a2 2 0 0 0-2.17-.05L2.95 8.41a2 2 0 0 0-.95 1.7v5.82a2 2 0 0 0 .88 1.66l6.05 4.07a2 2 0 0 0 2.17.05l9.95-6.12a2 2 0 0 0 .95-1.7V8.06a2 2 0 0 0-.88-1.66Z"),
+        LucideIconTypes.D("M10 22v-8"),
       |],
     },
     {
-      key: "11pn4q",
+      key: "1qnufy",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 22v-8L2.25 9.15"),
+        LucideIconTypes.D("M2.336 8.89 10 14l11.715-7.029"),
       |],
     },
     {
-      key: "1kt1wh",
+      key: "670npk",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m10 14 11.77-6.87"),
+        LucideIconTypes.D("M22 14a2 2 0 0 1-.971 1.715l-10 6a2 2 0 0 1-2.138-.05l-6-4A2 2 0 0 1 2 16v-6a2 2 0 0 1 .971-1.715l10-6a2 2 0 0 1 2.138.05l6 4A2 2 0 0 1 22 8z"),
       |],
     },
   |];
@@ -28252,6 +33010,84 @@ module IconCupSoda = {
   ) =>
     LucideIconRenderer.render(
       ~name="cup-soda",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconCupcake = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "x3hkom",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 22v-9"),
+      |],
+    },
+    {
+      key: "1uimk1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 4h1a3 3 0 013 3l-.004.125A4 4 0 0121 11v2"),
+      |],
+    },
+    {
+      key: "p3wz2u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.5 22 1.5-9"),
+      |],
+    },
+    {
+      key: "dykv9l",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 13a1 1 0 01.919 1.394l-2.74 6.394A2 2 0 0117.34 22H6.659a2 2 0 01-1.838-1.212l-2.74-6.394A1 1 0 013 13z"),
+      |],
+    },
+    {
+      key: "6kd3ki",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 13v-2a4 4 0 013.003-3.875L6 7a3 3 0 013-3h1"),
+      |],
+    },
+    {
+      key: "1l6g57",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.5 22 7 13"),
+      |],
+    },
+    {
+      key: "muu5ef",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="cupcake",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -28510,6 +33346,150 @@ module IconDatabase = {
     );
 };
 
+module IconDatabaseArrowDown = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ibux0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 19 3 3 3-3"),
+      |],
+    },
+    {
+      key: "tddt3s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 16v6"),
+      |],
+    },
+    {
+      key: "zeza6i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 12.536V5"),
+      |],
+    },
+    {
+      key: "11e5wb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12A9 3 0 0 0 15.182 14.806"),
+      |],
+    },
+    {
+      key: "1lyu4j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5V19A9 3 0 0 0 13.318 21.968"),
+      |],
+    },
+    {
+      key: "msslwz",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.Rx("9"),
+        LucideIconTypes.Ry("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="database-arrow-down",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconDatabaseArrowUp = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "qhmiwi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 22v-6"),
+      |],
+    },
+    {
+      key: "zeza6i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 12.536V5"),
+      |],
+    },
+    {
+      key: "rn6bg2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 19-3-3-3 3"),
+      |],
+    },
+    {
+      key: "1941vg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12A9 3 0 0 0 14.457 14.886"),
+      |],
+    },
+    {
+      key: "1lyu4j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5V19A9 3 0 0 0 13.318 21.968"),
+      |],
+    },
+    {
+      key: "msslwz",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.Rx("9"),
+        LucideIconTypes.Ry("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="database-arrow-up",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconDatabaseBackup = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -28571,6 +33551,484 @@ module IconDatabaseBackup = {
   ) =>
     LucideIconRenderer.render(
       ~name="database-backup",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconDatabaseCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1b14m6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 19 2 2 4-4"),
+      |],
+    },
+    {
+      key: "59o5vz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 13.127V5"),
+      |],
+    },
+    {
+      key: "mv7ke4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12A9 3 0 0 0 21 12"),
+      |],
+    },
+    {
+      key: "1lyu4j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5V19A9 3 0 0 0 13.318 21.968"),
+      |],
+    },
+    {
+      key: "msslwz",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.Rx("9"),
+        LucideIconTypes.Ry("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="database-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconDatabaseCog = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "3m78fa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m14.305 19.53.923-.382"),
+      |],
+    },
+    {
+      key: "npixar",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.228 16.852-.923-.383"),
+      |],
+    },
+    {
+      key: "5xggr7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.852 15.228-.383-.923"),
+      |],
+    },
+    {
+      key: "dpfhf9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.852 20.772-.383.924"),
+      |],
+    },
+    {
+      key: "1reyyz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.148 15.228.383-.923"),
+      |],
+    },
+    {
+      key: "1goivc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.53 21.696-.382-.924"),
+      |],
+    },
+    {
+      key: "htqkph",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.772 16.852.924-.383"),
+      |],
+    },
+    {
+      key: "9w9pjp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.772 19.148.924.383"),
+      |],
+    },
+    {
+      key: "177532",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 10.5V5"),
+      |],
+    },
+    {
+      key: "1asfn4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12a9 3 0 0 0 7.599 2.963"),
+      |],
+    },
+    {
+      key: "ppu9tk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5v14a9 3 0 0 0 8.148 2.987"),
+      |],
+    },
+    {
+      key: "1xkwt0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "msslwz",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.Rx("9"),
+        LucideIconTypes.Ry("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="database-cog",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconDatabaseMinus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1lbg5w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 15V5"),
+      |],
+    },
+    {
+      key: "vcuq98",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 19h-6"),
+      |],
+    },
+    {
+      key: "mv7ke4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12A9 3 0 0 0 21 12"),
+      |],
+    },
+    {
+      key: "1lyu4j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5V19A9 3 0 0 0 13.318 21.968"),
+      |],
+    },
+    {
+      key: "msslwz",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.Rx("9"),
+        LucideIconTypes.Ry("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="database-minus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconDatabasePlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "tddt3s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 16v6"),
+      |],
+    },
+    {
+      key: "zeza6i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 12.536V5"),
+      |],
+    },
+    {
+      key: "vcuq98",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 19h-6"),
+      |],
+    },
+    {
+      key: "ukc3b1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12A9 3 0 0 0 15.1824 14.8061"),
+      |],
+    },
+    {
+      key: "1lyu4j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5V19A9 3 0 0 0 13.318 21.968"),
+      |],
+    },
+    {
+      key: "msslwz",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.Rx("9"),
+        LucideIconTypes.Ry("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="database-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconDatabaseSearch = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "175m1t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 11.693V5"),
+      |],
+    },
+    {
+      key: "13zax7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 22-1.875-1.875"),
+      |],
+    },
+    {
+      key: "151u9p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12a9 3 0 0 0 8.697 2.998"),
+      |],
+    },
+    {
+      key: "q2rs2p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5v14a9 3 0 0 0 9.28 2.999"),
+      |],
+    },
+    {
+      key: "1xkwt0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "msslwz",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.Rx("9"),
+        LucideIconTypes.Ry("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="database-search",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconDatabaseX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "p7ous7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m17 17 5 5"),
+      |],
+    },
+    {
+      key: "hmry77",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19.323 13.744A9 3 0 0 0 21 12"),
+      |],
+    },
+    {
+      key: "59o5vz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 13.127V5"),
+      |],
+    },
+    {
+      key: "gqnmv0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 17-5 5"),
+      |],
+    },
+    {
+      key: "1rmyhq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12A9 3 0 0 0 13.563 14.954"),
+      |],
+    },
+    {
+      key: "159k2m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5V19A9 3 0 0 0 13 21.981"),
+      |],
+    },
+    {
+      key: "msslwz",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.Rx("9"),
+        LucideIconTypes.Ry("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="database-x",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -30204,20 +35662,17 @@ module IconDog = {
 module IconDollarSign = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "7eqyqh",
-      tag: LucideIconTypes.Line,
+      key: "108xh3",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("2"),
-        LucideIconTypes.Y2("22"),
+        LucideIconTypes.D("M12 3v18"),
       |],
     },
     {
-      key: "1b0p4s",
+      key: "pwzcbw",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"),
+        LucideIconTypes.D("M17 5H9.5a1 1 0 000 7h5a1 1 0 010 7H6"),
       |],
     },
   |];
@@ -30234,6 +35689,75 @@ module IconDollarSign = {
   ) =>
     LucideIconRenderer.render(
       ~name="dollar-sign",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconDome = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "109363",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 21v-3a2 2 0 014 0v3"),
+      |],
+    },
+    {
+      key: "tus03m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v2"),
+      |],
+    },
+    {
+      key: "igdtv6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 12v9"),
+      |],
+    },
+    {
+      key: "ggamol",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2v-6a1 1 0 011-1h18a1 1 0 011 1z"),
+      |],
+    },
+    {
+      key: "ug8bwn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 12a8 8 0 0116 0"),
+      |],
+    },
+    {
+      key: "9e33v1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12v9"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="dome",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -30291,24 +35815,24 @@ module IconDonut = {
 module IconDoorClosed = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1kxr2c",
+      key: "4uynto",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 12h.01"),
+        LucideIconTypes.D("M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"),
       |],
     },
     {
-      key: "36qu9e",
+      key: "1nyx9w",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14"),
+        LucideIconTypes.D("M2 21h20"),
       |],
     },
     {
-      key: "owomy5",
+      key: "157uk2",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 20h20"),
+        LucideIconTypes.D("M9 12h.01"),
       |],
     },
   |];
@@ -30336,42 +35860,155 @@ module IconDoorClosed = {
     );
 };
 
+module IconDoorClosedCog = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "3m78fa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m14.305 19.53.923-.382"),
+      |],
+    },
+    {
+      key: "qpfz85",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.229 16.852-.924-.383"),
+      |],
+    },
+    {
+      key: "5xggr7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.852 15.228-.383-.923"),
+      |],
+    },
+    {
+      key: "14cn6x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.852 20.773-.383.924"),
+      |],
+    },
+    {
+      key: "19nivt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 10.35V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"),
+      |],
+    },
+    {
+      key: "1reyyz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.148 15.228.383-.923"),
+      |],
+    },
+    {
+      key: "x9j19g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.53 21.697-.382-.924"),
+      |],
+    },
+    {
+      key: "10z3zh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 21h8.58"),
+      |],
+    },
+    {
+      key: "59dfo2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.773 16.852.922-.383"),
+      |],
+    },
+    {
+      key: "1lk755",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.773 19.148.922.383"),
+      |],
+    },
+    {
+      key: "157uk2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h.01"),
+      |],
+    },
+    {
+      key: "1xkwt0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="door-closed-cog",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconDoorClosedLocked = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1kxr2c",
+      key: "18uk87",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 12h.01"),
+        LucideIconTypes.D("M19 8V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"),
       |],
     },
     {
-      key: "1bnhmg",
+      key: "oshpy",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 9V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14"),
+        LucideIconTypes.D("M2 21h8"),
       |],
     },
     {
-      key: "10ntw1",
+      key: "1xumi5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 20h8"),
+        LucideIconTypes.D("M20 16v-2a2 2 0 00-4 0v2"),
       |],
     },
     {
-      key: "pwaxnr",
+      key: "157uk2",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20 17v-2a2 2 0 1 0-4 0v2"),
+        LucideIconTypes.D("M9 12h.01"),
       |],
     },
     {
-      key: "15pjcy",
+      key: "1rp9x2",
       tag: LucideIconTypes.Rect,
       attrs: [|
         LucideIconTypes.X("14"),
-        LucideIconTypes.Y("17"),
+        LucideIconTypes.Y("16"),
         LucideIconTypes.Width("8"),
         LucideIconTypes.Height("5"),
         LucideIconTypes.Rx("1"),
@@ -30402,27 +36039,86 @@ module IconDoorClosedLocked = {
     );
 };
 
+module IconDoorClosedPackage = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1uyp25",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 13v3"),
+      |],
+    },
+    {
+      key: "ia57q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 9V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"),
+      |],
+    },
+    {
+      key: "oshpy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 21h8"),
+      |],
+    },
+    {
+      key: "157uk2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h.01"),
+      |],
+    },
+    {
+      key: "1ecvqg",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("14"),
+        LucideIconTypes.Y("13"),
+        LucideIconTypes.Width("8"),
+        LucideIconTypes.Height("8"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="door-closed-package",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconDoorOpen = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "nlcfvz",
+      key: "1sthdo",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11 20H2"),
+        LucideIconTypes.D("M10 21H2"),
       |],
     },
     {
-      key: "au4z13",
+      key: "15gt7x",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11 4.562v16.157a1 1 0 0 0 1.242.97L19 20V5.562a2 2 0 0 0-1.515-1.94l-4-1A2 2 0 0 0 11 4.561z"),
-      |],
-    },
-    {
-      key: "74r1mk",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M11 4H8a2 2 0 0 0-2 2v14"),
+        LucideIconTypes.D("M10 3H7a2 2 0 00-2 2v16"),
       |],
     },
     {
@@ -30433,10 +36129,17 @@ module IconDoorOpen = {
       |],
     },
     {
-      key: "vhrsz",
+      key: "tyvg9a",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 20h-3"),
+        LucideIconTypes.D("M19 21V5a2 2 0 00-1.675-1.974l-6.163-1.013A1 1 0 0010 3v18a1 1 0 001.124.992z"),
+      |],
+    },
+    {
+      key: "1ec3tr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 21h-3"),
       |],
     },
   |];
@@ -30464,14 +36167,76 @@ module IconDoorOpen = {
     );
 };
 
+module IconDoorStairwell = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1skdtv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 17v-3a1 1 0 011-1h6"),
+      |],
+    },
+    {
+      key: "to8zj0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 17h-9a1 1 0 00-1 1v3"),
+      |],
+    },
+    {
+      key: "4uynto",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"),
+      |],
+    },
+    {
+      key: "1r4j1u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 9h-3a1 1 0 00-1 1v3"),
+      |],
+    },
+    {
+      key: "1gy6en",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 21H2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="door-stairwell",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconDot = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "18d7e5",
+      key: "41hilf",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("12.1"),
-        LucideIconTypes.Cy("12.1"),
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
         LucideIconTypes.R("1"),
       |],
     },
@@ -30684,63 +36449,6 @@ module IconDrama = {
   ) =>
     LucideIconRenderer.render(
       ~name="drama",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconDribbble = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
-      |],
-    },
-    {
-      key: "hpej1",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M19.13 5.09C15.22 9.14 10 10.44 2.25 10.94"),
-      |],
-    },
-    {
-      key: "1tr44o",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21.75 12.84c-6.62-1.41-12.14 1-16.38 6.32"),
-      |],
-    },
-    {
-      key: "kbh691",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8.56 2.75c4.37 6 6 9.42 8 17.72"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="dribbble",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -31326,6 +37034,102 @@ module IconEarOff = {
     );
 };
 
+module IconEarbuds = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "11kxgw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 3a4 4 90 00-4 4v12a2 2 90 004 0v-8a5 5 90 003.75-1.693 1 1 90 00.25-.661V5.354a1 1 90 00-.25-.661A5 5 90 0018 3"),
+      |],
+    },
+    {
+      key: "14gtst",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 3a4 4 0 014 4v12a2 2 0 01-4 0v-8a5 5 0 01-3.75-1.693A1 1 0 012 8.646V5.354a1 1 0 01.25-.661A5 5 0 016 3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="earbuds",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconEarbudsOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1wg918",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 10v9a2 2 0 01-4 0v-8a5 5 0 01-3.75-1.693A1 1 0 012 8.646V5.354a1 1 0 01.25-.661 5 5 0 011.359-1.084"),
+      |],
+    },
+    {
+      key: "19xl4q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 14v5a2 2 90 004 0v-1"),
+      |],
+    },
+    {
+      key: "16xbui",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 12.343V11a5 5 90 003.75-1.693 1 1 90 00.25-.661V5.354a1 1 90 00-.25-.661A5 5 90 0018 3a4 4 90 00-4 4v1.343"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="earbuds-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconEarth = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -31624,6 +37428,183 @@ module IconEggOff = {
     );
 };
 
+module IconEighthNote = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "nsdg4r",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19 6-5.2-3.9a.5.5 0 0 0-.8.4V18"),
+      |],
+    },
+    {
+      key: "1972g7",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("9"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="eighth-note",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconEighthNotes = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "uy6ho8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 16V3a1 1 0 0 0-1.28-.96l-10 2.917a1 1 0 0 0-.72.96V19"),
+      |],
+    },
+    {
+      key: "1hluhg",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("16"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "1kj8tv",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("6"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="eighth-notes",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconEject = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "ua5u6w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 13a1 1 0 0 1-.72-1.695l7.257-7.668a2 2 0 0 1 2.926 0l7.256 7.668A1 1 0 0 1 20 13z"),
+      |],
+    },
+    {
+      key: "kj6cfs",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("17"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("4"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="eject",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconEllipse = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "swdkt4",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.Rx("10"),
+        LucideIconTypes.Ry("6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="ellipse",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconEllipsis = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -31732,6 +37713,116 @@ module IconEllipsisVertical = {
     );
 };
 
+module IconEmiratiDirham = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1vb4d1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 4a8 8 0 0 1 0 16H6.406A.4.4 0 0 1 6 19.594V4.406A.4.4 0 0 1 6.406 4z"),
+      |],
+    },
+    {
+      key: "pjix64",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 10h17"),
+      |],
+    },
+    {
+      key: "426kq0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 14h17"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="emirati-dirham",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconEngine = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1f0zxz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 3h6"),
+      |],
+    },
+    {
+      key: "vu7fyc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 3v4"),
+      |],
+    },
+    {
+      key: "c2i6v8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 10v6"),
+      |],
+    },
+    {
+      key: "14htpc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 13h4"),
+      |],
+    },
+    {
+      key: "1bwqof",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 16a2 2 0 002 2h1a2 2 0 011.6.8l.3.4a2 2 0 001.6.8h2.264a2 2 0 001.789-1.106l1.67-3.341a1 1 0 01.895-.553H21a1 1 0 001-1v-4a1 1 0 00-1-1h-3.5a1 1 0 01-.8-.4l-.9-1.2A1 1 0 0015 7h-4a1 1 0 00-.8.4l-.9 1.2a1 1 0 01-.8.4H7a1 1 0 00-1 1z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="engine",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconEqual = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -31809,6 +37900,57 @@ module IconEqualApproximately = {
   ) =>
     LucideIconRenderer.render(
       ~name="equal-approximately",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconEqualApproximatelyNot = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "yrdkhy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 15a6.5 6.5 0 0 1 7 0 6.5 6.5 0 0 0 7 0"),
+      |],
+    },
+    {
+      key: "gzkvyz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 9a6.5 6.5 0 0 1 7 0 6.5 6.5 0 0 0 7 0"),
+      |],
+    },
+    {
+      key: "1x9vlm",
+      tag: LucideIconTypes.Line,
+      attrs: [|
+        LucideIconTypes.X1("19"),
+        LucideIconTypes.X2("5"),
+        LucideIconTypes.Y1("5"),
+        LucideIconTypes.Y2("19"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="equal-approximately-not",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -31921,20 +38063,6 @@ module IconEraser = {
 module IconEthernetPort = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "rbahqx",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m15 20 3-3h2a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2l3 3z"),
-      |],
-    },
-    {
-      key: "1636ez",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6 8v1"),
-      |],
-    },
-    {
       key: "1talb4",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -31953,6 +38081,20 @@ module IconEthernetPort = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M18 8v1"),
+      |],
+    },
+    {
+      key: "v5qa57",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 17a2 2 0 00-1.765 1.059l-.47.882A2 2 0 0115 20H9a2 2 0 01-1.765-1.059l-.47-.882A2 2 0 005 17H4a2 2 0 01-2-2V6a2 2 0 012-2h16a2 2 0 012 2v9a2 2 0 01-2 2z"),
+      |],
+    },
+    {
+      key: "1636ez",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 8v1"),
       |],
     },
   |];
@@ -32326,6 +38468,98 @@ module IconEyeClosed = {
     );
 };
 
+module IconEyeDashed = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1lgjj0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.054 18.946a11 11 0 0 1-2.11 0"),
+      |],
+    },
+    {
+      key: "f7voaa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.054 5.054a11 11 0 0 0-2.11-.001"),
+      |],
+    },
+    {
+      key: "1rga24",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.072 6.274a11 11 0 0 1 1.753 1.173"),
+      |],
+    },
+    {
+      key: "jfvai2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18.825 16.552a11 11 0 0 1-1.753 1.174"),
+      |],
+    },
+    {
+      key: "1deed4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.514 13.303a11 11 0 0 1-.452-.954 1 1 0 0 1 0-.697 11 11 0 0 1 .45-.955"),
+      |],
+    },
+    {
+      key: "1k4xil",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21.485 10.697a11 11 0 0 1 .453.955 1 1 0 0 1 0 .697 11 11 0 0 1-.453.954"),
+      |],
+    },
+    {
+      key: "mwd8rq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5.173 7.448a11 11 0 0 1 1.753-1.174"),
+      |],
+    },
+    {
+      key: "15rpim",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.926 17.726a11 11 0 0 1-1.753-1.174"),
+      |],
+    },
+    {
+      key: "1v7zrd",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="eye-dashed",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconEyeOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -32381,13 +38615,50 @@ module IconEyeOff = {
     );
 };
 
-module IconFacebook = {
+module IconFaceAngry = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1jg4f8",
+      key: "1md67h",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"),
+        LucideIconTypes.D("M15 12v-1.584"),
+      |],
+    },
+    {
+      key: "1dqs4m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 10a5 5 0 00-3 1"),
+      |],
+    },
+    {
+      key: "1okmnq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 10a5 5 0 013 1"),
+      |],
+    },
+    {
+      key: "cfo04w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12v-1.584"),
+      |],
+    },
+    {
+      key: "ipdrmp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 17a5 5 0 016.001 0"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
       |],
     },
   |];
@@ -32403,7 +38674,361 @@ module IconFacebook = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="facebook",
+      ~name="face-angry",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconFaceExpressionless = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1lstlu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 10h2"),
+      |],
+    },
+    {
+      key: "66od0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 10h2"),
+      |],
+    },
+    {
+      key: "10ke2u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 16h8"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="face-expressionless",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconFaceGrinning = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "4dkmfx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 10V9"),
+      |],
+    },
+    {
+      key: "1ad3z7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.084 14.302a5.12 5.12 0 009.833 0 .24.24 0 00-.235-.302H7.32a.24.24 0 00-.235.302"),
+      |],
+    },
+    {
+      key: "1lazqi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 10V9"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="face-grinning",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconFaceNeutral = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "4dkmfx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 10V9"),
+      |],
+    },
+    {
+      key: "10ke2u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 16h8"),
+      |],
+    },
+    {
+      key: "1lazqi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 10V9"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="face-neutral",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconFaceSlightlyFrowning = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "4dkmfx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 10V9"),
+      |],
+    },
+    {
+      key: "1lazqi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 10V9"),
+      |],
+    },
+    {
+      key: "34mdxb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16a5 5 0 016 0"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="face-slightly-frowning",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconFaceSlightlySmiling = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "4dkmfx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 10V9"),
+      |],
+    },
+    {
+      key: "7qomzy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.472 15a6 6 0 01-8.943 0"),
+      |],
+    },
+    {
+      key: "1lazqi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 10V9"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="face-slightly-smiling",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconFaceSlightlySmilingPlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1wbpyh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.267 2.08a10 10 0 108.653 8.653"),
+      |],
+    },
+    {
+      key: "4dkmfx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 10V9"),
+      |],
+    },
+    {
+      key: "1vod17",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 5h6"),
+      |],
+    },
+    {
+      key: "7qomzy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.472 15a6 6 0 01-8.943 0"),
+      |],
+    },
+    {
+      key: "4bpg5p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 2v6"),
+      |],
+    },
+    {
+      key: "1lazqi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 10V9"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="face-slightly-smiling-plus",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -32552,13 +39177,91 @@ module IconFastForward = {
     );
 };
 
+module IconFaucet = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1curt5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.083 5.428 5.57 4.083a2 2 0 10.001 3.834l4.512-1.345"),
+      |],
+    },
+    {
+      key: "hwp4zt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 8v3"),
+      |],
+    },
+    {
+      key: "1j1ygv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m13.917 5.428 4.511-1.345a2 2 0 110 3.834l-4.51-1.345"),
+      |],
+    },
+    {
+      key: "1ovurp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 17v-4.006"),
+      |],
+    },
+    {
+      key: "15un1y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 11v8"),
+      |],
+    },
+    {
+      key: "2dw4iy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 12h-3a1 1 0 00-1 .994h-2.539a4 4 0 00-6.915-.012L7 13a5 5 0 00-5 5v1a1 1 0 001 1h2a1 1 0 001-1v-1a1 1 0 01.995-1l1.552.018a4 4 0 006.907 0L18 17a1 1 0 001 1h3"),
+      |],
+    },
+    {
+      key: "1jj5th",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("6"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="faucet",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconFeather = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "18jl4k",
+      key: "1nq9jb",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"),
+        LucideIconTypes.D("M14.086 18.412A2 2 0 0112.67 19H5v-7.672a2 2 0 01.586-1.414L11.75 3.75a6 6 0 118.49 8.49z"),
       |],
     },
     {
@@ -32569,10 +39272,10 @@ module IconFeather = {
       |],
     },
     {
-      key: "1oz8nu",
+      key: "16yirz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17.5 15H9"),
+        LucideIconTypes.D("M17.488 15H9"),
       |],
     },
   |];
@@ -32757,68 +39460,6 @@ module IconFerrisWheel = {
   ) =>
     LucideIconRenderer.render(
       ~name="ferris-wheel",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconFigma = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1340ok",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M5 5.5A3.5 3.5 0 0 1 8.5 2H12v7H8.5A3.5 3.5 0 0 1 5 5.5z"),
-      |],
-    },
-    {
-      key: "1hz3m3",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 2h3.5a3.5 3.5 0 1 1 0 7H12V2z"),
-      |],
-    },
-    {
-      key: "1oz8n2",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 12.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 1 1-7 0z"),
-      |],
-    },
-    {
-      key: "1ff65i",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M5 19.5A3.5 3.5 0 0 1 8.5 16H12v3.5a3.5 3.5 0 1 1-7 0z"),
-      |],
-    },
-    {
-      key: "pdip6e",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M5 12.5A3.5 3.5 0 0 1 8.5 9H12v7H8.5A3.5 3.5 0 0 1 5 12.5z"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="figma",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -33057,38 +39698,38 @@ module IconFileBadge = {
 module IconFileBox = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1kchwa",
+      key: "9v5fu7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14.5 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v3.8"),
+        LucideIconTypes.D("M14 2v5a1 1 0 001 1h5"),
       |],
     },
     {
-      key: "wfsgrz",
+      key: "1ne0j7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14 2v5a1 1 0 0 0 1 1h5"),
+        LucideIconTypes.D("M14.692 22H18a2 2 0 002-2V8a2.4 2.4 0 00-.706-1.706l-3.588-3.588A2.4 2.4 0 0014 2H6a2 2 0 00-2 2v3.804"),
       |],
     },
     {
-      key: "1yk8tc",
+      key: "t73mg3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11.7 14.2 7 17l-4.7-2.8"),
+        LucideIconTypes.D("M2.264 13.752 7 16.5l4.737-2.748"),
       |],
     },
     {
-      key: "19flxy",
+      key: "h4qck",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 13.1a2 2 0 0 0-.999 1.76v3.24a2 2 0 0 0 .969 1.78L6 21.7a2 2 0 0 0 2.03.01L11 19.9a2 2 0 0 0 1-1.76V14.9a2 2 0 0 0-.97-1.78L8 11.3a2 2 0 0 0-2.03-.01z"),
+        LucideIconTypes.D("M2.995 13.014A2 2 0 002 14.744v3.516a2 2 0 00.996 1.73l3 1.74a2 2 0 002.008 0l3-1.74A2 2 0 0012 18.26v-3.517a2 2 0 00-.995-1.73l-3-1.742a2 2 0 00-1.892-.064z"),
       |],
     },
     {
-      key: "1yj1jh",
+      key: "1i1gou",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 17v5"),
+        LucideIconTypes.D("M7 16.5V22"),
       |],
     },
   |];
@@ -33719,17 +40360,17 @@ module IconFileCodeCorner = {
 module IconFileCog = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1l4p50",
+      key: "1ckgky",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M13.85 22H18a2 2 0 0 0 2-2V8a2 2 0 0 0-.586-1.414l-4-4A2 2 0 0 0 14 2H6a2 2 0 0 0-2 2v6.6"),
+        LucideIconTypes.D("M15 8a1 1 0 0 1-1-1V2a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8z"),
       |],
     },
     {
-      key: "wfsgrz",
+      key: "1726p0",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14 2v5a1 1 0 0 0 1 1h5"),
+        LucideIconTypes.D("M20 8v12a2 2 0 0 1-2 2h-4.182"),
       |],
     },
     {
@@ -33737,6 +40378,13 @@ module IconFileCog = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("m3.305 19.53.923-.382"),
+      |],
+    },
+    {
+      key: "1foop0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 10.592V4a2 2 0 0 1 2-2h8"),
       |],
     },
     {
@@ -33811,6 +40459,71 @@ module IconFileCog = {
   ) =>
     LucideIconRenderer.render(
       ~name="file-cog",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconFileDatabase = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1payun",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12v8a5 2 0 01-10 0v-8"),
+      |],
+    },
+    {
+      key: "1gp1wi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 16a5 2 0 01-10 0"),
+      |],
+    },
+    {
+      key: "9v5fu7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 2v5a1 1 0 001 1h5"),
+      |],
+    },
+    {
+      key: "1wnzs2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 6.3V4a2 2 0 012-2h8a2.4 2.4 0 011.706.706l3.588 3.588A2.4 2.4 0 0120 8v12a2 2 0 01-2 2h-2.43"),
+      |],
+    },
+    {
+      key: "i6ea8s",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("7"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.Rx("5"),
+        LucideIconTypes.Ry("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="file-database",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -34257,13 +40970,6 @@ module IconFileInput = {
 module IconFileKey = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1a2hbp",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M10.65 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v10.1"),
-      |],
-    },
-    {
       key: "wfsgrz",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -34271,24 +40977,31 @@ module IconFileKey = {
       |],
     },
     {
-      key: "1h4vmv",
+      key: "bg1pfk",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m10 15 1 1"),
+        LucideIconTypes.D("M4 12v6"),
       |],
     },
     {
-      key: "maylof",
+      key: "1sf9f8",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m11 14-4.586 4.586"),
+        LucideIconTypes.D("M4 14h2"),
       |],
     },
     {
-      key: "860zyv",
+      key: "d56i0q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.65 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v4"),
+      |],
+    },
+    {
+      key: "6kqj1y",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("5"),
+        LucideIconTypes.Cx("4"),
         LucideIconTypes.Cy("20"),
         LucideIconTypes.R("2"),
       |],
@@ -34636,17 +41349,24 @@ module IconFilePen = {
 module IconFilePenLine = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1k2beg",
+      key: "ukzhwg",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m18.226 5.226-2.52-2.52A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-.351"),
+        LucideIconTypes.D("M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z"),
       |],
     },
     {
-      key: "2t3380",
+      key: "1klhew",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"),
+        LucideIconTypes.D("M14.487 7.858A1 1 0 0 1 14 7V2"),
+      |],
+    },
+    {
+      key: "rxaxab",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 19.645V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l2.516 2.516"),
       |],
     },
     {
@@ -36388,6 +43108,106 @@ module IconFishSymbol = {
     );
 };
 
+module IconFishingHook = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "157y8s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m17.586 11.414-5.93 5.93a1 1 0 0 1-8-8l3.137-3.137a.707.707 0 0 1 1.207.5V10"),
+      |],
+    },
+    {
+      key: "5g2s34",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20.414 8.586 22 7"),
+      |],
+    },
+    {
+      key: "7363ft",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("19"),
+        LucideIconTypes.Cy("10"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="fishing-hook",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconFishingRod = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "13eipc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 11h1"),
+      |],
+    },
+    {
+      key: "1hs3im",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 15a2 2 0 0 1-4 0V3a1 1 0 0 1 1-1h.5C14 2 20 9 20 18v4"),
+      |],
+    },
+    {
+      key: "1emm8v",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="fishing-rod",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconFlag = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -36630,30 +43450,24 @@ module IconFlameKindling = {
 module IconFlashlight = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1orkel",
+      key: "176q98",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 6c0 2-2 2-2 4v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10c0-2-2-2-2-4V2h12z"),
+        LucideIconTypes.D("M12 13v1"),
       |],
     },
     {
-      key: "1z11jq",
-      tag: LucideIconTypes.Line,
+      key: "17vh7j",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("6"),
-        LucideIconTypes.X2("18"),
-        LucideIconTypes.Y1("6"),
-        LucideIconTypes.Y2("6"),
+        LucideIconTypes.D("M17 2a1 1 0 0 1 1 1v4a3 3 0 0 1-.6 1.8l-.6.8A4 4 0 0 0 16 12v8a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-8a4 4 0 0 0-.8-2.4l-.6-.8A3 3 0 0 1 6 7V3a1 1 0 0 1 1-1z"),
       |],
     },
     {
-      key: "1f4yc1",
-      tag: LucideIconTypes.Line,
+      key: "n6hhss",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("12"),
-        LucideIconTypes.Y2("12"),
+        LucideIconTypes.D("M6 6h12"),
       |],
     },
   |];
@@ -36684,37 +43498,38 @@ module IconFlashlight = {
 module IconFlashlightOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1r120k",
+      key: "voqkpr",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 16v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10c0-2-2-2-2-4"),
+        LucideIconTypes.D("M11.652 6H18"),
       |],
     },
     {
-      key: "dz1920",
+      key: "176q98",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 2h11v4c0 2-2 2-2 4v1"),
+        LucideIconTypes.D("M12 13v1"),
       |],
     },
     {
-      key: "bi1vpe",
-      tag: LucideIconTypes.Line,
+      key: "dzyf92",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("11"),
-        LucideIconTypes.X2("18"),
-        LucideIconTypes.Y1("6"),
-        LucideIconTypes.Y2("6"),
+        LucideIconTypes.D("M16 16v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-8a4 4 0 0 0-.8-2.4l-.6-.8A3 3 0 0 1 6 7V6"),
       |],
     },
     {
-      key: "a6p6uj",
-      tag: LucideIconTypes.Line,
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("2"),
-        LucideIconTypes.X2("22"),
-        LucideIconTypes.Y1("2"),
-        LucideIconTypes.Y2("22"),
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "1hvcfn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.649 2H17a1 1 0 0 1 1 1v4a3 3 0 0 1-.6 1.8l-.6.8a4 4 0 0 0-.55 1.007"),
       |],
     },
   |];
@@ -36896,282 +43711,6 @@ module IconFlaskRound = {
   ) =>
     LucideIconRenderer.render(
       ~name="flask-round",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconFlipHorizontal = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1i73f7",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"),
-      |],
-    },
-    {
-      key: "saxlbk",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"),
-      |],
-    },
-    {
-      key: "1lh1kg",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 20v2"),
-      |],
-    },
-    {
-      key: "8jcxud",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 14v2"),
-      |],
-    },
-    {
-      key: "1woqiv",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 8v2"),
-      |],
-    },
-    {
-      key: "tus03m",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 2v2"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="flip-horizontal",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconFlipHorizontal2 = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "couhi7",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m3 7 5 5-5 5V7"),
-      |],
-    },
-    {
-      key: "6ouia7",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m21 7-5 5 5 5V7"),
-      |],
-    },
-    {
-      key: "1lh1kg",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 20v2"),
-      |],
-    },
-    {
-      key: "8jcxud",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 14v2"),
-      |],
-    },
-    {
-      key: "1woqiv",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 8v2"),
-      |],
-    },
-    {
-      key: "tus03m",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 2v2"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="flip-horizontal-2",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconFlipVertical = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "14bfxa",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"),
-      |],
-    },
-    {
-      key: "14rx03",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3"),
-      |],
-    },
-    {
-      key: "rhcxmi",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M4 12H2"),
-      |],
-    },
-    {
-      key: "s88cx1",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M10 12H8"),
-      |],
-    },
-    {
-      key: "10asgb",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 12h-2"),
-      |],
-    },
-    {
-      key: "14jgyd",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M22 12h-2"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="flip-vertical",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconFlipVertical2 = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1ftt6x",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m17 3-5 5-5-5h10"),
-      |],
-    },
-    {
-      key: "1m0wmu",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m17 21-5-5-5 5h10"),
-      |],
-    },
-    {
-      key: "rhcxmi",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M4 12H2"),
-      |],
-    },
-    {
-      key: "s88cx1",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M10 12H8"),
-      |],
-    },
-    {
-      key: "10asgb",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 12h-2"),
-      |],
-    },
-    {
-      key: "14jgyd",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M22 12h-2"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="flip-vertical-2",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -37656,6 +44195,47 @@ module IconFolderArchive = {
   ) =>
     LucideIconRenderer.render(
       ~name="folder-archive",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconFolderBookmark = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "d4trya",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6v7.751a.25.25 0 00.407.195l2.28-1.834a.5.5 0 01.627 0l2.28 1.834a.25.25 0 00.406-.195V6"),
+      |],
+    },
+    {
+      key: "1qsbi2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 20a2 2 0 002-2V8a2 2 0 00-2-2h-7.9a2 2 0 01-1.69-.9L9.6 3.9A2 2 0 007.93 3H4a2 2 0 00-2 2v13a2 2 0 002 2z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="folder-bookmark",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -38300,33 +44880,33 @@ module IconFolderKanban = {
 module IconFolderKey = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1vifvg",
+      key: "1shsnm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v1.36"),
+      |],
+    },
+    {
+      key: "kflna4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 12v6"),
+      |],
+    },
+    {
+      key: "wp2qbk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 14h2"),
+      |],
+    },
+    {
+      key: "1jfyz6",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("16"),
+        LucideIconTypes.Cx("19"),
         LucideIconTypes.Cy("20"),
         LucideIconTypes.R("2"),
-      |],
-    },
-    {
-      key: "3hgo9p",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M10 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v2"),
-      |],
-    },
-    {
-      key: "1ef6z8",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m22 14-4.5 4.5"),
-      |],
-    },
-    {
-      key: "1ejcpy",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m21 15 1 1"),
       |],
     },
   |];
@@ -39017,6 +45597,113 @@ module IconFolderUp = {
     );
 };
 
+module IconFolderUser = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "2h2hvb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.254 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2V9.255"),
+      |],
+    },
+    {
+      key: "17r3y1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 22a4 4 0 0 0-8 0"),
+      |],
+    },
+    {
+      key: "gjjjvw",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("15"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="folder-user",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconFolderUsers = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1rporr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5.254 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2V9.255"),
+      |],
+    },
+    {
+      key: "n2jvxj",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("13"),
+        LucideIconTypes.Cy("15"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "1q7oy8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 22a4 4 0 0 0-8 0"),
+      |],
+    },
+    {
+      key: "75th5l",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 22A4 4 0 0 0 20.24 18.686 1 1 0 0 1 20.1 17.143 3 3 0 0 0 19.5 12.402"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="folder-users",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconFolderX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -39171,6 +45858,34 @@ module IconForklift = {
       |],
     },
     {
+      key: "1askl3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 19h7"),
+      |],
+    },
+    {
+      key: "1gf9nk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 19V2"),
+      |],
+    },
+    {
+      key: "enx9tf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12V7a2 2 0 0 1 2-2h2.172a2 2 0 0 1 1.414.586l3.828 3.828A2 2 0 0 1 16 10.828"),
+      |],
+    },
+    {
+      key: "fumhkk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 19h4"),
+      |],
+    },
+    {
       key: "wjnkru",
       tag: LucideIconTypes.Circle,
       attrs: [|
@@ -39186,13 +45901,6 @@ module IconForklift = {
         LucideIconTypes.Cx("5"),
         LucideIconTypes.Cy("19"),
         LucideIconTypes.R("2"),
-      |],
-    },
-    {
-      key: "13bk1p",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 19h3m5-17v17h6M6 12V7c0-1.1.9-2 2-2h3l5 5"),
       |],
     },
   |];
@@ -39380,103 +46088,6 @@ module IconFrame = {
   ) =>
     LucideIconRenderer.render(
       ~name="frame",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconFramer = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1a2nng",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M5 16V9h14V2H5l14 14h-7m-7 0 7 7v-7m-7 0h7"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="framer",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconFrown = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
-      |],
-    },
-    {
-      key: "epbg0q",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 16s-1.5-2-4-2-4 2-4 2"),
-      |],
-    },
-    {
-      key: "yxxnd0",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("9"),
-        LucideIconTypes.X2("9.01"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("9"),
-      |],
-    },
-    {
-      key: "1p4y9e",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("15"),
-        LucideIconTypes.X2("15.01"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("9"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="frown",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -39728,6 +46339,71 @@ module IconFunnelX = {
   ) =>
     LucideIconRenderer.render(
       ~name="funnel-x",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconGalaxy = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1w3uyc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.005 15.108a5.041 6.52 28.25 00-8.008-6.217 5.041 6.52 28.25 008.008 6.217A11.884 7.288-60.76 014.029 7.001"),
+      |],
+    },
+    {
+      key: "1yigvh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 21h.01"),
+      |],
+    },
+    {
+      key: "we4yfo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 3h.01"),
+      |],
+    },
+    {
+      key: "mpf5op",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.997 8.891a11.885 7.288-60.756 0111.977 8.107"),
+      |],
+    },
+    {
+      key: "1t76vf",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("1"),
+        LucideIconTypes.Fill("currentColor"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="galaxy",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -40220,6 +46896,144 @@ module IconGamepadDirectional = {
     );
 };
 
+module IconGapHorizontal = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "tus03m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v2"),
+      |],
+    },
+    {
+      key: "1woqiv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 8v2"),
+      |],
+    },
+    {
+      key: "8jcxud",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 14v2"),
+      |],
+    },
+    {
+      key: "1lh1kg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 20v2"),
+      |],
+    },
+    {
+      key: "sixnkk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 3h-3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"),
+      |],
+    },
+    {
+      key: "z694kp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="gap-horizontal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconGapVertical = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1t8f8n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12h2"),
+      |],
+    },
+    {
+      key: "f27al2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 12h2"),
+      |],
+    },
+    {
+      key: "5yx4ln",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 12h2"),
+      |],
+    },
+    {
+      key: "1q8mjw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 12h2"),
+      |],
+    },
+    {
+      key: "mbp45m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 21v-3a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3"),
+      |],
+    },
+    {
+      key: "kci8nr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 3v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="gap-vertical",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconGauge = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -40374,31 +47188,31 @@ module IconGem = {
 module IconGeorgianLari = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1gyj8k",
+      key: "we2wk2",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11.5 21a7.5 7.5 0 1 1 7.35-9"),
+        LucideIconTypes.D("M10 10V3"),
       |],
     },
     {
-      key: "18om2a",
+      key: "uvx26u",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M13 12V3"),
+        LucideIconTypes.D("M14 10V3"),
       |],
     },
     {
-      key: "1h09gz",
+      key: "ic4q8w",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 21h16"),
+        LucideIconTypes.D("M19 13a7 7 0 10-7 7"),
       |],
     },
     {
-      key: "geutu0",
+      key: "1dxev2",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M9 12V3"),
+        LucideIconTypes.D("M5 20h14"),
       |],
     },
   |];
@@ -40426,27 +47240,258 @@ module IconGeorgianLari = {
     );
 };
 
+module IconGerm = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "geewpq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m11 2 .925 1.848"),
+      |],
+    },
+    {
+      key: "igtdqu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 15h.01"),
+      |],
+    },
+    {
+      key: "197l0j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 21-1-2.472"),
+      |],
+    },
+    {
+      key: "qavonm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19 2-1 1.804"),
+      |],
+    },
+    {
+      key: "1mv7mx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 19 2.746-1.373"),
+      |],
+    },
+    {
+      key: "1hzzot",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 16-2.474-2.13"),
+      |],
+    },
+    {
+      key: "8v36m5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 5-1.804 1"),
+      |],
+    },
+    {
+      key: "1n5c32",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m3 10 2 2"),
+      |],
+    },
+    {
+      key: "1zau5q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16h.01"),
+      |],
+    },
+    {
+      key: "i2bqo8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 20v2"),
+      |],
+    },
+    {
+      key: "lfugof",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.33 7.035c-.51 1.478-1.786 2.93-3.09 3.794A5 5 0 009 20a12.1 12.1 0 0011.902-9.916A6 6 0 009.33 7.035"),
+      |],
+    },
+    {
+      key: "14ricq",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("15"),
+        LucideIconTypes.Cy("9"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="germ",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconGermOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "geewpq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m11 2 .925 1.848"),
+      |],
+    },
+    {
+      key: "igtdqu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 15h.01"),
+      |],
+    },
+    {
+      key: "1e1m3r",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.424 7.768a2 2 0 112.808 2.808"),
+      |],
+    },
+    {
+      key: "197l0j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 21-1-2.472"),
+      |],
+    },
+    {
+      key: "1ydoa0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.988 16.988A12 12 0 019 20a5 5 0 01-2.759-9.171 8.8 8.8 0 002.307-2.28"),
+      |],
+    },
+    {
+      key: "qavonm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19 2-1 1.804"),
+      |],
+    },
+    {
+      key: "1mv7mx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 19 2.746-1.373"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "11ksly",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 16-2.474-2.13a12 12 0 001.376-3.786 6 6 0 00-10.313-5.151"),
+      |],
+    },
+    {
+      key: "8v36m5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 5-1.804 1"),
+      |],
+    },
+    {
+      key: "1n5c32",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m3 10 2 2"),
+      |],
+    },
+    {
+      key: "1zau5q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16h.01"),
+      |],
+    },
+    {
+      key: "i2bqo8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 20v2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="germ-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconGhost = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "qbtxuw",
+      key: "oj8wfp",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M9 10h.01"),
+        LucideIconTypes.D("M15 10v1"),
       |],
     },
     {
-      key: "1qmjsl",
+      key: "13lou3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 10h.01"),
+        LucideIconTypes.D("M7.528 20.472a1.6 1.6 0 012.277 0l1.057 1.056a1.6 1.6 0 002.276 0l1.057-1.056a1.6 1.6 0 012.277 0l1.114 1.114a1.4 1.4 0 002.414-1V10a8 8 0 00-16 0v10.586a1.4 1.4 0 002.414 1z"),
       |],
     },
     {
-      key: "uwwb07",
+      key: "1e14fa",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"),
+        LucideIconTypes.D("M9 10v1"),
       |],
     },
   |];
@@ -40477,35 +47522,35 @@ module IconGhost = {
 module IconGift = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "bkv52",
+      key: "1akyts",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7v14"),
+      |],
+    },
+    {
+      key: "1sqzm4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"),
+      |],
+    },
+    {
+      key: "kc0143",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.5 7a1 1 0 0 1 0-5A4.8 8 0 0 1 12 7a4.8 8 0 0 1 4.5-5 1 1 0 0 1 0 5"),
+      |],
+    },
+    {
+      key: "1hberx",
       tag: LucideIconTypes.Rect,
       attrs: [|
         LucideIconTypes.X("3"),
-        LucideIconTypes.Y("8"),
+        LucideIconTypes.Y("7"),
         LucideIconTypes.Width("18"),
         LucideIconTypes.Height("4"),
         LucideIconTypes.Rx("1"),
-      |],
-    },
-    {
-      key: "1c76mn",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 8v13"),
-      |],
-    },
-    {
-      key: "6wjy6b",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"),
-      |],
-    },
-    {
-      key: "1ihvrl",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"),
       |],
     },
   |];
@@ -40536,13 +47581,10 @@ module IconGift = {
 module IconGitBranch = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "17qcm7",
-      tag: LucideIconTypes.Line,
+      key: "1cii5b",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("6"),
-        LucideIconTypes.X2("6"),
-        LucideIconTypes.Y1("3"),
-        LucideIconTypes.Y2("15"),
+        LucideIconTypes.D("M15 6a9 9 0 0 0-9 9V3"),
       |],
     },
     {
@@ -40561,13 +47603,6 @@ module IconGitBranch = {
         LucideIconTypes.Cx("6"),
         LucideIconTypes.Cy("18"),
         LucideIconTypes.R("3"),
-      |],
-    },
-    {
-      key: "n2h4wq",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M18 9a9 9 0 0 1-9 9"),
       |],
     },
   |];
@@ -41156,6 +48191,70 @@ module IconGitMerge = {
     );
 };
 
+module IconGitMergeConflict = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "18ej7s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 6h4a2 2 0 0 1 2 2v7"),
+      |],
+    },
+    {
+      key: "9e33v1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12v9"),
+      |],
+    },
+    {
+      key: "cpmru9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m8.5 3.5-5 5"),
+      |],
+    },
+    {
+      key: "1blc57",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m8.5 8.5-5-5"),
+      |],
+    },
+    {
+      key: "1xkwt0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="git-merge-conflict",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconGitPullRequest = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -41287,12 +48386,24 @@ module IconGitPullRequestArrow = {
 module IconGitPullRequestClosed = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1lh9wr",
-      tag: LucideIconTypes.Circle,
+      key: "1kmx7t",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.Cx("6"),
-        LucideIconTypes.Cy("6"),
-        LucideIconTypes.R("3"),
+        LucideIconTypes.D("m15.5 3.5 5 5"),
+      |],
+    },
+    {
+      key: "saftza",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.5 8.5 5-5"),
+      |],
+    },
+    {
+      key: "1greaj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 11.62V15"),
       |],
     },
     {
@@ -41303,32 +48414,20 @@ module IconGitPullRequestClosed = {
       |],
     },
     {
-      key: "16nqsk",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m21 3-6 6"),
-      |],
-    },
-    {
-      key: "9j17rh",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m21 9-6-6"),
-      |],
-    },
-    {
-      key: "65xf6f",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M18 11.5V15"),
-      |],
-    },
-    {
       key: "1xkwt0",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("18"),
         LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "1lh9wr",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("6"),
+        LucideIconTypes.Cy("6"),
         LucideIconTypes.R("3"),
       |],
     },
@@ -41561,81 +48660,6 @@ module IconGitPullRequestDraft = {
     );
 };
 
-module IconGithub = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "tonef",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"),
-      |],
-    },
-    {
-      key: "9comsn",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 18c-4.51 2-5-2-7-2"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="github",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconGitlab = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "148pdi",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m22 13.29-3.33-10a.42.42 0 0 0-.14-.18.38.38 0 0 0-.22-.11.39.39 0 0 0-.23.07.42.42 0 0 0-.14.18l-2.26 6.67H8.32L6.1 3.26a.42.42 0 0 0-.1-.18.38.38 0 0 0-.26-.08.39.39 0 0 0-.23.07.42.42 0 0 0-.14.18L2 13.29a.74.74 0 0 0 .27.83L12 21l9.69-6.88a.71.71 0 0 0 .31-.83Z"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="gitlab",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconGlassWater = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -41793,6 +48817,102 @@ module IconGlobe = {
     );
 };
 
+module IconGlobeCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "levio8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15 6 2 2 4-4"),
+      |],
+    },
+    {
+      key: "46evmv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12h20A10 10 0 1 1 12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 4-10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="globe-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconGlobeCode = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1sohav",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.5 10 13 7.5 15.5 5"),
+      |],
+    },
+    {
+      key: "zybipq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.861 14A14.5 14.5 0 0112 22a14.48 14.48 0 010-20 10 10 0 109.888 11.5"),
+      |],
+    },
+    {
+      key: "hhg2en",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19.5 5 22 7.5 19.5 10"),
+      |],
+    },
+    {
+      key: "ovaggd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12h8.5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="globe-code",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconGlobeLock = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -41841,6 +48961,130 @@ module IconGlobeLock = {
   ) =>
     LucideIconRenderer.render(
       ~name="globe-lock",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconGlobeOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1jq2r7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.114 4.462A14.5 14.5 0 0 1 12 2a10 10 0 0 1 9.313 13.643"),
+      |],
+    },
+    {
+      key: "1ohfya",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.557 15.556A14.5 14.5 0 0 1 12 22 10 10 0 0 1 4.929 4.929"),
+      |],
+    },
+    {
+      key: "1fyh9w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.892 10.234A14.5 14.5 0 0 0 12 2a10 10 0 0 0-3.643.687"),
+      |],
+    },
+    {
+      key: "1ttse4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.656 12H22"),
+      |],
+    },
+    {
+      key: "rmtjzo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19.071 19.071A10 10 0 0 1 12 22 14.5 14.5 0 0 1 8.44 8.45"),
+      |],
+    },
+    {
+      key: "19562f",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12h10"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="globe-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconGlobeX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1husv6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 3 5 5"),
+      |],
+    },
+    {
+      key: "46evmv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12h20A10 10 0 1 1 12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 4-10"),
+      |],
+    },
+    {
+      key: "1g5oa7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 3-5 5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="globe-x",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -41903,17 +49147,17 @@ module IconGoal = {
 module IconGpu = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
+      key: "hpo31w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 17h18a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H2"),
+      |],
+    },
+    {
       key: "1bzk4w",
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M2 21V3"),
-      |],
-    },
-    {
-      key: "1d64pi",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M2 5h18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2.26"),
       |],
     },
     {
@@ -42120,6 +49364,206 @@ module IconGrape = {
     );
 };
 
+module IconGraphHub = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "17ys0d",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("7"),
+        LucideIconTypes.R("4"),
+      |],
+    },
+    {
+      key: "p3m9r0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("4"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "13j0tp",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "1obnsp",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("20"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "4fno04",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 7a4 4 0 0 0-4 4v6"),
+      |],
+    },
+    {
+      key: "1bwqyc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 11v6"),
+      |],
+    },
+    {
+      key: "1sfi0q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 7a4 4 0 0 1 4 4v6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="graph-hub",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconGraphStar = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "mh60h2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m12.342 9.316 1.764-3.527"),
+      |],
+    },
+    {
+      key: "4imxmd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m12.59 14.545 2.35 3.759"),
+      |],
+    },
+    {
+      key: "1ivffm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m13.982 12.332 4.03.447"),
+      |],
+    },
+    {
+      key: "6yuyfk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5.414 17.586 8.88 14.12"),
+      |],
+    },
+    {
+      key: "2rwptg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.025 9.742 5.317 5.505"),
+      |],
+    },
+    {
+      key: "j2555u",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("11"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "4awe34",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("15"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "1vifvg",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("16"),
+        LucideIconTypes.Cy("20"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "1ofwxo",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("20"),
+        LucideIconTypes.Cy("13"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "p3m9r0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("4"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "bt5ra8",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("4"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="graph-star",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconGrid2x2 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -42271,17 +49715,17 @@ module IconGrid2x2X = {
       |],
     },
     {
-      key: "8tpb07",
+      key: "zc9lw7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m16 16 5 5"),
+        LucideIconTypes.D("m16.5 16.5 5 5"),
       |],
     },
     {
-      key: "193jll",
+      key: "1fr29m",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m16 21 5-5"),
+        LucideIconTypes.D("m16.5 21.5 5-5"),
       |],
     },
   |];
@@ -42704,6 +50148,61 @@ module IconGripVertical = {
     );
 };
 
+module IconGroceries = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "192ueg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 15h4"),
+      |],
+    },
+    {
+      key: "ioa4ee",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19.424 11.095a2.5 2.5 0 00.471-2.309 2 2 0 00.424-3.286 2 2 0 00-2.143-3.322 2 2 0 00-.676.502 2 2 0 00-3.287.424 2.5 2.5 0 00-3.189 2.06A3 3 0 0012 11l4-4"),
+      |],
+    },
+    {
+      key: "1y761e",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 12.006A1 1 0 014.994 11H19a1 1 0 011 1v7a2 2 0 01-2 2H6a2 2 0 01-2-2z"),
+      |],
+    },
+    {
+      key: "g173vy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 11a4 4 0 01-4-4V5a1 1 0 011-1h2a4 4 0 013.584 2.222"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="groceries",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconGroup = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -42825,6 +50324,104 @@ module IconGuitar = {
   ) =>
     LucideIconRenderer.render(
       ~name="guitar",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconGuitarElectric = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "2r10qn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m12.172 11.828 4.242-4.242"),
+      |],
+    },
+    {
+      key: "1s41e7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.414 7.586A2 2 0 0017 6.172V5a2 2 0 011.177-1.823L20.59 2.09a1 1 0 011.32 1.32l-1.088 2.412A2 2 0 0119 7h-1a2 2 0 00-1.586.586"),
+      |],
+    },
+    {
+      key: "16qmzd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6 16 2 2"),
+      |],
+    },
+    {
+      key: "lfhfey",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.23 9.85a3 3 0 011.28-1.454 1 1 0 011.496.815 4 4 0 003.783 3.783 1 1 0 01.815 1.496 3 3 0 01-1.454 1.28l-.92.38A2 2 0 0012 18a4 4 0 01-4 4 6 6 0 01-6-6 4 4 0 014-4 2 2 0 001.85-1.23z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="guitar-electric",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconHalfNote = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "m3r9ws",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("4"),
+      |],
+    },
+    {
+      key: "40x2m5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 18V2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="half-note",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -43500,6 +51097,47 @@ module IconHandbag = {
     );
 };
 
+module IconHandleBottomRight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "16gpkk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 8 8 21"),
+      |],
+    },
+    {
+      key: "1kohh4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 15-6 6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="handle-bottom-right",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconHandshake = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -43565,40 +51203,31 @@ module IconHandshake = {
 module IconHardDrive = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1y58io",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("22"),
-        LucideIconTypes.X2("2"),
-        LucideIconTypes.Y1("12"),
-        LucideIconTypes.Y2("12"),
-      |],
-    },
-    {
-      key: "oot6mr",
+      key: "1bzywj",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"),
+        LucideIconTypes.D("M10 16h.01"),
       |],
     },
     {
-      key: "sgf278",
-      tag: LucideIconTypes.Line,
+      key: "18tbho",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("6"),
-        LucideIconTypes.X2("6.01"),
-        LucideIconTypes.Y1("16"),
-        LucideIconTypes.Y2("16"),
+        LucideIconTypes.D("M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"),
       |],
     },
     {
-      key: "1l4acy",
-      tag: LucideIconTypes.Line,
+      key: "zqlbp7",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("10"),
-        LucideIconTypes.X2("10.01"),
-        LucideIconTypes.Y1("16"),
-        LucideIconTypes.Y2("16"),
+        LucideIconTypes.D("M21.946 12.013H2.054"),
+      |],
+    },
+    {
+      key: "1pmjb7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 16h.01"),
       |],
     },
   |];
@@ -44033,20 +51662,86 @@ module IconHaze = {
     );
 };
 
-module IconHdmiPort = {
+module IconHd = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "2128wb",
+      key: "15f2ro",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 9a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1l2 2h12l2-2h1a1 1 0 0 0 1-1Z"),
+        LucideIconTypes.D("M10 12H6"),
       |],
     },
     {
-      key: "1t0ckc",
+      key: "1lckn7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7.5 12h9"),
+        LucideIconTypes.D("M10 15V9"),
+      |],
+    },
+    {
+      key: "b3f847",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 14.5a.5.5 0 0 0 .5.5h1a2.5 2.5 0 0 0 2.5-2.5v-1A2.5 2.5 0 0 0 15.5 9h-1a.5.5 0 0 0-.5.5z"),
+      |],
+    },
+    {
+      key: "12stmj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 15V9"),
+      |],
+    },
+    {
+      key: "qneu4z",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("2"),
+        LucideIconTypes.Y("5"),
+        LucideIconTypes.Width("20"),
+        LucideIconTypes.Height("14"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="hd",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconHdmiPort = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1kwg9h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 9a1 1 0 00-1-1H3a1 1 0 00-1 1v4a1 1 0 001 1h.5a2 2 0 011.6.8l.3.4A2 2 0 007 16h10a2 2 0 001.6-.8l.3-.4a2 2 0 011.6-.8h.5a1 1 0 001-1z"),
+      |],
+    },
+    {
+      key: "1wcyev",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 12h8"),
       |],
     },
   |];
@@ -44063,54 +51758,6 @@ module IconHdmiPort = {
   ) =>
     LucideIconRenderer.render(
       ~name="hdmi-port",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconHeading = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "8npq4p",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6 12h12"),
-      |],
-    },
-    {
-      key: "1w1bmo",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6 20V4"),
-      |],
-    },
-    {
-      key: "o2hl4u",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M18 20V4"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="heading",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -44906,6 +52553,54 @@ module IconHeartPulse = {
     );
 };
 
+module IconHeartX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "15wbfr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.5 12.5 5 5"),
+      |],
+    },
+    {
+      key: "o012pn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.5 12.5-5 5"),
+      |],
+    },
+    {
+      key: "c1obtn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21.955 8.774a5.5 5.5 0 0 0-9.546-2.95.6.6 0 0 1-.818 0A5.5 5.5 0 0 0 2 9.5c0 2.3 1.5 4 3 5.5l5.508 5.332a2 2 0 0 0 2.57.352"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="heart-x",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconHeater = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -45161,27 +52856,27 @@ module IconHighlighter = {
     );
 };
 
-module IconHistory = {
+module IconHikingStick = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1357e3",
+      key: "t0ajqe",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"),
+        LucideIconTypes.D("M13.5 10.5 2 22"),
       |],
     },
     {
-      key: "1xhq8a",
+      key: "haz2xx",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 3v5h5"),
+        LucideIconTypes.D("M16.352 11.648a1.205 1.205 0 01-1.704 0l-2.296-2.296a1.205 1.205 0 010-1.704l.72-.72a2 2 0 011.022-.546l.599-.12a2 2 0 001.569-1.57l.12-.598a2 2 0 01.546-1.022l.72-.72a1.205 1.205 0 011.704 0l2.296 2.296a1.205 1.205 0 010 1.704l-6.02 6.02a1 1 0 103 3l.201-.201A7.4 7.4 0 0021 9.93V7"),
       |],
     },
     {
-      key: "1fdv2h",
+      key: "1kwco5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 7v5l4 2"),
+        LucideIconTypes.D("m6 21-3-3"),
       |],
     },
   |];
@@ -45197,7 +52892,79 @@ module IconHistory = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="history",
+      ~name="hiking-stick",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconHockeyStick = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "lexbbr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 4v4c0 1.1-2.025 2-4.5 2S2 9.1 2 8V4"),
+      |],
+    },
+    {
+      key: "9gk7j2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18.21 3.106a2 2 0 013.579 1.789l-6.895 13.789A6 6 0 019.529 22H4.5a1 1 0 010-5h5.528a2 2 0 001.788-1.105z"),
+      |],
+    },
+    {
+      key: "12onxe",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18.59 11.295-3.578-1.789"),
+      |],
+    },
+    {
+      key: "11qs8n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.79 6.895-3.578-1.789"),
+      |],
+    },
+    {
+      key: "1yj1jh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 17v5"),
+      |],
+    },
+    {
+      key: "u5t2ln",
+      tag: LucideIconTypes.Ellipse,
+      attrs: [|
+        LucideIconTypes.Cx("6.5"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.Rx("4.5"),
+        LucideIconTypes.Ry("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="hockey-stick",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -45444,6 +53211,54 @@ module IconHospital = {
     );
 };
 
+module IconHotAirBalloon = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "kp3qpo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11.5 18C10 15 9 12 9 9a3 7 0 0 1 6 0c0 3-1 6-2.5 9"),
+      |],
+    },
+    {
+      key: "dn6qp0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 18c3-3 5-5 5-9A8 7 0 0 0 4 9c0 4 2 6 5 9"),
+      |],
+    },
+    {
+      key: "j2zuhx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 18H9v3a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="hot-air-balloon",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconHotel = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -45600,6 +53415,126 @@ module IconHourglass = {
     );
 };
 
+module IconHourglassCog = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "3m78fa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m14.305 19.53.923-.382"),
+      |],
+    },
+    {
+      key: "npixar",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.228 16.852-.923-.383"),
+      |],
+    },
+    {
+      key: "5xggr7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.852 15.228-.383-.923"),
+      |],
+    },
+    {
+      key: "dpfhf9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.852 20.772-.383.924"),
+      |],
+    },
+    {
+      key: "1ps5j6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 2v4.172a2 2 0 0 1-.586 1.414l-8.828 8.828A2 2 0 0 0 7 17.828V22"),
+      |],
+    },
+    {
+      key: "1reyyz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.148 15.228.383-.923"),
+      |],
+    },
+    {
+      key: "1goivc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.53 21.696-.382-.924"),
+      |],
+    },
+    {
+      key: "htqkph",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.772 16.852.924-.383"),
+      |],
+    },
+    {
+      key: "9w9pjp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.772 19.148.924.383"),
+      |],
+    },
+    {
+      key: "56uwxb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 22h6.159"),
+      |],
+    },
+    {
+      key: "pdyrp9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 2h14"),
+      |],
+    },
+    {
+      key: "ydx7yk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 2v4.172a2 2 0 0 0 .586 1.414l5.188 5.188"),
+      |],
+    },
+    {
+      key: "1xkwt0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="hourglass-cog",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconHouse = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -45630,6 +53565,112 @@ module IconHouse = {
   ) =>
     LucideIconRenderer.render(
       ~name="house",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconHouseCog = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "cw5g2y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.584 21H5a2 2 0 01-2-2v-9a2 2 0 01.709-1.527l7-6a2 2 0 012.582 0l7 6A2 2 0 0121 10.001v.583"),
+      |],
+    },
+    {
+      key: "1qps3c",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 12H10a1 1 0 00-1 1v8"),
+      |],
+    },
+    {
+      key: "3m78fa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m14.305 19.53.923-.382"),
+      |],
+    },
+    {
+      key: "qpfz85",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.229 16.852-.924-.383"),
+      |],
+    },
+    {
+      key: "5xggr7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.852 15.228-.383-.923"),
+      |],
+    },
+    {
+      key: "14cn6x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.852 20.773-.383.924"),
+      |],
+    },
+    {
+      key: "1reyyz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.148 15.228.383-.923"),
+      |],
+    },
+    {
+      key: "x9j19g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.53 21.697-.382-.924"),
+      |],
+    },
+    {
+      key: "59dfo2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.773 16.852.922-.383"),
+      |],
+    },
+    {
+      key: "1lk755",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.773 19.148.922.383"),
+      |],
+    },
+    {
+      key: "1xkwt0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="house-cog",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -45847,6 +53888,54 @@ module IconHouseWifi = {
     );
 };
 
+module IconHouses = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1qphub",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m12.681 4.24.834-.715a1.45 1.45 0 011.88 0l5.09 4.364A1.45 1.45 0 0121 9v6.546a1.45 1.45 0 01-1 1.381"),
+      |],
+    },
+    {
+      key: "11pwvt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.485 11.889A1.45 1.45 0 0116 13v6.546A1.454 1.454 0 0114.546 21H4.364a1.454 1.454 0 01-1.454-1.454V13a1.45 1.45 0 01.515-1.111l5.09-4.364a1.45 1.45 0 011.88 0z"),
+      |],
+    },
+    {
+      key: "grn8bu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.41 20.546v-4a1 1 0 011-1h2a1 1 0 011 1v4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="houses",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconIceCreamBowl = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -45946,6 +54035,13 @@ module IconIceCreamCone = {
 module IconIdCard = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
+      key: "cugzd5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 19a4 4 0 00-8 0"),
+      |],
+    },
+    {
       key: "8sgtl7",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -45960,19 +54056,12 @@ module IconIdCard = {
       |],
     },
     {
-      key: "n6f512",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6.17 15a3 3 0 0 1 5.66 0"),
-      |],
-    },
-    {
-      key: "yxgjnd",
+      key: "u3jwor",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("9"),
-        LucideIconTypes.Cy("11"),
-        LucideIconTypes.R("2"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("3"),
       |],
     },
     {
@@ -46021,17 +54110,17 @@ module IconIdCardLanyard = {
       |],
     },
     {
-      key: "16uttc",
+      key: "1vkqmv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m15 2-1 2h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3"),
+        LucideIconTypes.D("m15 2-1 2h3a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2h3"),
       |],
     },
     {
-      key: "1d0ppr",
+      key: "uyxag4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16.899 22A5 5 0 0 0 7.1 22"),
+        LucideIconTypes.D("M16 22a4 4 0 00-8 0"),
       |],
     },
     {
@@ -46744,10 +54833,17 @@ module IconInbox = {
 module IconIndianRupee = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "ggurg9",
+      key: "cvo5tb",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 3h12"),
+        LucideIconTypes.D("m14 20-8-8h4c5.333 0 5.333-8 0-8"),
+      |],
+    },
+    {
+      key: "1x2ag7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 4h12"),
       |],
     },
     {
@@ -46755,27 +54851,6 @@ module IconIndianRupee = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M6 8h12"),
-      |],
-    },
-    {
-      key: "u1kupk",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m6 13 8.5 8"),
-      |],
-    },
-    {
-      key: "wdp6ag",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6 13h3"),
-      |],
-    },
-    {
-      key: "1nkvk2",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 13c6.667 0 6.667-10 0-10"),
       |],
     },
   |];
@@ -46953,62 +55028,6 @@ module IconInspectionPanel = {
     );
 };
 
-module IconInstagram = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "2e1cvw",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("20"),
-        LucideIconTypes.Height("20"),
-        LucideIconTypes.X("2"),
-        LucideIconTypes.Y("2"),
-        LucideIconTypes.Rx("5"),
-        LucideIconTypes.Ry("5"),
-      |],
-    },
-    {
-      key: "9exkf1",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"),
-      |],
-    },
-    {
-      key: "r4j83e",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("17.5"),
-        LucideIconTypes.X2("17.51"),
-        LucideIconTypes.Y1("6.5"),
-        LucideIconTypes.Y2("6.5"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="instagram",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconItalic = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -47148,27 +55167,82 @@ module IconIterationCw = {
     );
 };
 
+module IconIvBag = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1pl0l9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 18v2a2 2 0 002 2h6"),
+      |],
+    },
+    {
+      key: "h3dcr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 11c.72.5 1.44 1 3 1 3 0 3-2 6-2 1.56 0 2.28.5 3 1"),
+      |],
+    },
+    {
+      key: "nsf2p2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.293 3c.453 0 .887-.18 1.207-.5s.754-.5 1.207-.5h.586c.453 0 .887.18 1.207.5s.754.5 1.207.5H16a2 2 0 012 2v11a2 2 0 01-2 2H8a2 2 0 01-2-2V5a2 2 0 012-2z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="iv-bag",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconJapaneseYen = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "2ej80x",
+      key: "1by136",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 9.5V21m0-11.5L6 3m6 6.5L18 3"),
+        LucideIconTypes.D("M12 12v8"),
       |],
     },
     {
-      key: "1hwgt5",
+      key: "15qpi5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 15h12"),
+        LucideIconTypes.D("m6 4 6 8 6-8"),
       |],
     },
     {
-      key: "wf4gp6",
+      key: "1s9po7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 11h12"),
+        LucideIconTypes.D("M8 13h8"),
+      |],
+    },
+    {
+      key: "wh5c61",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 17h8"),
       |],
     },
   |];
@@ -47356,28 +55430,76 @@ module IconKayak = {
     );
 };
 
+module IconKazakhTenge = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "rrnztl",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 8v12"),
+      |],
+    },
+    {
+      key: "1x2ag7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 4h12"),
+      |],
+    },
+    {
+      key: "6g4wlu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 8h12"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="kazakh-tenge",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconKey = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "g0fldk",
+      key: "9l79m3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"),
+        LucideIconTypes.D("m2 21 9.6-9.6"),
       |],
     },
     {
-      key: "1j0ho8",
+      key: "fw8biw",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m21 2-9.6 9.6"),
+        LucideIconTypes.D("m7.5 15.5 2.3 2.3a1 1 0 0 1 0 1.4l-2.1 2.1a1 1 0 0 1-1.4 0L4 19"),
       |],
     },
     {
-      key: "yqb3hr",
+      key: "4wxmhb",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("7.5"),
-        LucideIconTypes.Cy("15.5"),
+        LucideIconTypes.Cx("15.5"),
+        LucideIconTypes.Cy("7.5"),
         LucideIconTypes.R("5.5"),
       |],
     },
@@ -47783,6 +55905,47 @@ module IconKeyboardOff = {
     );
 };
 
+module IconLambda = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1y3u8v",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11.38 10 5 20"),
+      |],
+    },
+    {
+      key: "15fdan",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 18a2 2 0 01-2 2c-4.87-.003-5.052-16-10-16a2 2 0 00-2 2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="lambda",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconLamp = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -48143,10 +56306,10 @@ module IconLandmark = {
       |],
     },
     {
-      key: "1m329m",
+      key: "yxxwt6",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11.12 2.198a2 2 0 0 1 1.76.006l7.866 3.847c.476.233.31.949-.22.949H3.474c-.53 0-.695-.716-.22-.949z"),
+        LucideIconTypes.D("M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z"),
       |],
     },
     {
@@ -48413,13 +56576,103 @@ module IconLaptopMinimalCheck = {
     );
 };
 
+module IconLaser = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1w28a0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m13 8 .95-.95"),
+      |],
+    },
+    {
+      key: "1aw54t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.95 16.95 13 16"),
+      |],
+    },
+    {
+      key: "1wq8hv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 12h-9"),
+      |],
+    },
+    {
+      key: "rhcxmi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 12H2"),
+      |],
+    },
+    {
+      key: "1f9uwk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.05 16.95 5 16"),
+      |],
+    },
+    {
+      key: "1to6i7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m5 8-.95-.95"),
+      |],
+    },
+    {
+      key: "157uk2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h.01"),
+      |],
+    },
+    {
+      key: "anqm27",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 19v-2"),
+      |],
+    },
+    {
+      key: "q7fpoa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 7V5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="laser",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconLasso = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1yant3",
+      key: "wxgc5m",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3.704 14.467A10 8 0 0 1 2 10a10 8 0 0 1 20 0 10 8 0 0 1-10 8 10 8 0 0 1-5.181-1.158"),
+        LucideIconTypes.D("M3.704 14.467a10 8 0 1 1 3.115 2.375"),
       |],
     },
     {
@@ -48525,42 +56778,34 @@ module IconLassoSelect = {
     );
 };
 
-module IconLaugh = {
+module IconLayerArrowDown = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
-      |],
-    },
-    {
-      key: "b2q4dd",
+      key: "1ogziz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 13a6 6 0 0 1-6 5 6 6 0 0 1-6-5h12Z"),
+        LucideIconTypes.D("M12 10v10"),
       |],
     },
     {
-      key: "yxxnd0",
-      tag: LucideIconTypes.Line,
+      key: "q38q1t",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("9"),
-        LucideIconTypes.X2("9.01"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("9"),
+        LucideIconTypes.D("M22 10a1 1 0 01-.59.92l-5.077 2.308"),
       |],
     },
     {
-      key: "1p4y9e",
-      tag: LucideIconTypes.Line,
+      key: "h1p4gn",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("15"),
-        LucideIconTypes.X2("15.01"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("9"),
+        LucideIconTypes.D("M22.017 10.005a1 1 0 00-.597-.916l-8.59-3.91a2 2 0 00-1.66.001L2.6 9.08a1 1 0 00-.02 1.831l5.093 2.316"),
+      |],
+    },
+    {
+      key: "l18qqt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 17 3 3 3-3"),
       |],
     },
   |];
@@ -48576,7 +56821,55 @@ module IconLaugh = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="laugh",
+      ~name="layer-arrow-down",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLayerArrowUp = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1t7zjg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 14V4"),
+      |],
+    },
+    {
+      key: "1cy4ex",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.674 10.774 2.58 13.09a1 1 0 000 1.822l8.6 3.91a2 2 0 001.65 0l8.58-3.9a1 1 0 00.59-.92 1 1 0 00-.59-.922l-5.078-2.308"),
+      |],
+    },
+    {
+      key: "8sjys4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 7 3-3 3 3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="layer-arrow-up",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -48677,6 +56970,373 @@ module IconLayers2 = {
     );
 };
 
+module IconLayersArrowDown = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1onnba",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7v15"),
+      |],
+    },
+    {
+      key: "xofxlj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12a1 1 0 00.58.91l5.093 2.316"),
+      |],
+    },
+    {
+      key: "cc7swz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 12a1 1 0 01-.59.92l-5.077 2.308"),
+      |],
+    },
+    {
+      key: "kdwjlb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 10.37 2.6 7.91a1 1 0 010-1.831l8.57-3.9a2 2 0 011.66.001l8.59 3.91a1 1 0 010 1.831l-5.392 2.45"),
+      |],
+    },
+    {
+      key: "1fhphp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 19 3 3 3-3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="layers-arrow-down",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLayersArrowUp = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "17ugg4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12V2"),
+      |],
+    },
+    {
+      key: "1ke1hd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 17.002a1 1 0 00.58.91l8.6 3.91a2 2 0 001.65 0l8.58-3.9a1 1 0 00.59-.92"),
+      |],
+    },
+    {
+      key: "hlro1u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.674 8.774 2.58 11.09a1 1 0 000 1.822l8.6 3.91a2 2 0 001.65 0l8.58-3.9a1 1 0 00.59-.92 1 1 0 00-.59-.922l-5.078-2.308"),
+      |],
+    },
+    {
+      key: "l8vdw6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 5 3-3 3 3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="layers-arrow-up",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLayersMinus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "tq134k",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 .83.18 2 2 0 0 0 .83-.18l8.58-3.9a1 1 0 0 0 0-1.832z"),
+      |],
+    },
+    {
+      key: "1ook5g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 17h6"),
+      |],
+    },
+    {
+      key: "8mjqed",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.003 11.995a1 1 0 0 0 .597.915l8.58 3.91a2 2 0 0 0 .83.18"),
+      |],
+    },
+    {
+      key: "7vwz41",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.003 16.995a1 1 0 0 0 .597.915l8.58 3.91a2 2 0 0 0 .83.18 2 2 0 0 0 .83-.18l2.11-.96"),
+      |],
+    },
+    {
+      key: "bm5b9y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22.018 12.004a1 1 0 0 1-.598.916l-.177.08"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="layers-minus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLayersPlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "zzgyd3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 .83.18 2 2 0 0 0 .83-.18l8.58-3.9a1 1 0 0 0 0-1.831z"),
+      |],
+    },
+    {
+      key: "1ook5g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 17h6"),
+      |],
+    },
+    {
+      key: "1ckrd5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 14v6"),
+      |],
+    },
+    {
+      key: "1ia9y3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 .825.178"),
+      |],
+    },
+    {
+      key: "jksky3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l2.116-.962"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="layers-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLayoutArrowDown = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1g98yp",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("7"),
+        LucideIconTypes.Height("7"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "1bb6yr",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("7"),
+        LucideIconTypes.Height("7"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("14"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "1kvono",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 3v18"),
+      |],
+    },
+    {
+      key: "1df7ah",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 18-3 3-3-3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="layout-arrow-down",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLayoutArrowRight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1g98yp",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("7"),
+        LucideIconTypes.Height("7"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "6d4xhi",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("7"),
+        LucideIconTypes.Height("7"),
+        LucideIconTypes.X("14"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "1h113x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 18h18"),
+      |],
+    },
+    {
+      key: "y411s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18 21 3-3-3-3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="layout-arrow-right",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconLayoutDashboard = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -48748,6 +57408,66 @@ module IconLayoutDashboard = {
     );
 };
 
+module IconLayoutFreeform = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1g98yp",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("7"),
+        LucideIconTypes.Height("7"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "n7b4zl",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("7"),
+        LucideIconTypes.Height("7"),
+        LucideIconTypes.X("14"),
+        LucideIconTypes.Y("4"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "1ngf42",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("7"),
+        LucideIconTypes.Height("7"),
+        LucideIconTypes.X("4"),
+        LucideIconTypes.Y("14"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="layout-freeform",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconLayoutGrid = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -48808,6 +57528,69 @@ module IconLayoutGrid = {
   ) =>
     LucideIconRenderer.render(
       ~name="layout-grid",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLayoutGridCircles = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "w3z12y",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("17.5"),
+        LucideIconTypes.Cy("17.5"),
+        LucideIconTypes.R("3.5"),
+      |],
+    },
+    {
+      key: "1dwebm",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("17.5"),
+        LucideIconTypes.Cy("6.5"),
+        LucideIconTypes.R("3.5"),
+      |],
+    },
+    {
+      key: "1sut0i",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("6.5"),
+        LucideIconTypes.Cy("17.5"),
+        LucideIconTypes.R("3.5"),
+      |],
+    },
+    {
+      key: "hiq0pm",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("6.5"),
+        LucideIconTypes.Cy("6.5"),
+        LucideIconTypes.R("3.5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="layout-grid-circles",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -49079,17 +57862,17 @@ module IconLayoutTemplate = {
 module IconLeaf = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "nnexq3",
+      key: "1wjnjv",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"),
+        LucideIconTypes.D("M11 20a10 10 0 0010-10 25.9 25.9 0 00-1.04-7.281 1 1 0 00-1.755-.325C15.833 5.5 13 5.5 9.8 6.1A7 7 0 0011 20"),
       |],
     },
     {
-      key: "mt58a7",
+      key: "c1ejpn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"),
+        LucideIconTypes.D("M2 21a5 5 0 012.911-4.544C7.613 15.212 8.351 15.24 11 13"),
       |],
     },
   |];
@@ -49161,28 +57944,31 @@ module IconLeafyGreen = {
 module IconLectern = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "13jjxg",
+      key: "uu7fz6",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 12h3a2 2 0 0 0 1.902-1.38l1.056-3.333A1 1 0 0 0 21 6H3a1 1 0 0 0-.958 1.287l1.056 3.334A2 2 0 0 0 5 12h3"),
+        LucideIconTypes.D("M15 13h4a2 2 0 001.901-1.38l1.057-4.333A1 1 0 0021 6H3a1 1 0 00-.958 1.287L3.1 11.621A2 2 0 005.001 13h4"),
       |],
     },
     {
-      key: "1550fe",
+      key: "hedff3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 6V3a1 1 0 0 0-1-1h-3"),
+        LucideIconTypes.D("M15 22V11a1 1 0 00-1-1h-4a1 1 0 00-1 1v11"),
       |],
     },
     {
-      key: "qmu8b6",
-      tag: LucideIconTypes.Rect,
+      key: "mg6kv4",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.Width("8"),
-        LucideIconTypes.Height("12"),
-        LucideIconTypes.X("8"),
-        LucideIconTypes.Y("10"),
-        LucideIconTypes.Rx("1"),
+        LucideIconTypes.D("M18 22H6"),
+      |],
+    },
+    {
+      key: "1y10qe",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 6V3a1 1 0 00-1-1h-3"),
       |],
     },
   |];
@@ -49199,6 +57985,1206 @@ module IconLectern = {
   ) =>
     LucideIconRenderer.render(
       ~name="lectern",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLens = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "bv0cmm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.725 7.296h.01"),
+      |],
+    },
+    {
+      key: "1k6wou",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12a6 6 0 016-6"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="lens",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLensConcave = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "109j23",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 2a1 1 0 0 0-.8 1.6 14 14 0 0 1 0 16.8A1 1 0 0 0 7 22h10a1 1 0 0 0 .8-1.6 14 14 0 0 1 0-16.8A1 1 0 0 0 17 2z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="lens-concave",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLensConvex = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "cq67go",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.433 2a1 1 0 0 1 .824.448 18 18 0 0 1 0 19.104 1 1 0 0 1-.824.448h-2.866a1 1 0 0 1-.824-.448 18 18 0 0 1 0-19.104A1 1 0 0 1 10.567 2z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="lens-convex",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterA = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1jhv35",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.117 14H6.883"),
+      |],
+    },
+    {
+      key: "6eyjao",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m4 20 7.55-15.712a.5.5 0 01.9 0L20 20"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-a",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterB = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "n8tvfh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h9a4 4 0 010 8H7a1 1 0 01-1-1V5a1 1 0 011-1h7a4 4 0 010 8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-b",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterC = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "raljny",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 6.708a8 8 0 100 10.584"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-c",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterD = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1eea42",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 4a8 8 0 010 16H6.406A.406.406 0 016 19.594V4.406A.406.406 0 016.406 4z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-d",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterE = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "gqqh7n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 4H7a1 1 0 00-1 1v14a1 1 0 001 1h11"),
+      |],
+    },
+    {
+      key: "1hdiqa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-e",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterF = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1hdiqa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h8"),
+      |],
+    },
+    {
+      key: "1ru2wd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 20V5a1 1 0 011-1h11"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-f",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterG = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "4rfts",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 6.708a8 8 0 10-.526 11.126c.355-.333.526-.811.526-1.299V13a1 1 0 00-1-1h-4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-g",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterH = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "o2hl4u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 20V4"),
+      |],
+    },
+    {
+      key: "1fx1vx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12H18"),
+      |],
+    },
+    {
+      key: "1w1bmo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 20V4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-h",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterI = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1c7xpo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 20V4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-i",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterJ = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "zhp4m7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 4v11a5 5 0 01-10 0"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-j",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterK = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1n3nze",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 4 6 15"),
+      |],
+    },
+    {
+      key: "1w1bmo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 20V4"),
+      |],
+    },
+    {
+      key: "1n0g11",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 12 8 8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-k",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterL = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "zj9oda",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 4v15a1 1 0 001 1h11"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-l",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterM = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1fs39h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 20V4.253a.25.25 0 01.454-.144l6.727 9.467a1 1 0 001.63 0l6.735-9.468a.25.25 0 01.454.145V20"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-m",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterN = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1kjm2c",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 20V4.25a.25.25 0 01.455-.143l11.09 15.786a.25.25 0 00.455-.144V4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-n",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterO = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "46899m",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-o",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterP = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "i6awvr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h8a4 4 0 000-8H7a1 1 0 00-1 1v15"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-p",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterQ = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "46899m",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("8"),
+      |],
+    },
+    {
+      key: "mpejh7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 20L15 15"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-q",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterR = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "o8ikc5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m10 12 8 8"),
+      |],
+    },
+    {
+      key: "i6awvr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h8a4 4 0 000-8H7a1 1 0 00-1 1v15"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-r",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterS = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "7vn0d0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 4h-7a4 4 0 000 8h4a4 4 0 010 8H6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-s",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterSpacing = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "u4f7rb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 14H9"),
+      |],
+    },
+    {
+      key: "fnf4zc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 3v18"),
+      |],
+    },
+    {
+      key: "k760nc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 3v18"),
+      |],
+    },
+    {
+      key: "16ilm2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m8 16 3.453-7.648a.6.6 0 011.094.001L16 16"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-spacing",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterT = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1c7xpo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 20V4"),
+      |],
+    },
+    {
+      key: "12vcz2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 4h14"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-t",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterU = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "n6j4aq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 4v10a6 6 0 0012 0V4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-u",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterV = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1e633t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6 4 5.765 15.835a.25.25 0 00.47 0L18 4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-v",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterW = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1q41gw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 4-4.794 15.821a.25.25 0 01-.471.021l-3.503-8.685a.25.25 0 00-.464 0l-3.503 8.685a.25.25 0 01-.47-.021L3 4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-w",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1bmua5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 4 6 20"),
+      |],
+    },
+    {
+      key: "muct2p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6 4 12 16"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-x",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterY = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1by136",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12v8"),
+      |],
+    },
+    {
+      key: "15qpi5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6 4 6 8 6-8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-y",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetterZ = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "2p8y6y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 4h11.5a.5.5 0 01.387.817L6.114 19.183a.5.5 0 00.387.817H18"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letter-z",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLetters = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1wjlh6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 8H9"),
+      |],
+    },
+    {
+      key: "1p5awo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 15.354a4 4 0 100 5.292"),
+      |],
+    },
+    {
+      key: "1pg2jz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 18h4a2 2 0 010 4H3.5a.5.5 0 01-.5-.5v-7a.5.5 0 01.5-.5H6a2 2 0 010 4"),
+      |],
+    },
+    {
+      key: "1spis8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m8 10 3.453-7.648a.6.6 0 011.094 0L16 10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="letters",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -49562,6 +59548,344 @@ module IconLightbulbOff = {
     );
 };
 
+module IconLighthouse = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "ar7q03",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 3V2"),
+      |],
+    },
+    {
+      key: "1945zj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.066 16.865 7 22l2-11V6a3 3 0 016 0v5l2 11"),
+      |],
+    },
+    {
+      key: "nm0czm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.792 4.5.866-.5"),
+      |],
+    },
+    {
+      key: "1ywzlr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.797 13.5.866.5"),
+      |],
+    },
+    {
+      key: "oh5ys",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 9h1"),
+      |],
+    },
+    {
+      key: "1fr1tj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9H2"),
+      |],
+    },
+    {
+      key: "oyimbp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m4.203 13.5-.866.5"),
+      |],
+    },
+    {
+      key: "lkiptw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.208 4.5 3.342 4"),
+      |],
+    },
+    {
+      key: "1mvt70",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5.5 22h13"),
+      |],
+    },
+    {
+      key: "w78ch2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7.932 16.875 7.377-4.178"),
+      |],
+    },
+    {
+      key: "vwpz6n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 11h8"),
+      |],
+    },
+    {
+      key: "i86dvs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 7h8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="lighthouse",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLineDotBottomVertical = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1x0j5s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 3v12"),
+      |],
+    },
+    {
+      key: "1mpf1b",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="line-dot-bottom-vertical",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLineDotLeftHorizontal = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "nafxnq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h12"),
+      |],
+    },
+    {
+      key: "w7nqdw",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("6"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="line-dot-left-horizontal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLineDotRightHorizontal = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "ymhu98",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M 3 12 L 15 12"),
+      |],
+    },
+    {
+      key: "1kchzo",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="line-dot-right-horizontal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLineDotTopVertical = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "10tdml",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 9v12"),
+      |],
+    },
+    {
+      key: "1gm2ql",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("6"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="line-dot-top-vertical",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLineHeight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "u4f7rb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 14H9"),
+      |],
+    },
+    {
+      key: "oafrgs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 21H3"),
+      |],
+    },
+    {
+      key: "e9iw4c",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 3H3"),
+      |],
+    },
+    {
+      key: "16ilm2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m8 16 3.453-7.648a.6.6 0 011.094.001L16 16"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="line-height",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconLineSquiggle = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -49585,6 +59909,75 @@ module IconLineSquiggle = {
   ) =>
     LucideIconRenderer.render(
       ~name="line-squiggle",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconLineStyle = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1s6z07",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 5h2"),
+      |],
+    },
+    {
+      key: "upa0zy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 12h6"),
+      |],
+    },
+    {
+      key: "fjylsg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 5h2"),
+      |],
+    },
+    {
+      key: "ra68u1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12h6"),
+      |],
+    },
+    {
+      key: "awlh7x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 19h18"),
+      |],
+    },
+    {
+      key: "1qgu90",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5h2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="line-style",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -49738,59 +60131,6 @@ module IconLink2Off = {
   ) =>
     LucideIconRenderer.render(
       ~name="link-2-off",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconLinkedin = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "c2jq9f",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"),
-      |],
-    },
-    {
-      key: "mk3on5",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("4"),
-        LucideIconTypes.Height("12"),
-        LucideIconTypes.X("2"),
-        LucideIconTypes.Y("9"),
-      |],
-    },
-    {
-      key: "bt5ra8",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("4"),
-        LucideIconTypes.Cy("4"),
-        LucideIconTypes.R("2"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="linkedin",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -50101,6 +60441,70 @@ module IconListChevronsUpDown = {
   ) =>
     LucideIconRenderer.render(
       ~name="list-chevrons-up-down",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconListClock = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1bc147",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 13v2.2l1.6 1"),
+      |],
+    },
+    {
+      key: "brzde3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12h3.458"),
+      |],
+    },
+    {
+      key: "1d2y74",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 19h3.832"),
+      |],
+    },
+    {
+      key: "1u36vt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5h18"),
+      |],
+    },
+    {
+      key: "1cvf88",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("16"),
+        LucideIconTypes.Cy("15"),
+        LucideIconTypes.R("6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="list-clock",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -50757,6 +61161,102 @@ module IconListRestart = {
   ) =>
     LucideIconRenderer.render(
       ~name="list-restart",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconListSortAscending = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "awlh7x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 19h18"),
+      |],
+    },
+    {
+      key: "6jk70r",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 12H3"),
+      |],
+    },
+    {
+      key: "15j2za",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 5H3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="list-sort-ascending",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconListSortDescending = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "6jk70r",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 12H3"),
+      |],
+    },
+    {
+      key: "1u36vt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5h18"),
+      |],
+    },
+    {
+      key: "s61nz1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 19H3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="list-sort-descending",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -52081,6 +62581,63 @@ module IconMail = {
     );
 };
 
+module IconMailBadge = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1a6dr2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 7.7V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8.25"),
+      |],
+    },
+    {
+      key: "15acam",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12.996a1.94 1.94 0 0 1-1.03-.296L2 7"),
+      |],
+    },
+    {
+      key: "1kx8o4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.69 16.479 1.29 4.88a.5.5 0 0 1-.698.591l-1.843-.849a1 1 0 0 0-.879.001l-1.846.85a.5.5 0 0 1-.692-.593l1.29-4.88"),
+      |],
+    },
+    {
+      key: "9c2nho",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("19"),
+        LucideIconTypes.Cy("14"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mail-badge",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconMailCheck = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -52118,6 +62675,120 @@ module IconMailCheck = {
   ) =>
     LucideIconRenderer.render(
       ~name="mail-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMailClock = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "fo4ql5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 14v2.2l1.6 1"),
+      |],
+    },
+    {
+      key: "12ll7o",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 7-.759.484"),
+      |],
+    },
+    {
+      key: "1wt3ht",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.835 20H4a2 2 0 01-2-2V6a2 2 0 012-2h16a2 2 0 012 2v2"),
+      |],
+    },
+    {
+      key: "1ducps",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.605 10.567 2 7"),
+      |],
+    },
+    {
+      key: "qoo3c4",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("16"),
+        LucideIconTypes.Cy("16"),
+        LucideIconTypes.R("6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mail-clock",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMailDot = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "p1lhjt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.674 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4.675"),
+      |],
+    },
+    {
+      key: "1fjuug",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 7 9 5.701a2 2 0 0 0 2 0l1.084-.686"),
+      |],
+    },
+    {
+      key: "4p623i",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("19"),
+        LucideIconTypes.Cy("7"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mail-dot",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -52207,6 +62878,54 @@ module IconMailOpen = {
   ) =>
     LucideIconRenderer.render(
       ~name="mail-open",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMailPen = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1xvqjp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.363 17.634a2 2 0 00-.506.854l-.837 2.87a.5.5 0 00.62.62l2.87-.837a2 2 0 00.854-.506l3.013-3.009a1 1 0 10-3.004-3.004z"),
+      |],
+    },
+    {
+      key: "nc1zf5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 10.38V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2h6.25"),
+      |],
+    },
+    {
+      key: "uoxq3m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 7-8.991 5.727a2 2 0 01-2.009 0L2 7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mail-pen",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -52450,31 +63169,31 @@ module IconMailWarning = {
 module IconMailX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1j9vog",
+      key: "8lpqwp",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h9"),
+        LucideIconTypes.D("M22 12.532V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8.792"),
       |],
     },
     {
-      key: "1ocrg3",
+      key: "132q7q",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"),
+        LucideIconTypes.D("m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"),
       |],
     },
     {
-      key: "1b3523",
+      key: "zc9lw7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m17 17 4 4"),
+        LucideIconTypes.D("m16.5 16.5 5 5"),
       |],
     },
     {
-      key: "uinynz",
+      key: "1empo3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m21 17-4 4"),
+        LucideIconTypes.D("m21.5 16.5-5 5"),
       |],
     },
   |];
@@ -53214,6 +63933,65 @@ module IconMapPinPlusInside = {
     );
 };
 
+module IconMapPinSearch = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1jho5b",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M 12.248 21.969 a 1 1 0 0 1 -0.849 -0.17 C 9.539 20.193 4 14.993 4 10 a 8 8 0 0 1 16 0 C 20 10.42 19.961 10.841 19.888 11.262"),
+      |],
+    },
+    {
+      key: "1bgjp0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 22-1.88-1.88"),
+      |],
+    },
+    {
+      key: "ilqhr7",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("10"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "1xkwt0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="map-pin-search",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconMapPinX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -53322,10 +64100,17 @@ module IconMapPinXInside = {
 module IconMapPinned = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "11u0oz",
+      key: "61byd1",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 8c0 3.613-3.869 7.429-5.393 8.795a1 1 0 0 1-1.214 0C9.87 15.429 6 11.613 6 8a6 6 0 0 1 12 0"),
+        LucideIconTypes.D("M18 8c0 3.613-3.869 7.429-5.393 8.795a1 1 0 01-1.214 0C9.87 15.429 6 11.613 6 8a6 6 0 0112 0"),
+      |],
+    },
+    {
+      key: "1m5apm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.474 15h-.197a1 1 0 00-.969.753l-1.097 4.35a1.5 1.5 0 001.444 1.898L20.344 22a1.5 1.5 0 001.446-1.897l-1.098-4.35a1 1 0 00-.969-.753h-.197"),
       |],
     },
     {
@@ -53335,13 +64120,6 @@ module IconMapPinned = {
         LucideIconTypes.Cx("12"),
         LucideIconTypes.Cy("8"),
         LucideIconTypes.R("2"),
-      |],
-    },
-    {
-      key: "q8zwxj",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8.714 14h-3.71a1 1 0 0 0-.948.683l-2.004 6A1 1 0 0 0 3 22h18a1 1 0 0 0 .948-1.316l-2-6a1 1 0 0 0-.949-.684h-3.712"),
       |],
     },
   |];
@@ -53420,6 +64198,356 @@ module IconMapPlus = {
   ) =>
     LucideIconRenderer.render(
       ~name="map-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMargin = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ssd4o",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("9"),
+        LucideIconTypes.Y("9"),
+        LucideIconTypes.Width("6"),
+        LucideIconTypes.Height("6"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "1ds1q4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 6v12"),
+      |],
+    },
+    {
+      key: "1g9i2g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 6v12"),
+      |],
+    },
+    {
+      key: "4dkmi1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 21h12"),
+      |],
+    },
+    {
+      key: "ggurg9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 3h12"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="margin",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMarginBottom = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ssd4o",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("9"),
+        LucideIconTypes.Y("9"),
+        LucideIconTypes.Width("6"),
+        LucideIconTypes.Height("6"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "itz85i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 21h18"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="margin-bottom",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMarginHorizontal = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ssd4o",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("9"),
+        LucideIconTypes.Y("9"),
+        LucideIconTypes.Width("6"),
+        LucideIconTypes.Height("6"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "fnf4zc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 3v18"),
+      |],
+    },
+    {
+      key: "k760nc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 3v18"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="margin-horizontal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMarginLeft = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ssd4o",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("9"),
+        LucideIconTypes.Y("9"),
+        LucideIconTypes.Width("6"),
+        LucideIconTypes.Height("6"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "k760nc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 3v18"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="margin-left",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMarginRight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ssd4o",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("9"),
+        LucideIconTypes.Y("9"),
+        LucideIconTypes.Width("6"),
+        LucideIconTypes.Height("6"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "fnf4zc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 3v18"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="margin-right",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMarginTop = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ssd4o",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("9"),
+        LucideIconTypes.Y("9"),
+        LucideIconTypes.Width("6"),
+        LucideIconTypes.Height("6"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "o7r712",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 3h18"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="margin-top",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMarginVertical = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ssd4o",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("9"),
+        LucideIconTypes.Y("9"),
+        LucideIconTypes.Width("6"),
+        LucideIconTypes.Height("6"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+    {
+      key: "itz85i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 21h18"),
+      |],
+    },
+    {
+      key: "o7r712",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 3h18"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="margin-vertical",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -53541,24 +64669,24 @@ module IconMarsStroke = {
 module IconMartini = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "rmew8v",
+      key: "vxdekd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 22h8"),
+        LucideIconTypes.D("M12 12 4.207 4.207A.707.707 0 0 1 4.707 3h14.586a.707.707 0 0 1 .5 1.207z"),
       |],
     },
     {
-      key: "ur9y6a",
+      key: "1nesaz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 11v11"),
+        LucideIconTypes.D("M12 12v10"),
       |],
     },
     {
-      key: "1sgpiw",
+      key: "10w4w3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m19 3-7 8-7-8Z"),
+        LucideIconTypes.D("M7 22h10"),
       |],
     },
   |];
@@ -53877,135 +65005,87 @@ module IconMegaphoneOff = {
     );
 };
 
-module IconMeh = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1mglay",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
-      |],
-    },
-    {
-      key: "1xb1d9",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("8"),
-        LucideIconTypes.X2("16"),
-        LucideIconTypes.Y1("15"),
-        LucideIconTypes.Y2("15"),
-      |],
-    },
-    {
-      key: "yxxnd0",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("9"),
-        LucideIconTypes.X2("9.01"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("9"),
-      |],
-    },
-    {
-      key: "1p4y9e",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("15"),
-        LucideIconTypes.X2("15.01"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("9"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="meh",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconMemoryStick = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1nvgqn",
+      key: "fwoke6",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 19v-3"),
+        LucideIconTypes.D("M12 12v-2"),
       |],
     },
     {
-      key: "iu8nkm",
+      key: "qj6yno",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 19v-3"),
+        LucideIconTypes.D("M12 18v-2"),
       |],
     },
     {
-      key: "kcehxu",
+      key: "heuere",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14 19v-3"),
+        LucideIconTypes.D("M16 12v-2"),
       |],
     },
     {
-      key: "1vh91z",
+      key: "s1ct0w",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 19v-3"),
+        LucideIconTypes.D("M16 18v-2"),
       |],
     },
     {
-      key: "63erz4",
+      key: "15p63e",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 11V9"),
+        LucideIconTypes.D("M2 11h1.5"),
       |],
     },
     {
-      key: "fru6f3",
+      key: "12ehxp",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 11V9"),
+        LucideIconTypes.D("M20 18v-2"),
       |],
     },
     {
-      key: "ha00sb",
+      key: "khsy7a",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 11V9"),
+        LucideIconTypes.D("M20.5 11H22"),
       |],
     },
     {
-      key: "16ne18",
+      key: "1c3oqr",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 15h20"),
+        LucideIconTypes.D("M4 18v-2"),
       |],
     },
     {
-      key: "lhddv3",
+      key: "1mwtfd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.1a2 2 0 0 0 0 3.837V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5.1a2 2 0 0 0 0-3.837Z"),
+        LucideIconTypes.D("M8 12v-2"),
+      |],
+    },
+    {
+      key: "qcmpov",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 18v-2"),
+      |],
+    },
+    {
+      key: "1qcswk",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("2"),
+        LucideIconTypes.Y("6"),
+        LucideIconTypes.Width("20"),
+        LucideIconTypes.Height("10"),
+        LucideIconTypes.Rx("2"),
       |],
     },
   |];
@@ -54163,6 +65243,47 @@ module IconMessageCircle = {
     );
 };
 
+module IconMessageCircleCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1sd12s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"),
+      |],
+    },
+    {
+      key: "xofnsj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 9-5.5 5.5L8 12"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="message-circle-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconMessageCircleCode = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -54283,6 +65404,96 @@ module IconMessageCircleDashed = {
   ) =>
     LucideIconRenderer.render(
       ~name="message-circle-dashed",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMessageCircleDashedCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "upsxbf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.1 2.182a10 10 0 013.8 0"),
+      |],
+    },
+    {
+      key: "ms125y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.9 21.818a10 10 0 01-3.8 0"),
+      |],
+    },
+    {
+      key: "1jzhoq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.609 3.72a10 10 0 012.69 2.7"),
+      |],
+    },
+    {
+      key: "68e3e5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.182 13.9a10 10 0 010-3.8"),
+      |],
+    },
+    {
+      key: "1m37bo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20.28 17.61a10 10 0 01-2.7 2.69"),
+      |],
+    },
+    {
+      key: "w6g6ls",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21.818 10.1a10 10 0 010 3.8"),
+      |],
+    },
+    {
+      key: "sn8908",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.721 6.391a10 10 0 012.7-2.69"),
+      |],
+    },
+    {
+      key: "7908cd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6.163 21.117-2.906.85a1 1 0 01-1.236-1.169l.965-2.98"),
+      |],
+    },
+    {
+      key: "xofnsj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 9-5.5 5.5L8 12"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="message-circle-dashed-check",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -54582,6 +65793,61 @@ module IconMessageCircleReply = {
     );
 };
 
+module IconMessageCircleText = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "14vwyc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.086 17.509a2 2 0 00-.094-1.167 10 10 0 114.777 4.719 2 2 0 00-1.099-.092l-3.413.998a1 1 0 01-1.236-1.168z"),
+      |],
+    },
+    {
+      key: "mjdx3x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 12h9"),
+      |],
+    },
+    {
+      key: "cy6sb9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 16h5"),
+      |],
+    },
+    {
+      key: "ej08g8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 8h7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="message-circle-text",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconMessageCircleWarning = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -54712,6 +65978,47 @@ module IconMessageSquare = {
     );
 };
 
+module IconMessageSquareCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "m0kn7k",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.7.7 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"),
+      |],
+    },
+    {
+      key: "kz4plv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 11 2 2 4-4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="message-square-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconMessageSquareCode = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -54763,94 +66070,73 @@ module IconMessageSquareCode = {
 module IconMessageSquareDashed = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1wutuc",
+      key: "1d12a5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 19h.01"),
+        LucideIconTypes.D("M14 3h2"),
       |],
     },
     {
-      key: "n36tog",
+      key: "1agirb",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 3h.01"),
+        LucideIconTypes.D("M16 19h-2"),
       |],
     },
     {
-      key: "1vcnzz",
+      key: "1ey295",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 19h.01"),
+        LucideIconTypes.D("M2 12v-2"),
       |],
     },
     {
-      key: "ll0zb8",
+      key: "120k8q",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 3h.01"),
+        LucideIconTypes.D("M2 16v5.286a.71.71 0 0 0 1.212.502l1.149-1.149"),
       |],
     },
     {
-      key: "1aptou",
+      key: "ior8tn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 13h.01"),
+        LucideIconTypes.D("M20 19a2 2 0 0 0 2-2v-1"),
       |],
     },
     {
-      key: "4cp7zq",
+      key: "rmlecy",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 17v4.286a.71.71 0 0 0 1.212.502l2.202-2.202A2 2 0 0 1 6.828 19H8"),
+        LucideIconTypes.D("M22 10v2"),
       |],
     },
     {
-      key: "1iztiu",
+      key: "sp3k6r",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 5a2 2 0 0 1 2-2"),
+        LucideIconTypes.D("M22 6V5a2 2 0 0 0-2-2"),
       |],
     },
     {
-      key: "1nzd1v",
+      key: "11zt7s",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 9h.01"),
+        LucideIconTypes.D("M4 3a2 2 0 0 0-2 2v1"),
       |],
     },
     {
-      key: "m48m3a",
+      key: "jnunrx",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20 3a2 2 0 0 1 2 2"),
+        LucideIconTypes.D("M8 19h2"),
       |],
     },
     {
-      key: "ke7esy",
+      key: "ysbsee",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 13h.01"),
-      |],
-    },
-    {
-      key: "17q5fo",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M22 17a2 2 0 0 1-2 2"),
-      |],
-    },
-    {
-      key: "npkp49",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M22 9h.01"),
-      |],
-    },
-    {
-      key: "133hau",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 3h.01"),
+        LucideIconTypes.D("M8 3h2"),
       |],
     },
   |];
@@ -55515,6 +66801,47 @@ module IconMessageSquareX = {
     );
 };
 
+module IconMessagesCircle = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "10mcl1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19.95 10.05a7 7 0 011.412 7.872 1 1 0 00-.058.787l.675 2.089a1 1 0 01-1.236 1.168l-2.155-.631a1 1 0 00-.745.06 7 7 0 01-7.793-1.445"),
+      |],
+    },
+    {
+      key: "cpppzk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.696 12.708a1 1 0 00-.058-.785 7 7 0 113.518 3.473 1 1 0 00-.744-.061l-2.155.63a1 1 0 01-1.236-1.167z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="messages-circle",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconMessagesSquare = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -55545,6 +66872,63 @@ module IconMessagesSquare = {
   ) =>
     LucideIconRenderer.render(
       ~name="messages-square",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMetronome = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "audfby",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 11.4V9.1"),
+      |],
+    },
+    {
+      key: "c0sb7j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m12 17 6.59-6.59"),
+      |],
+    },
+    {
+      key: "1pkfrk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.05 5.7-.218-.691a3 3 0 0 0-5.663 0L4.418 19.695A1 1 0 0 0 5.37 21h13.253a1 1 0 0 0 .951-1.31L18.45 16.2"),
+      |],
+    },
+    {
+      key: "1udoqf",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("20"),
+        LucideIconTypes.Cy("9"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="metronome",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -55597,6 +66981,100 @@ module IconMic = {
   ) =>
     LucideIconRenderer.render(
       ~name="mic",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMicAudioLines = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "d00509",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 3v2.341"),
+      |],
+    },
+    {
+      key: "1riwvh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 17v4"),
+      |],
+    },
+    {
+      key: "72nt6x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 5v.341"),
+      |],
+    },
+    {
+      key: "123xd1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 5v13"),
+      |],
+    },
+    {
+      key: "1fnikh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 10v3"),
+      |],
+    },
+    {
+      key: "154ddg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 10v3"),
+      |],
+    },
+    {
+      key: "11sgs0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 6v11"),
+      |],
+    },
+    {
+      key: "1udhl7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 21h6"),
+      |],
+    },
+    {
+      key: "1d9qhd",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("4"),
+        LucideIconTypes.Height("8"),
+        LucideIconTypes.X("10"),
+        LucideIconTypes.Y("9"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mic-audio-lines",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -55677,6 +67155,86 @@ module IconMicOff = {
     );
 };
 
+module IconMicSignal = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1riwvh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 17v4"),
+      |],
+    },
+    {
+      key: "1lvu40",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 11a6 6 0 00-3-5.197"),
+      |],
+    },
+    {
+      key: "bida4p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 11a10 10 0 015-8.662"),
+      |],
+    },
+    {
+      key: "idvinr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 11a10 10 0 00-5-8.662"),
+      |],
+    },
+    {
+      key: "17n2ii",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 11a6 6 0 013-5.197"),
+      |],
+    },
+    {
+      key: "1udhl7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 21h6"),
+      |],
+    },
+    {
+      key: "1l8p2f",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("10"),
+        LucideIconTypes.Y("9"),
+        LucideIconTypes.Width("4"),
+        LucideIconTypes.Height("8"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mic-signal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconMicVocal = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -55730,6 +67288,27 @@ module IconMicVocal = {
 module IconMicrochip = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
+      key: "a56b0p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 12h4"),
+      |],
+    },
+    {
+      key: "pvmtpo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 17h4"),
+      |],
+    },
+    {
+      key: "1vgcok",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 7h4"),
+      |],
+    },
+    {
       key: "quuxs7",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -55737,31 +67316,17 @@ module IconMicrochip = {
       |],
     },
     {
-      key: "zsn3lv",
+      key: "4scel",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 16h2"),
+        LucideIconTypes.D("M18 18h2"),
       |],
     },
     {
-      key: "9x5y9y",
+      key: "1ptzki",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 20h2"),
-      |],
-    },
-    {
-      key: "1luxfb",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M18 4h2"),
-      |],
-    },
-    {
-      key: "nxqzg",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M18 8h2"),
+        LucideIconTypes.D("M18 6h2"),
       |],
     },
     {
@@ -55772,38 +67337,28 @@ module IconMicrochip = {
       |],
     },
     {
-      key: "8a5zha",
+      key: "1xrofg",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 16h2"),
+        LucideIconTypes.D("M4 18h2"),
       |],
     },
     {
-      key: "27dk57",
+      key: "1cx33n",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 20h2"),
+        LucideIconTypes.D("M4 6h2"),
       |],
     },
     {
-      key: "10groj",
-      tag: LucideIconTypes.Path,
+      key: "749fme",
+      tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.D("M4 4h2"),
-      |],
-    },
-    {
-      key: "18vq6w",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M4 8h2"),
-      |],
-    },
-    {
-      key: "1681fp",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-1.5c-.276 0-.494.227-.562.495a2 2 0 0 1-3.876 0C9.994 2.227 9.776 2 9.5 2z"),
+        LucideIconTypes.X("6"),
+        LucideIconTypes.Y("2"),
+        LucideIconTypes.Width("12"),
+        LucideIconTypes.Height("20"),
+        LucideIconTypes.Rx("2"),
       |],
     },
   |];
@@ -55970,6 +67525,84 @@ module IconMicrowave = {
     );
 };
 
+module IconMidiPort = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "mhygvu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 18h.01"),
+      |],
+    },
+    {
+      key: "1e2lr4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 2.458V5a1 1 0 01-1 1h-4a1 1 0 01-1-1V2.458"),
+      |],
+    },
+    {
+      key: "1f9h7w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 16h.01"),
+      |],
+    },
+    {
+      key: "yjnet6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 12h.01"),
+      |],
+    },
+    {
+      key: "c2rlol",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h.01"),
+      |],
+    },
+    {
+      key: "18s6g9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 16h.01"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="midi-port",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconMilestone = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -55987,10 +67620,10 @@ module IconMilestone = {
       |],
     },
     {
-      key: "1btarq",
+      key: "8gz4t4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 6a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h13a2 2 0 0 0 1.152-.365l3.424-2.317a1 1 0 0 0 0-1.635l-3.424-2.318A2 2 0 0 0 17 6z"),
+        LucideIconTypes.D("M18.172 6a2 2 0 0 1 1.414.586l2.06 2.06a1.207 1.207 0 0 1 0 1.708l-2.06 2.06a2 2 0 0 1-1.414.586H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"),
       |],
     },
   |];
@@ -56268,6 +67901,122 @@ module IconMinus = {
     );
 };
 
+module IconMirrorRectangular = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "7zt14w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 6 8 9"),
+      |],
+    },
+    {
+      key: "tkgtvu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 7-8 8"),
+      |],
+    },
+    {
+      key: "1uxh74",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("4"),
+        LucideIconTypes.Y("2"),
+        LucideIconTypes.Width("16"),
+        LucideIconTypes.Height("20"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mirror-rectangular",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMirrorRound = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "itrr7k",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 6.6 8.6 8"),
+      |],
+    },
+    {
+      key: "jadmvz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 18v4"),
+      |],
+    },
+    {
+      key: "1vyrsv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 7.5 9.5 13"),
+      |],
+    },
+    {
+      key: "10w4w3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 22h10"),
+      |],
+    },
+    {
+      key: "1gshiw",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("10"),
+        LucideIconTypes.R("8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mirror-round",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconMonitor = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -56315,6 +68064,65 @@ module IconMonitor = {
   ) =>
     LucideIconRenderer.render(
       ~name="monitor",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMonitorActivity = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1riwvh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 17v4"),
+      |],
+    },
+    {
+      key: "nu61ne",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 10h-2.315a1 1 0 00-.932.64l-.787 2.034a.5.5 0 01-.932 0l-2.068-5.348a.5.5 0 00-.932 0l-.787 2.035a1 1 0 01-.932.639H6"),
+      |],
+    },
+    {
+      key: "1ev6f3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 21h8"),
+      |],
+    },
+    {
+      key: "x3v2xh",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("2"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("20"),
+        LucideIconTypes.Height("14"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="monitor-activity",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -56683,17 +68491,24 @@ module IconMonitorDown = {
 module IconMonitorOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "k0q8oc",
+      key: "1riwvh",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17 17H4a2 2 0 0 1-2-2V5c0-1.5 1-2 1-2"),
+        LucideIconTypes.D("M12 17v4"),
       |],
     },
     {
-      key: "cp1ac0",
+      key: "cv7jms",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 15V5a2 2 0 0 0-2-2H9"),
+        LucideIconTypes.D("M17 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 1.184-1.826"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
       |],
     },
     {
@@ -56704,17 +68519,10 @@ module IconMonitorOff = {
       |],
     },
     {
-      key: "1riwvh",
+      key: "z8ni2w",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 17v4"),
-      |],
-    },
-    {
-      key: "1ooewy",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m2 2 20 20"),
+        LucideIconTypes.D("M8.656 3H20a2 2 0 0 1 2 2v10a2 2 0 0 1-.293 1.042"),
       |],
     },
   |];
@@ -56797,6 +68605,86 @@ module IconMonitorPause = {
   ) =>
     LucideIconRenderer.render(
       ~name="monitor-pause",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMonitorPc = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "26zmak",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 15H4a2 2 0 01-2-2V7a2 2 0 012-2h6"),
+      |],
+    },
+    {
+      key: "9av7mr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 19H5"),
+      |],
+    },
+    {
+      key: "1cakcr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 11h8"),
+      |],
+    },
+    {
+      key: "1azo9j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 7h8"),
+      |],
+    },
+    {
+      key: "xmkgv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 17h.01"),
+      |],
+    },
+    {
+      key: "fgy2jt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 19v-4"),
+      |],
+    },
+    {
+      key: "1ewuvr",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("14"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("8"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="monitor-pc",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -57271,6 +69159,220 @@ module IconMoonStar = {
     );
 };
 
+module IconMop = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "16ixf7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 22c2.761 0 5-1.79 5-4-4.42 0-4.08-5-8.5-5a1 1 0 100 9za3 3 0 01-3-3"),
+      |],
+    },
+    {
+      key: "1r4cui",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.5 11.5 22 2"),
+      |],
+    },
+    {
+      key: "1dw0bk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6.98 13.02 2.665-2.664a1.21 1.21 0 011.71 0l2.29 2.288a1.21 1.21 0 010 1.712l-2.088 2.087"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mop",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMopSparkles = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "oxdmti",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 22a3 3 0 01-3-3"),
+      |],
+    },
+    {
+      key: "q53vem",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 22c2.761 0 5-1.79 5-4-4.42 0-4.08-5-8.5-5a4.501 4.501 0 000 9z"),
+      |],
+    },
+    {
+      key: "mzdi2d",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 3H8"),
+      |],
+    },
+    {
+      key: "1r4cui",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.5 11.5 22 2"),
+      |],
+    },
+    {
+      key: "1ugfop",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 13v4"),
+      |],
+    },
+    {
+      key: "1es58f",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 15h-4"),
+      |],
+    },
+    {
+      key: "13jjxc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 5v4"),
+      |],
+    },
+    {
+      key: "8zbtv0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 7H2"),
+      |],
+    },
+    {
+      key: "1dw0bk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6.98 13.02 2.665-2.664a1.21 1.21 0 011.71 0l2.29 2.288a1.21 1.21 0 010 1.712l-2.088 2.087"),
+      |],
+    },
+    {
+      key: "165o2o",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 2v2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mop-sparkles",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMosque = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "3in8xp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.268 2a2 2 0 003.465 2"),
+      |],
+    },
+    {
+      key: "1fhhfb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 5 L14 8"),
+      |],
+    },
+    {
+      key: "1p6nbd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 22v-3a2 2 0 00-4 0v3"),
+      |],
+    },
+    {
+      key: "ck3r5y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 13c-.662-1.497-1.666-2.753-2.9-3.63C16.825 8.47 15.422 8 14 8s-2.826.47-4.1 1.37C8.668 10.248 7.663 11.504 7 13z"),
+      |],
+    },
+    {
+      key: "rnfnj5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9h4"),
+      |],
+    },
+    {
+      key: "28kgc3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 22V6a5 5 0 00-2-4 5 5 0 00-2 4v14a2 2 0 002 2h14a2 2 0 002-2v-7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mosque",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconMotorbike = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -57446,6 +69548,56 @@ module IconMouse = {
   ) =>
     LucideIconRenderer.render(
       ~name="mouse",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMouseLeft = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "17s7lh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7.318V10"),
+      |],
+    },
+    {
+      key: "imk5ea",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 10v5a7 7 0 0 0 14 0V9c0-3.527-2.608-6.515-6-7"),
+      |],
+    },
+    {
+      key: "ra7k3",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("7"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mouse-left",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -57736,6 +69888,159 @@ module IconMousePointerClick = {
   ) =>
     LucideIconRenderer.render(
       ~name="mouse-pointer-click",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMouseRight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "17s7lh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7.318V10"),
+      |],
+    },
+    {
+      key: "2es5nn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 10v5a7 7 0 0 1-14 0V9c0-3.527 2.608-6.515 6-7"),
+      |],
+    },
+    {
+      key: "y5j2s2",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("17"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mouse-right",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMouth = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "18uu27",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12a50.5 50.5 0 0020 0 1 1 0 00-1-1"),
+      |],
+    },
+    {
+      key: "9k55ex",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.457 11.159a1 1 0 00-.307 1.369 11.59 11.59 0 0019.7 0 1 1 0 00-.308-1.368c-2.426-1.568-3.65-2.284-5.479-3.644a2.6 2.6 0 00-3.373.208 1 1 0 01-1.38 0 2.62 2.62 0 00-3.373-.208c-1.83 1.36-3.053 2.076-5.48 3.643"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mouth",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconMouthOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "150453",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.074 7.417a2.6 2.6 0 012.989.099c1.829 1.36 3.053 2.076 5.479 3.644a1 1 0 01.308 1.368 11.6 11.6 0 01-1.617 2.05"),
+      |],
+    },
+    {
+      key: "1ccgm2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12a50.5 50.5 0 0010.99.99"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "5gbt18",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 11a1 1 0 011 1 51 51 0 01-3.734.61"),
+      |],
+    },
+    {
+      key: "4jj8yu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.695 7.695c-1.7 1.247-2.92 1.967-5.238 3.464a1 1 0 00-.307 1.369 11.6 11.6 0 0014.766 4.388"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="mouth-off",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -58391,203 +70696,6 @@ module IconMoveVertical = {
     );
 };
 
-module IconMusic = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1jmyc2",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 18V5l12-2v13"),
-      |],
-    },
-    {
-      key: "fqmcym",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("6"),
-        LucideIconTypes.Cy("18"),
-        LucideIconTypes.R("3"),
-      |],
-    },
-    {
-      key: "1hluhg",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("18"),
-        LucideIconTypes.Cy("16"),
-        LucideIconTypes.R("3"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="music",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconMusic2 = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1fc0mg",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("8"),
-        LucideIconTypes.Cy("18"),
-        LucideIconTypes.R("4"),
-      |],
-    },
-    {
-      key: "g04rme",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M12 18V2l7 4"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="music-2",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconMusic3 = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "m3r9ws",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("18"),
-        LucideIconTypes.R("4"),
-      |],
-    },
-    {
-      key: "40x2m5",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 18V2"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="music-3",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconMusic4 = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1jmyc2",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 18V5l12-2v13"),
-      |],
-    },
-    {
-      key: "1e64n2",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m9 9 12-2"),
-      |],
-    },
-    {
-      key: "fqmcym",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("6"),
-        LucideIconTypes.Cy("18"),
-        LucideIconTypes.R("3"),
-      |],
-    },
-    {
-      key: "1hluhg",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("18"),
-        LucideIconTypes.Cy("16"),
-        LucideIconTypes.R("3"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="music-4",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconNavigation = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -58747,6 +70855,54 @@ module IconNavigationOff = {
   ) =>
     LucideIconRenderer.render(
       ~name="navigation-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconNepaliRupee = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "cvo5tb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m14 20-8-8h4c5.333 0 5.333-8 0-8"),
+      |],
+    },
+    {
+      key: "1t5u1p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 8c4.078 0 5.038 4.678 2.88 6.88"),
+      |],
+    },
+    {
+      key: "1x2ag7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 4h12"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="nepali-rupee",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -59065,6 +71221,84 @@ module IconNotebook = {
   ) =>
     LucideIconRenderer.render(
       ~name="notebook",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconNotebookDot = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1a97l0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 11.75V22"),
+      |],
+    },
+    {
+      key: "l0bgd4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 10h4"),
+      |],
+    },
+    {
+      key: "1gsvsf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 14h4"),
+      |],
+    },
+    {
+      key: "1bu2t1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 18h4"),
+      |],
+    },
+    {
+      key: "aawbzj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 6h4"),
+      |],
+    },
+    {
+      key: "1h4mjg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 11.75V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h5.65"),
+      |],
+    },
+    {
+      key: "gq8acd",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="notebook-dot",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -59524,27 +71758,75 @@ module IconNotepadTextDashed = {
     );
 };
 
+module IconNumbers = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "13vgod",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m10 4 2.6-1.95a.25.25 0 01.4.2V10"),
+      |],
+    },
+    {
+      key: "8az2h7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 14.535A4 4 0 0118 14a2 2 0 010 4 2 2 0 010 4 4 4 0 01-2-.535"),
+      |],
+    },
+    {
+      key: "110tub",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 22H4.5a.5.5 0 01-.5-.5c0-2.68 4-2.932 4-5.5a2 2 0 00-2-2 2.5 2.5 0 00-2 1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="numbers",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconNut = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1k5q1u",
+      key: "1efe3h",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 4V2"),
+        LucideIconTypes.D("M16.847 5.847 20 9a7.23 7.23 0 011.551 7.516C21.241 17.352 21 17.932 21 19v1a1 1 0 01-1 1h-1c-1.069 0-1.648.242-2.485.552A7.2 7.2 0 019.002 20l-3.155-3.153"),
       |],
     },
     {
-      key: "1tgyif",
+      key: "pqqcbt",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M5 10v4a7.004 7.004 0 0 0 5.277 6.787c.412.104.802.292 1.102.592L12 22l.621-.621c.3-.3.69-.488 1.102-.592A7.003 7.003 0 0 0 19 14v-4"),
+        LucideIconTypes.D("M18.21 5.43c-1.71.69-5.07 1.07-6.71 1.07.46 1.38.91 2.74.61 4.88a.88.88 0 01-.73.74c-1.78.28-3.54-.17-4.88-.62 0 1.64-.38 5-1.07 6.71-.21.52-.82.55-1.17.12A10 10 0 0118.33 4.26c.43.35.4.97-.12 1.17"),
       |],
     },
     {
-      key: "tnsqj",
+      key: "13508k",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 4C8 4 4.5 6 4 8c-.243.97-.919 1.952-2 3 1.31-.082 1.972-.29 3-1 .54.92.982 1.356 2 2 1.452-.647 1.954-1.098 2.5-2 .595.995 1.151 1.427 2.5 2 1.31-.621 1.862-1.058 2.5-2 .629.977 1.162 1.423 2.5 2 1.209-.548 1.68-.967 2-2 1.032.916 1.683 1.157 3 1-1.297-1.036-1.758-2.03-2-3-.5-2-4-4-8-4Z"),
+        LucideIconTypes.D("M4.93 4.93 3 3a.7.7 0 010-1"),
       |],
     },
   |];
@@ -59575,41 +71857,38 @@ module IconNut = {
 module IconNutOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1k5q1u",
+      key: "1wghw8",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 4V2"),
+        LucideIconTypes.D("M11.868 11.868a.88.88 0 01-.488.252c-1.78.28-3.54-.17-4.88-.62 0 1.272-.229 3.578-.653 5.347a10 10 0 01-.417 1.363c-.21.52-.82.55-1.17.12a10 10 0 01.677-13.393"),
       |],
     },
     {
-      key: "1xcvy9",
+      key: "1ytkaj",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M5 10v4a7.004 7.004 0 0 0 5.277 6.787c.412.104.802.292 1.102.592L12 22l.621-.621c.3-.3.69-.488 1.102-.592a7.01 7.01 0 0 0 4.125-2.939"),
+        LucideIconTypes.D("M12.14 6.485a27.4 27.4 0 004.707-.638L20 9a7.23 7.23 0 011.706 7.05"),
       |],
     },
     {
-      key: "163tfc",
+      key: "1ooewy",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19 10v3.343"),
+        LucideIconTypes.D("m2 2 20 20"),
       |],
     },
     {
-      key: "17914v",
+      key: "xvz8if",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 12c-1.349-.573-1.905-1.005-2.5-2-.546.902-1.048 1.353-2.5 2-1.018-.644-1.46-1.08-2-2-1.028.71-1.69.918-3 1 1.081-1.048 1.757-2.03 2-3 .194-.776.84-1.551 1.79-2.21m11.654 5.997c.887-.457 1.28-.891 1.556-1.787 1.032.916 1.683 1.157 3 1-1.297-1.036-1.758-2.03-2-3-.5-2-4-4-8-4-.74 0-1.461.068-2.15.192"),
+        LucideIconTypes.D("M20.707 20.707A1 1 0 0120 21h-1c-1.069 0-1.648.242-2.485.552A7.2 7.2 0 019.002 20l-3.155-3.153"),
       |],
     },
     {
-      key: "a6p6uj",
-      tag: LucideIconTypes.Line,
+      key: "o7h9wy",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("2"),
-        LucideIconTypes.X2("22"),
-        LucideIconTypes.Y1("2"),
-        LucideIconTypes.Y2("22"),
+        LucideIconTypes.D("M8.356 2.7a10 10 0 019.974 1.56c.43.35.4.97-.12 1.17a10 10 0 01-1.363.417"),
       |],
     },
   |];
@@ -59893,17 +72172,17 @@ module IconOmega = {
 module IconOption = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "ph9rgk",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M3 3h6l6 18h6"),
-      |],
-    },
-    {
       key: "16f0ms",
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M14 3h7"),
+      |],
+    },
+    {
+      key: "1qf1im",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 3h5.28a1 1 0 0 1 .948.684l5.544 16.632a1 1 0 0 0 .949.684H21"),
       |],
     },
   |];
@@ -60153,41 +72432,38 @@ module IconPackage2 = {
 module IconPackageCheck = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "gfu2re",
+      key: "d0xqtd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m16 16 2 2 4-4"),
+        LucideIconTypes.D("M12 22V12"),
       |],
     },
     {
-      key: "e7tb2h",
+      key: "uh5qu3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"),
+        LucideIconTypes.D("m16 17 2 2 4-4"),
       |],
     },
     {
-      key: "1c824w",
+      key: "kpkbpo",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m7.5 4.27 9 5.15"),
+        LucideIconTypes.D("M21 11.127V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.32-.753"),
       |],
     },
     {
-      key: "ousv84",
-      tag: LucideIconTypes.Polyline,
+      key: "19ckod",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.Points("3.29 7 12 12 20.71 7"),
+        LucideIconTypes.D("M3.29 7 12 12l8.71-5"),
       |],
     },
     {
-      key: "a4e8g8",
-      tag: LucideIconTypes.Line,
+      key: "9yrvtv",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("22"),
-        LucideIconTypes.Y2("12"),
+        LucideIconTypes.D("m7.5 4.27 8.997 5.148"),
       |],
     },
   |];
@@ -60218,41 +72494,38 @@ module IconPackageCheck = {
 module IconPackageMinus = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "100bgy",
+      key: "d0xqtd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 16h6"),
+        LucideIconTypes.D("M12 22V12"),
       |],
     },
     {
-      key: "e7tb2h",
+      key: "1ook5g",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"),
+        LucideIconTypes.D("M16 17h6"),
       |],
     },
     {
-      key: "1c824w",
+      key: "zu9avd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m7.5 4.27 9 5.15"),
+        LucideIconTypes.D("M21 13V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.675-.955"),
       |],
     },
     {
-      key: "ousv84",
-      tag: LucideIconTypes.Polyline,
+      key: "19ckod",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.Points("3.29 7 12 12 20.71 7"),
+        LucideIconTypes.D("M3.29 7 12 12l8.71-5"),
       |],
     },
     {
-      key: "a4e8g8",
-      tag: LucideIconTypes.Line,
+      key: "9yrvtv",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("22"),
-        LucideIconTypes.Y2("12"),
+        LucideIconTypes.D("m7.5 4.27 8.997 5.148"),
       |],
     },
   |];
@@ -60338,48 +72611,45 @@ module IconPackageOpen = {
 module IconPackagePlus = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "100bgy",
+      key: "d0xqtd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 16h6"),
+        LucideIconTypes.D("M12 22V12"),
       |],
     },
     {
-      key: "85cyf1",
+      key: "1ook5g",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19 13v6"),
+        LucideIconTypes.D("M16 17h6"),
       |],
     },
     {
-      key: "e7tb2h",
+      key: "1ckrd5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"),
+        LucideIconTypes.D("M19 14v6"),
       |],
     },
     {
-      key: "1c824w",
+      key: "28k6lz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m7.5 4.27 9 5.15"),
+        LucideIconTypes.D("M21 10.535V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.675-.955"),
       |],
     },
     {
-      key: "ousv84",
-      tag: LucideIconTypes.Polyline,
+      key: "19ckod",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.Points("3.29 7 12 12 20.71 7"),
+        LucideIconTypes.D("M3.29 7 12 12l8.71-5"),
       |],
     },
     {
-      key: "a4e8g8",
-      tag: LucideIconTypes.Line,
+      key: "9yrvtv",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("22"),
-        LucideIconTypes.Y2("12"),
+        LucideIconTypes.D("m7.5 4.27 8.997 5.148"),
       |],
     },
   |];
@@ -60410,50 +72680,47 @@ module IconPackagePlus = {
 module IconPackageSearch = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "e7tb2h",
+      key: "d0xqtd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"),
+        LucideIconTypes.D("M12 22V12"),
       |],
     },
     {
-      key: "1c824w",
+      key: "er2am",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m7.5 4.27 9 5.15"),
+        LucideIconTypes.D("M20.27 18.27 22 20"),
       |],
     },
     {
-      key: "ousv84",
-      tag: LucideIconTypes.Polyline,
+      key: "tok1h1",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.Points("3.29 7 12 12 20.71 7"),
+        LucideIconTypes.D("M21 10.498V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l.98-.559"),
       |],
     },
     {
-      key: "a4e8g8",
-      tag: LucideIconTypes.Line,
+      key: "19ckod",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("22"),
-        LucideIconTypes.Y2("12"),
+        LucideIconTypes.D("M3.29 7 12 12l8.71-5"),
       |],
     },
     {
-      key: "b5zd12",
+      key: "9yrvtv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7.5 4.27 8.997 5.148"),
+      |],
+    },
+    {
+      key: "ke13xx",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("18.5"),
-        LucideIconTypes.Cy("15.5"),
+        LucideIconTypes.Cy("16.5"),
         LucideIconTypes.R("2.5"),
-      |],
-    },
-    {
-      key: "1l4muz",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M20.27 17.27 22 19"),
       |],
     },
   |];
@@ -60484,41 +72751,45 @@ module IconPackageSearch = {
 module IconPackageX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "e7tb2h",
+      key: "d0xqtd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"),
+        LucideIconTypes.D("M12 22V12"),
       |],
     },
     {
-      key: "1c824w",
+      key: "ozpm51",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m7.5 4.27 9 5.15"),
+        LucideIconTypes.D("m16.5 14.5 5 5"),
       |],
     },
     {
-      key: "ousv84",
-      tag: LucideIconTypes.Polyline,
-      attrs: [|
-        LucideIconTypes.Points("3.29 7 12 12 20.71 7"),
-      |],
-    },
-    {
-      key: "a4e8g8",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("22"),
-        LucideIconTypes.Y2("12"),
-      |],
-    },
-    {
-      key: "im3w4b",
+      key: "syf6b9",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m17 13 5 5m-5 0 5-5"),
+        LucideIconTypes.D("m16.5 19.5 5-5"),
+      |],
+    },
+    {
+      key: "isw6gs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 10.5V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l.13-.074"),
+      |],
+    },
+    {
+      key: "19ckod",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.29 7 12 12l8.71-5"),
+      |],
+    },
+    {
+      key: "9yrvtv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7.5 4.27 8.997 5.148"),
       |],
     },
   |];
@@ -60549,31 +72820,31 @@ module IconPackageX = {
 module IconPaintBucket = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "irua1i",
+      key: "1jwth8",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"),
+        LucideIconTypes.D("M11 7 6 2"),
       |],
     },
     {
-      key: "1lls2c",
+      key: "xw1gg",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m5 2 5 5"),
+        LucideIconTypes.D("M18.992 12H2.041"),
       |],
     },
     {
-      key: "1hkzvu",
+      key: "1nkol4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 13h15"),
+        LucideIconTypes.D("M21.145 18.38A3.34 3.34 0 0 1 20 16.5a3.3 3.3 0 0 1-1.145 1.88c-.575.46-.855 1.02-.855 1.595A2 2 0 0 0 20 22a2 2 0 0 0 2-2.025c0-.58-.285-1.13-.855-1.595"),
       |],
     },
     {
-      key: "xk76lq",
+      key: "1nk1rd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"),
+        LucideIconTypes.D("m8.5 4.5 2.148-2.148a1.205 1.205 0 0 1 1.704 0l7.296 7.296a1.205 1.205 0 0 1 0 1.704l-7.592 7.592a3.615 3.615 0 0 1-5.112 0l-3.888-3.888a3.615 3.615 0 0 1 0-5.112L5.67 7.33"),
       |],
     },
   |];
@@ -60851,24 +73122,24 @@ module IconPanda = {
       |],
     },
     {
-      key: "1ch4h4",
+      key: "1hpval",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 6.5a.5.5 0 0 0-.5-.5"),
+        LucideIconTypes.D("M17.902 6.599a8 8 0 0 0-.5-.5"),
       |],
     },
     {
-      key: "1c660l",
+      key: "fsvxqb",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20.69 9.67a4.5 4.5 0 1 0-7.04-5.5 8.35 8.35 0 0 0-3.3 0 4.5 4.5 0 1 0-7.04 5.5C2.49 11.2 2 12.88 2 14.5 2 19.47 6.48 22 12 22s10-2.53 10-7.5c0-1.62-.48-3.3-1.3-4.83"),
+        LucideIconTypes.D("M2 14.5C2 19.47 6.48 22 12 22s10-2.53 10-7.5a10 10 0 0 0-1.3-4.83 4.5 4.5 0 1 0-7.05-5.5 8 8 0 0 0-3.3 0 4.5 4.5 0 1 0-7.04 5.5A10 10 0 0 0 2 14.5"),
       |],
     },
     {
-      key: "eviuep",
+      key: "1mh6nx",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 6.5a.495.495 0 0 1 .5-.5"),
+        LucideIconTypes.D("M6.099 6.599a8 8 0 0 1 .5-.5"),
       |],
     },
     {
@@ -62107,6 +74378,47 @@ module IconPanelsTopLeft = {
     );
 };
 
+module IconPaperBag = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "vlsvfu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5.364 3.848C4 6 3 9.652 3 12.652V19a2 2 0 002 2h14a2 2 0 002-2v-5c0-2.334-1.816-4.668-2.622-7.002"),
+      |],
+    },
+    {
+      key: "12exh5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 3h11.379a2 2 0 011.789 1.106l.723 1.447A1 1 0 0119.997 7h-8.525a2 2 0 01-1.789-1.106L8.79 4.105a2 2 0 10-3.579 1.789l2.261 4.522A5 5 0 018 12.652V21"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="paper-bag",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconPaperclip = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -62130,6 +74442,54 @@ module IconPaperclip = {
   ) =>
     LucideIconRenderer.render(
       ~name="paperclip",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconParasol = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "gf58kt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.5 11.134 18.196 21"),
+      |],
+    },
+    {
+      key: "znqfe4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20.425 5.299a10 10 0 0 0-16.941 9.78c.183.563.843.774 1.355.478L20.16 6.711c.512-.296.66-.973.264-1.413"),
+      |],
+    },
+    {
+      key: "oafrgs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 21H3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="parasol",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -62171,6 +74531,91 @@ module IconParentheses = {
   ) =>
     LucideIconRenderer.render(
       ~name="parentheses",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconPark = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1c50yy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 18h10"),
+      |],
+    },
+    {
+      key: "t0a46z",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.248 9.998A4.5 4.5 0 0 0 11.75 8.6V8a1 1 0 0 0-7.5 0 4.9 4.9 0 0 0 2.25 9H8"),
+      |],
+    },
+    {
+      key: "u1moqn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15 14-2 6"),
+      |],
+    },
+    {
+      key: "ceqmri",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19 14 2 6"),
+      |],
+    },
+    {
+      key: "jf2tjg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 14h-8"),
+      |],
+    },
+    {
+      key: "4fcolv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 20v-5.922a2 2 0 0 0-.586-1.414L6.5 11.75"),
+      |],
+    },
+    {
+      key: "z0drss",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.205 12.795 8 14"),
+      |],
+    },
+    {
+      key: "1yudst",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("19"),
+        LucideIconTypes.Cy("6"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="park",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -62629,24 +75074,24 @@ module IconPenOff = {
 module IconPenTool = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "nt11vn",
+      key: "93nyr4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"),
+        LucideIconTypes.D("m18 13-.654-4.736a4 4 0 00-2.756-3.266l-9.163-2.9a2 2 0 00-2.017.493l-.82.819a2 2 0 00-.492 2.017l2.9 9.163a4 4 0 003.266 2.756L13 18"),
       |],
     },
     {
-      key: "15qc1e",
+      key: "lnux7s",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18"),
+        LucideIconTypes.D("M18.648 12.352a1.205 1.205 0 011.704 0l1.296 1.296a1.205 1.205 0 010 1.704l-6.296 6.296a1.205 1.205 0 01-1.704 0l-1.296-1.296a1.205 1.205 0 010-1.704z"),
       |],
     },
     {
-      key: "1wuzzi",
+      key: "1igwcn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m2.3 2.3 7.286 7.286"),
+        LucideIconTypes.D("m3 3 6.586 6.586"),
       |],
     },
     {
@@ -62896,6 +75341,89 @@ module IconPencilRuler = {
     );
 };
 
+module IconPencilSparkles = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "mzdi2d",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 3H8"),
+      |],
+    },
+    {
+      key: "1scubj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.007 5.008 3.987 3.986"),
+      |],
+    },
+    {
+      key: "nmhudv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 15v4"),
+      |],
+    },
+    {
+      key: "fs0856",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21.174 6.813a2.82 2.82 0 0 0-3.986-3.987L3.842 16.175a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"),
+      |],
+    },
+    {
+      key: "1sj068",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 17h-4"),
+      |],
+    },
+    {
+      key: "13jjxc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 5v4"),
+      |],
+    },
+    {
+      key: "8zbtv0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 7H2"),
+      |],
+    },
+    {
+      key: "165o2o",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 2v2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="pencil-sparkles",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconPentagon = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -62985,6 +75513,102 @@ module IconPercent = {
     );
 };
 
+module IconPerfumeBottle = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ds6j9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M 5 22 H 11.072"),
+      |],
+    },
+    {
+      key: "m2x5id",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 5 C 23 4 23.328 12.676 20 14.536"),
+      |],
+    },
+    {
+      key: "k2g993",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.802 10.308 C 14.776 9.465 14 8.496 14 7"),
+      |],
+    },
+    {
+      key: "t85c5s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 2h.01"),
+      |],
+    },
+    {
+      key: "4rb8c5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 7h.01"),
+      |],
+    },
+    {
+      key: "1v53bk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 4.5h.01"),
+      |],
+    },
+    {
+      key: "1wboph",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.127 22 A 8 8 0 0 1 4 15 3 3 0 0 1 4.879 12.879C 6.879 10.879 10 10 10 7"),
+      |],
+    },
+    {
+      key: "lned0m",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("4"),
+      |],
+    },
+    {
+      key: "1wlw2z",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("9"),
+        LucideIconTypes.Y("2"),
+        LucideIconTypes.Width("6"),
+        LucideIconTypes.Height("5"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="perfume-bottle",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconPersonStanding = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -63042,27 +75666,70 @@ module IconPersonStanding = {
     );
 };
 
+module IconPhi = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "t6zp3m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v20"),
+      |],
+    },
+    {
+      key: "fim9np",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="phi",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconPhilippinePeso = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "6ut86h",
+      key: "1lakjw",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20 11H4"),
+        LucideIconTypes.D("M4 12h16"),
       |],
     },
     {
-      key: "zbl0bi",
+      key: "y22wk4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20 7H4"),
+        LucideIconTypes.D("M4 8h16"),
       |],
     },
     {
-      key: "1ana5r",
+      key: "1szfpi",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 21V4a1 1 0 0 1 1-1h4a1 1 0 0 1 0 12H7"),
+        LucideIconTypes.D("M6 20V5a1 1 0 011-1h5a6 6 0 010 12H6"),
       |],
     },
   |];
@@ -63257,6 +75924,54 @@ module IconPhoneIncoming = {
   ) =>
     LucideIconRenderer.render(
       ~name="phone-incoming",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconPhoneLog = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "dn7fr7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.832 16.568a1 1 0 001.213-.303l.355-.465A2 2 0 0117 15h3a2 2 0 012 2v3a2 2 0 01-2 2A18 18 0 012 4a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-.8 1.6l-.468.351a1 1 0 00-.292 1.233 14 14 0 006.392 6.384"),
+      |],
+    },
+    {
+      key: "qkdnsb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.396 4.171h7.171"),
+      |],
+    },
+    {
+      key: "cclf0d",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.343 8.17h4.224"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="phone-log",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -63466,45 +76181,45 @@ module IconPi = {
 module IconPiano = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "lag0yf",
+      key: "5krxfa",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18.5 8c-1.4 0-2.6-.8-3.2-2A6.87 6.87 0 0 0 2 9v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8.5C22 9.6 20.4 8 18.5 8"),
+        LucideIconTypes.D("M10 13v4"),
       |],
     },
     {
-      key: "myj16y",
+      key: "72xrsi",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 14h20"),
+        LucideIconTypes.D("M14 13v4"),
       |],
     },
     {
-      key: "9ng0ue",
+      key: "1i7sbu",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 14v4"),
+        LucideIconTypes.D("M18 13v4"),
       |],
     },
     {
-      key: "1v8uk5",
+      key: "5evz65",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 14v4"),
+        LucideIconTypes.D("M2 13h20"),
       |],
     },
     {
-      key: "1tqops",
+      key: "1txdgy",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14 14v4"),
+        LucideIconTypes.D("M22 11.5A3.5 3.5 0 0018.5 8a3.52 3.52 0 01-3.173-2A7 7 0 002 9v10a2 2 0 002 2h16a2 2 0 002-2z"),
       |],
     },
     {
-      key: "18uqwm",
+      key: "9v0cap",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 14v4"),
+        LucideIconTypes.D("M6 13v4"),
       |],
     },
   |];
@@ -64333,6 +77048,54 @@ module IconPlaneTakeoff = {
     );
 };
 
+module IconPlantPot = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1yu01x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 8.536V6a4 4 0 014-4h1.5a.5.5 0 01.5.5V4a4 4 0 01-4 4 4 4 0 00-4 4 5 5 0 01-8-4 5 5 0 018 4c0 2 1 3 1 5"),
+      |],
+    },
+    {
+      key: "4ibc1g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18 17-1.085 3.58A2 2 0 0115 22H9.002a2 2 0 01-1.913-1.418L6 17"),
+      |],
+    },
+    {
+      key: "74xsq1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 17h14"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="plant-pot",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconPlay = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -64367,6 +77130,199 @@ module IconPlay = {
     );
 };
 
+module IconPlayOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "fdtkwz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m10.215 4.56 9.79 5.71a2 2 0 0 1 .003 3.458l-.393.23"),
+      |],
+    },
+    {
+      key: "1c8hxg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.042 16.042-8.034 4.686A2 2 0 0 1 5 19V5"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="play-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconPlayingCard = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "r2cm5y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.832 8.445a1 1 0 00-1.589-.098l-2.075 3.098a1 1 0 000 1.11l2 3a1 1 0 001.664 0l2-3a1 1 0 000-1.11z"),
+      |],
+    },
+    {
+      key: "1k0ky4",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("5"),
+        LucideIconTypes.Y("2"),
+        LucideIconTypes.Width("14"),
+        LucideIconTypes.Height("20"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="playing-card",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconPlayingCards = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "ubuxio",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.832 8.445a1 1 0 00-1.589-.098l-2.075 3.098a1 1 0 000 1.11l2 3a1 1 0 001.664 0l2-3a1 1 0 000-1.11z"),
+      |],
+    },
+    {
+      key: "1dure5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7.18 20.827-5-11a2 2 0 01.993-2.647L7 5.44"),
+      |],
+    },
+    {
+      key: "p3xopd",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("7"),
+        LucideIconTypes.Y("2"),
+        LucideIconTypes.Width("14"),
+        LucideIconTypes.Height("20"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="playing-cards",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconPlayingCardsFan = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "15jvxw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.65 7.65a2 2 0 012.629-1.046l5.51 2.374a2 2 0 011.046 2.628l-3.957 9.184a2 2 0 01-2.628 1.046l-5.51-2.374a2 2 0 01-1.046-2.628z"),
+      |],
+    },
+    {
+      key: "y6hc3m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 7.777V4a2 2 0 00-2-2h-6a2 2 0 00-2 2v10a2 2 0 001.137 1.805"),
+      |],
+    },
+    {
+      key: "t01ww5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m8 4.389-4.364.809a2 2 0 00-1.602 2.33l1.822 9.833a2 2 0 002.331 1.602l2.542-.47"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="playing-cards-fan",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconPlug = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -64377,13 +77333,6 @@ module IconPlug = {
       |],
     },
     {
-      key: "14iosj",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 8V2"),
-      |],
-    },
-    {
       key: "18g5xt",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -64391,10 +77340,17 @@ module IconPlug = {
       |],
     },
     {
-      key: "osxo6l",
+      key: "1xoxul",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"),
+        LucideIconTypes.D("M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z"),
+      |],
+    },
+    {
+      key: "14iosj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 8V2"),
       |],
     },
   |];
@@ -64587,47 +77543,6 @@ module IconPlus = {
     );
 };
 
-module IconPocket = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1uodqw",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M20 3a2 2 0 0 1 2 2v6a1 1 0 0 1-20 0V5a2 2 0 0 1 2-2z"),
-      |],
-    },
-    {
-      key: "1mxd5q",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m8 10 4 4 4-4"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="pocket",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconPocketKnife = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -64690,38 +77605,27 @@ module IconPocketKnife = {
     );
 };
 
-module IconPodcast = {
+module IconPodium = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "x1mxqr",
+      key: "1hv4eo",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M13 17a1 1 0 1 0-2 0l.5 4.5a0.5 0.5 0 0 0 1 0z"),
-        LucideIconTypes.Fill("currentColor"),
+        LucideIconTypes.D("M12 6V2h-1"),
       |],
     },
     {
-      key: "d71mpg",
+      key: "1jvw5n",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16.85 18.58a9 9 0 1 0-9.7 0"),
+        LucideIconTypes.D("M9 15a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1"),
       |],
     },
     {
-      key: "fc81rn",
+      key: "rgi5dp",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 14a5 5 0 1 1 8 0"),
-      |],
-    },
-    {
-      key: "vqiwd",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("11"),
-        LucideIconTypes.R("1"),
-        LucideIconTypes.Fill("currentColor"),
+        LucideIconTypes.D("M9 21V11a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v10"),
       |],
     },
   |];
@@ -64737,7 +77641,7 @@ module IconPodcast = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="podcast",
+      ~name="podium",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -64979,31 +77883,17 @@ module IconPopsicle = {
 module IconPoundSterling = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1prm2n",
+      key: "cv9piq",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 7c0-5.333-8-5.333-8 0"),
+        LucideIconTypes.D("M17 18a2 2 0 01-2 2H5a3 3 0 003-3V8a4 4 0 018 0"),
       |],
     },
     {
-      key: "18tmcs",
+      key: "1re8yl",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 7v14"),
-      |],
-    },
-    {
-      key: "4dkmi1",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6 21h12"),
-      |],
-    },
-    {
-      key: "ybwr4a",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M6 13h10"),
+        LucideIconTypes.D("M6 12h7"),
       |],
     },
   |];
@@ -65227,6 +78117,82 @@ module IconPrinter = {
     );
 };
 
+module IconPrinter3d = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "jskgh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 11v1"),
+      |],
+    },
+    {
+      key: "1lhi5i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 8h8"),
+      |],
+    },
+    {
+      key: "19jk1g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 20v-3a1 1 0 00-1-1H9a1 1 0 00-1 1v3"),
+      |],
+    },
+    {
+      key: "14thso",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 20h16"),
+      |],
+    },
+    {
+      key: "kht5js",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 22V4a2 2 0 012-2h12a2 2 0 012 2v18"),
+      |],
+    },
+    {
+      key: "1nzhgk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 8h4"),
+      |],
+    },
+    {
+      key: "afkd69",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.635 10.093A2 2 0 018 8.631V7a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-.293.707l-1 1a1 1 0 01-1.414 0z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="printer-3d",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconPrinterCheck = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -65271,6 +78237,68 @@ module IconPrinterCheck = {
   ) =>
     LucideIconRenderer.render(
       ~name="printer-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconPrinterX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1w39xo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.531 22H7a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h6.377"),
+      |],
+    },
+    {
+      key: "zc9lw7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.5 16.5 5 5"),
+      |],
+    },
+    {
+      key: "1fr29m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.5 21.5 5-5"),
+      |],
+    },
+    {
+      key: "18he39",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.5"),
+      |],
+    },
+    {
+      key: "1itne7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="printer-x",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -65944,6 +78972,75 @@ module IconRadio = {
     );
 };
 
+module IconRadioOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "srl686",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.414 13.414a2 2 0 1 1-2.828-2.828"),
+      |],
+    },
+    {
+      key: "1h86sp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.247 7.761a6 6 0 0 1 1.744 4.572"),
+      |],
+    },
+    {
+      key: "1n13k4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19.075 4.933a10 10 0 0 1 2.234 10.72"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "1q22gi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.925 19.067a10 10 0 0 1 0-14.134"),
+      |],
+    },
+    {
+      key: "r2q7qm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.753 16.239a6 6 0 0 1 0-8.478"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="radio-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconRadioReceiver = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -66140,54 +79237,6 @@ module IconRadius = {
     );
 };
 
-module IconRailSymbol = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "m0yey3",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M5 15h14"),
-      |],
-    },
-    {
-      key: "7tsvo6",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M5 9h14"),
-      |],
-    },
-    {
-      key: "1jo42i",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m14 20-5-5 6-6-5-5"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="rail-symbol",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconRainbow = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -66350,24 +79399,24 @@ module IconRatio = {
 module IconReceipt = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "q3az6g",
+      key: "pyj7ub",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"),
+        LucideIconTypes.D("M12 17V7"),
       |],
     },
     {
-      key: "1h4pet",
+      key: "1elt7d",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"),
+        LucideIconTypes.D("M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8"),
       |],
     },
     {
-      key: "1jc1ny",
+      key: "ycz6yz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 17.5v-11"),
+        LucideIconTypes.D("M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"),
       |],
     },
   |];
@@ -66398,24 +79447,24 @@ module IconReceipt = {
 module IconReceiptCent = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "q3az6g",
+      key: "jspqdw",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"),
+        LucideIconTypes.D("M12 7v10"),
       |],
     },
     {
-      key: "ecfhkf",
+      key: "qvqont",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 6.5v11"),
+        LucideIconTypes.D("M14.828 14.829a4 4 0 0 1-5.656 0 4 4 0 0 1 0-5.657 4 4 0 0 1 5.656 0"),
       |],
     },
     {
-      key: "1makmb",
+      key: "ycz6yz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 9.4a4 4 0 1 0 0 5.2"),
+        LucideIconTypes.D("M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"),
       |],
     },
   |];
@@ -66446,10 +79495,17 @@ module IconReceiptCent = {
 module IconReceiptEuro = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "q3az6g",
+      key: "16zdw4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"),
+        LucideIconTypes.D("M15.828 14.829a4 4 0 0 1-5.656 0 4 4 0 0 1 0-5.657 4 4 0 0 1 5.656 0"),
+      |],
+    },
+    {
+      key: "ycz6yz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"),
       |],
     },
     {
@@ -66457,13 +79513,6 @@ module IconReceiptEuro = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M8 12h5"),
-      |],
-    },
-    {
-      key: "b2px4r",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 9.5a4 4 0 1 0 0 5.2"),
       |],
     },
   |];
@@ -66494,10 +79543,17 @@ module IconReceiptEuro = {
 module IconReceiptIndianRupee = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "q3az6g",
+      key: "ycz6yz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"),
+        LucideIconTypes.D("M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"),
+      |],
+    },
+    {
+      key: "vwpz6n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 11h8"),
       |],
     },
     {
@@ -66508,17 +79564,10 @@ module IconReceiptIndianRupee = {
       |],
     },
     {
-      key: "grpkl4",
+      key: "1xaco0",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 17.5 8 15h1a4 4 0 0 0 0-8"),
-      |],
-    },
-    {
-      key: "vwpz6n",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 11h8"),
+        LucideIconTypes.D("M9 7a4 4 0 0 1 0 8H8l3 2"),
       |],
     },
   |];
@@ -66549,13 +79598,6 @@ module IconReceiptIndianRupee = {
 module IconReceiptJapaneseYen = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "q3az6g",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"),
-      |],
-    },
-    {
       key: "1mc12w",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -66563,10 +79605,10 @@ module IconReceiptJapaneseYen = {
       |],
     },
     {
-      key: "39i0xv",
+      key: "ycz6yz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m9 7 3 3v7.5"),
+        LucideIconTypes.D("M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"),
       |],
     },
     {
@@ -66581,6 +79623,13 @@ module IconReceiptJapaneseYen = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M9 15h6"),
+      |],
+    },
+    {
+      key: "1x0cue",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 7 3 3v7"),
       |],
     },
   |];
@@ -66611,10 +79660,17 @@ module IconReceiptJapaneseYen = {
 module IconReceiptPoundSterling = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "q3az6g",
+      key: "td22vl",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"),
+        LucideIconTypes.D("M10 17V9.5a1 1 0 0 1 5 0"),
+      |],
+    },
+    {
+      key: "ycz6yz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"),
       |],
     },
     {
@@ -66622,13 +79678,6 @@ module IconReceiptPoundSterling = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M8 13h5"),
-      |],
-    },
-    {
-      key: "1dzgp0",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M10 17V9.5a2.5 2.5 0 0 1 5 0"),
       |],
     },
     {
@@ -66666,10 +79715,17 @@ module IconReceiptPoundSterling = {
 module IconReceiptRussianRuble = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "q3az6g",
+      key: "ycz6yz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"),
+        LucideIconTypes.D("M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"),
+      |],
+    },
+    {
+      key: "agnv0r",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 11h5a2 2 0 0 0 0-4h-3v10"),
       |],
     },
     {
@@ -66677,13 +79733,6 @@ module IconReceiptRussianRuble = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M8 15h5"),
-      |],
-    },
-    {
-      key: "1usi5u",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 11h5a2 2 0 1 0 0-4h-3v10"),
       |],
     },
   |];
@@ -66714,10 +79763,10 @@ module IconReceiptRussianRuble = {
 module IconReceiptSwissFranc = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "q3az6g",
+      key: "1i0mka",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"),
+        LucideIconTypes.D("M10 11h4"),
       |],
     },
     {
@@ -66728,10 +79777,10 @@ module IconReceiptSwissFranc = {
       |],
     },
     {
-      key: "1i0mka",
+      key: "ycz6yz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 11h4"),
+        LucideIconTypes.D("M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"),
       |],
     },
     {
@@ -66824,10 +79873,10 @@ module IconReceiptText = {
 module IconReceiptTurkishLira = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "nw10mp",
+      key: "1blmz7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 6.5v11a5.5 5.5 0 0 0 5.5-5.5"),
+        LucideIconTypes.D("M10 7v10a5 5 0 0 0 5-5"),
       |],
     },
     {
@@ -66838,10 +79887,10 @@ module IconReceiptTurkishLira = {
       |],
     },
     {
-      key: "io9ry0",
+      key: "ycz6yz",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"),
+        LucideIconTypes.D("M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"),
       |],
     },
   |];
@@ -67869,6 +80918,82 @@ module IconRepeat2 = {
     );
 };
 
+module IconRepeatOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "w9pozh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11.656 6H21l-4-4"),
+      |],
+    },
+    {
+      key: "156mfe",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.898 17.898A4 4 0 0 1 17 18H3l4-4"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "2p1713",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 13v1a4 4 0 0 1-.171 1.159"),
+      |],
+    },
+    {
+      key: "p7opkf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 6-4 4"),
+      |],
+    },
+    {
+      key: "8cius9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 11v-1a4 4 0 0 1 3.102-3.898"),
+      |],
+    },
+    {
+      key: "1kl3a3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7 22-4-4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="repeat-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconReplace = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -68235,34 +81360,245 @@ module IconRibbon = {
     );
 };
 
-module IconRocket = {
+module IconRoad = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "m3kijz",
+      key: "1riwvh",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"),
+        LucideIconTypes.D("M12 17v4"),
       |],
     },
     {
-      key: "1fmvmk",
+      key: "vd5es",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"),
+        LucideIconTypes.D("M12 5V3"),
       |],
     },
     {
-      key: "1f8sc4",
+      key: "qyerrc",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"),
+        LucideIconTypes.D("M12 9v3"),
       |],
     },
+    {
+      key: "1cuxct",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2.077 18.449A2 2 0 0 0 4 21h16a2 2 0 0 0 1.924-2.55l-4-14A2 2 0 0 0 16 3H8a2 2 0 0 0-1.924 1.45z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="road",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconRobotArm = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "18d2q3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 21 7.5 8.322"),
+      |],
+    },
+    {
+      key: "1ui6cx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m14 7 1.75-3.767a.5.5 0 0 1 .662-.172L20 5.005"),
+      |],
+    },
+    {
+      key: "mfi17k",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20 8.998-3.588 1.944a.5.5 0 0 1-.662-.172L14 7H8"),
+      |],
+    },
+    {
+      key: "d8eyu2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.486 21h10"),
+      |],
+    },
+    {
+      key: "uljm3b",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 21V8.732"),
+      |],
+    },
+    {
+      key: "11yjtp",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("6"),
+        LucideIconTypes.Cy("7"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="robot-arm",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconRobotVacuum = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "12w5me",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 17h2"),
+      |],
+    },
+    {
+      key: "1mp3jc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12h.01"),
+      |],
+    },
+    {
+      key: "7ltzr3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 12a5 5 0 00-10 0"),
+      |],
+    },
+    {
+      key: "5fivdr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 2v2.8"),
+      |],
+    },
+    {
+      key: "1hq9iq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 5h2.8"),
+      |],
+    },
+    {
+      key: "1w5mcv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 5h-2.8"),
+      |],
+    },
+    {
+      key: "1aozhq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 2v2.8"),
+      |],
+    },
+    {
+      key: "1mglay",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="robot-vacuum",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconRocket = {
+  let iconNode: LucideIconTypes.iconNode = [|
     {
       key: "qeys4",
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"),
+      |],
+    },
+    {
+      key: "u4xsad",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"),
+      |],
+    },
+    {
+      key: "676m9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"),
+      |],
+    },
+    {
+      key: "92ym6u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"),
       |],
     },
   |];
@@ -68293,37 +81629,31 @@ module IconRocket = {
 module IconRockingChair = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "y3iy52",
-      tag: LucideIconTypes.Polyline,
-      attrs: [|
-        LucideIconTypes.Points("3.5 2 6.5 12.5 18 12.5"),
-      |],
-    },
-    {
-      key: "19vg5i",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("9.5"),
-        LucideIconTypes.X2("5.5"),
-        LucideIconTypes.Y1("12.5"),
-        LucideIconTypes.Y2("20"),
-      |],
-    },
-    {
-      key: "1inpmv",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("15"),
-        LucideIconTypes.X2("18.5"),
-        LucideIconTypes.Y1("12.5"),
-        LucideIconTypes.Y2("20"),
-      |],
-    },
-    {
-      key: "1nquas",
+      key: "1edxn9",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2.75 18a13 13 0 0 0 18.5 0"),
+        LucideIconTypes.D("m15 13 3.708 7.416"),
+      |],
+    },
+    {
+      key: "d0d1c4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 19a15 15 0 0 0 18 0"),
+      |],
+    },
+    {
+      key: "tpa4et",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m3 2 3.21 9.633A2 2 0 0 0 8.109 13H18"),
+      |],
+    },
+    {
+      key: "1oplxx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 13-3.708 7.416"),
       |],
     },
   |];
@@ -68494,13 +81824,6 @@ module IconRose = {
 module IconRotate3d = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "10n0gc",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16.466 7.5C15.643 4.237 13.952 2 12 2 9.239 2 7 6.477 7 12s2.239 10 5 10c.342 0 .677-.069 1-.2"),
-      |],
-    },
-    {
       key: "16shm9",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -68508,10 +81831,17 @@ module IconRotate3d = {
       |],
     },
     {
-      key: "1lxi77",
+      key: "1245p8",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19 15.57c-1.804.885-4.274 1.43-7 1.43-5.523 0-10-2.239-10-5s4.477-5 10-5c4.838 0 8.873 1.718 9.8 4"),
+        LucideIconTypes.D("M16.47214 7.52786 A 5 10 0 1 0 13 21.79796"),
+      |],
+    },
+    {
+      key: "1i40ks",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21.79796 11 A 10 5 0 1 0 19 15.57071"),
       |],
     },
   |];
@@ -68580,20 +81910,68 @@ module IconRotateCcw = {
     );
 };
 
-module IconRotateCcwKey = {
+module IconRotateCcwClock = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "159eiq",
+      key: "1357e3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m14.5 9.5 1 1"),
+        LucideIconTypes.D("M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"),
       |],
     },
     {
-      key: "iirg3q",
+      key: "1xhq8a",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m15.5 8.5-4 4"),
+        LucideIconTypes.D("M3 3v5h5"),
+      |],
+    },
+    {
+      key: "1fdv2h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7v5l4 2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="rotate-ccw-clock",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconRotateCcwKey = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "lw1j43",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7v6"),
+      |],
+    },
+    {
+      key: "1lpap9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 9h2"),
       |],
     },
     {
@@ -68611,11 +81989,11 @@ module IconRotateCcwKey = {
       |],
     },
     {
-      key: "1239so",
+      key: "1vpstw",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("10"),
-        LucideIconTypes.Cy("14"),
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("15"),
         LucideIconTypes.R("2"),
       |],
     },
@@ -68722,6 +82100,151 @@ module IconRotateCw = {
   ) =>
     LucideIconRenderer.render(
       ~name="rotate-cw",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconRotateCwClock = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1fdv2h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7v5l4 2"),
+      |],
+    },
+    {
+      key: "1fyz0c",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 8h5V3"),
+      |],
+    },
+    {
+      key: "l7odlp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 8-2.3-2.3A9.7 9.7 0 0012 3a9 9 0 109 9"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="rotate-cw-clock",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconRotateCwFadingClock = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1k3kxf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 3a9.75 9.75 0 0 1 6.74 2.74"),
+      |],
+    },
+    {
+      key: "1eb40o",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18.74 5.74 21 8"),
+      |],
+    },
+    {
+      key: "1et280",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 8V3"),
+      |],
+    },
+    {
+      key: "19r0lp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.5 19.794c-6-3.464-6-12.124 0-15.588"),
+      |],
+    },
+    {
+      key: "s8r11",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.5 4.206A9 9 0 0 1 12 3"),
+      |],
+    },
+    {
+      key: "1fdv2h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7v5l4 2"),
+      |],
+    },
+    {
+      key: "184rgu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 20.775A9 9 0 0 1 12 21"),
+      |],
+    },
+    {
+      key: "7qgp6l",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 17.656a9 9 0 0 1-1.5 1.456"),
+      |],
+    },
+    {
+      key: "1h378y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 12a9 9 0 0 1-.228 2"),
+      |],
+    },
+    {
+      key: "k0yzmk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 8h-5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="rotate-cw-fading-clock",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -69192,6 +82715,68 @@ module IconRss = {
     );
 };
 
+module IconRugbyBall = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1twawc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m10 10 4 4"),
+      |],
+    },
+    {
+      key: "17f0qu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m13 7 4 4"),
+      |],
+    },
+    {
+      key: "7bv9ob",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.34 2.138A15 15 0 002.138 15.34c-.357 2.94.004 4.919.805 5.717.798.8 2.778 1.162 5.718.805A15 15 0 0021.862 8.661c.357-2.94-.004-4.92-.805-5.718-.798-.8-2.778-1.162-5.717-.805"),
+      |],
+    },
+    {
+      key: "15tmo1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 7 7 17"),
+      |],
+    },
+    {
+      key: "ir98si",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7 13 4 4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="rugby-ball",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconRuler = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -69344,17 +82929,17 @@ module IconRulerDimensionLine = {
 module IconRussianRuble = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "18ai8t",
+      key: "m3hhay",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 11h8a4 4 0 0 0 0-8H9v18"),
+        LucideIconTypes.D("M4 16h6"),
       |],
     },
     {
-      key: "1y8f6l",
+      key: "buy49y",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 15h8"),
+        LucideIconTypes.D("M7 20V5a1 1 0 011-1h6a4 4 0 010 8H4"),
       |],
     },
   |];
@@ -69433,6 +83018,20 @@ module IconSailboat = {
 module IconSalad = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
+      key: "zab2hg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19.496 12a2.5 2.5 0 00.399-2.214A2 2 0 0020.32 6.5 2 2 0 0019 3a2 2 0 00-1.5.68 2 2 0 00-3.287.424 2.5 2.5 0 00-3.189 2.06A3 3 0 0012 12l4-4"),
+      |],
+    },
+    {
+      key: "mjw0tp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 12a1 1 0 00-.99 1.133A9 9 0 0012 21a9 9 0 008.99-7.867A1 1 0 0020 12z"),
+      |],
+    },
+    {
       key: "1b0cd5",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -69440,31 +83039,10 @@ module IconSalad = {
       |],
     },
     {
-      key: "4rw317",
+      key: "2us4sn",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9Z"),
-      |],
-    },
-    {
-      key: "10xrj0",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M11.38 12a2.4 2.4 0 0 1-.4-4.77 2.4 2.4 0 0 1 3.2-2.77 2.4 2.4 0 0 1 3.47-.63 2.4 2.4 0 0 1 3.37 3.37 2.4 2.4 0 0 1-1.1 3.7 2.51 2.51 0 0 1 .03 1.1"),
-      |],
-    },
-    {
-      key: "1hckqy",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m13 12 4-4"),
-      |],
-    },
-    {
-      key: "1p4srx",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M10.9 7.25A3.99 3.99 0 0 0 4 10c0 .73.2 1.41.54 2"),
+        LucideIconTypes.D("M9.85 6.907A3.5 3.5 0 005.05 12"),
       |],
     },
   |];
@@ -69623,31 +83201,31 @@ module IconSatellite = {
 module IconSatelliteDish = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1fzpp3",
+      key: "9b1kp8",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 10a7.31 7.31 0 0 0 10 10Z"),
+        LucideIconTypes.D("M18 12a6 6 0 00-6-6"),
       |],
     },
     {
-      key: "88sc13",
+      key: "1jwhal",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m9 15 3-3"),
+        LucideIconTypes.D("M2.824 10.459a8 8 0 0010.717 10.717c.558-.276.623-1.012.183-1.452l-9.448-9.448c-.44-.44-1.176-.375-1.452.183"),
       |],
     },
     {
-      key: "15cc6u",
+      key: "m7rnro",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M17 13a6 6 0 0 0-6-6"),
+        LucideIconTypes.D("M22 12A10 10 0 0012 2"),
       |],
     },
     {
-      key: "11nf8s",
+      key: "1tjxz5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M21 13A10 10 0 0 0 11 3"),
+        LucideIconTypes.D("m9 15 4-4"),
       |],
     },
   |];
@@ -69678,31 +83256,31 @@ module IconSatelliteDish = {
 module IconSaudiRiyal = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1aenhr",
+      key: "1v3jsl",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m20 19.5-5.5 1.2"),
+        LucideIconTypes.D("M10 2.977v13.19a2 2 0 01-1.23 1.846L4 19.999"),
       |],
     },
     {
-      key: "2rtezt",
+      key: "nugghf",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14.5 4v11.22a1 1 0 0 0 1.242.97L20 15.2"),
+        LucideIconTypes.D("M14 4v9.523a1 1 0 001.371.928L19 13"),
       |],
     },
     {
-      key: "1kbm92",
+      key: "1vcw15",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m2.978 19.351 5.549-1.363A2 2 0 0 0 10 16V2"),
+        LucideIconTypes.D("m19 18-5 2"),
       |],
     },
     {
-      key: "8nums9",
+      key: "t5tnti",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20 10 4 13.5"),
+        LucideIconTypes.D("M19 8 4 14"),
       |],
     },
   |];
@@ -69833,6 +83411,61 @@ module IconSaveAll = {
     );
 };
 
+module IconSaveCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "6jbevg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10.2a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4v4.35"),
+      |],
+    },
+    {
+      key: "1b14m6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 19 2 2 4-4"),
+      |],
+    },
+    {
+      key: "1bzeol",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 15.13V14a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"),
+      |],
+    },
+    {
+      key: "t51u73",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 3v4a1 1 0 0 0 1 1h7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="save-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconSaveOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -69871,13 +83504,6 @@ module IconSaveOff = {
       |],
     },
     {
-      key: "zzn4i6",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M29.5 11.5s5 5 4 5"),
-      |],
-    },
-    {
       key: "24cby9",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -69898,6 +83524,123 @@ module IconSaveOff = {
   ) =>
     LucideIconRenderer.render(
       ~name="save-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSavePen = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "60fs50",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.33 13H8a1 1 0 00-1 1v7"),
+      |],
+    },
+    {
+      key: "dpj1he",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.363 17.634a2 2 0 00-.506.854l-.837 2.87a.5.5 0 00.62.62l2.87-.837a2 2 0 00.854-.506l4.013-4.009a1 1 0 10-3.004-3.004z"),
+      |],
+    },
+    {
+      key: "vkun1b",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 3v4a1 1 0 001 1h7"),
+      |],
+    },
+    {
+      key: "1oj3yb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h10.2a2 2 0 011.4.6l3.8 3.8a2 2 0 01.6 1.4v.3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="save-pen",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSavePlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "bhibzn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10.2a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V12"),
+      |],
+    },
+    {
+      key: "164ge7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 13H8a1 1 0 0 0-1 1v7"),
+      |],
+    },
+    {
+      key: "qhmiwi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 22v-6"),
+      |],
+    },
+    {
+      key: "vcuq98",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 19h-6"),
+      |],
+    },
+    {
+      key: "t51u73",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 3v4a1 1 0 0 0 1 1h7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="save-plus",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -70205,6 +83948,82 @@ module IconScanBarcode = {
   ) =>
     LucideIconRenderer.render(
       ~name="scan-barcode",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconScanBox = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1fezw7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12v5.5"),
+      |],
+    },
+    {
+      key: "sxhzt8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 3h2a2 2 0 012 2v2"),
+      |],
+    },
+    {
+      key: "b4b27w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 17v2a2 2 0 01-2 2h-2"),
+      |],
+    },
+    {
+      key: "5quapj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 7V5a2 2 0 012-2h2"),
+      |],
+    },
+    {
+      key: "rx7q13",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 21H5a2 2 0 01-2-2v-2"),
+      |],
+    },
+    {
+      key: "176tmc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.264 9.252 12 12l4.737-2.748"),
+      |],
+    },
+    {
+      key: "7zy66p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.995 8.514A2 2 0 007 10.244v3.516a2 2 0 00.996 1.73l3 1.74a2 2 0 002.008 0l3-1.74A2 2 0 0017 13.76v-3.517a2 2 0 00-.995-1.73l-3-1.742a2 2 0 00-1.892-.064z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="scan-box",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -70645,6 +84464,72 @@ module IconScanSearch = {
     );
 };
 
+module IconScanSquare = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "aa7l1z",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 7V5a2 2 0 0 1 2-2h2"),
+      |],
+    },
+    {
+      key: "4qcy5o",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 3h2a2 2 0 0 1 2 2v2"),
+      |],
+    },
+    {
+      key: "6vwrx8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 17v2a2 2 0 0 1-2 2h-2"),
+      |],
+    },
+    {
+      key: "ioqczr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 21H5a2 2 0 0 1-2-2v-2"),
+      |],
+    },
+    {
+      key: "69yp3k",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("8"),
+        LucideIconTypes.Height("8"),
+        LucideIconTypes.X("8"),
+        LucideIconTypes.Y("8"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="scan-square",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconScanText = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -70731,10 +84616,10 @@ module IconSchool = {
       |],
     },
     {
-      key: "1ethyx",
+      key: "tjwmp4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 5v16"),
+        LucideIconTypes.D("M18 4.933V21"),
       |],
     },
     {
@@ -70752,10 +84637,10 @@ module IconSchool = {
       |],
     },
     {
-      key: "1sn0nx",
+      key: "1ufz1j",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 5v16"),
+        LucideIconTypes.D("M6 4.933V21"),
       |],
     },
     {
@@ -70938,6 +84823,106 @@ module IconScissorsLineDashed = {
     );
 };
 
+module IconScooter = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1gktiw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 4h-3.5l2 11.05"),
+      |],
+    },
+    {
+      key: "1bq3u3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.95 17h5.142c.523 0 .95-.406 1.063-.916a6.5 6.5 0 0 1 5.345-5.009"),
+      |],
+    },
+    {
+      key: "e4zhv9",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("19.5"),
+        LucideIconTypes.Cy("17.5"),
+        LucideIconTypes.R("2.5"),
+      |],
+    },
+    {
+      key: "50vk4p",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("4.5"),
+        LucideIconTypes.Cy("17.5"),
+        LucideIconTypes.R("2.5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="scooter",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconScratchBlocks = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "fo9iu6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 5a2 2 0 012 2v11a2 2 0 01-2 2h-5.586a1 1 0 00-.707.293l-1.414 1.414a1 1 0 01-.707.293H8.414a1 1 0 01-.707-.293l-1.414-1.414A1 1 0 005.586 20H5a2 2 0 01-2-2V5.286c0-.394.11-.785.36-1.09a6 6 0 019.168-.133C12.996 4.6 13.637 5 14.35 5z"),
+      |],
+    },
+    {
+      key: "4ikqyq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 12h-7.586a1 1 0 00-.707.293l-1.414 1.414a1 1 0 01-.707.293H8.414a1 1 0 01-.707-.293l-1.414-1.414A1 1 0 005.586 12H3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="scratch-blocks",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconScreenShare = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -71051,6 +85036,68 @@ module IconScreenShareOff = {
   ) =>
     LucideIconRenderer.render(
       ~name="screen-share-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconScrew = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "fk50ew",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 9v10"),
+      |],
+    },
+    {
+      key: "1x1eb0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 13v2"),
+      |],
+    },
+    {
+      key: "151u8u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.5 10.5 5.706 21.294A2.4 2.4 0 014.002 22H2.5a.5.5 0 01-.5-.5v-1.502a2.4 2.4 0 01.706-1.704L13.5 7.5"),
+      |],
+    },
+    {
+      key: "6u8bap",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20.819 11.575a6 6 0 00.969-5.162.6.6 0 00-.981-.219l-.455.454a1.2 1.2 0 01-1.704 0l-1.296-1.296a1.2 1.2 0 010-1.704l.454-.453a.595.595 0 00-.219-.98 6 6 0 00-5.162.967 2 2 0 00-.222 3.019l5.596 5.597a2 2 0 003.02-.222"),
+      |],
+    },
+    {
+      key: "1f4euz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 13v8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="screw",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -71190,6 +85237,63 @@ module IconSearch = {
   ) =>
     LucideIconRenderer.render(
       ~name="search",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSearchAlert = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "4ej97u",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("11"),
+        LucideIconTypes.Cy("11"),
+        LucideIconTypes.R("8"),
+      |],
+    },
+    {
+      key: "1qie3q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 21-4.3-4.3"),
+      |],
+    },
+    {
+      key: "m2edmq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 7v4"),
+      |],
+    },
+    {
+      key: "k85uqc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 15h.01"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="search-alert",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -71941,6 +86045,79 @@ module IconServerCrash = {
     );
 };
 
+module IconServerNas = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "fb68vz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 16V8"),
+      |],
+    },
+    {
+      key: "gtc397",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 16V8"),
+      |],
+    },
+    {
+      key: "11p9wf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 16V8"),
+      |],
+    },
+    {
+      key: "c2rlol",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h.01"),
+      |],
+    },
+    {
+      key: "1pmjb7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 16h.01"),
+      |],
+    },
+    {
+      key: "izxlao",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("2"),
+        LucideIconTypes.Y("4"),
+        LucideIconTypes.Width("20"),
+        LucideIconTypes.Height("16"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="server-nas",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconServerOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -71999,6 +86176,75 @@ module IconServerOff = {
   ) =>
     LucideIconRenderer.render(
       ~name="server-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconServerPlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "s66i12",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.5 10H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2"),
+      |],
+    },
+    {
+      key: "15xry1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 12h6"),
+      |],
+    },
+    {
+      key: "1kf5t6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 9v6"),
+      |],
+    },
+    {
+      key: "lo70fm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 18v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h8.5"),
+      |],
+    },
+    {
+      key: "uhywen",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 18h.01"),
+      |],
+    },
+    {
+      key: "1utrut",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 6h.01"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="server-plus",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -72401,6 +86647,82 @@ module IconShell = {
     );
 };
 
+module IconShelvingUnit = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "wiz68x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12V9a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"),
+      |],
+    },
+    {
+      key: "1b59c4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 20v-3a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v3"),
+      |],
+    },
+    {
+      key: "1bnhr8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 22V2"),
+      |],
+    },
+    {
+      key: "1lakjw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 12h16"),
+      |],
+    },
+    {
+      key: "14thso",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 20h16"),
+      |],
+    },
+    {
+      key: "gtpd5x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 2v20"),
+      |],
+    },
+    {
+      key: "1bkgr1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 4h16"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="shelving-unit",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconShield = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -72565,6 +86887,204 @@ module IconShieldCheck = {
     );
 };
 
+module IconShieldCog = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "hdyevy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m10.929 14.467-.383.924"),
+      |],
+    },
+    {
+      key: "1nr44d",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.929 8.923 10.546 8"),
+      |],
+    },
+    {
+      key: "aewley",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.225 8.923 13.608 8"),
+      |],
+    },
+    {
+      key: "m37gf1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m13.607 15.391-.382-.924"),
+      |],
+    },
+    {
+      key: "1d3c4q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m14.849 10.547.923-.383"),
+      |],
+    },
+    {
+      key: "lmvhy3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m14.849 12.843.923.383"),
+      |],
+    },
+    {
+      key: "oel41y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"),
+      |],
+    },
+    {
+      key: "1d13ox",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9.305 10.547-.923-.383"),
+      |],
+    },
+    {
+      key: "7wxwh5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9.305 12.843-.923.383"),
+      |],
+    },
+    {
+      key: "fse9k8",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12.077"),
+        LucideIconTypes.Cy("11.695"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="shield-cog",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconShieldCogCorner = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "hf1sz5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 22c-3.806-1.45-7-3.966-7-9V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1v4"),
+      |],
+    },
+    {
+      key: "41f878",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.923 16.547 14 16.164"),
+      |],
+    },
+    {
+      key: "82rvv5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m14.923 18.843-.923.383"),
+      |],
+    },
+    {
+      key: "1r7ypn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.547 14.923 16.164 14"),
+      |],
+    },
+    {
+      key: "au4kyj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.547 20.467-.383.924"),
+      |],
+    },
+    {
+      key: "1cbrwq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18.843 14.923.383-.923"),
+      |],
+    },
+    {
+      key: "1u2bh9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.225 21.391-.382-.924"),
+      |],
+    },
+    {
+      key: "cprboc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.467 16.547.923-.383"),
+      |],
+    },
+    {
+      key: "inm8l2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.467 18.843.923.383"),
+      |],
+    },
+    {
+      key: "1i1rmh",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("17.695"),
+        LucideIconTypes.Cy("17.695"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="shield-cog-corner",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconShieldEllipsis = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -72650,6 +87170,156 @@ module IconShieldHalf = {
   ) =>
     LucideIconRenderer.render(
       ~name="shield-half",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconShieldHouse = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "jqwun0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 22a1 1 0 01-1-1v-4a1 1 0 01.445-.832l3-2a1 1 0 011.11 0l3 2A1 1 0 0122 17v4a1 1 0 01-1 1z"),
+      |],
+    },
+    {
+      key: "1t1ugv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 22v-3"),
+      |],
+    },
+    {
+      key: "yw0ofp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 10.418V6a1 1 0 00-1-1c-2 0-4.49-1.19-6.24-2.72a1.17 1.17 0 00-1.52 0C9.5 3.8 7 5 5 5a1 1 0 00-1 1v7c0 4.602 2.67 7.1 6.037 8.603"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="shield-house",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconShieldKeyhole = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "gkc6qb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 13v3"),
+      |],
+    },
+    {
+      key: "1buusj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 01-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 011-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 011.52 0C14.51 3.81 17 5 19 5a1 1 0 011 1z"),
+      |],
+    },
+    {
+      key: "1yggc4",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("11"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="shield-keyhole",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconShieldLock = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1gl1o4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 9.807V6a1 1 0 00-1-1c-2 0-4.49-1.19-6.24-2.72a1.17 1.17 0 00-1.52 0C9.5 3.8 7 5 5 5a1 1 0 00-1 1v7c0 3.88 2.107 6.254 5 7.796"),
+      |],
+    },
+    {
+      key: "uefur0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 17v-2a2 2 0 00-4 0v2"),
+      |],
+    },
+    {
+      key: "2y8vuh",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("13"),
+        LucideIconTypes.Y("17"),
+        LucideIconTypes.Width("8"),
+        LucideIconTypes.Height("5"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="shield-lock",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -72947,38 +87617,38 @@ module IconShieldX = {
 module IconShip = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1p8cqu",
+      key: "tus03m",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 10.189V14"),
+        LucideIconTypes.D("M12 2v2"),
       |],
     },
     {
-      key: "qbqxhf",
+      key: "yp40p3",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 2v3"),
+        LucideIconTypes.D("M12 9.189V13"),
       |],
     },
     {
-      key: "qpkstq",
+      key: "1wcigf",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"),
+        LucideIconTypes.D("M19 12V6a2 2 0 00-2-2H7a2 2 0 00-2 2v6"),
       |],
     },
     {
-      key: "7tigtc",
+      key: "1kdp0u",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19.38 20A11.6 11.6 0 0 0 21 14l-8.188-3.639a2 2 0 0 0-1.624 0L3 14a11.6 11.6 0 0 0 2.81 7.76"),
+        LucideIconTypes.D("M19.38 19A11.6 11.6 0 0021 13l-8.188-3.639a2 2 0 00-1.624 0L3 13.001a11.6 11.6 0 002.81 7.76"),
       |],
     },
     {
-      key: "1924j5",
+      key: "1l8w7g",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"),
+        LucideIconTypes.D("M2 20c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"),
       |],
     },
   |];
@@ -72995,6 +87665,68 @@ module IconShip = {
   ) =>
     LucideIconRenderer.render(
       ~name="ship",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconShipCargo = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1rb51w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 15v-3"),
+      |],
+    },
+    {
+      key: "tus03m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v2"),
+      |],
+    },
+    {
+      key: "1byvar",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.5 12V9a1 1 0 011-1h1a1 1 0 001-1V5a1 1 0 00-1-1h-13a1 1 0 00-1 1v2a1 1 0 001 1h1a1 1 0 011 1v3"),
+      |],
+    },
+    {
+      key: "1kvu1n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19.38 19c1.076-1.815 1.636-4.89 1.628-6.008a1 1 0 00-1-.992H3.984a1 1 0 00-1 .984c-.03 1.86.97 5.621 2.826 7.776"),
+      |],
+    },
+    {
+      key: "1l8w7g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 20c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="ship-cargo",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -73268,28 +88000,35 @@ module IconShoppingBasket = {
 module IconShoppingCart = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "jimo8o",
+      key: "uebgi3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2.05 2.05 1.099-.028a1 1 0 0 1 1.008.815l2.69 14.347A1 1 0 0 0 7.83 18H18"),
+      |],
+    },
+    {
+      key: "1j7c9p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.563 5h16.435a1 1 0 0 1 .981 1.204l-1.026 6.226A2 2 0 0 1 18.962 14H6.25"),
+      |],
+    },
+    {
+      key: "t9985n",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("20"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "ckkr5m",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("8"),
-        LucideIconTypes.Cy("21"),
-        LucideIconTypes.R("1"),
-      |],
-    },
-    {
-      key: "13723u",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("19"),
-        LucideIconTypes.Cy("21"),
-        LucideIconTypes.R("1"),
-      |],
-    },
-    {
-      key: "9zh506",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"),
+        LucideIconTypes.Cy("20"),
+        LucideIconTypes.R("2"),
       |],
     },
   |];
@@ -73306,6 +88045,159 @@ module IconShoppingCart = {
   ) =>
     LucideIconRenderer.render(
       ~name="shopping-cart",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconShoppingCartMinus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1vod17",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 5h6"),
+      |],
+    },
+    {
+      key: "ppm817",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2.05 2.05 1.099-.028a1 1 0 011.008.815l2.69 14.347A1 1 0 007.83 18H18"),
+      |],
+    },
+    {
+      key: "11wyuq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.564 5H12"),
+      |],
+    },
+    {
+      key: "zs85e",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.25 14h12.712a2 2 0 001.991-1.57l.514-3.113"),
+      |],
+    },
+    {
+      key: "t9985n",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("20"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "ckkr5m",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("8"),
+        LucideIconTypes.Cy("20"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="shopping-cart-minus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconShoppingCartPlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1vod17",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 5h6"),
+      |],
+    },
+    {
+      key: "4bpg5p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 2v6"),
+      |],
+    },
+    {
+      key: "ppm817",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2.05 2.05 1.099-.028a1 1 0 011.008.815l2.69 14.347A1 1 0 007.83 18H18"),
+      |],
+    },
+    {
+      key: "11wyuq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4.564 5H12"),
+      |],
+    },
+    {
+      key: "q079k2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.25 14h12.712a2 2 0 001.991-1.57l.172-1.041"),
+      |],
+    },
+    {
+      key: "t9985n",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("20"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "ckkr5m",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("8"),
+        LucideIconTypes.Cy("20"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="shopping-cart-plus",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -73541,38 +88433,38 @@ module IconShredder = {
 module IconShrimp = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1lr4k6",
+      key: "17dh52",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11 12h.01"),
+        LucideIconTypes.D("M10 2a3.28 3.28 0 003.227 1.798l6.17-.561A1 1 0 1119.614 8H8.5a6.44 6.44 0 00-5.63 9.75A6.5 6.5 0 008.5 21c1.38 0 2-.5 2.5-1"),
       |],
     },
     {
-      key: "fatpdi",
+      key: "vsnxbr",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M13 22c.5-.5 1.12-1 2.5-1-1.38 0-2-.5-2.5-1"),
+        LucideIconTypes.D("M10 8a8.5 8.5 0 000 8"),
       |],
     },
     {
-      key: "kehrqe",
+      key: "lzdhj4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14 2a3.28 3.28 0 0 1-3.227 1.798l-6.17-.561A2.387 2.387 0 1 0 4.387 8H15.5a1 1 0 0 1 0 13 1 1 0 0 0 0-5H12a7 7 0 0 1-7-7V8"),
+        LucideIconTypes.D("M11 22c-.5-.5-1.12-1-2.5-1a1 1 0 010-5H12a7 7 0 007-7V8"),
       |],
     },
     {
-      key: "1imjx2",
+      key: "1nih16",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14 8a8.5 8.5 0 0 1 0 8"),
+        LucideIconTypes.D("M13 12h.01"),
       |],
     },
     {
-      key: "z0nejz",
+      key: "1f5g8v",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 16c2 0 4.5-4 4-6"),
+        LucideIconTypes.D("M8 16c-2 0-4.5-4-4-6"),
       |],
     },
   |];
@@ -73589,6 +88481,82 @@ module IconShrimp = {
   ) =>
     LucideIconRenderer.render(
       ~name="shrimp",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconShrimpOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1y5dzy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 2a3.28 3.28 0 003.227 1.798l6.17-.561A1 1 0 1119.614 8H13.5"),
+      |],
+    },
+    {
+      key: "rkxng5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 20c-.5.5-1.12 1-2.5 1a1 1 0 010-5H12a7 7 0 003.283-.817"),
+      |],
+    },
+    {
+      key: "1arf7n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 22c-.5-.5-1.12-1-2.5-1a6.5 6.5 0 01-5.63-3.25 6.44 6.44 0 015.236-9.744"),
+      |],
+    },
+    {
+      key: "10qvq6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18.04 12.54A7 7 0 0019 9V8"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "1f5g8v",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 16c-2 0-4.5-4-4-6"),
+      |],
+    },
+    {
+      key: "1wfq5e",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.43 9.33A8.5 8.5 0 0010 16"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="shrimp-off",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -74097,10 +89065,10 @@ module IconSignpost = {
       |],
     },
     {
-      key: "gqqp9m",
+      key: "1tm261",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 6a2 2 0 0 1 1.387.56l2.307 2.22a1 1 0 0 1 0 1.44l-2.307 2.22A2 2 0 0 1 18 13H6a2 2 0 0 1-1.387-.56l-2.306-2.22a1 1 0 0 1 0-1.44l2.306-2.22A2 2 0 0 1 6 6z"),
+        LucideIconTypes.D("M2.354 10.354a1.207 1.207 0 0 1 0-1.708l2.06-2.06A2 2 0 0 1 5.828 6h12.344a2 2 0 0 1 1.414.586l2.06 2.06a1.207 1.207 0 0 1 0 1.708l-2.06 2.06a2 2 0 0 1-1.414.586H5.828a2 2 0 0 1-1.414-.586z"),
       |],
     },
   |];
@@ -74266,6 +89234,155 @@ module IconSiren = {
     );
 };
 
+module IconSirenOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "3ahymv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12v6"),
+      |],
+    },
+    {
+      key: "11qlp1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v1"),
+      |],
+    },
+    {
+      key: "15s6xm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.707 7.05a5 5 0 0 1 4.243 4.243"),
+      |],
+    },
+    {
+      key: "10n5bo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 17v1H7a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2"),
+      |],
+    },
+    {
+      key: "g5sp9y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18.5 4.5 18 5"),
+      |],
+    },
+    {
+      key: "1uaihz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12h1"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "jtio3y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 12h1"),
+      |],
+    },
+    {
+      key: "3ca0xp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 18v-6a5 5 0 0 1 1.464-3.536"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="siren-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSixteenthNotes = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "uy6ho8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 16V3a1 1 0 0 0-1.28-.96l-10 2.917a1 1 0 0 0-.72.96V19"),
+      |],
+    },
+    {
+      key: "1w47ha",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 6 9 9.5"),
+      |],
+    },
+    {
+      key: "1hluhg",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("16"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "1kj8tv",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("6"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="sixteenth-notes",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconSkipBack = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -74396,105 +89513,6 @@ module IconSkull = {
   ) =>
     LucideIconRenderer.render(
       ~name="skull",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconSlack = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "diqz80",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("3"),
-        LucideIconTypes.Height("8"),
-        LucideIconTypes.X("13"),
-        LucideIconTypes.Y("2"),
-        LucideIconTypes.Rx("1.5"),
-      |],
-    },
-    {
-      key: "183iwg",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M19 8.5V10h1.5A1.5 1.5 0 1 0 19 8.5"),
-      |],
-    },
-    {
-      key: "hqg7r1",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("3"),
-        LucideIconTypes.Height("8"),
-        LucideIconTypes.X("8"),
-        LucideIconTypes.Y("14"),
-        LucideIconTypes.Rx("1.5"),
-      |],
-    },
-    {
-      key: "76g71w",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M5 15.5V14H3.5A1.5 1.5 0 1 0 5 15.5"),
-      |],
-    },
-    {
-      key: "1kmz0a",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("8"),
-        LucideIconTypes.Height("3"),
-        LucideIconTypes.X("14"),
-        LucideIconTypes.Y("13"),
-        LucideIconTypes.Rx("1.5"),
-      |],
-    },
-    {
-      key: "jc4sz0",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M15.5 19H14v1.5a1.5 1.5 0 1 0 1.5-1.5"),
-      |],
-    },
-    {
-      key: "1omvl4",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("8"),
-        LucideIconTypes.Height("3"),
-        LucideIconTypes.X("2"),
-        LucideIconTypes.Y("8"),
-        LucideIconTypes.Rx("1.5"),
-      |],
-    },
-    {
-      key: "16f3cl",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8.5 5H10V3.5A1.5 1.5 0 1 0 8.5 5"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="slack",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -74905,42 +89923,36 @@ module IconSmartphoneNfc = {
     );
 };
 
-module IconSmile = {
+module IconSmartphoneUserRound = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1mglay",
+      key: "106ik5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 22H6a2 2 0 01-2-2V4a2 2 0 012-2h10a2 2 0 012 2v4"),
+      |],
+    },
+    {
+      key: "qvdchl",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 18h.01"),
+      |],
+    },
+    {
+      key: "z7lshv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 22a4 4 0 00-8 0"),
+      |],
+    },
+    {
+      key: "gjjjvw",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("10"),
-      |],
-    },
-    {
-      key: "1y1vjs",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 14s1.5 2 4 2 4-2 4-2"),
-      |],
-    },
-    {
-      key: "yxxnd0",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("9"),
-        LucideIconTypes.X2("9.01"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("9"),
-      |],
-    },
-    {
-      key: "1p4y9e",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("15"),
-        LucideIconTypes.X2("15.01"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("9"),
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("15"),
+        LucideIconTypes.R("3"),
       |],
     },
   |];
@@ -74956,82 +89968,7 @@ module IconSmile = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="smile",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconSmilePlus = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "ew0xw9",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M22 11v1a10 10 0 1 1-9-10"),
-      |],
-    },
-    {
-      key: "1y1vjs",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 14s1.5 2 4 2 4-2 4-2"),
-      |],
-    },
-    {
-      key: "yxxnd0",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("9"),
-        LucideIconTypes.X2("9.01"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("9"),
-      |],
-    },
-    {
-      key: "1p4y9e",
-      tag: LucideIconTypes.Line,
-      attrs: [|
-        LucideIconTypes.X1("15"),
-        LucideIconTypes.X2("15.01"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("9"),
-      |],
-    },
-    {
-      key: "1vod17",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 5h6"),
-      |],
-    },
-    {
-      key: "4bpg5p",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M19 2v6"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="smile-plus",
+      ~name="smartphone-user-round",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -75414,17 +90351,17 @@ module IconSolarPanel = {
 module IconSoup = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "4rw317",
+      key: "1upgzp",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9Z"),
+        LucideIconTypes.D("M11.248 3c.273.1.808.53.747 1.36-.05.83-.938 1.2-.989 2.02-.06.78.333 1.24.727 1.62"),
       |],
     },
     {
-      key: "1b0cd5",
+      key: "1cendu",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 21h10"),
+        LucideIconTypes.D("M16.252 3c.268.1.794.53.745 1.36-.06.83-.923 1.2-.993 2.02-.05.78.338 1.24.725 1.62"),
       |],
     },
     {
@@ -75435,24 +90372,24 @@ module IconSoup = {
       |],
     },
     {
-      key: "rpc6vp",
+      key: "mjw0tp",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16.25 3c.27.1.8.53.75 1.36-.06.83-.93 1.2-1 2.02-.05.78.34 1.24.73 1.62"),
+        LucideIconTypes.D("M4 12a1 1 0 00-.99 1.133A9 9 0 0012 21a9 9 0 008.99-7.867A1 1 0 0020 12z"),
       |],
     },
     {
-      key: "1lf63m",
+      key: "q4b97x",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11.25 3c.27.1.8.53.74 1.36-.05.83-.93 1.2-.98 2.02-.06.78.33 1.24.72 1.62"),
+        LucideIconTypes.D("M6.252 3c.268.1.794.53.745 1.36-.06.83-.923 1.2-.993 2.02-.05.78.338 1.24.735 1.62"),
       |],
     },
     {
-      key: "97tijn",
+      key: "1b0cd5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6.25 3c.27.1.8.53.75 1.36-.06.83-.93 1.2-1 2.02-.05.78.34 1.24.74 1.62"),
+        LucideIconTypes.D("M7 21h10"),
       |],
     },
   |];
@@ -75758,24 +90695,24 @@ module IconSpeech = {
 module IconSpellCheck = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1b4byz",
+      key: "6ytzne",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m6 16 6-12 6 12"),
+        LucideIconTypes.D("m20 15-5.5 5.5L12 18"),
       |],
     },
     {
-      key: "1wcyev",
+      key: "fyukjg",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 12h8"),
+        LucideIconTypes.D("m4 16 6-12 5.115 10.23"),
       |],
     },
     {
-      key: "13tcca",
+      key: "1hdiqa",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m16 20 2 2 4-4"),
+        LucideIconTypes.D("M6 12h8"),
       |],
     },
   |];
@@ -76047,6 +90984,54 @@ module IconSpool = {
   ) =>
     LucideIconRenderer.render(
       ~name="spool",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSportShoe = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "10at9d",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15 10.42 4.8-5.07"),
+      |],
+    },
+    {
+      key: "nnkd4d",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 18h3"),
+      |],
+    },
+    {
+      key: "v410ed",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.5 22 21.414 9.415A2 2 0 0 0 21.2 6.4l-5.61-4.208A1 1 0 0 0 14 3v2a2 2 0 0 1-1.394 1.906L8.677 8.053A1 1 0 0 0 8 9c-.155 6.393-2.082 9-4 9a2 2 0 0 0 0 4h14"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="sport-shoe",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -76406,28 +91391,28 @@ module IconSquareArrowDown = {
 module IconSquareArrowDownLeft = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "afitv7",
+      key: "1w52wt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 15H9l6-6"),
+      |],
+    },
+    {
+      key: "1kwqze",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 15V9"),
+      |],
+    },
+    {
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.Width("18"),
-        LucideIconTypes.Height("18"),
         LucideIconTypes.X("3"),
         LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
         LucideIconTypes.Rx("2"),
-      |],
-    },
-    {
-      key: "166keh",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m16 8-8 8"),
-      |],
-    },
-    {
-      key: "1w2ppm",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 16H8V8"),
       |],
     },
   |];
@@ -76458,28 +91443,28 @@ module IconSquareArrowDownLeft = {
 module IconSquareArrowDownRight = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "afitv7",
+      key: "qb9ybb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 15 9 9"),
+      |],
+    },
+    {
+      key: "1wezwn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 15h6V9"),
+      |],
+    },
+    {
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.Width("18"),
-        LucideIconTypes.Height("18"),
         LucideIconTypes.X("3"),
         LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
         LucideIconTypes.Rx("2"),
-      |],
-    },
-    {
-      key: "1imecy",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m8 8 8 8"),
-      |],
-    },
-    {
-      key: "1lbpgo",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 8v8H8"),
       |],
     },
   |];
@@ -76803,6 +91788,102 @@ module IconSquareArrowRight = {
     );
 };
 
+module IconSquareArrowRightEnter = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "w9835o",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m10 16 4-4-4-4"),
+      |],
+    },
+    {
+      key: "pmja8f",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12h11"),
+      |],
+    },
+    {
+      key: "1bqs5q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 8V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-arrow-right-enter",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareArrowRightExit = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "6m4ad9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 12h11"),
+      |],
+    },
+    {
+      key: "iin4zf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m17 16 4-4-4-4"),
+      |],
+    },
+    {
+      key: "1ojbhp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 6.344V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1.344"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-arrow-right-exit",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconSquareArrowUp = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -76858,28 +91939,28 @@ module IconSquareArrowUp = {
 module IconSquareArrowUpLeft = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "afitv7",
+      key: "qb9ybb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 15 9 9"),
+      |],
+    },
+    {
+      key: "1pdr5l",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 15V9h6"),
+      |],
+    },
+    {
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.Width("18"),
-        LucideIconTypes.Height("18"),
         LucideIconTypes.X("3"),
         LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
         LucideIconTypes.Rx("2"),
-      |],
-    },
-    {
-      key: "19xb1h",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 16V8h8"),
-      |],
-    },
-    {
-      key: "1qdy8n",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16 16 8 8"),
       |],
     },
   |];
@@ -76910,28 +91991,28 @@ module IconSquareArrowUpLeft = {
 module IconSquareArrowUpRight = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "afitv7",
+      key: "vxyd2h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 15V9H9"),
+      |],
+    },
+    {
+      key: "1ygkhp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 15 6-6"),
+      |],
+    },
+    {
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.Width("18"),
-        LucideIconTypes.Height("18"),
         LucideIconTypes.X("3"),
         LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
         LucideIconTypes.Rx("2"),
-      |],
-    },
-    {
-      key: "b65dnt",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 8h8v8"),
-      |],
-    },
-    {
-      key: "13b9ih",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m8 16 8-8"),
       |],
     },
   |];
@@ -77018,66 +92099,111 @@ module IconSquareAsterisk = {
     );
 };
 
+module IconSquareBookmark = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1rbn6x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 3v7.751a.25.25 0 00.407.195l2.28-1.834a.5.5 0 01.627 0l2.28 1.834a.25.25 0 00.406-.195V3"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-bookmark",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconSquareBottomDashedScissors = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1vzg26",
+      key: "v9vybs",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2"),
+        LucideIconTypes.D("M14 21h1"),
       |],
     },
     {
-      key: "euku7a",
+      key: "1y7dt1",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 22H8"),
+        LucideIconTypes.D("m17 17-2.18-2.18"),
       |],
     },
     {
-      key: "18d249",
+      key: "2q1jq4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 22h-2"),
+        LucideIconTypes.D("M5 21a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2"),
       |],
     },
     {
-      key: "14cg06",
+      key: "15o7lz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 21h1"),
+      |],
+    },
+    {
+      key: "ue8l15",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.56 14.44 17 7"),
+      |],
+    },
+    {
+      key: "rml9qv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.56 9.56 12 12"),
+      |],
+    },
+    {
+      key: "12hfy1",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("8"),
-        LucideIconTypes.Cy("8"),
-        LucideIconTypes.R("2"),
+        LucideIconTypes.Cx("8.5"),
+        LucideIconTypes.Cy("15.5"),
+        LucideIconTypes.R("1.5"),
       |],
     },
     {
-      key: "qz4lzr",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9.414 9.414 12 12"),
-      |],
-    },
-    {
-      key: "11flf1",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M14.8 14.8 18 18"),
-      |],
-    },
-    {
-      key: "1acxsx",
+      key: "cn5opk",
       tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.Cx("8"),
-        LucideIconTypes.Cy("16"),
-        LucideIconTypes.R("2"),
-      |],
-    },
-    {
-      key: "11kzk1",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m18 6-8.586 8.586"),
+        LucideIconTypes.Cx("8.5"),
+        LucideIconTypes.Cy("8.5"),
+        LucideIconTypes.R("1.5"),
       |],
     },
   |];
@@ -77094,6 +92220,144 @@ module IconSquareBottomDashedScissors = {
   ) =>
     LucideIconRenderer.render(
       ~name="square-bottom-dashed-scissors",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareCenterlineDashedHorizontal = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1i73f7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"),
+      |],
+    },
+    {
+      key: "saxlbk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"),
+      |],
+    },
+    {
+      key: "1lh1kg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 20v2"),
+      |],
+    },
+    {
+      key: "8jcxud",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 14v2"),
+      |],
+    },
+    {
+      key: "1woqiv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 8v2"),
+      |],
+    },
+    {
+      key: "tus03m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-centerline-dashed-horizontal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareCenterlineDashedVertical = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "14bfxa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"),
+      |],
+    },
+    {
+      key: "14rx03",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3"),
+      |],
+    },
+    {
+      key: "rhcxmi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 12H2"),
+      |],
+    },
+    {
+      key: "s88cx1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 12H8"),
+      |],
+    },
+    {
+      key: "10asgb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 12h-2"),
+      |],
+    },
+    {
+      key: "14jgyd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 12h-2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-centerline-dashed-vertical",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -77178,10 +92442,10 @@ module IconSquareCheck = {
       |],
     },
     {
-      key: "dzmm74",
+      key: "xofnsj",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m9 12 2 2 4-4"),
+        LucideIconTypes.D("m16 9-5.5 5.5L8 12"),
       |],
     },
   |];
@@ -77419,6 +92683,214 @@ module IconSquareChevronUp = {
   ) =>
     LucideIconRenderer.render(
       ~name="square-chevron-up",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareChevronsDown = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "hpyt1r",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 14L12 17L15 14"),
+      |],
+    },
+    {
+      key: "19orua",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 8L12 11L15 8"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-chevrons-down",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareChevronsLeft = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "yiqvdq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 9L7 12L10 15"),
+      |],
+    },
+    {
+      key: "1czhyg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 9L13 12L16 15"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-chevrons-left",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareChevronsRight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1hxjqw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 15L17 12L14 9"),
+      |],
+    },
+    {
+      key: "1wss1f",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 15L11 12L8 9"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-chevrons-right",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareChevronsUp = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "x6fbge",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 10L12 7L9 10"),
+      |],
+    },
+    {
+      key: "ouerij",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 16L12 13L9 16"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-chevrons-up",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -77932,6 +93404,263 @@ module IconSquareDashedMousePointer = {
     );
 };
 
+module IconSquareDashedPlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "y57alp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 3a2 2 0 0 0-2 2"),
+      |],
+    },
+    {
+      key: "18rm91",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 3a2 2 0 0 1 2 2"),
+      |],
+    },
+    {
+      key: "1j7049",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 19a2 2 0 0 1-2 2"),
+      |],
+    },
+    {
+      key: "sbafld",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 21a2 2 0 0 1-2-2"),
+      |],
+    },
+    {
+      key: "1yesri",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 3h1"),
+      |],
+    },
+    {
+      key: "15o7lz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 21h1"),
+      |],
+    },
+    {
+      key: "1ec4yj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 3h1"),
+      |],
+    },
+    {
+      key: "v9vybs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 21h1"),
+      |],
+    },
+    {
+      key: "1r0deq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9v1"),
+      |],
+    },
+    {
+      key: "mxsmne",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 9v1"),
+      |],
+    },
+    {
+      key: "vnatye",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 14v1"),
+      |],
+    },
+    {
+      key: "169vum",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 14v1"),
+      |],
+    },
+    {
+      key: "1wcyev",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 12h8"),
+      |],
+    },
+    {
+      key: "napkw2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 8v8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-dashed-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareDashedText = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "v9vybs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 21h1"),
+      |],
+    },
+    {
+      key: "1ec4yj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 3h1"),
+      |],
+    },
+    {
+      key: "18rm91",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 3a2 2 0 0 1 2 2"),
+      |],
+    },
+    {
+      key: "169vum",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 14v1"),
+      |],
+    },
+    {
+      key: "1j7049",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 19a2 2 0 0 1-2 2"),
+      |],
+    },
+    {
+      key: "mxsmne",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 9v1"),
+      |],
+    },
+    {
+      key: "vnatye",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 14v1"),
+      |],
+    },
+    {
+      key: "1r0deq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9v1"),
+      |],
+    },
+    {
+      key: "sbafld",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 21a2 2 0 0 1-2-2"),
+      |],
+    },
+    {
+      key: "y57alp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 3a2 2 0 0 0-2 2"),
+      |],
+    },
+    {
+      key: "b7w52i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 12h10"),
+      |],
+    },
+    {
+      key: "1vyc9m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 16h6"),
+      |],
+    },
+    {
+      key: "1jbsf9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 8h8"),
+      |],
+    },
+    {
+      key: "15o7lz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 21h1"),
+      |],
+    },
+    {
+      key: "1yesri",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 3h1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-dashed-text",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconSquareDashedTopSolid = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -78011,6 +93740,287 @@ module IconSquareDashedTopSolid = {
   ) =>
     LucideIconRenderer.render(
       ~name="square-dashed-top-solid",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareDashedX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "v9vybs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 21h1"),
+      |],
+    },
+    {
+      key: "1ec4yj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 3h1"),
+      |],
+    },
+    {
+      key: "165vzh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 3a2 2 0 012 2"),
+      |],
+    },
+    {
+      key: "169vum",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 14v1"),
+      |],
+    },
+    {
+      key: "9nkj6p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 19a2 2 0 01-2 2"),
+      |],
+    },
+    {
+      key: "mxsmne",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 9v1"),
+      |],
+    },
+    {
+      key: "vnatye",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 14v1"),
+      |],
+    },
+    {
+      key: "1r0deq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9v1"),
+      |],
+    },
+    {
+      key: "y6v07l",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 21a2 2 0 01-2-2"),
+      |],
+    },
+    {
+      key: "xbjhl9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 3a2 2 0 00-2 2"),
+      |],
+    },
+    {
+      key: "1ygkhp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 15 6-6"),
+      |],
+    },
+    {
+      key: "15o7lz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 21h1"),
+      |],
+    },
+    {
+      key: "1yesri",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 3h1"),
+      |],
+    },
+    {
+      key: "z0biqf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 9 6 6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-dashed-x",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareDashedXCorner = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ec4yj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 3h1"),
+      |],
+    },
+    {
+      key: "8tpb07",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 16 5 5"),
+      |],
+    },
+    {
+      key: "165vzh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 3a2 2 0 012 2"),
+      |],
+    },
+    {
+      key: "kplof2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 16-5 5"),
+      |],
+    },
+    {
+      key: "mxsmne",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 9v1"),
+      |],
+    },
+    {
+      key: "vnatye",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 14v1"),
+      |],
+    },
+    {
+      key: "1r0deq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9v1"),
+      |],
+    },
+    {
+      key: "y6v07l",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 21a2 2 0 01-2-2"),
+      |],
+    },
+    {
+      key: "xbjhl9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 3a2 2 0 00-2 2"),
+      |],
+    },
+    {
+      key: "15o7lz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 21h1"),
+      |],
+    },
+    {
+      key: "1yesri",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 3h1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-dashed-x-corner",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareDimensions = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "ow32kf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7H7v5"),
+      |],
+    },
+    {
+      key: "1biuiz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 17h5v-5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-dimensions",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -78190,6 +94200,64 @@ module IconSquareEqual = {
     );
 };
 
+module IconSquareExclamationPoint = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "1pkeuh",
+      tag: LucideIconTypes.Line,
+      attrs: [|
+        LucideIconTypes.X1("12"),
+        LucideIconTypes.X2("12"),
+        LucideIconTypes.Y1("8"),
+        LucideIconTypes.Y2("12"),
+      |],
+    },
+    {
+      key: "4dfq90",
+      tag: LucideIconTypes.Line,
+      attrs: [|
+        LucideIconTypes.X1("12"),
+        LucideIconTypes.X2("12.01"),
+        LucideIconTypes.Y1("16"),
+        LucideIconTypes.Y2("16"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-exclamation-point",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconSquareFunction = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -78302,6 +94370,1395 @@ module IconSquareKanban = {
     );
 };
 
+module IconSquareKanbanPlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "xawao1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7v4"),
+      |],
+    },
+    {
+      key: "1bm62u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.354 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v7.354"),
+      |],
+    },
+    {
+      key: "3b3c90",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 18h6"),
+      |],
+    },
+    {
+      key: "ywnmwr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 7v4.536"),
+      |],
+    },
+    {
+      key: "19ny4e",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 21v-6"),
+      |],
+    },
+    {
+      key: "1x2jlm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 7v7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-kanban-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterA = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "26tkhz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m8 16 3.453-7.648a.6.6 0 0 1 1.094 0L16 16"),
+      |],
+    },
+    {
+      key: "u4f7rb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 14H9"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-a",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterB = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "10umad",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h4.846a2.24 2.24 0 011.523.586 2 2 0 01.001 2.828 2.24 2.24 0 01-1.524.586H9.5a.5.5 0 01-.5-.5v-7a.5.5 0 01.5-.5H13a2 2 0 010 4"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-b",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterC = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "8xfhbo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 9.354a4 4 0 1 0 0 5.292"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-c",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterD = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1jpkd7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 8a4 4 0 010 8H9.412A.41.41 0 019 15.588V8.412A.41.41 0 019.412 8z"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-d",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterE = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1qch15",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 8H9.5a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .5.5H15"),
+      |],
+    },
+    {
+      key: "wrur8x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h4"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-e",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterF = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "14bvk2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16V8.5a.5.5 0 0 1 .5-.5H15"),
+      |],
+    },
+    {
+      key: "wrur8x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h4"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-f",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterG = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "qr2odw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.5 12H15v2.268a.88.88 0 01-.263.65A4 4 0 1112 8h2.5"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-g",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterH = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "ydmt1j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16V8"),
+      |],
+    },
+    {
+      key: "1pg9zw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 16V8"),
+      |],
+    },
+    {
+      key: "1c52cq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h6"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-h",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterI = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1sbj14",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 16V8"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-i",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterJ = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1l082q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 8v5a3 3 0 1 1-6 0"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-j",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterK = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "ydmt1j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16V8"),
+      |],
+    },
+    {
+      key: "12i9ze",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m11 12 4 4"),
+      |],
+    },
+    {
+      key: "r7kjba",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15 8-6 6"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-k",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterL = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "oor4up",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 8v7.5a.5.5 0 0 0 .5.5H15"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-l",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterM = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1triz2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 16.001v-7.5a.5.5 0 0 1 .9-.3l2.7 3.599a.5.5 0 0 0 .8 0l2.7-3.6a.5.5 0 0 1 .9.3v7.501"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-m",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterN = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "qirm77",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 16V8.576a.496.496 0 01.937-.243l4.126 7.43A.496.496 0 0015 15.52V8"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-n",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterO = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "4exip2",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("4"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-o",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterP = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "15uh3t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h4a2 2 0 0 0 0-4H9.5a.5.5 0 0 0-.5.5V16"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-p",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterPOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1smka7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12h1a2 2 0 000-4H9.5a.5.5 0 00-.5.5V9"),
+      |],
+    },
+    {
+      key: "55wsc3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.343 21H5a2 2 0 01-2-2V8.657"),
+      |],
+    },
+    {
+      key: "1r8tn9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 22 2 2"),
+      |],
+    },
+    {
+      key: "1apa43",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.586 3.586A2 2 0 015 3h14a2 2 0 012 2v14a2 2 0 01-.586 1.414"),
+      |],
+    },
+    {
+      key: "16yar1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 14.657V16"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-p-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterQ = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "4exip2",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("4"),
+      |],
+    },
+    {
+      key: "fmqegn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 16-2.5-2.5"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-q",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterR = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "12i9ze",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m11 12 4 4"),
+      |],
+    },
+    {
+      key: "15uh3t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h4a2 2 0 0 0 0-4H9.5a.5.5 0 0 0-.5.5V16"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-r",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterS = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ihxbb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.5 8H11a2 2 0 100 4h2a2 2 0 110 4H9"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-s",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterT = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1sbj14",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 16V8"),
+      |],
+    },
+    {
+      key: "209ih4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 8h6"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-t",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterU = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "17gkvj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 8v5a3 3 0 1 1-6 0V8"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-u",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterV = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1arqi6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 8 2.525 7.66a.5.5 0 0 0 .95 0L15 8"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-v",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterW = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "crbxe1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 8-1.591 7.598a.497.497 0 01-.97.038l-.96-3.276a.5.5 0 00-.959 0l-.96 3.276a.496.496 0 01-.969-.038L8 8"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-w",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1u7o9k",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 16 6-8"),
+      |],
+    },
+    {
+      key: "1csz0j",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 8 6 8"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-x",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterY = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ydu8c",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 8 3 4 3-4"),
+      |],
+    },
+    {
+      key: "tww15h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 12v4"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-y",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareLetterZ = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "hctxk0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 8h5.501a.5.5 0 0 1 .37.836L9.13 15.164A.5.5 0 0 0 9.5 16H15"),
+      |],
+    },
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-letter-z",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconSquareLibrary = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -78350,51 +95807,6 @@ module IconSquareLibrary = {
   ) =>
     LucideIconRenderer.render(
       ~name="square-library",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconSquareM = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1ywlsj",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 16V8.5a.5.5 0 0 1 .9-.3l2.7 3.599a.5.5 0 0 0 .8 0l2.7-3.6a.5.5 0 0 1 .9.3V16"),
-      |],
-    },
-    {
-      key: "h1oib",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("3"),
-        LucideIconTypes.Width("18"),
-        LucideIconTypes.Height("18"),
-        LucideIconTypes.Rx("2"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="square-m",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -78551,24 +95963,27 @@ module IconSquareMousePointer = {
     );
 };
 
-module IconSquareParking = {
+module IconSquareOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "afitv7",
-      tag: LucideIconTypes.Rect,
+      key: "7ym6nm",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.Width("18"),
-        LucideIconTypes.Height("18"),
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("3"),
-        LucideIconTypes.Rx("2"),
+        LucideIconTypes.D("M20.4 20.4a2 2 0 01-1.4.6H5a2 2 0 01-2-2V5a2 2 0 01.59-1.41"),
       |],
     },
     {
-      key: "1dfk2c",
+      key: "m4nk5y",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M9 17V7h4a3 3 0 0 1 0 6H9"),
+        LucideIconTypes.D("M21 15.3V5a2 2 0 00-2-2H8.7"),
+      |],
+    },
+    {
+      key: "1r8tn9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 22 2 2"),
       |],
     },
   |];
@@ -78584,7 +95999,7 @@ module IconSquareParking = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="square-parking",
+      ~name="square-off",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -78596,41 +96011,45 @@ module IconSquareParking = {
     );
 };
 
-module IconSquareParkingOff = {
+module IconSquarePadding = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "9l1ft6",
-      tag: LucideIconTypes.Path,
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.D("M3.6 3.6A2 2 0 0 1 5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-.59 1.41"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
       |],
     },
     {
-      key: "17knke",
+      key: "1vipgj",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M3 8.7V19a2 2 0 0 0 2 2h10.3"),
+        LucideIconTypes.D("M14 17h-4"),
       |],
     },
     {
-      key: "1ooewy",
+      key: "lfj1qs",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m2 2 20 20"),
+        LucideIconTypes.D("M14 7h-4"),
       |],
     },
     {
-      key: "uoagbd",
+      key: "7qxlkr",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M13 13a3 3 0 1 0 0-6H9v2"),
+        LucideIconTypes.D("M17 14v-4"),
       |],
     },
     {
-      key: "1jxgo2",
+      key: "1upvtr",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M9 17v-2.3"),
+        LucideIconTypes.D("M7 14v-4"),
       |],
     },
   |];
@@ -78646,7 +96065,291 @@ module IconSquareParkingOff = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="square-parking-off",
+      ~name="square-padding",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquarePaddingBottom = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "wh5c61",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 17h8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-padding-bottom",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquarePaddingHorizontal = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "13fiq6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 16V8"),
+      |],
+    },
+    {
+      key: "meid6x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 16V8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-padding-horizontal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquarePaddingLeft = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "meid6x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 16V8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-padding-left",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquarePaddingRight = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "13fiq6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 16V8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-padding-right",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquarePaddingTop = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "i86dvs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 7h8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-padding-top",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquarePaddingVertical = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "wh5c61",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 17h8"),
+      |],
+    },
+    {
+      key: "i86dvs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 7h8"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-padding-vertical",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -79172,53 +96875,53 @@ module IconSquareRoundCorner = {
 module IconSquareScissors = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1btzen",
+      key: "1y7dt1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m17 17-2.18-2.18"),
+      |],
+    },
+    {
+      key: "ue8l15",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.56 14.44 17 7"),
+      |],
+    },
+    {
+      key: "rml9qv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.56 9.56 12 12"),
+      |],
+    },
+    {
+      key: "12hfy1",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("8.5"),
+        LucideIconTypes.Cy("15.5"),
+        LucideIconTypes.R("1.5"),
+      |],
+    },
+    {
+      key: "cn5opk",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("8.5"),
+        LucideIconTypes.Cy("8.5"),
+        LucideIconTypes.R("1.5"),
+      |],
+    },
+    {
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.Width("20"),
-        LucideIconTypes.Height("20"),
-        LucideIconTypes.X("2"),
-        LucideIconTypes.Y("2"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
         LucideIconTypes.Rx("2"),
-      |],
-    },
-    {
-      key: "14cg06",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("8"),
-        LucideIconTypes.Cy("8"),
-        LucideIconTypes.R("2"),
-      |],
-    },
-    {
-      key: "qz4lzr",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9.414 9.414 12 12"),
-      |],
-    },
-    {
-      key: "11flf1",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M14.8 14.8 18 18"),
-      |],
-    },
-    {
-      key: "1acxsx",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("8"),
-        LucideIconTypes.Cy("16"),
-        LucideIconTypes.R("2"),
-      |],
-    },
-    {
-      key: "11kzk1",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m18 6-8.586 8.586"),
       |],
     },
   |];
@@ -79339,30 +97042,82 @@ module IconSquareSlash = {
     );
 };
 
+module IconSquareSparkles = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "qgb73g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 15H7"),
+      |],
+    },
+    {
+      key: "1ntfkx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15.41 2.49a.6.6 0 011.18 0l.63 3.334a1.2 1.2 0 00.956.955l3.334.631a.6.6 0 010 1.18l-3.334.63a1.2 1.2 0 00-.955.956l-.631 3.334a.6.6 0 01-1.18 0l-.63-3.334a1.2 1.2 0 00-.956-.955L10.49 8.59a.6.6 0 010-1.18l3.334-.63a1.2 1.2 0 00.955-.956z"),
+      |],
+    },
+    {
+      key: "12sala",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6"),
+      |],
+    },
+    {
+      key: "190znx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 13v4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-sparkles",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconSquareSplitHorizontal = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "lubmu8",
+      key: "t6zp3m",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8 19H5c-1 0-2-1-2-2V7c0-1 1-2 2-2h3"),
+        LucideIconTypes.D("M12 2v20"),
       |],
     },
     {
-      key: "1ag34g",
+      key: "saxlbk",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16 5h3c1 0 2 1 2 2v10c0 1-1 2-2 2h-3"),
+        LucideIconTypes.D("M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"),
       |],
     },
     {
-      key: "1tx1rr",
-      tag: LucideIconTypes.Line,
+      key: "m1vog4",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("12"),
-        LucideIconTypes.X2("12"),
-        LucideIconTypes.Y1("4"),
-        LucideIconTypes.Y2("20"),
+        LucideIconTypes.D("M8 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"),
       |],
     },
   |];
@@ -79393,27 +97148,24 @@ module IconSquareSplitHorizontal = {
 module IconSquareSplitVertical = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1pi83i",
+      key: "9i4pu4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M5 8V5c0-1 1-2 2-2h10c1 0 2 1 2 2v3"),
+        LucideIconTypes.D("M2 12h20"),
       |],
     },
     {
-      key: "ido5k7",
+      key: "14rx03",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19 16v3c0 1-1 2-2 2H7c-1 0-2-1-2-2v-3"),
+        LucideIconTypes.D("M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3"),
       |],
     },
     {
-      key: "1e0a9i",
-      tag: LucideIconTypes.Line,
+      key: "1haecz",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("4"),
-        LucideIconTypes.X2("20"),
-        LucideIconTypes.Y1("12"),
-        LucideIconTypes.Y2("12"),
+        LucideIconTypes.D("M3 8V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3"),
       |],
     },
   |];
@@ -79678,6 +97430,65 @@ module IconSquareTerminal = {
   ) =>
     LucideIconRenderer.render(
       ~name="square-terminal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSquareText = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "afitv7",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Rx("2"),
+      |],
+    },
+    {
+      key: "1jbsf9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 8h8"),
+      |],
+    },
+    {
+      key: "b7w52i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 12h10"),
+      |],
+    },
+    {
+      key: "1vyc9m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 16h6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="square-text",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -80352,6 +98163,47 @@ module IconStar = {
     );
 };
 
+module IconStarCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "14g7km",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.06 12.501 2.78-2.707a.53.53 0 0 0-.294-.905l-5.166-.755a2.1 2.1 0 0 1-1.595-1.16l-2.31-4.68a.53.53 0 0 0-.95.001L9.216 6.974a2.1 2.1 0 0 1-1.597 1.16l-5.165.755a.53.53 0 0 0-.294.906l3.736 3.637a2.1 2.1 0 0 1 .611 1.879l-.88 5.139a.53.53 0 0 0 .769.56l4.617-2.428.027-.014"),
+      |],
+    },
+    {
+      key: "1szwhi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15 18 2 2 4-4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="star-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconStarHalf = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -80386,30 +98238,68 @@ module IconStarHalf = {
     );
 };
 
+module IconStarMinus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "3b3c90",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 18h6"),
+      |],
+    },
+    {
+      key: "rwo527",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.688 14a2.1 2.1 0 0 1 .416-.568l3.736-3.638a.53.53 0 0 0-.294-.905l-5.166-.755a2.1 2.1 0 0 1-1.595-1.16l-2.31-4.68a.53.53 0 0 0-.95.001L9.216 6.974a2.1 2.1 0 0 1-1.597 1.16l-5.165.755a.53.53 0 0 0-.294.906l3.736 3.637a2.1 2.1 0 0 1 .611 1.879l-.88 5.139a.53.53 0 0 0 .769.56l4.617-2.428.027-.014"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="star-minus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconStarOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "16m0ql",
+      key: "19ctli",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8.34 8.34 2 9.27l5 4.87L5.82 21 12 17.77 18.18 21l-.59-3.43"),
+        LucideIconTypes.D("m10.344 4.688 1.181-2.393a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.237 3.152"),
       |],
     },
     {
-      key: "1vt8nq",
+      key: "ptqqvy",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18.42 12.76 22 9.27l-6.91-1L12 2l-1.44 2.91"),
+        LucideIconTypes.D("m17.945 17.945.43 2.505a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a8 8 0 0 0 .4-.099"),
       |],
     },
     {
-      key: "a6p6uj",
-      tag: LucideIconTypes.Line,
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("2"),
-        LucideIconTypes.X2("22"),
-        LucideIconTypes.Y1("2"),
-        LucideIconTypes.Y2("22"),
+        LucideIconTypes.D("m2 2 20 20"),
       |],
     },
   |];
@@ -80426,6 +98316,102 @@ module IconStarOff = {
   ) =>
     LucideIconRenderer.render(
       ~name="star-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconStarPlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1hs8rk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11.013 18.582 6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16l2.309-4.679a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904L20 11.5"),
+      |],
+    },
+    {
+      key: "3b3c90",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 18h6"),
+      |],
+    },
+    {
+      key: "9wciyi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 15v6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="star-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconStarX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ky94l",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.5 15.5 5 5"),
+      |],
+    },
+    {
+      key: "6uuto3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.063 11.525 1.777-1.731a.53.53 0 0 0-.294-.905l-5.166-.755a2.1 2.1 0 0 1-1.595-1.16l-2.31-4.68a.53.53 0 0 0-.95.001L9.216 6.974a2.1 2.1 0 0 1-1.597 1.16l-5.165.755a.53.53 0 0 0-.294.906l3.736 3.637a2.1 2.1 0 0 1 .611 1.879l-.88 5.139a.53.53 0 0 0 .769.56l4.617-2.428a2.1 2.1 0 0 1 .987-.243 2 2 0 0 1 .132.004"),
+      |],
+    },
+    {
+      key: "1w5am3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m20.5 15.5-5 5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="star-x",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -80686,6 +98672,370 @@ module IconStickyNote = {
     );
 };
 
+module IconStickyNoteCheck = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1wqv71",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15 19 2 2 4-4"),
+      |],
+    },
+    {
+      key: "6s6qgf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 3v5a1 1 0 0 0 1 1h5"),
+      |],
+    },
+    {
+      key: "1onoss",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 13V9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6.5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="sticky-note-check",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconStickyNoteMinus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "6s6qgf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 3v5a1 1 0 0 0 1 1h5"),
+      |],
+    },
+    {
+      key: "g18rj4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 14V9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.35"),
+      |],
+    },
+    {
+      key: "139f0c",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 18h-6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="sticky-note-minus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconStickyNoteOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "6s6qgf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 3v5a1 1 0 0 0 1 1h5"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "12nghy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.586 3.586A2 2 0 0 0 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 1.414-.586"),
+      |],
+    },
+    {
+      key: "134c6x",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.656 3H15a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 21 9v6.344"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="sticky-note-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconStickyNotePlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "6s6qgf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 3v5a1 1 0 0 0 1 1h5"),
+      |],
+    },
+    {
+      key: "9wciyi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 15v6"),
+      |],
+    },
+    {
+      key: "12ish9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 12.356V9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.355"),
+      |],
+    },
+    {
+      key: "139f0c",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 18h-6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="sticky-note-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconStickyNoteX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "6s6qgf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 3v5a1 1 0 0 0 1 1h5"),
+      |],
+    },
+    {
+      key: "8tpb07",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16 16 5 5"),
+      |],
+    },
+    {
+      key: "156tez",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 12V9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7"),
+      |],
+    },
+    {
+      key: "kplof2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 16-5 5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="sticky-note-x",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconStickyNotes = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "19nc0g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 16 14v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z"),
+      |],
+    },
+    {
+      key: "m3law1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 8v5a1 1 0 0 0 1 1h5"),
+      |],
+    },
+    {
+      key: "1iu1qd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 4a2 2 0 0 1 2-2h6a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 22 8v6a2 2 0 0 1-2 2"),
+      |],
+    },
+    {
+      key: "af171p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 2v5a1 1 0 0 0 1 1h5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="sticky-notes",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconStone = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1si4ox",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11.264 2.205A4 4 0 0 0 6.42 4.211l-4 8a4 4 0 0 0 1.359 5.117l6 4a4 4 0 0 0 4.438 0l6-4a4 4 0 0 0 1.576-4.592l-2-6a4 4 0 0 0-2.53-2.53z"),
+      |],
+    },
+    {
+      key: "1u8to0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11.99 22 14 12l7.822 3.184"),
+      |],
+    },
+    {
+      key: "guo3d5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 12 8.47 2.302"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="stone",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconStore = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -80920,6 +99270,68 @@ module IconSubscript = {
   ) =>
     LucideIconRenderer.render(
       ~name="subscript",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconSummary = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "oyc4c8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 4H7"),
+      |],
+    },
+    {
+      key: "1d4glt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18 16 3 3-3 3"),
+      |],
+    },
+    {
+      key: "o3n0ii",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 4v13a2 2 0 0 0 2 2h16"),
+      |],
+    },
+    {
+      key: "16kgpy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 14h7"),
+      |],
+    },
+    {
+      key: "ihq7ma",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 9h12"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="summary",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -81645,10 +100057,17 @@ module IconSwatchBook = {
 module IconSwissFranc = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "br2l0g",
+      key: "jlzm20",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 21V3h8"),
+        LucideIconTypes.D("M10 10h7"),
+      |],
+    },
+    {
+      key: "1ru8sx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 20V5a1 1 0 011-1h7"),
       |],
     },
     {
@@ -81656,13 +100075,6 @@ module IconSwissFranc = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M6 16h9"),
-      |],
-    },
-    {
-      key: "13dmhz",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M10 9.5h7"),
       |],
     },
   |];
@@ -81778,10 +100190,10 @@ module IconSword = {
       |],
     },
     {
-      key: "pkxemp",
+      key: "1pjndt",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M9.5 17.5 21 6V3h-3L6.5 14.5"),
+        LucideIconTypes.D("M9.5 17.5 20.414 6.586A2 2 0 0021 5.172V3h-2.172a2 2 0 00-1.414.586L6.5 14.5"),
       |],
     },
   |];
@@ -81812,77 +100224,59 @@ module IconSword = {
 module IconSwords = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1hfsw2",
-      tag: LucideIconTypes.Polyline,
+      key: "gj6q8g",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.Points("14.5 17.5 3 6 3 3 6 3 17.5 14.5"),
+        LucideIconTypes.D("m13 19 6-6"),
       |],
     },
     {
-      key: "1vrmhu",
-      tag: LucideIconTypes.Line,
+      key: "uwfxh8",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("13"),
-        LucideIconTypes.X2("19"),
-        LucideIconTypes.Y1("19"),
-        LucideIconTypes.Y2("13"),
+        LucideIconTypes.D("M14.5 17.5 3.586 6.586A2 2 0 013 5.172V3h2.172a2 2 0 011.414.586L17.5 14.5"),
       |],
     },
     {
-      key: "1bron3",
-      tag: LucideIconTypes.Line,
+      key: "1f17hx",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("16"),
-        LucideIconTypes.X2("20"),
-        LucideIconTypes.Y1("16"),
-        LucideIconTypes.Y2("20"),
+        LucideIconTypes.D("m14.828 6.172 2.586-2.586A2 2 0 0118.828 3H21v2.172a2 2 0 01-.586 1.414l-2.586 2.586"),
       |],
     },
     {
-      key: "13pww6",
-      tag: LucideIconTypes.Line,
+      key: "up5ibb",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("19"),
-        LucideIconTypes.X2("21"),
-        LucideIconTypes.Y1("21"),
-        LucideIconTypes.Y2("19"),
+        LucideIconTypes.D("m16 16 4 4"),
       |],
     },
     {
-      key: "hbey2j",
-      tag: LucideIconTypes.Polyline,
+      key: "1phfkn",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.Points("14.5 6.5 18 3 21 3 21 6 17.5 9.5"),
+        LucideIconTypes.D("m19 21 2-2"),
       |],
     },
     {
-      key: "1hf58s",
-      tag: LucideIconTypes.Line,
+      key: "1gk0qx",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("5"),
-        LucideIconTypes.X2("9"),
-        LucideIconTypes.Y1("14"),
-        LucideIconTypes.Y2("18"),
+        LucideIconTypes.D("m5 14 4 4"),
       |],
     },
     {
-      key: "pidxm4",
-      tag: LucideIconTypes.Line,
+      key: "1kw20b",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("7"),
-        LucideIconTypes.X2("4"),
-        LucideIconTypes.Y1("17"),
-        LucideIconTypes.Y2("20"),
+        LucideIconTypes.D("m5 21-2-2"),
       |],
     },
     {
-      key: "1pehsh",
-      tag: LucideIconTypes.Line,
+      key: "14nozp",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("3"),
-        LucideIconTypes.X2("5"),
-        LucideIconTypes.Y1("19"),
-        LucideIconTypes.Y2("21"),
+        LucideIconTypes.D("M7.5 16.5 4 20"),
       |],
     },
   |];
@@ -82041,10 +100435,28 @@ module IconTable = {
 module IconTable2 = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "gugj83",
+      key: "1pudct",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"),
+        LucideIconTypes.D("M3 9h18"),
+      |],
+    },
+    {
+      key: "fh3hqa",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 3v18"),
+      |],
+    },
+    {
+      key: "h1oib",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
+        LucideIconTypes.Rx("2"),
       |],
     },
   |];
@@ -82726,6 +101138,122 @@ module IconTag = {
   ) =>
     LucideIconRenderer.render(
       ~name="tag",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconTagPlus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1um0mj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 13h6"),
+      |],
+    },
+    {
+      key: "dp0yc9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.5 6.5-3.914-3.914A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l1.79-1.79"),
+      |],
+    },
+    {
+      key: "13mz7b",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 10v6"),
+      |],
+    },
+    {
+      key: "kqv944",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("7.5"),
+        LucideIconTypes.Cy("7.5"),
+        LucideIconTypes.R(".5"),
+        LucideIconTypes.Fill("currentColor"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="tag-plus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconTagX = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "hu94c9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.5 6.5-3.914-3.914A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.43 2.43 0 0 0 3.42 0l1.79-1.79"),
+      |],
+    },
+    {
+      key: "1jo8bf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.5 10.5 5 5"),
+      |],
+    },
+    {
+      key: "jzei60",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21.5 10.5-5 5"),
+      |],
+    },
+    {
+      key: "kqv944",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("7.5"),
+        LucideIconTypes.Cy("7.5"),
+        LucideIconTypes.R(".5"),
+        LucideIconTypes.Fill("currentColor"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="tag-x",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -83702,6 +102230,150 @@ module IconTextAlignJustify = {
     );
 };
 
+module IconTextAlignJustifyCenter = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1u36vt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5h18"),
+      |],
+    },
+    {
+      key: "1i2n21",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12h18"),
+      |],
+    },
+    {
+      key: "lpd9lt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 19h10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="text-align-justify-center",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconTextAlignJustifyEnd = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1u36vt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5h18"),
+      |],
+    },
+    {
+      key: "1i2n21",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12h18"),
+      |],
+    },
+    {
+      key: "11t30w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 19h10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="text-align-justify-end",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconTextAlignJustifyStart = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1u36vt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 5h18"),
+      |],
+    },
+    {
+      key: "1i2n21",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12h18"),
+      |],
+    },
+    {
+      key: "ctrkv9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 19h10"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="text-align-justify-start",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconTextAlignStart = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -83760,17 +102432,17 @@ module IconTextCursor = {
       |],
     },
     {
-      key: "11xy8d",
+      key: "1l7xii",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 22h1a4 4 0 0 0 4-4v-1"),
+        LucideIconTypes.D("M7 22h1a4 4 0 0 0 4-4"),
       |],
     },
     {
-      key: "1uw06m",
+      key: "1vrvvh",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 2h1a4 4 0 0 1 4 4v1"),
+        LucideIconTypes.D("M7 2h1a4 4 0 0 1 4 4"),
       |],
     },
   |];
@@ -84030,138 +102702,6 @@ module IconTextSearch = {
   ) =>
     LucideIconRenderer.render(
       ~name="text-search",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconTextSelect = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "v9vybs",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M14 21h1"),
-      |],
-    },
-    {
-      key: "1ec4yj",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M14 3h1"),
-      |],
-    },
-    {
-      key: "18rm91",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M19 3a2 2 0 0 1 2 2"),
-      |],
-    },
-    {
-      key: "169vum",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21 14v1"),
-      |],
-    },
-    {
-      key: "1j7049",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21 19a2 2 0 0 1-2 2"),
-      |],
-    },
-    {
-      key: "mxsmne",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21 9v1"),
-      |],
-    },
-    {
-      key: "vnatye",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M3 14v1"),
-      |],
-    },
-    {
-      key: "1r0deq",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M3 9v1"),
-      |],
-    },
-    {
-      key: "sbafld",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M5 21a2 2 0 0 1-2-2"),
-      |],
-    },
-    {
-      key: "y57alp",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M5 3a2 2 0 0 0-2 2"),
-      |],
-    },
-    {
-      key: "b7w52i",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M7 12h10"),
-      |],
-    },
-    {
-      key: "1vyc9m",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M7 16h6"),
-      |],
-    },
-    {
-      key: "1jbsf9",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M7 8h8"),
-      |],
-    },
-    {
-      key: "15o7lz",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 21h1"),
-      |],
-    },
-    {
-      key: "1yesri",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M9 3h1"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="text-select",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -84438,45 +102978,45 @@ module IconThermometerSnowflake = {
 module IconThermometerSun = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1jvsq6",
+      key: "tus03m",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 9a4 4 0 0 0-2 7.5"),
+        LucideIconTypes.D("M12 2v2"),
       |],
     },
     {
-      key: "1w22ol",
+      key: "wz5p04",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 3v2"),
+        LucideIconTypes.D("M12 8a4 4 0 0 0-1.645 7.647"),
       |],
     },
     {
-      key: "w2yidj",
+      key: "1t8f8n",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m6.6 18.4-1.4 1.4"),
+        LucideIconTypes.D("M2 12h2"),
       |],
     },
     {
-      key: "iof6y5",
+      key: "yu0u2z",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"),
+        LucideIconTypes.D("M20 14.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"),
       |],
     },
     {
-      key: "118le4",
+      key: "149t6j",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 13H2"),
+        LucideIconTypes.D("m4.93 4.93 1.41 1.41"),
       |],
     },
     {
-      key: "1brd51",
+      key: "1m8zz5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6.34 7.34 4.93 5.93"),
+        LucideIconTypes.D("m6.34 17.66-1.41 1.41"),
       |],
     },
   |];
@@ -84507,17 +103047,17 @@ module IconThermometerSun = {
 module IconThumbsDown = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "8ymqnk",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M17 14V2"),
-      |],
-    },
-    {
       key: "m61m77",
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"),
+      |],
+    },
+    {
+      key: "8ymqnk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 14V2"),
       |],
     },
   |];
@@ -84548,17 +103088,17 @@ module IconThumbsDown = {
 module IconThumbsUp = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1qc93n",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M7 10v12"),
-      |],
-    },
-    {
       key: "emmmcr",
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"),
+      |],
+    },
+    {
+      key: "1qc93n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 10v12"),
       |],
     },
   |];
@@ -84575,6 +103115,93 @@ module IconThumbsUp = {
   ) =>
     LucideIconRenderer.render(
       ~name="thumbs-up",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconTicTacToe = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "t6zp3m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v20"),
+      |],
+    },
+    {
+      key: "kplof2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 16-5 5"),
+      |],
+    },
+    {
+      key: "t60xrr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21 21-5-5"),
+      |],
+    },
+    {
+      key: "v4uh5a",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 12H2"),
+      |],
+    },
+    {
+      key: "3mf1mf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 3 3 8"),
+      |],
+    },
+    {
+      key: "176qcj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 8 3 3"),
+      |],
+    },
+    {
+      key: "1soi6c",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18.5"),
+        LucideIconTypes.Cy("5.5"),
+        LucideIconTypes.R("2.5"),
+      |],
+    },
+    {
+      key: "s5276v",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("5.5"),
+        LucideIconTypes.Cy("18.5"),
+        LucideIconTypes.R("2.5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="tic-tac-toe",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -84918,10 +103545,10 @@ module IconTicketX = {
 module IconTickets = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "12lg5p",
+      key: "15hfpj",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m4.5 8 10.58-5.06a1 1 0 0 1 1.342.488L18.5 8"),
+        LucideIconTypes.D("m3.173 8.18 11-5a2 2 0 0 1 2.647.993L18.56 8"),
       |],
     },
     {
@@ -84991,17 +103618,17 @@ module IconTicketsPlane = {
       |],
     },
     {
-      key: "1i9qhk",
+      key: "6v5z87",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m12 13.5 3.75.5"),
+        LucideIconTypes.D("m12 13.5 3.794.506"),
       |],
     },
     {
-      key: "12lg5p",
+      key: "15hfpj",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m4.5 8 10.58-5.06a1 1 0 0 1 1.342.488L18.5 8"),
+        LucideIconTypes.D("m3.173 8.18 11-5a2 2 0 0 1 2.647.993L18.56 8"),
       |],
     },
     {
@@ -85050,6 +103677,89 @@ module IconTicketsPlane = {
   ) =>
     LucideIconRenderer.render(
       ~name="tickets-plane",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconTimeline = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "158zrr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 12h.01"),
+      |],
+    },
+    {
+      key: "jrnfb7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 16h.01"),
+      |],
+    },
+    {
+      key: "orx0iu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 20h.01"),
+      |],
+    },
+    {
+      key: "cieki8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 4h.01"),
+      |],
+    },
+    {
+      key: "43g258",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 8h.01"),
+      |],
+    },
+    {
+      key: "1pvxkf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.414 13.414a2 2 0 0 0 1.414.586H19a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-8.172a2 2 0 0 0-1.414.586L8 12z"),
+      |],
+    },
+    {
+      key: "1k13gh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.414 21.414a2 2 0 0 0 1.414.586H19a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-8.172a2 2 0 0 0-1.414.586L8 20z"),
+      |],
+    },
+    {
+      key: "12x0hd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.414 5.414A2 2 0 0 0 10.828 6H19a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1h-8.172a2 2 0 0 0-1.414.586L8 4z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="timeline",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -85369,6 +104079,61 @@ module IconToilet = {
     );
 };
 
+module IconTombstone = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1d6wy4",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 10h2"),
+      |],
+    },
+    {
+      key: "1f1hiz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 21V10a7 7 0 00-14 0v11"),
+      |],
+    },
+    {
+      key: "1nyx9w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 21h20"),
+      |],
+    },
+    {
+      key: "159ibu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 14h6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="tombstone",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconToolCase = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -85379,24 +104144,24 @@ module IconToolCase = {
       |],
     },
     {
-      key: "xbnumr",
+      key: "1nkiiy",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m14.817 10.995-.971-1.45 1.034-1.232a2 2 0 0 0-2.025-3.238l-1.82.364L9.91 3.885a2 2 0 0 0-3.625.748L6.141 6.55l-1.725.426a2 2 0 0 0-.19 3.756l.657.27"),
+        LucideIconTypes.D("m14.5 4.058.571-1.429a1 1 0 011.3-.558l5 2a1 1 0 01.549.534.88.88 0 01.01.765l-2.332 5.83"),
       |],
     },
     {
-      key: "eaw7gc",
+      key: "7rml5f",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m18.822 10.995 2.26-5.38a1 1 0 0 0-.557-1.318L16.954 2.9a1 1 0 0 0-1.281.533l-.924 2.122"),
+        LucideIconTypes.D("M15.634 11a2 2 0 00-.186-.34l-1.17-1.757 1.31-1.656a2 2 0 00-2.109-3.165l-2.032.57-1.17-1.758a2 2 0 00-3.664 1.028l-.086 2.11-2.032.568a2 2 0 00-.155 3.8l1.617.6"),
       |],
     },
     {
-      key: "1vaooh",
+      key: "1y761e",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 12.006A1 1 0 0 1 4.994 11H19a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"),
+        LucideIconTypes.D("M4 12.006A1 1 0 014.994 11H19a1 1 0 011 1v7a2 2 0 01-2 2H6a2 2 0 01-2-2z"),
       |],
     },
   |];
@@ -85413,6 +104178,199 @@ module IconToolCase = {
   ) =>
     LucideIconRenderer.render(
       ~name="tool-case",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconToolbox = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "vf1vip",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 12v4"),
+      |],
+    },
+    {
+      key: "llnzfg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"),
+      |],
+    },
+    {
+      key: "1hprxj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 6a2 2 0 011.414.586l3 3A2 2 0 0122 11v8a2 2 0 01-2 2H4a2 2 0 01-2-2v-8a2 2 0 01.586-1.414l3-3A2 2 0 017 6z"),
+      |],
+    },
+    {
+      key: "myj16y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 14h20"),
+      |],
+    },
+    {
+      key: "1w4uao",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 12v4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="toolbox",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconToothbrush = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "887gyg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 11c-2 2-4 2-6 4l-7 7"),
+      |],
+    },
+    {
+      key: "1lv77q",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 4-7.414 7.414-2-2A2 2 0 0114 6c0-.512.196-1.024.586-1.414A2 2 0 0116 4a2 2 0 013.262-1.552l2.152 2.138"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="toothbrush",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconToothbrushSparkles = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "mzdi2d",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 3H8"),
+      |],
+    },
+    {
+      key: "swnl64",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14.586 11.414 22 4"),
+      |],
+    },
+    {
+      key: "3uwied",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 11a8 8 0 01-.429.4"),
+      |],
+    },
+    {
+      key: "1kper6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 22 7-7c1.857-1.857 3.714-1.99 5.571-3.6l-1.985-1.986A2 2 0 0114 6a2 2 0 012-2 2 2 0 013.262-1.552l2.152 2.138"),
+      |],
+    },
+    {
+      key: "nmhudv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 15v4"),
+      |],
+    },
+    {
+      key: "1sj068",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 17h-4"),
+      |],
+    },
+    {
+      key: "13jjxc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 5v4"),
+      |],
+    },
+    {
+      key: "8zbtv0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 7H2"),
+      |],
+    },
+    {
+      key: "165o2o",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 2v2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="toothbrush-sparkles",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -85643,6 +104601,54 @@ module IconTouchpadOff = {
   ) =>
     LucideIconRenderer.render(
       ~name="touchpad-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconTowelRack = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1okbx2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 7h-2"),
+      |],
+    },
+    {
+      key: "kc32tg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.5 3h11A2.5 2.5 0 0 1 20 5.5V20a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V5.5a1 1 0 0 0-5 0V17a1 1 0 0 0 1 1h4"),
+      |],
+    },
+    {
+      key: "ahf7b7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 7H2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="towel-rack",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -85920,6 +104926,77 @@ module IconTrafficCone = {
   ) =>
     LucideIconRenderer.render(
       ~name="traffic-cone",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconTrailer = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1vu6ku",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 11.341V10"),
+      |],
+    },
+    {
+      key: "ywspeg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 13v-3"),
+      |],
+    },
+    {
+      key: "19481b",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 17V8a2 2 0 00-2-2H4a2 2 0 00-2 2v7a2 2 0 002 2h2"),
+      |],
+    },
+    {
+      key: "1lvljf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 15v1a1 1 0 01-1 1H10"),
+      |],
+    },
+    {
+      key: "1dkezj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 11.341V10"),
+      |],
+    },
+    {
+      key: "5kbc0u",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("8"),
+        LucideIconTypes.Cy("17"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="trailer",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -86320,54 +105397,6 @@ module IconTransgender = {
 module IconTrash = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "miytrc",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"),
-      |],
-    },
-    {
-      key: "d0wm0j",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M3 6h18"),
-      |],
-    },
-    {
-      key: "e791ji",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="trash",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconTrash2 = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
       key: "nco0om",
       tag: LucideIconTypes.Path,
       attrs: [|
@@ -86415,7 +105444,90 @@ module IconTrash2 = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="trash-2",
+      ~name="trash",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconTrashOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "nco0om",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 11v6"),
+      |],
+    },
+    {
+      key: "14u96h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M14 17v-3"),
+      |],
+    },
+    {
+      key: "zo55d0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-1.576.768"),
+      |],
+    },
+    {
+      key: "q0pkd1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 6v7.344"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "pvjear",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 6h-9.344"),
+      |],
+    },
+    {
+      key: "155dbl",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 6h3"),
+      |],
+    },
+    {
+      key: "1ouqfz",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 6v14a2 2 0 002 2h10a2 2 0 002-2v-1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="trash-off",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -86608,65 +105720,6 @@ module IconTrees = {
   ) =>
     LucideIconRenderer.render(
       ~name="trees",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconTrello = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "1m3agn",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("18"),
-        LucideIconTypes.Height("18"),
-        LucideIconTypes.X("3"),
-        LucideIconTypes.Y("3"),
-        LucideIconTypes.Rx("2"),
-        LucideIconTypes.Ry("2"),
-      |],
-    },
-    {
-      key: "14n3xi",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("3"),
-        LucideIconTypes.Height("9"),
-        LucideIconTypes.X("7"),
-        LucideIconTypes.Y("7"),
-      |],
-    },
-    {
-      key: "s4azjd",
-      tag: LucideIconTypes.Rect,
-      attrs: [|
-        LucideIconTypes.Width("3"),
-        LucideIconTypes.Height("5"),
-        LucideIconTypes.X("14"),
-        LucideIconTypes.Y("7"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="trello",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -87021,27 +106074,165 @@ module IconTriangleRight = {
     );
 };
 
+module IconTrianglesCenterlineDashedHorizontal = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "s88cx1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 12H8"),
+      |],
+    },
+    {
+      key: "10asgb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 12h-2"),
+      |],
+    },
+    {
+      key: "14jgyd",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 12h-2"),
+      |],
+    },
+    {
+      key: "rhcxmi",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 12H2"),
+      |],
+    },
+    {
+      key: "15ue1v",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.298 20.288A1 1 0 008 22h8a1 1 0 00.703-1.712l-3.991-3.99a1 1 0 00-1.424-.001z"),
+      |],
+    },
+    {
+      key: "lzh03e",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.298 3.712A1 1 0 018 2h8a1 1 0 01.703 1.712l-3.991 3.99a1 1 0 01-1.424.001z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="triangles-centerline-dashed-horizontal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconTrianglesCenterlineDashedVertical = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "8jcxud",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 14v2"),
+      |],
+    },
+    {
+      key: "1lh1kg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 20v2"),
+      |],
+    },
+    {
+      key: "tus03m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v2"),
+      |],
+    },
+    {
+      key: "1woqiv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 8v2"),
+      |],
+    },
+    {
+      key: "1ewq2t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20.288 16.703A1 1 0 0022 16V8a1 1 0 00-1.712-.703l-3.99 3.991a1 1 0 00-.001 1.424z"),
+      |],
+    },
+    {
+      key: "1c1klx",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.712 16.703A1 1 0 012 16V8a1 1 0 011.712-.703l3.99 3.991a1 1 0 01.001 1.424z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="triangles-centerline-dashed-vertical",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconTrophy = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1n3hpd",
+      key: "pwuv1l",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"),
+        LucideIconTypes.D("M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"),
       |],
     },
     {
-      key: "rfe1zi",
+      key: "1y54w1",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"),
+        LucideIconTypes.D("M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"),
       |],
     },
     {
-      key: "7xy6bh",
+      key: "e30mpu",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 9h1.5a1 1 0 0 0 0-5H18"),
+        LucideIconTypes.D("M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"),
       |],
     },
     {
@@ -87059,10 +106250,10 @@ module IconTrophy = {
       |],
     },
     {
-      key: "tex48p",
+      key: "i0yafy",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6 9H4.5a1 1 0 0 1 0-5H6"),
+        LucideIconTypes.D("M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"),
       |],
     },
   |];
@@ -87236,27 +106427,75 @@ module IconTruckElectric = {
     );
 };
 
+module IconTubeLotion = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "b580kr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 18v3a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-3"),
+      |],
+    },
+    {
+      key: "ih942v",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 2a2 2 0 0 1 1.6 3.2A8 8 0 0 0 17 10v6a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-6a8 8 0 0 0-1.6-4.8A2 2 0 0 1 7 2z"),
+      |],
+    },
+    {
+      key: "1fwxph",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 10a6.47 6.47 0 0 1 5 0 6.47 6.47 0 0 0 5 0"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="tube-lotion",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconTurkishLira = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "14bkc9",
+      key: "q2jxyq",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 4 5 9"),
+        LucideIconTypes.D("m14 10-8 4"),
       |],
     },
     {
-      key: "1grtsx",
+      key: "3luqa0",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m15 8.5-10 5"),
+        LucideIconTypes.D("M14 5 6 9"),
       |],
     },
     {
-      key: "1sst7f",
+      key: "18c6as",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M18 12a9 9 0 0 1-9 9V3"),
+        LucideIconTypes.D("M18 12a8 8 0 01-7.003 7.937c-.547.07-.997-.385-.997-.937V4"),
       |],
     },
   |];
@@ -87531,74 +106770,6 @@ module IconTvMinimalPlay = {
   ) =>
     LucideIconRenderer.render(
       ~name="tv-minimal-play",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconTwitch = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "c0yzno",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M21 2H3v16h5v4l4-4h5l4-4V2zm-10 9V7m5 4V7"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="twitch",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
-module IconTwitter = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "pff0z6",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="twitter",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -88147,25 +107318,25 @@ module IconUnfoldVertical = {
 module IconUngroup = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "nzclkv",
+      key: "nfm8rk",
       tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.Width("8"),
-        LucideIconTypes.Height("6"),
-        LucideIconTypes.X("5"),
-        LucideIconTypes.Y("4"),
-        LucideIconTypes.Rx("1"),
+        LucideIconTypes.X("11"),
+        LucideIconTypes.Y("14"),
+        LucideIconTypes.Width("10"),
+        LucideIconTypes.Height("7"),
+        LucideIconTypes.Rx("2"),
       |],
     },
     {
-      key: "4tytwb",
+      key: "1ljebb",
       tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.Width("8"),
-        LucideIconTypes.Height("6"),
-        LucideIconTypes.X("11"),
-        LucideIconTypes.Y("14"),
-        LucideIconTypes.Rx("1"),
+        LucideIconTypes.X("3"),
+        LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("10"),
+        LucideIconTypes.Height("7"),
+        LucideIconTypes.Rx("2"),
       |],
     },
   |];
@@ -88583,6 +107754,51 @@ module IconUsb = {
     );
 };
 
+module IconUsbCPort = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "8npq4p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h12"),
+      |],
+    },
+    {
+      key: "86l77p",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("2"),
+        LucideIconTypes.Y("8"),
+        LucideIconTypes.Width("20"),
+        LucideIconTypes.Height("8"),
+        LucideIconTypes.Rx("4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="usb-c-port",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconUser = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -88784,8 +108000,104 @@ module IconUserCog = {
     );
 };
 
-module IconUserLock = {
+module IconUserGroup = {
   let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "13eq7e",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 21v-1a2 2 0 00-2-2H9a2 2 0 00-2 2v1"),
+      |],
+    },
+    {
+      key: "172ugw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 10h1a2 2 0 012 2v1"),
+      |],
+    },
+    {
+      key: "1yb089",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 10H4a2 2 0 00-2 2v1"),
+      |],
+    },
+    {
+      key: "itu57m",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("11"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "bubz31",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "lisof6",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("6"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="user-group",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconUserKey = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "d77pzp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 11v6"),
+      |],
+    },
+    {
+      key: "16rner",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 13h2"),
+      |],
+    },
+    {
+      key: "1yxgtw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 2.072.578"),
+      |],
+    },
     {
       key: "e45bow",
       tag: LucideIconTypes.Circle,
@@ -88796,27 +108108,72 @@ module IconUserLock = {
       |],
     },
     {
-      key: "3bnktk",
+      key: "1obnsp",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("20"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="user-key",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconUserLock = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "17sujf",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10.3 15H7a4 4 0 0 0-4 4v2"),
+        LucideIconTypes.D("M19 16v-2a2 2 0 0 0-4 0v2"),
       |],
     },
     {
-      key: "12ym5i",
+      key: "9it25y",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15 15.5V14a2 2 0 0 1 4 0v1.5"),
+        LucideIconTypes.D("M9.5 15H7a4 4 0 0 0-4 4v2"),
       |],
     },
     {
-      key: "4p176n",
+      key: "e45bow",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("10"),
+        LucideIconTypes.Cy("7"),
+        LucideIconTypes.R("4"),
+      |],
+    },
+    {
+      key: "ur80nz",
       tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.Width("8"),
-        LucideIconTypes.Height("5"),
         LucideIconTypes.X("13"),
         LucideIconTypes.Y("16"),
+        LucideIconTypes.Width("8"),
+        LucideIconTypes.Height("5"),
         LucideIconTypes.Rx(".899"),
       |],
     },
@@ -89054,6 +108411,63 @@ module IconUserRound = {
     );
 };
 
+module IconUserRoundArrowLeft = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "lp3y45",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19 16-3 3"),
+      |],
+    },
+    {
+      key: "1ap0vn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 21a8 8 0 0 1 12.664-6.5"),
+      |],
+    },
+    {
+      key: "13fjle",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 19h-6l3 3"),
+      |],
+    },
+    {
+      key: "o932ke",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("10"),
+        LucideIconTypes.Cy("8"),
+        LucideIconTypes.R("5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="user-round-arrow-left",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconUserRoundCheck = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -89201,6 +108615,147 @@ module IconUserRoundCog = {
   ) =>
     LucideIconRenderer.render(
       ~name="user-round-cog",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconUserRoundGroup = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "35qx9b",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17 21a5 5 0 00-10 0"),
+      |],
+    },
+    {
+      key: "1nguyj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 10.5a3.5 3.5 0 00-5.507-2.868"),
+      |],
+    },
+    {
+      key: "19g32s",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.507 7.632A3.5 3.5 0 002 10.5"),
+      |],
+    },
+    {
+      key: "1vg3eu",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("13"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "1ona2d",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("18.5"),
+        LucideIconTypes.Cy("4.5"),
+        LucideIconTypes.R("2.5"),
+      |],
+    },
+    {
+      key: "1sh5th",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("5.5"),
+        LucideIconTypes.Cy("4.5"),
+        LucideIconTypes.R("2.5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="user-round-group",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconUserRoundKey = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "rcqigv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 11v6"),
+      |],
+    },
+    {
+      key: "1gch44",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 13h2"),
+      |],
+    },
+    {
+      key: "1lryzn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 21a8 8 0 0 1 12.868-6.349"),
+      |],
+    },
+    {
+      key: "o932ke",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("10"),
+        LucideIconTypes.Cy("8"),
+        LucideIconTypes.R("5"),
+      |],
+    },
+    {
+      key: "17f5cg",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("19"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="user-round-key",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -89428,13 +108983,116 @@ module IconUserRoundSearch = {
     );
 };
 
+module IconUserRoundShield = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "oh9qqr",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 21a8 8 0 0 1 8-8 5 5 0 1 1 4.845-3.759"),
+      |],
+    },
+    {
+      key: "k1mb52",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 17.5c0 2.5-1.75 3.75-3.83 4.474a.5.5 0 0 1-.335-.005C15.75 21.25 14 20 14 17.5V14a.5.5 0 0 1 .5-.499c1 0 2.25-.6 3.12-1.36a.6.6 0 0 1 .76-.001c.875.765 2.12 1.36 3.12 1.36a.5.5 0 0 1 .5.5z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="user-round-shield",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconUserRoundStar = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "tuod8t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.051 12.616a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.867l-1.156-1.152a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z"),
+      |],
+    },
+    {
+      key: "s0gndq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 21a8 8 0 0 1 6.778-7.905"),
+      |],
+    },
+    {
+      key: "k6654v",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.927 12.885a5 5 0 1 1 6.061-4.535"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="user-round-star",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconUserRoundX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "74fkxq",
+      key: "zc9lw7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 21a8 8 0 0 1 11.873-7"),
+        LucideIconTypes.D("m16.5 16.5 5 5"),
+      |],
+    },
+    {
+      key: "x5izle",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 21a8 8 0 0 1 11.531-7.18"),
+      |],
+    },
+    {
+      key: "1empo3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m21.5 16.5-5 5"),
       |],
     },
     {
@@ -89444,20 +109102,6 @@ module IconUserRoundX = {
         LucideIconTypes.Cx("10"),
         LucideIconTypes.Cy("8"),
         LucideIconTypes.R("5"),
-      |],
-    },
-    {
-      key: "p7ous7",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m17 17 5 5"),
-      |],
-    },
-    {
-      key: "gqnmv0",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m22 17-5 5"),
       |],
     },
   |];
@@ -89533,6 +109177,56 @@ module IconUserSearch = {
   ) =>
     LucideIconRenderer.render(
       ~name="user-search",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconUserShield = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1nfge6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 15H6a4 4 0 0 0-4 4v2"),
+      |],
+    },
+    {
+      key: "16j3tf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 17.5c0 2.499-1.75 3.749-3.83 4.474a.5.5 0 0 1-.335-.005c-2.085-.72-3.835-1.97-3.835-4.47V14a.5.5 0 0 1 .5-.499c1 0 2.25-.6 3.12-1.36a.6.6 0 0 1 .76-.001c.875.765 2.12 1.36 3.12 1.36a.5.5 0 0 1 .5.5z"),
+      |],
+    },
+    {
+      key: "nufk8",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("9"),
+        LucideIconTypes.Cy("7"),
+        LucideIconTypes.R("4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="user-shield",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -89714,6 +109408,79 @@ module IconUsers = {
     );
 };
 
+module IconUsersCollaboration = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1ddf43",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.925 3.047a9 9 0 017.616 6.11"),
+      |],
+    },
+    {
+      key: "vzh6pw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 22a2 2 0 012-2h4a2 2 0 012 2"),
+      |],
+    },
+    {
+      key: "jlrnkm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12a2 2 0 012-2h4a2 2 0 012 2"),
+      |],
+    },
+    {
+      key: "r3hf9y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.889 15.9a9 9 0 005.247 4.632"),
+      |],
+    },
+    {
+      key: "1bjkuo",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("17"),
+        LucideIconTypes.Cy("14"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "ra7k3",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("7"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="users-collaboration",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconUsersRound = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -89753,6 +109520,79 @@ module IconUsersRound = {
   ) =>
     LucideIconRenderer.render(
       ~name="users-round",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconUsersRoundCollaboration = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "lzos5t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20.453 8.911a9 9 0 00-6.696-5.738"),
+      |],
+    },
+    {
+      key: "1vli7n",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 22a4 4 0 00-8 0"),
+      |],
+    },
+    {
+      key: "tu5poj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 12a4 4 0 017.963-.543"),
+      |],
+    },
+    {
+      key: "r3hf9y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3.889 15.9a9 9 0 005.247 4.632"),
+      |],
+    },
+    {
+      key: "1upz2a",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("17"),
+        LucideIconTypes.Cy("15"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+    {
+      key: "ka0amb",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("7"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="users-round-collaboration",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -89943,6 +109783,72 @@ module IconUtilityPole = {
     );
 };
 
+module IconVan = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "k3s650",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 6v5a1 1 0 0 0 1 1h6.102a1 1 0 0 1 .712.298l.898.91a1 1 0 0 1 .288.702V17a1 1 0 0 1-1 1h-3"),
+      |],
+    },
+    {
+      key: "fnd93u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 18H3a1 1 0 0 1-1-1V8a2 2 0 0 1 2-2h12c1.1 0 2.1.8 2.4 1.8l1.176 4.2"),
+      |],
+    },
+    {
+      key: "lrx6i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 18h5"),
+      |],
+    },
+    {
+      key: "1v4tcr",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("16"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "19iecd",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("7"),
+        LucideIconTypes.Cy("18"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="van",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconVariable = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -90119,78 +110025,161 @@ module IconVault = {
     );
 };
 
+module IconVectorPolygon = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "d72xd9",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m12.828 4.813 5.344 2.375"),
+      |],
+    },
+    {
+      key: "1m86ed",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m15.769 18.153 3.461-8.306"),
+      |],
+    },
+    {
+      key: "16trhu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m5.687 14.074 7.625 4.852"),
+      |],
+    },
+    {
+      key: "1sledj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9.772 5.579 5.228 11.42"),
+      |],
+    },
+    {
+      key: "vol9p0",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("11"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "1gio96",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("15"),
+        LucideIconTypes.Cy("20"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "auwzcq",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("20"),
+        LucideIconTypes.Cy("8"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "d2v72u",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("4"),
+        LucideIconTypes.Cy("13"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="vector-polygon",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconVectorSquare = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "8n60xe",
+      key: "1rchew",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M19.5 7a24 24 0 0 1 0 10"),
+        LucideIconTypes.D("M17.055 4.533a24 24 0 00-10.11 0"),
       |],
     },
     {
-      key: "2lmadr",
+      key: "oh3qan",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4.5 7a24 24 0 0 0 0 10"),
+        LucideIconTypes.D("M19.467 17.055a24 24 0 000-10.11"),
       |],
     },
     {
-      key: "1q94o2",
+      key: "jtuody",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 19.5a24 24 0 0 0 10 0"),
+        LucideIconTypes.D("M4.533 6.945a24 24 0 000 10.11"),
       |],
     },
     {
-      key: "2z8ypa",
+      key: "2x0uq2",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M7 4.5a24 24 0 0 1 10 0"),
+        LucideIconTypes.D("M6.945 19.467a24 24 0 0010.11 0"),
       |],
     },
     {
-      key: "1ac74s",
-      tag: LucideIconTypes.Rect,
+      key: "17f5cg",
+      tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.X("17"),
-        LucideIconTypes.Y("17"),
-        LucideIconTypes.Width("5"),
-        LucideIconTypes.Height("5"),
-        LucideIconTypes.Rx("1"),
+        LucideIconTypes.Cx("19"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
       |],
     },
     {
-      key: "1e7h5j",
-      tag: LucideIconTypes.Rect,
+      key: "mhkx31",
+      tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.X("17"),
-        LucideIconTypes.Y("2"),
-        LucideIconTypes.Width("5"),
-        LucideIconTypes.Height("5"),
-        LucideIconTypes.Rx("1"),
+        LucideIconTypes.Cx("19"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.R("2"),
       |],
     },
     {
-      key: "1t4eah",
-      tag: LucideIconTypes.Rect,
+      key: "v8kfzx",
+      tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.X("2"),
-        LucideIconTypes.Y("17"),
-        LucideIconTypes.Width("5"),
-        LucideIconTypes.Height("5"),
-        LucideIconTypes.Rx("1"),
+        LucideIconTypes.Cx("5"),
+        LucideIconTypes.Cy("19"),
+        LucideIconTypes.R("2"),
       |],
     },
     {
-      key: "940dhs",
-      tag: LucideIconTypes.Rect,
+      key: "1gwv83",
+      tag: LucideIconTypes.Circle,
       attrs: [|
-        LucideIconTypes.X("2"),
-        LucideIconTypes.Y("2"),
-        LucideIconTypes.Width("5"),
-        LucideIconTypes.Height("5"),
-        LucideIconTypes.Rx("1"),
+        LucideIconTypes.Cx("5"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.R("2"),
       |],
     },
   |];
@@ -90765,6 +110754,342 @@ module IconView = {
     );
 };
 
+module IconVirus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "csw8q1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 14.991h.01"),
+      |],
+    },
+    {
+      key: "kmzjlo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 22v-3"),
+      |],
+    },
+    {
+      key: "qbqxhf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v3"),
+      |],
+    },
+    {
+      key: "191ugt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 22h-2"),
+      |],
+    },
+    {
+      key: "mj6ths",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 2h-2"),
+      |],
+    },
+    {
+      key: "djkarb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13.99 10H14"),
+      |],
+    },
+    {
+      key: "165y8t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.5 19.794-1-1.733"),
+      |],
+    },
+    {
+      key: "1v0drn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.5 4.205-1 1.732"),
+      |],
+    },
+    {
+      key: "2ukevj",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.794 16.5-1.732-1"),
+      |],
+    },
+    {
+      key: "1f81wk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.794 7.5-1.732 1"),
+      |],
+    },
+    {
+      key: "1wrr53",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12h3"),
+      |],
+    },
+    {
+      key: "v9793i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 13v-2"),
+      |],
+    },
+    {
+      key: "silwxu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 12h-3"),
+      |],
+    },
+    {
+      key: "1nj1a6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 13v-2"),
+      |],
+    },
+    {
+      key: "1b8gjo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m4.206 16.5 1.732-1"),
+      |],
+    },
+    {
+      key: "paipwt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m4.206 7.5 1.732 1"),
+      |],
+    },
+    {
+      key: "199mim",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7.5 19.794 1-1.733"),
+      |],
+    },
+    {
+      key: "1dzlgs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7.5 4.205 1 1.732"),
+      |],
+    },
+    {
+      key: "157uk2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h.01"),
+      |],
+    },
+    {
+      key: "fim9np",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("7"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="virus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconVirusOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1a2j31",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.01 10h.01"),
+      |],
+    },
+    {
+      key: "csw8q1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 14.991h.01"),
+      |],
+    },
+    {
+      key: "kmzjlo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 22v-3"),
+      |],
+    },
+    {
+      key: "qbqxhf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2v3"),
+      |],
+    },
+    {
+      key: "191ugt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 22h-2"),
+      |],
+    },
+    {
+      key: "mj6ths",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M13 2h-2"),
+      |],
+    },
+    {
+      key: "165y8t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.5 19.794-1-1.733"),
+      |],
+    },
+    {
+      key: "1v0drn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m16.5 4.205-1 1.732"),
+      |],
+    },
+    {
+      key: "ols27d",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18.891 13.235a7 7 0 00-8.126-8.126"),
+      |],
+    },
+    {
+      key: "1f81wk",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m19.794 7.5-1.732 1"),
+      |],
+    },
+    {
+      key: "1wrr53",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12h3"),
+      |],
+    },
+    {
+      key: "v9793i",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 13v-2"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "silwxu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 12h-3"),
+      |],
+    },
+    {
+      key: "1nj1a6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M22 13v-2"),
+      |],
+    },
+    {
+      key: "1b8gjo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m4.206 16.5 1.732-1"),
+      |],
+    },
+    {
+      key: "paipwt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m4.206 7.5 1.732 1"),
+      |],
+    },
+    {
+      key: "1rpkjt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.05 7.05a7 7 0 009.9 9.9"),
+      |],
+    },
+    {
+      key: "199mim",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7.5 19.794 1-1.733"),
+      |],
+    },
+    {
+      key: "157uk2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M9 12h.01"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="virus-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconVoicemail = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -90823,38 +111148,38 @@ module IconVoicemail = {
 module IconVolleyball = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "2880wi",
+      key: "1mmfx7",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11.1 7.1a16.55 16.55 0 0 1 10.9 4"),
+        LucideIconTypes.D("M11 7a16 16 20 0 1 10.98 4.362"),
       |],
     },
     {
-      key: "113sja",
+      key: "14sm5y",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M12 12a12.6 12.6 0 0 1-8.7 5"),
+        LucideIconTypes.D("M12 12a13 13 0 0 1-8.66 5"),
       |],
     },
     {
-      key: "1qmsgl",
+      key: "j0eyj5",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M16.8 13.6a16.55 16.55 0 0 1-9 7.5"),
+        LucideIconTypes.D("M16.83 13.634a16 16 0 0 1-9.267 7.328"),
       |],
     },
     {
-      key: "1bmeqp",
+      key: "qaetsw",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M20.7 17a12.8 12.8 0 0 0-8.7-5 13.3 13.3 0 0 1 0-10"),
+        LucideIconTypes.D("M20.66 17A13 13 0 0 0 12 12a13 13 0 0 1 0-10"),
       |],
     },
     {
-      key: "iekzv9",
+      key: "17ewdd",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M6.3 3.8a16.55 16.55 0 0 0 1.9 11.5"),
+        LucideIconTypes.D("M8.17 15.366a16 16 0 0 1-1.713-11.69"),
       |],
     },
     {
@@ -91079,30 +111404,24 @@ module IconVolumeOff = {
 module IconVolumeX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "uqj9uw",
+      key: "1p7khw",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"),
+        LucideIconTypes.D("M11 4.702a.7.7 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.7.7 0 0 0 11 19.298z"),
       |],
     },
     {
-      key: "1ewh16",
-      tag: LucideIconTypes.Line,
+      key: "cul3yw",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("22"),
-        LucideIconTypes.X2("16"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("15"),
+        LucideIconTypes.D("m16.5 14.5 5-5"),
       |],
     },
     {
-      key: "5ykzw1",
-      tag: LucideIconTypes.Line,
+      key: "1akey5",
+      tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.X1("16"),
-        LucideIconTypes.X2("22"),
-        LucideIconTypes.Y1("9"),
-        LucideIconTypes.Y2("15"),
+        LucideIconTypes.D("m16.5 9.5 5 5"),
       |],
     },
   |];
@@ -91222,28 +111541,28 @@ module IconWallet = {
 module IconWalletCards = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "afitv7",
+      key: "1vwh6y",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 11h3.75a2 2 0 0 1 1.6.8l.45.6a4 4 0 0 0 6.4 0l.45-.6a2 2 0 0 1 1.6-.8H21"),
+      |],
+    },
+    {
+      key: "1uiuf2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 7h18"),
+      |],
+    },
+    {
+      key: "h1oib",
       tag: LucideIconTypes.Rect,
       attrs: [|
-        LucideIconTypes.Width("18"),
-        LucideIconTypes.Height("18"),
         LucideIconTypes.X("3"),
         LucideIconTypes.Y("3"),
+        LucideIconTypes.Width("18"),
+        LucideIconTypes.Height("18"),
         LucideIconTypes.Rx("2"),
-      |],
-    },
-    {
-      key: "4125el",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2"),
-      |],
-    },
-    {
-      key: "1dpki6",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M3 11h3c.8 0 1.6.3 2.1.9l1.1.9c1.6 1.6 4.1 1.6 5.7 0l1.1-.9c.5-.5 1.3-.9 2.1-.9H21"),
       |],
     },
   |];
@@ -91733,54 +112052,6 @@ module IconWatch = {
     );
 };
 
-module IconWaves = {
-  let iconNode: LucideIconTypes.iconNode = [|
-    {
-      key: "knzxuh",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"),
-      |],
-    },
-    {
-      key: "2jd2cc",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"),
-      |],
-    },
-    {
-      key: "rd2r6e",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"),
-      |],
-    },
-  |];
-
-  [@react.component]
-  let make = (
-    ~absoluteStrokeWidth=?,
-    ~ariaLabel=?,
-    ~className=?,
-    ~color=?,
-    ~size=?,
-    ~strokeWidth=?,
-    ~title=?,
-  ) =>
-    LucideIconRenderer.render(
-      ~name="waves",
-      ~absoluteStrokeWidth?,
-      ~ariaLabel?,
-      ~className?,
-      ~color?,
-      ~size?,
-      ~strokeWidth?,
-      ~title?,
-      iconNode,
-    );
-};
-
 module IconWavesArrowDown = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -91891,6 +112162,54 @@ module IconWavesArrowUp = {
     );
 };
 
+module IconWavesHorizontal = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "8ddzzs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 12q2.5 2 5 0t5 0 5 0 5 0"),
+      |],
+    },
+    {
+      key: "1wj4st",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 19q2.5 2 5 0t5 0 5 0 5 0"),
+      |],
+    },
+    {
+      key: "69x50u",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 5q2.5 2 5 0t5 0 5 0 5 0"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="waves-horizontal",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconWavesLadder = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -91953,63 +112272,111 @@ module IconWavesLadder = {
     );
 };
 
+module IconWavesVertical = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "13jdbg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 2q2 2.5 0 5t0 5 0 5 0 5"),
+      |],
+    },
+    {
+      key: "1ozhzu",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 2q2 2.5 0 5t0 5 0 5 0 5"),
+      |],
+    },
+    {
+      key: "1bi6v5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 2q2 2.5 0 5t0 5 0 5 0 5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="waves-vertical",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconWaypoints = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "r5ysbb",
+      key: "4mc350",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m10.586 5.414-5.172 5.172"),
+      |],
+    },
+    {
+      key: "8c96vv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m18.586 13.414-5.172 5.172"),
+      |],
+    },
+    {
+      key: "8npq4p",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 12h12"),
+      |],
+    },
+    {
+      key: "144qzu",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("4.5"),
-        LucideIconTypes.R("2.5"),
+        LucideIconTypes.Cy("20"),
+        LucideIconTypes.R("2"),
       |],
     },
     {
-      key: "1nzqf6",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m10.2 6.3-3.9 3.9"),
-      |],
-    },
-    {
-      key: "jydg6v",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("4.5"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("2.5"),
-      |],
-    },
-    {
-      key: "b7w52i",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M7 12h10"),
-      |],
-    },
-    {
-      key: "1piiel",
-      tag: LucideIconTypes.Circle,
-      attrs: [|
-        LucideIconTypes.Cx("19.5"),
-        LucideIconTypes.Cy("12"),
-        LucideIconTypes.R("2.5"),
-      |],
-    },
-    {
-      key: "1wyg1y",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("m13.8 17.7 3.9-3.9"),
-      |],
-    },
-    {
-      key: "13o1pw",
+      key: "muu5ef",
       tag: LucideIconTypes.Circle,
       attrs: [|
         LucideIconTypes.Cx("12"),
-        LucideIconTypes.Cy("19.5"),
-        LucideIconTypes.R("2.5"),
+        LucideIconTypes.Cy("4"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "1xzzfp",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("20"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("2"),
+      |],
+    },
+    {
+      key: "1hvhnz",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("4"),
+        LucideIconTypes.Cy("12"),
+        LucideIconTypes.R("2"),
       |],
     },
   |];
@@ -92085,6 +112452,82 @@ module IconWebcam = {
   ) =>
     LucideIconRenderer.render(
       ~name="webcam",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconWebcamOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1utk9m",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 22v-4"),
+      |],
+    },
+    {
+      key: "1v0qsm",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.754 7.096a3 3 0 0 1 2.15 2.15"),
+      |],
+    },
+    {
+      key: "13aqxl",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.863 12.873a3 3 0 0 1-3.736-3.735"),
+      |],
+    },
+    {
+      key: "1hliph",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16.566 16.57A8 8 0 0 1 5.43 5.433"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "10w4w3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 22h10"),
+      |],
+    },
+    {
+      key: "r097k8",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.478 2.817a8 8 0 0 1 10.705 10.705"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="webcam-off",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -92252,6 +112695,56 @@ module IconWeight = {
   ) =>
     LucideIconRenderer.render(
       ~name="weight",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconWeightTilde = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1wl739",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6.5 8a2 2 0 0 0-1.906 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8z"),
+      |],
+    },
+    {
+      key: "1egezo",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7.999 15a2.5 2.5 0 0 1 4 0 2.5 2.5 0 0 0 4 0"),
+      |],
+    },
+    {
+      key: "rqqgnr",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("5"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="weight-tilde",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -92446,6 +112939,47 @@ module IconWheatOff = {
     );
 };
 
+module IconWhistle = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1sdd75",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 6v4"),
+      |],
+    },
+    {
+      key: "kuzxl1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-5.675A7 7 0 1 1 9 6z"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="whistle",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconWholeWord = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -92612,10 +113146,10 @@ module IconWifiCog = {
       |],
     },
     {
-      key: "1ovjuk",
+      key: "1nil1f",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2 7.82a15 15 0 0 1 20 0"),
+        LucideIconTypes.D("M2 8.82a15 15 0 0120 0"),
       |],
     },
     {
@@ -92633,17 +113167,17 @@ module IconWifiCog = {
       |],
     },
     {
-      key: "3sn16i",
+      key: "1tqyl2",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M5 11.858a10 10 0 0 1 11.5-1.785"),
+        LucideIconTypes.D("M5 12.859a10 10 0 0110.18-2.342"),
       |],
     },
     {
-      key: "1pxovh",
+      key: "vrrh85",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M8.5 15.429a5 5 0 0 1 2.413-1.31"),
+        LucideIconTypes.D("M8.5 16.429a5 5 0 011.998-1.2"),
       |],
     },
     {
@@ -92717,6 +113251,72 @@ module IconWifiHigh = {
   ) =>
     LucideIconRenderer.render(
       ~name="wifi-high",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconWifiLock = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1nil1f",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M2 8.82a15 15 0 0120 0"),
+      |],
+    },
+    {
+      key: "1xumi5",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 16v-2a2 2 0 00-4 0v2"),
+      |],
+    },
+    {
+      key: "a6z9e1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 12.859a10 10 0 018.436-2.756"),
+      |],
+    },
+    {
+      key: "5vajuv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8.5 16.429a5 5 0 011.794-1.13"),
+      |],
+    },
+    {
+      key: "1rp9x2",
+      tag: LucideIconTypes.Rect,
+      attrs: [|
+        LucideIconTypes.X("14"),
+        LucideIconTypes.Y("16"),
+        LucideIconTypes.Width("8"),
+        LucideIconTypes.Height("5"),
+        LucideIconTypes.Rx("1"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="wifi-lock",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -93113,6 +113713,61 @@ module IconWindArrowDown = {
     );
 };
 
+module IconWindArrowUp = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "d4bbey",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 2v8"),
+      |],
+    },
+    {
+      key: "19kp1d",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12.8 21.6A2 2 0 1 0 14 18H2"),
+      |],
+    },
+    {
+      key: "19kpjc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M17.5 10a2.5 2.5 0 1 1 2 4H2"),
+      |],
+    },
+    {
+      key: "ym80l6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6 6 4 -4 4 4"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="wind-arrow-up",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconWine = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -93371,6 +114026,54 @@ module IconWrench = {
     );
 };
 
+module IconWrenchOff = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "sded7h",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10.747 5.093a6 6 0 0 1 6.841-2.882c.438.12.54.662.219.984L14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-2.882 6.842"),
+      |],
+    },
+    {
+      key: "66etnh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m13.5 13.5-7.88 7.88a1 1 0 0 1-2.999-3l7.88-7.88"),
+      |],
+    },
+    {
+      key: "1ooewy",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="wrench-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
 module IconX = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
@@ -93412,20 +114115,27 @@ module IconX = {
     );
 };
 
-module IconYoutube = {
+module IconXLineTop = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1q2vi4",
+      key: "1hsngl",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"),
+        LucideIconTypes.D("M18 4H6"),
       |],
     },
     {
-      key: "1jp15x",
+      key: "xspwia",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("m10 15 5-3-5-3z"),
+        LucideIconTypes.D("M18 8 6 20"),
+      |],
+    },
+    {
+      key: "qb1veh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m6 8 12 12"),
       |],
     },
   |];
@@ -93441,7 +114151,7 @@ module IconYoutube = {
     ~title=?,
   ) =>
     LucideIconRenderer.render(
-      ~name="youtube",
+      ~name="x-line-top",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,
@@ -93456,10 +114166,10 @@ module IconYoutube = {
 module IconZap = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "1xq2db",
+      key: "1v7up4",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"),
+        LucideIconTypes.D("M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"),
       |],
     },
   |];
@@ -93490,24 +114200,17 @@ module IconZap = {
 module IconZapOff = {
   let iconNode: LucideIconTypes.iconNode = [|
     {
-      key: "193nxd",
+      key: "l6h226",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M10.513 4.856 13.12 2.17a.5.5 0 0 1 .86.46l-1.377 4.317"),
+        LucideIconTypes.D("M10.768 5.111 13.44 2.44a1.5 1.5 0 012.474 1.561l-1.633 4.625"),
       |],
     },
     {
-      key: "27a7lr",
+      key: "1717b9",
       tag: LucideIconTypes.Path,
       attrs: [|
-        LucideIconTypes.D("M15.656 10H20a1 1 0 0 1 .78 1.63l-1.72 1.773"),
-      |],
-    },
-    {
-      key: "1e0qe9",
-      tag: LucideIconTypes.Path,
-      attrs: [|
-        LucideIconTypes.D("M16.273 16.273 10.88 21.83a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14H4a1 1 0 0 1-.78-1.63l4.507-4.643"),
+        LucideIconTypes.D("m18.889 13.232.672-.672A1.5 1.5 0 0018.5 10h-2.844"),
       |],
     },
     {
@@ -93515,6 +114218,13 @@ module IconZapOff = {
       tag: LucideIconTypes.Path,
       attrs: [|
         LucideIconTypes.D("m2 2 20 20"),
+      |],
+    },
+    {
+      key: "1bjzrh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m7.94 7.94-3.5 3.499A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l5.5-5.5"),
       |],
     },
   |];
@@ -93531,6 +114241,626 @@ module IconZapOff = {
   ) =>
     LucideIconRenderer.render(
       ~name="zap-off",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacAquarius = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1o8iok",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 10 2.456-3.684a.7.7 0 0 1 1.106-.013l2.39 3.413a.7.7 0 0 0 1.096-.001l2.402-3.432a.7.7 0 0 1 1.098 0l2.402 3.432a.7.7 0 0 0 1.098 0l2.389-3.413a.7.7 0 0 1 1.106.013L22 10"),
+      |],
+    },
+    {
+      key: "112qy7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m2 18.002 2.456-3.684a.7.7 0 0 1 1.106-.013l2.39 3.413a.7.7 0 0 0 1.097 0l2.402-3.432a.7.7 0 0 1 1.098 0l2.402 3.432a.7.7 0 0 0 1.098 0l2.389-3.413a.7.7 0 0 1 1.106.013L22 18.002"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-aquarius",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacAries = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "k987hv",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M12 7.5a4.5 4.5 0 1 1 5 4.5"),
+      |],
+    },
+    {
+      key: "mjup0w",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 12a4.5 4.5 0 1 1 5-4.5V21"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-aries",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacCancer = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1xj2o6",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 14.5A9 6.5 0 0 1 5.5 19"),
+      |],
+    },
+    {
+      key: "1gln3t",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 9.5A9 6.5 0 0 1 18.5 5"),
+      |],
+    },
+    {
+      key: "1ccu1t",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("17.5"),
+        LucideIconTypes.Cy("14.5"),
+        LucideIconTypes.R("3.5"),
+      |],
+    },
+    {
+      key: "x5tc2d",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("6.5"),
+        LucideIconTypes.Cy("9.5"),
+        LucideIconTypes.R("3.5"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-cancer",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacCapricorn = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1kkncs",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 21a3 3 0 0 0 3-3V6.5a1 1 0 0 0-7 0"),
+      |],
+    },
+    {
+      key: "1jg5y1",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M7 19V6a3 3 0 0 0-3-3h0"),
+      |],
+    },
+    {
+      key: "18b49y",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("17"),
+        LucideIconTypes.Cy("17"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-capricorn",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacGemini = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "bgoxo0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 4.525v14.948"),
+      |],
+    },
+    {
+      key: "1djemw",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 3A17 17 0 0 1 4 3"),
+      |],
+    },
+    {
+      key: "onoyo7",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M4 21a17 17 0 0 1 16 0"),
+      |],
+    },
+    {
+      key: "u5iyof",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M8 4.525v14.948"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-gemini",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacLeo = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1qj6nb",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 16c0-4-3-4.5-3-8a5 5 0 0 1 10 0c0 3.466-3 6.196-3 10a3 3 0 0 0 6 0"),
+      |],
+    },
+    {
+      key: "yyv3zl",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("7"),
+        LucideIconTypes.Cy("16"),
+        LucideIconTypes.R("3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-leo",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacLibra = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1novf0",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 16h6.857c.162-.012.19-.323.038-.38a6 6 0 1 1 4.212 0c-.153.057-.125.368.038.38H21"),
+      |],
+    },
+    {
+      key: "1l19wn",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 20h18"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-libra",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacOphiuchus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "13lfmc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M3 10A6.06 6.06 0 0 1 12 10 A6.06 6.06 0 0 0 21 10"),
+      |],
+    },
+    {
+      key: "1jnivp",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 3v12a6 6 0 0 0 12 0V3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-ophiuchus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacPisces = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "br2vug",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M19 21a15 15 0 0 1 0-18"),
+      |],
+    },
+    {
+      key: "1mtusc",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M20 12H4"),
+      |],
+    },
+    {
+      key: "1w7hae",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 3a15 15 0 0 1 0 18"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-pisces",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacSagittarius = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1q9fwt",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M15 3h6v6"),
+      |],
+    },
+    {
+      key: "1011np",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M21 3 3 21"),
+      |],
+    },
+    {
+      key: "z0biqf",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m9 9 6 6"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-sagittarius",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacScorpio = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1w8g0z",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M10 19V5.5a1 1 0 0 1 5 0V17a2 2 0 0 0 2 2h5l-3-3"),
+      |],
+    },
+    {
+      key: "1ix4wq",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("m22 19-3 3"),
+      |],
+    },
+    {
+      key: "1d4oa3",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 19V5.5a1 1 0 0 1 5 0"),
+      |],
+    },
+    {
+      key: "gp646f",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M5 5.5A2.5 2.5 0 0 0 2.5 3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-scorpio",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacTaurus = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "lhqcmb",
+      tag: LucideIconTypes.Circle,
+      attrs: [|
+        LucideIconTypes.Cx("12"),
+        LucideIconTypes.Cy("15"),
+        LucideIconTypes.R("6"),
+      |],
+    },
+    {
+      key: "1p399e",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M18 3A6 6 0 0 1 6 3"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-taurus",
+      ~absoluteStrokeWidth?,
+      ~ariaLabel?,
+      ~className?,
+      ~color?,
+      ~size?,
+      ~strokeWidth?,
+      ~title?,
+      iconNode,
+    );
+};
+
+module IconZodiacVirgo = {
+  let iconNode: LucideIconTypes.iconNode = [|
+    {
+      key: "1szkuh",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M11 5.5a1 1 0 0 1 5 0V16a5 5 0 0 0 5 5"),
+      |],
+    },
+    {
+      key: "pyq0k2",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M16 11.5a1 1 0 0 1 5 0V16a5 5 0 0 1-5 5"),
+      |],
+    },
+    {
+      key: "pvee4g",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 19V6a3 3 0 0 0-3-3h0"),
+      |],
+    },
+    {
+      key: "vncctg",
+      tag: LucideIconTypes.Path,
+      attrs: [|
+        LucideIconTypes.D("M6 5.5a1 1 0 0 1 5 0V19"),
+      |],
+    },
+  |];
+
+  [@react.component]
+  let make = (
+    ~absoluteStrokeWidth=?,
+    ~ariaLabel=?,
+    ~className=?,
+    ~color=?,
+    ~size=?,
+    ~strokeWidth=?,
+    ~title=?,
+  ) =>
+    LucideIconRenderer.render(
+      ~name="zodiac-virgo",
       ~absoluteStrokeWidth?,
       ~ariaLabel?,
       ~className?,

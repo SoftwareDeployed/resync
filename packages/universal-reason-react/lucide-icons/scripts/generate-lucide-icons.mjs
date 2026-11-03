@@ -143,8 +143,11 @@ async function loadCanonicalIcons(slugs) {
   const componentNames = new Map();
   const icons = [];
   for (const slug of [...slugs].sort()) {
-    const mod = await import(pathToFileURL(path.join(iconsDir, `${slug}.js`)).href);
-    if (!mod.__iconNode) {
+    // lucide-react >= 1.x ships .mjs files exporting __iconData; 0.x
+    // shipped .js files exporting __iconNode.
+    const mod = await import(pathToFileURL(path.join(iconsDir, `${slug}.mjs`)).href);
+    const iconNode = mod.__iconNode ?? mod.__iconData?.node;
+    if (!iconNode) {
       continue;
     }
     const componentName = toComponentName(slug);
@@ -153,7 +156,7 @@ async function loadCanonicalIcons(slugs) {
       throw new Error(`Duplicate component name ${componentName} for ${existingSlug} and ${slug}`);
     }
     componentNames.set(componentName, slug);
-    icons.push({slug, componentName, iconNode: mod.__iconNode});
+    icons.push({slug, componentName, iconNode});
   }
   return icons;
 }
@@ -161,8 +164,8 @@ async function loadCanonicalIcons(slugs) {
 async function loadIconSlugs() {
   const entries = await fs.readdir(iconsDir, {withFileTypes: true});
   return entries
-    .filter(entry => entry.isFile() && entry.name.endsWith(".js"))
-    .map(entry => entry.name.replace(/\.js$/, ""))
+    .filter(entry => entry.isFile() && (entry.name.endsWith(".js") || entry.name.endsWith(".mjs")))
+    .map(entry => entry.name.replace(/\.(js|mjs)$/, ""))
     .sort();
 }
 

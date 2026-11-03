@@ -44,7 +44,7 @@
     "common": "link:demos/ecommerce/shared",
     "ecommerce-ui": "link:demos/ecommerce/ui",
     "llm-chat-ui": "link:demos/llm-chat/ui",
-    "lucide-react": "^0.555.0",
+    "lucide-react": "^1.66.0",
     "react": "^19.3.1",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.3.1",
