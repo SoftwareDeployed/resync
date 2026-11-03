@@ -71,7 +71,7 @@ module Widget = {
       let clientRef = React.useRef(None);
       let threadIdRef = React.useRef(None);
 
-      let%browser_only sendAction = (~kind, ~payloadFields) => {
+      let%melange_only sendAction = (~kind, ~payloadFields) => {
         switch (clientRef.current) {
         | Some(client) => {
             let actionId = UUID.make();
@@ -92,7 +92,7 @@ module Widget = {
         }
       };
 
-      let%browser_only ensureThread = () => {
+      let%melange_only ensureThread = () => {
         let threadId = UUID.make();
         threadIdRef.current = Some(threadId);
         sendAction(
@@ -105,7 +105,7 @@ module Widget = {
         threadId;
       };
 
-      let%browser_only connect = () => {
+      let%melange_only connect = () => {
         let client =
           RealtimeClientMultiplexed.Multiplexed.make(
             ~eventUrl=Constants.event_url,
@@ -225,7 +225,7 @@ module Widget = {
         ();
       };
 
-      let%browser_only toggleOpen = _event => {
+      let%melange_only toggleOpen = _event => {
         let next = !open_;
         setOpen(_previous => next);
         if (next && clientRef.current == None) {
@@ -233,7 +233,7 @@ module Widget = {
         };
       };
 
-      let%browser_only sendPrompt = _event => {
+      let%melange_only sendPrompt = _event => {
         let prompt = draft->String.trim;
         if (prompt != "") {
           setDraft(_previous => "");
@@ -276,7 +276,7 @@ module Widget = {
         };
       };
 
-      let%browser_only onDraftChange = event => {
+      let%melange_only onDraftChange = event => {
         let value = React.Event.Form.target(event)##value;
         setDraft(_previous => value);
       };

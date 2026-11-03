@@ -16,10 +16,10 @@ type t = {
   statusListenersRef: StoreEvents.callback_registry(StoreRuntimeTypes.status),
 };
 
-[@platform js]
+[@melange_only]
 external setTimeout: (unit => unit, int) => unit = "setTimeout";
 
-[@platform native]
+[@native_only]
 let setTimeout = (_callback, _timeout) => ();
 
 let make = (~storeName, ()) => {

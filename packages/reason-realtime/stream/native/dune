@@ -7,7 +7,7 @@
  (modes native)
  (preprocess
   (pps
-   server-reason-react.browser_ppx
+   ppx_platform
    server-reason-react.melange_ppx)))
 
 (copy_files

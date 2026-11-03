@@ -1,25 +1,25 @@
-[@platform js]
+[@melange_only]
 module Style = {
   [%%raw "import \"./style.css\""];
 };
 
-[@platform native]
+[@native_only]
 module Style = {
   let _css = ();
 };
 
 open Tilia.React;
 
-[@platform js]
+[@melange_only]
 let getInputValue = event => React.Event.Form.target(event)##value;
 
-[@platform native]
+[@native_only]
 let getInputValue = _event => "";
 
-[@platform js]
+[@melange_only]
 let preventDefault = event => React.Event.Synthetic.preventDefault(event);
 
-[@platform native]
+[@native_only]
 let preventDefault = _event => ();
 
 [@react.component]

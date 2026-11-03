@@ -37,12 +37,6 @@
  (package
   (name reason-react-ppx)))
 
-(pin
- (url
-  "git+https://github.com/SoftwareDeployed/reason-react-day-picker.git#reason-native")
- (package
-  (name reason-react-day-picker)))
-
 (package
  (name resync)
  (synopsis "Realtime Universal Reason React")
@@ -52,9 +46,9 @@
   (ocaml
    (= "5.4.1"))
   (caqti-lwt
-   (= "2.2.4"))
+   (= "3.1.0"))
   (lwt
-   (= "5.9.2"))
+   (= "6.1.2"))
   caqti-driver-postgresql
   dream
   melange
@@ -68,8 +62,8 @@
   ctypes-foreign
   reason-react-ppx
    reason-react
-   reason-react-day-picker
    server-reason-react
+   ppx_platform
    uuidm
    (alcotest :with-test)
    (alcobar :with-test)

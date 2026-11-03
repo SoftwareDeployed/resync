@@ -1,48 +1,48 @@
-[@platform js]
+[@melange_only]
 type navigator;
 
-[@platform js]
+[@melange_only]
 type clipboard;
 
-[@platform js]
+[@melange_only]
 type location;
 
-[@platform js]
+[@melange_only]
 [@mel.module "sonner"]
 external toaster: React.component(Js.t({. richColors: bool})) = "Toaster";
 
-[@platform js]
+[@melange_only]
 [@mel.module "sonner"]
 [@mel.scope "toast"]
 external toastSuccess: string => unit = "success";
 
-[@platform js]
+[@melange_only]
 [@mel.module "sonner"]
 [@mel.scope "toast"]
 external toastError: string => unit = "error";
 
-[@platform js]
+[@melange_only]
 external navigator: navigator = "navigator";
 
-[@platform js]
+[@melange_only]
 external location: location = "location";
 
-[@platform js]
+[@melange_only]
 [@mel.get]
 external clipboard: navigator => clipboard = "clipboard";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external writeText: (clipboard, string) => Js.Promise.t(unit) = "writeText";
 
-[@platform js]
+[@melange_only]
 [@mel.get]
 external href: location => string = "href";
 
-[@platform js]
+[@melange_only]
 let renderToaster = () => React.createElement(toaster, [%obj {richColors: true}]);
 
-[@platform js]
+[@melange_only]
 let copyCurrentUrl = () => {
   let url = href(location);
   Js.Promise.catch(
@@ -60,14 +60,14 @@ let copyCurrentUrl = () => {
   );
 };
 
-[@platform js]
+[@melange_only]
 let showError = message => toastError(message);
 
-[@platform native]
+[@native_only]
 let renderToaster = () => React.null;
 
-[@platform native]
+[@native_only]
 let copyCurrentUrl = () => Js.Promise.resolve();
 
-[@platform native]
+[@native_only]
 let showError = _message => ();

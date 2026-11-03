@@ -7,13 +7,13 @@ include QueryRegistryTypes;
 
 // Native-only: SSR query collection
 
-[@platform native]
+[@native_only]
 type registry_state =
   | Collecting
   | Executed
   | Rendered;
 
-[@platform native]
+[@native_only]
 type registered_query_exec =
   | Query({
       key: string,
@@ -27,7 +27,7 @@ type registered_query_exec =
     })
     : registered_query_exec;
 
-[@platform native]
+[@native_only]
 type query_registry = {
   mutable state: registry_state,
   mutable queries: Hashtbl.t(string, registered_query_exec),
@@ -37,20 +37,20 @@ type query_registry = {
   db_connection: option(module Caqti_lwt.CONNECTION),
 };
 
-[@platform native]
+[@native_only]
 let registry_key: Lwt.key(query_registry) = Lwt.new_key();
 
-[@platform native]
+[@native_only]
 let sync_registry_ref: ref(option(query_registry)) = ref(None);
 
-[@platform native]
+[@native_only]
 let current_registry = () =>
   switch (Lwt.get(registry_key)) {
   | Some(registry) => Some(registry)
   | None => sync_registry_ref^
   };
 
-[@platform native]
+[@native_only]
 let copyRegistry = (~target, ~source) => {
   target.state = source.state;
   target.queries = source.queries;
@@ -59,7 +59,7 @@ let copyRegistry = (~target, ~source) => {
   target.errors = source.errors;
 };
 
-[@platform native]
+[@native_only]
 let clearRegistry = registry => {
   registry.state = Collecting;
   registry.queries = Hashtbl.create(8);
@@ -68,7 +68,7 @@ let clearRegistry = registry => {
   registry.errors = Hashtbl.create(8);
 };
 
-[@platform native]
+[@native_only]
 let withScopedRegistry = (~registry, ~f) => {
   let previousRegistry = sync_registry_ref^;
   sync_registry_ref := None;
@@ -83,7 +83,7 @@ let withScopedRegistry = (~registry, ~f) => {
   };
 };
 
-[@platform native]
+[@native_only]
 let lwtIterArraySerial = (items: array('a), f: 'a => Lwt.t(unit)) => {
   let rec loop = index =>
     if (index >= Array.length(items)) {
@@ -95,7 +95,7 @@ let lwtIterArraySerial = (items: array('a), f: 'a => Lwt.t(unit)) => {
   loop(0);
 };
 
-[@platform native]
+[@native_only]
 let rec assocOpt = (key: string, fields: list((string, Yojson.Safe.t))) =>
   switch (fields) {
   | [] => None
@@ -107,7 +107,7 @@ let rec assocOpt = (key: string, fields: list((string, Yojson.Safe.t))) =>
     }
   };
 
-[@platform native]
+[@native_only]
 let rec iterAssoc = (entries: list((string, Yojson.Safe.t)), f) =>
   switch (entries) {
   | [] => ()
@@ -116,21 +116,21 @@ let rec iterAssoc = (entries: list((string, Yojson.Safe.t)), f) =>
     iterAssoc(rest, f);
   };
 
-[@platform native]
+[@native_only]
 let isLoadedResult = fields =>
   switch (assocOpt("_tag", fields)) {
   | Some(`String("Loaded")) => true
   | _ => false
   };
 
-[@platform native]
+[@native_only]
 let errorMessageOfResult = fields =>
   switch (assocOpt("_tag", fields), assocOpt("message", fields)) {
   | (Some(`String("Error")), Some(`String(message))) => Some(message)
   | _ => None
   };
 
-[@platform native]
+[@native_only]
 let decodeRows = (~decode, json): option(array('a)) =>
   try({
     let decodeList = items => {
@@ -167,7 +167,7 @@ let decodeRows = (~decode, json): option(array('a)) =>
   | _ => None
   };
 
-[@platform native]
+[@native_only]
 let with_registry = (~db, ~f, ()) => {
   let f: unit => Lwt.t('a) = f;
   let registry = {
@@ -181,7 +181,7 @@ let with_registry = (~db, ~f, ()) => {
   withScopedRegistry(~registry, ~f);
 };
 
-[@platform native]
+[@native_only]
 let register_query =
     (
       ~key: string,
@@ -223,28 +223,28 @@ let register_query =
   };
 };
 
-[@platform native]
+[@native_only]
 let find_result = (~key: string): option(Yojson.Safe.t) =>
   switch (current_registry()) {
   | Some(registry) => Hashtbl.find_opt(registry.results, key)
   | None => None
   };
 
-[@platform native]
+[@native_only]
 let find_error = (~key: string): option(string) =>
   switch (current_registry()) {
   | Some(registry) => Hashtbl.find_opt(registry.errors, key)
   | None => None
   };
 
-[@platform native]
+[@native_only]
 let registered_query_count = (): int =>
   switch (current_registry()) {
   | Some(registry) => Hashtbl.length(registry.queries)
   | None => 0
   };
 
-[@platform native]
+[@native_only]
 let execute_queries = () => {
   switch (Lwt.get(registry_key)) {
   | None => Lwt.return()
@@ -274,7 +274,7 @@ let execute_queries = () => {
   };
 };
 
-[@platform native]
+[@native_only]
 let get_loaded_results = (): array(loaded_query_result) => {
   switch (current_registry()) {
   | None => [||]
@@ -329,7 +329,7 @@ let get_loaded_results = (): array(loaded_query_result) => {
 
 // Serialize registry results to QueryCache hydrate format
 // {"channel:hash": {"_tag": "Loaded", "data": [...]}}
-[@platform native]
+[@native_only]
 let serialize_for_cache = (): string => {
   switch (Lwt.get(registry_key)) {
   | None => "{}"
@@ -360,7 +360,7 @@ let serialize_for_cache = (): string => {
   };
 };
 
-[@platform native]
+[@native_only]
 let registryFromSerialized = (~jsonStr: string): query_registry => {
   let json = Yojson.Safe.from_string(jsonStr);
   let results = Hashtbl.create(8);
@@ -401,7 +401,7 @@ let registryFromSerialized = (~jsonStr: string): query_registry => {
 // Setup registry from QueryCache-format JSON without clearing it.
 // Prefer the current Lwt request context when one exists; fall back to the
 // synchronous registry for legacy render paths and native tests.
-[@platform native]
+[@native_only]
 let setup_registry_from_json = (~jsonStr: string): unit => {
   let registry = registryFromSerialized(~jsonStr);
   switch (Lwt.get(registry_key)) {
@@ -412,7 +412,7 @@ let setup_registry_from_json = (~jsonStr: string): unit => {
   };
 };
 
-[@platform native]
+[@native_only]
 let clear_registry = () => {
   sync_registry_ref := None;
   switch (Lwt.get(registry_key)) {
@@ -422,13 +422,13 @@ let clear_registry = () => {
 };
 
 // Create a temporary registry from QueryCache-format JSON and run f inside it
-[@platform native]
+[@native_only]
 let with_serialized = (~jsonStr: string, ~f: unit => 'a, ()): 'a => {
   let registry = registryFromSerialized(~jsonStr);
   withScopedRegistry(~registry, ~f);
 };
 
-[@platform native]
+[@native_only]
 let with_serialized_lwt = (~jsonStr: string, ~f: unit => Lwt.t('a), ()): Lwt.t('a) => {
   let registry = registryFromSerialized(~jsonStr);
   withScopedRegistry(~registry, ~f);
@@ -436,7 +436,7 @@ let with_serialized_lwt = (~jsonStr: string, ~f: unit => Lwt.t('a), ()): Lwt.t('
 
 // JS-only: Client stubs (full implementation in QueryCache.re)
 
-[@platform js]
+[@melange_only]
 let register_query =
     (
       ~key as _,
@@ -448,31 +448,31 @@ let register_query =
     ) =>
   None;
 
-[@platform js]
+[@melange_only]
 let find_result = (~key as _) => None;
 
-[@platform js]
+[@melange_only]
 let find_error = (~key as _) => None;
 
-[@platform js]
+[@melange_only]
 let registered_query_count = () => 0;
 
-[@platform js]
+[@melange_only]
 let execute_queries = () => ();
 
-[@platform js]
+[@melange_only]
 let get_loaded_results = () => [||];
 
-[@platform js]
+[@melange_only]
 let with_registry = (~db as _, ~f, ()) => f();
 
 // Note: registry_key not needed on JS platform
 
-[@platform js]
+[@melange_only]
 let serialize_for_cache = (): string => "{}";
 
-[@platform js]
+[@melange_only]
 let with_serialized = (~jsonStr as _, ~f, ()) => f();
 
-[@platform js]
+[@melange_only]
 let with_serialized_lwt = (~jsonStr as _, ~f, ()) => f();

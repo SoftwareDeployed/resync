@@ -82,7 +82,7 @@ let wavDataUrlFromSamples = (samples: MediaBindings.float32Array, sampleRate: in
   };
 };
 
-[@platform js]
+[@melange_only]
 let createReal = () => {
   let constraints = [%obj {video: true, audio: true}];
   Js.Promise.then_(
@@ -169,11 +169,11 @@ let createReal = () => {
   );
 };
 
-[@platform native]
+[@native_only]
 let createReal = (): Js.Promise.t(realHandle) =>
   Js.Promise.reject(Failure("Media capture is not available during SSR"));
 
-[@platform js]
+[@melange_only]
 let create = () =>
   switch (MediaCaptureOverride.current()) {
   | Some(implementation) =>
@@ -188,11 +188,11 @@ let create = () =>
     )
   };
 
-[@platform native]
+[@native_only]
 let create = (): Js.Promise.t(t) =>
   Js.Promise.reject(Failure("Media capture is not available during SSR"));
 
-[@platform js]
+[@melange_only]
 let attachVideoElement = (capture: t, videoEl: Dom.element) =>
   switch (capture) {
   | Real(realCapture) =>
@@ -203,10 +203,10 @@ let attachVideoElement = (capture: t, videoEl: Dom.element) =>
     MediaCaptureOverride.attachVideoElement(implementation, overrideHandle, videoEl)
   };
 
-[@platform native]
+[@native_only]
 let attachVideoElement = (_capture, _videoEl) => ();
 
-[@platform js]
+[@melange_only]
 let startCapture = (capture: t, ~onFrame, ~onAudioChunk) =>
   switch (capture) {
   | Real(realCapture) =>
@@ -247,10 +247,10 @@ let startCapture = (capture: t, ~onFrame, ~onAudioChunk) =>
     )
   };
 
-[@platform native]
+[@native_only]
 let startCapture = (_capture, ~onFrame: _, ~onAudioChunk: _) => ();
 
-[@platform js]
+[@melange_only]
 let stopCapture = (capture: t) =>
   switch (capture) {
   | Real(realCapture) =>
@@ -306,30 +306,30 @@ let stopCapture = (capture: t) =>
     MediaCaptureOverride.stopCapture(implementation, overrideHandle)
   };
 
-[@platform native]
+[@native_only]
 let stopCapture = _capture => ();
 
-[@platform js]
+[@melange_only]
 let getVideoTracks = capture =>
   switch (capture) {
   | Real(realCapture) => MediaBindings.getVideoTracks(realCapture.stream)
   | Override(_, _) => [||]
   };
 
-[@platform native]
+[@native_only]
 let getVideoTracks = _capture => [||];
 
-[@platform js]
+[@melange_only]
 let getAudioTracks = capture =>
   switch (capture) {
   | Real(realCapture) => MediaBindings.getAudioTracks(realCapture.stream)
   | Override(_, _) => [||]
   };
 
-[@platform native]
+[@native_only]
 let getAudioTracks = _capture => [||];
 
-[@platform js]
+[@melange_only]
 let setAudioCaptureEnabled = (capture: t, enabled: bool) =>
   switch (capture) {
   | Real(realCapture) => realCapture.audioEnabled = enabled
@@ -337,10 +337,10 @@ let setAudioCaptureEnabled = (capture: t, enabled: bool) =>
     MediaCaptureOverride.setAudioEnabled(implementation, overrideHandle, enabled)
   };
 
-[@platform native]
+[@native_only]
 let setAudioCaptureEnabled = (_capture, _enabled) => ();
 
-[@platform js]
+[@melange_only]
 let setVideoEnabled = (capture, enabled) =>
   switch (capture) {
   | Real(realCapture) => {
@@ -351,10 +351,10 @@ let setVideoEnabled = (capture, enabled) =>
     MediaCaptureOverride.setVideoEnabled(implementation, overrideHandle, enabled)
   };
 
-[@platform native]
+[@native_only]
 let setVideoEnabled = (_capture, _enabled) => ();
 
-[@platform js]
+[@melange_only]
 let setAudioEnabled = (capture, enabled) =>
   switch (capture) {
   | Real(realCapture) => {
@@ -366,5 +366,5 @@ let setAudioEnabled = (capture, enabled) =>
     MediaCaptureOverride.setAudioEnabled(implementation, overrideHandle, enabled)
   };
 
-[@platform native]
+[@native_only]
 let setAudioEnabled = (_capture, _enabled) => ();

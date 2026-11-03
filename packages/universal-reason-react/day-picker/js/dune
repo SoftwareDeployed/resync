@@ -1,0 +1,9 @@
+(library
+ (name reason_react_day_picker_js)
+ (public_name resync.reason_react_day_picker_js)
+ (wrapped false)
+ (modules ReactDayPicker)
+ (modes melange)
+ (libraries reason-react melange.js)
+ (preprocess
+  (pps ppx_platform -js melange.ppx reason-react-ppx)))

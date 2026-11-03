@@ -121,7 +121,7 @@ module Selectors = {
    Note: These are client-only helpers since they deal with hydration.
    ============================================================================ */
 
-[@platform js]
+[@melange_only]
 module Bootstrap = {
   type hydratedResult('store) = {
     store: 'store,
@@ -181,7 +181,7 @@ module Bootstrap = {
   };
 };
 
-[@platform native]
+[@native_only]
 module Bootstrap = {
   type hydratedResult('store) = {
     store: 'store,

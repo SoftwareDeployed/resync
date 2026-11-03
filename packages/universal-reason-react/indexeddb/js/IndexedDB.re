@@ -12,80 +12,80 @@ type error;
  * NATIVE STUBS
  * ============================================================================ */
 
-[@platform native]
+[@native_only]
 let unavailable = () =>
   raise(Failure("IndexedDB raw bindings are only available in the browser"));
 
-[@platform native]
+[@native_only]
 let openRaw = (_name: string, _version: int) => unavailable();
 
-[@platform native]
+[@native_only]
 let setOnsuccess = (_req: request, _cb) => ();
 
-[@platform native]
+[@native_only]
 let setOnerror = (_req: request, _cb) => ();
 
-[@platform native]
+[@native_only]
 let setOnupgradeneeded = (_req: request, _cb) => ();
 
-[@platform native]
+[@native_only]
 let resultAsDatabase = (_req: request) => unavailable();
 
-[@platform native]
+[@native_only]
 let resultAsNullable = (_req: request) => Js.Nullable.null;
 
-[@platform native]
+[@native_only]
 let resultError = (_req: request) => unavailable();
 
-[@platform native]
+[@native_only]
 let errorName = (_e: error) => "";
 
-[@platform native]
+[@native_only]
 let errorMessage = (_e: error) => "";
 
-[@platform native]
+[@native_only]
 let createObjectStore = (_db: database, _name: string, _keyPath: string) =>
   unavailable();
 
-[@platform native]
+[@native_only]
 let createIndex = (_store: objectStore, _name: string, _keyPath: string, _unique: bool) =>
   unavailable();
 
-[@platform native]
+[@native_only]
 let transaction = (_db: database, _storeNames: array(string), _mode: string) =>
   unavailable();
 
-[@platform native]
+[@native_only]
 let objectStore = (_tx: transaction, _name: string) => unavailable();
 
-[@platform native]
+[@native_only]
 let index = (_store: objectStore, _name: string) => unavailable();
 
-[@platform native]
+[@native_only]
 let getRaw = (_store: objectStore, _key: string) => unavailable();
 
-[@platform native]
+[@native_only]
 let putRaw = (_store: objectStore, _value) => unavailable();
 
-[@platform native]
+[@native_only]
 let deleteRaw = (_store: objectStore, _key: string) => unavailable();
 
-[@platform native]
+[@native_only]
 let getAllRaw = (_idx: index, _key: string) => unavailable();
 
-[@platform native]
+[@native_only]
 let objectStoreNames = (_db: database) => [||];
 
-[@platform native]
+[@native_only]
 let includes = (_arr: array(string), _name: string) => false;
 
-[@platform native]
+[@native_only]
 let setTxOncomplete = (_tx: transaction, _cb) => ();
 
-[@platform native]
+[@native_only]
 let setTxOnerror = (_tx: transaction, _cb) => ();
 
-[@platform native]
+[@native_only]
 let txError = (_tx: transaction) => unavailable();
 
 /* ============================================================================
@@ -93,103 +93,103 @@ let txError = (_tx: transaction) => unavailable();
  * ============================================================================ */
 
 /* Open database */
-[@platform js]
+[@melange_only]
 [@mel.scope "indexedDB"]
 external openRaw: (string, int) => request = "open";
 
 /* Request event handlers */
-[@platform js]
+[@melange_only]
 [@mel.set]
 external setOnsuccess: (request, [@mel.uncurry] (unit => unit)) => unit = "onsuccess";
 
-[@platform js]
+[@melange_only]
 [@mel.set]
 external setOnerror: (request, [@mel.uncurry] (unit => unit)) => unit = "onerror";
 
-[@platform js]
+[@melange_only]
 [@mel.set]
 external setOnupgradeneeded: (request, [@mel.uncurry] (unit => unit)) => unit = "onupgradeneeded";
 
 /* Request result accessors */
-[@platform js]
+[@melange_only]
 [@mel.get]
 external resultAsDatabase: request => database = "result";
 
-[@platform js]
+[@melange_only]
 [@mel.get]
 external resultAsNullable: request => Js.Nullable.t('a) = "result";
 
-[@platform js]
+[@melange_only]
 [@mel.get]
 external resultError: request => error = "error";
 
 /* Error accessors */
-[@platform js]
+[@melange_only]
 [@mel.get]
 external errorName: error => string = "name";
 
-[@platform js]
+[@melange_only]
 [@mel.get]
 external errorMessage: error => string = "message";
 
 /* Database operations */
-[@platform js]
+[@melange_only]
 [@mel.send]
 external createObjectStore: (database, string, Js.t({. keyPath: string})) => objectStore =
   "createObjectStore";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external createIndex: (objectStore, string, string, Js.t({. unique: bool})) => index =
   "createIndex";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external transaction: (database, array(string), string) => transaction = "transaction";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external objectStore: (transaction, string) => objectStore = "objectStore";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external index: (objectStore, string) => index = "index";
 
 /* Store/Index request operations */
-[@platform js]
+[@melange_only]
 [@mel.send]
 external getRaw: (objectStore, string) => request = "get";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external putRaw: (objectStore, 'a) => request = "put";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external deleteRaw: (objectStore, string) => request = "delete";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external getAllRaw: (index, string) => request = "getAll";
 
 /* Database metadata */
-[@platform js]
+[@melange_only]
 [@mel.get]
 external objectStoreNames: database => Js.Array.t(string) = "objectStoreNames";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external includes: (Js.Array.t(string), string) => bool = "contains";
 
 /* Transaction event handlers */
-[@platform js]
+[@melange_only]
 [@mel.set]
 external setTxOncomplete: (transaction, [@mel.uncurry] (unit => unit)) => unit = "oncomplete";
 
-[@platform js]
+[@melange_only]
 [@mel.set]
 external setTxOnerror: (transaction, [@mel.uncurry] (unit => unit)) => unit = "onerror";
 
-[@platform js]
+[@melange_only]
 [@mel.get]
 external txError: transaction => error = "error";

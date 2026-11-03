@@ -4,15 +4,15 @@ let str = React.string;
 
 /* The React DOM binding does not expose form method/action attributes on
    both targets; configure the native form behavior imperatively instead. */
-[@platform js]
+[@melange_only]
 [@mel.send]
 external setAttributeOn: (Dom.element, string, string) => unit = "setAttribute";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external requestSubmitElement: Dom.element => unit = "requestSubmit";
 
-[@platform js]
+[@melange_only]
 let configureCheckoutForm = () =>
   switch (Webapi.Dom.document |> Webapi.Dom.Document.getElementById("checkout-form")) {
   | Some(element) =>
@@ -21,7 +21,7 @@ let configureCheckoutForm = () =>
   | None => ()
   };
 
-[@platform native]
+[@native_only]
 let configureCheckoutForm = () => ();
 
 
@@ -56,7 +56,7 @@ module Form = {
         None;
       });
 
-      let%browser_only on_confirm_click = _event => {
+      let%melange_only on_confirm_click = _event => {
         /* React 19 intercepts native submit events, so the confirm button is
            a plain button that submits the form programmatically. */
         switch (Webapi.Dom.document |> Webapi.Dom.Document.getElementById("checkout-form")) {

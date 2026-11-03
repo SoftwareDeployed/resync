@@ -1,4 +1,4 @@
-[@platform js]
+[@melange_only]
 let mutationFrameString = (actionId: string, action: StoreJson.json) =>
   StoreJson.stringify(
     json => json,
@@ -9,10 +9,10 @@ let mutationFrameString = (actionId: string, action: StoreJson.json) =>
     }),
   );
 
-[@platform native]
+[@native_only]
 let mutationFrameString = (_actionId, _action) => "";
 
-[@platform js]
+[@melange_only]
 let selectFrameString = (subscription: string, updatedAt: float) =>
   StoreJson.stringify(
     json => json,
@@ -23,10 +23,10 @@ let selectFrameString = (subscription: string, updatedAt: float) =>
     }),
   );
 
-[@platform native]
+[@native_only]
 let selectFrameString = (_subscription, _updatedAt) => "";
 
-[@platform js]
+[@melange_only]
 let unsubscribeFrameString = (channel: string) =>
   StoreJson.stringify(
     json => json,
@@ -36,17 +36,17 @@ let unsubscribeFrameString = (channel: string) =>
     }),
   );
 
-[@platform native]
+[@native_only]
 let unsubscribeFrameString = (_channel: string) => "";
 
-[@platform js]
+[@melange_only]
 let pingFrameString = () =>
   StoreJson.stringify(
     json => json,
     StoreJson.Object.make(dict => StoreJson.Object.setString(dict, "type", "ping")),
   );
 
-[@platform native]
+[@native_only]
 let pingFrameString = () => "";
 
 let channelIdOfSubscription = (subscription: string): string =>
@@ -87,7 +87,7 @@ let uniqueSelectRequests = (requests: array(select_request)): array(select_reque
     ~init=[||],
   );
 
-[@platform native]
+[@native_only]
 module Socket = {
   type websocket = unit;
 
@@ -173,7 +173,7 @@ module Socket = {
   };
 };
 
-[@platform js]
+[@melange_only]
 module Socket = {
   type websocket = WebSocket.t;
 
@@ -773,7 +773,7 @@ module Socket = {
   };
 };
 
-[@platform native]
+[@native_only]
 module Multiplexed = {
   type t = unit;
   type subscription_handle = { channel: string, id: int };

@@ -24,13 +24,13 @@ module Core = {
   external carve: (deriver('a) => 'a) => 'a = "carve";
 };
 
-[@platform native]
+[@native_only]
 module React = {
   let leaf = c => c;
   let useTilia = () => ();
 };
 
-[@platform js]
+[@melange_only]
 module React = {
   [@mel.module "@tilia/react"]
   external leaf: React.component('a) => React.component('a) = "leaf";

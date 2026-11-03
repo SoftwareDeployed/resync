@@ -1,26 +1,26 @@
-[@platform js]
+[@melange_only]
 module Style = {
   [%%raw "import \"./style.css\""];
   [%%raw "import \"streamdown/styles.css\""];
 };
 
-[@platform native]
+[@native_only]
 module Style = {
   let _css = ();
 };
 
 open Tilia.React;
 
-[@platform js]
+[@melange_only]
 let handleInputChange = (setDraft, event) => {
   let value = React.Event.Form.target(event)##value;
   setDraft(_ => value);
 };
 
-[@platform native]
+[@native_only]
 let handleInputChange = (_setDraft, _event) => ();
 
-[@platform js]
+[@melange_only]
 let handleSend =
     (
       store: LlmChatStore.t,
@@ -48,7 +48,7 @@ let handleSend =
   };
 };
 
-[@platform native]
+[@native_only]
 let handleSend = (_store, _sendPromptMutation, _prompt, _setDraft) =>
   ();
 
@@ -92,7 +92,7 @@ let onDeleteThread =
   let _ = deleteThread(threadId);
 };
 
-[@platform js]
+[@melange_only]
 let handleKeyDown =
     (
       store,
@@ -109,7 +109,7 @@ let handleKeyDown =
   };
 };
 
-[@platform native]
+[@native_only]
 let handleKeyDown = (_store, _sendPromptMutation, _draft, _setDraft, _event) =>
   ();
 
@@ -221,19 +221,19 @@ let appendCurrentStreamMessage =
   | _ => messages
   };
 
-[@platform js]
+[@melange_only]
 let messageListElement = () =>
   Webapi.Dom.document
   |> Webapi.Dom.Document.getElementById("message-list");
 
-[@platform js]
+[@melange_only]
 let scrollToBottomElement = el =>
   Webapi.Dom.Element.setScrollTop(
     el,
     float_of_int(Webapi.Dom.Element.scrollHeight(el)),
   );
 
-[@platform js]
+[@melange_only]
 let scrollToBottom = () => {
   switch (messageListElement()) {
   | Some(el) => scrollToBottomElement(el)
@@ -241,7 +241,7 @@ let scrollToBottom = () => {
   };
 };
 
-[@platform js]
+[@melange_only]
 let isNearBottomElement = el => {
   let scrollTop = Webapi.Dom.Element.scrollTop(el);
   let scrollHeight = Webapi.Dom.Element.scrollHeight(el);
@@ -249,7 +249,7 @@ let isNearBottomElement = el => {
   scrollTop +. float_of_int(clientHeight) > float_of_int(scrollHeight) -. 80.0;
 };
 
-[@platform js]
+[@melange_only]
 let isNearBottom = () => {
   switch (messageListElement()) {
   | Some(el) => isNearBottomElement(el)
@@ -257,22 +257,22 @@ let isNearBottom = () => {
   };
 };
 
-[@platform native]
+[@native_only]
 let messageListElement = () => None;
 
-[@platform native]
+[@native_only]
 let scrollToBottomElement = _el => ();
 
-[@platform native]
+[@native_only]
 let scrollToBottom = () => ();
 
-[@platform native]
+[@native_only]
 let isNearBottomElement = _el => true;
 
-[@platform native]
+[@native_only]
 let isNearBottom = () => true;
 
-[@platform js]
+[@melange_only]
 let cancelScheduledScroll = scrollRafId => {
   switch (scrollRafId^) {
   | Some(rafId) =>
@@ -282,7 +282,7 @@ let cancelScheduledScroll = scrollRafId => {
   };
 };
 
-[@platform js]
+[@melange_only]
 let scheduleScrollToBottom = (scrollRafId, shouldStickToBottomRef) => {
   let scrollIfSticky = () =>
     if (shouldStickToBottomRef^) {
@@ -299,7 +299,7 @@ let scheduleScrollToBottom = (scrollRafId, shouldStickToBottomRef) => {
   }));
 };
 
-[@platform js]
+[@melange_only]
 let useAutoScroll = (messages, isStreaming, streamingText) => {
   let shouldStickToBottomRef = React.useMemo1(() => ref(true), [||]);
   let scrollRafId = React.useMemo1(() => ref(None), [||]);
@@ -353,7 +353,7 @@ let useAutoScroll = (messages, isStreaming, streamingText) => {
   );
 };
 
-[@platform native]
+[@native_only]
 let useAutoScroll = (_messages, _isStreaming, _streamingText) => ();
 
 type connectionBanner = {
@@ -361,7 +361,7 @@ type connectionBanner = {
   pendingActions: int,
 };
 
-[@platform js]
+[@melange_only]
 let useConnectionBanner = () => {
   let statusValue = LlmChatStore.Hooks.useConnectionStatus();
   let (hasConnectedOnce, setHasConnectedOnce) = React.useState(() => false);
@@ -389,7 +389,7 @@ let useConnectionBanner = () => {
   Some({disconnected, pendingActions: statusValue.pendingActions});
 };
 
-[@platform native]
+[@native_only]
 let useConnectionBanner = () => None;
 
 module ConnectionBanner = {

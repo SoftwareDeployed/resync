@@ -6,8 +6,8 @@ type t('a) = {
 };
 
 let make = (initial: 'a): t('a) =>
-  switch%platform (Runtime.platform) {
-  | Client =>
+  switch%platform () {
+  | Melange =>
     let (signal, setSignal) = Tilia.Core.signal(initial);
     {
       value: signal->Tilia.Core.lift,
@@ -15,7 +15,7 @@ let make = (initial: 'a): t('a) =>
       set: setSignal,
       update: reducer => signal->Tilia.Core.lift |> reducer |> setSignal,
     }
-  | Server =>
+  | Native =>
     let currentValue = ref(initial);
     {
       value: initial,

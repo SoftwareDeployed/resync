@@ -34,10 +34,10 @@ module Date = {
 module Dict = {
   type t('a) = Js.Dict.t('a);
 
-  [@platform js]
+  [@melange_only]
   let of_json = (decodeValue, json) => Melange_json.Of_json.js_dict(decodeValue)(json);
 
-  [@platform native]
+  [@native_only]
   let of_json = (decodeValue, json) => {
     let rawJson = rawOfJson(json);
     switch (Melange_json.classify(rawJson)) {
@@ -58,10 +58,10 @@ module Dict = {
     };
   };
 
-  [@platform js]
+  [@melange_only]
   let to_json = (encodeValue, dict) => Melange_json.To_json.js_dict(encodeValue)(dict);
 
-  [@platform native]
+  [@native_only]
   let to_json = (encodeValue, dict) => {
     let keys = dict->Js.Dict.keys;
     let rec collectEntries = (index, entries) =>
@@ -122,17 +122,17 @@ let tryDecodeString = (decode, data: string) =>
 
 let stringify = (encode, value) => value->encode->Melange_json.to_string;
 
-[@platform native]
+[@native_only]
 let toSafe = (json: json): Yojson.Safe.t => {
   stringify(json => json, json)->Yojson.Safe.from_string;
 };
 
-[@platform native]
+[@native_only]
 let ofSafe = (json: Yojson.Safe.t): json => {
   json->Yojson.Safe.to_string->parse;
 };
 
-[@platform native]
+[@native_only]
 let safeListOfArray = (items: array(Yojson.Safe.t)): Yojson.Safe.t => {
   `List(listOfArray(items));
 };

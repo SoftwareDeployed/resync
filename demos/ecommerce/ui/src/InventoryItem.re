@@ -17,7 +17,7 @@ let make =
     let reservation = CartStore.reservationFromSearchParams(searchParams);
     let image =
       "https://random.danielpetrica.com/api/random?" ++ item.id;
-    let%browser_only add_to_cart_click = e => {
+    let%melange_only add_to_cart_click = e => {
       e->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
       CartStore.add_to_cart(
         cart_store,
@@ -28,14 +28,14 @@ let make =
       );
     };
     let add_to_cart_button =
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         <button
           className="mx-[1.5] mb-[1.5] rounded-sm bg-slate-500 px-3 py-2 text-sm text-white hover:bg-slate-700"
           onClick=add_to_cart_click>
           "Add to cart"->str
         </button>
-      | Server =>
+      | Native =>
         <button
           className="mx-[1.5] mb-[1.5] rounded-sm bg-slate-500 px-3 py-2 text-sm text-white hover:bg-slate-700">
           "Add to cart"->str

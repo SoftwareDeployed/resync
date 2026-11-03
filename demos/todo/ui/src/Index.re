@@ -1,9 +1,9 @@
-[@platform js]
+[@melange_only]
 module Style = {
   [%%raw "import \"./style.css\""];
 };
 
-[@platform native]
+[@native_only]
 module Style = {
   let _css = ();
 };

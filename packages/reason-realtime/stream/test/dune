@@ -10,7 +10,7 @@
   reason_realtime_stream)
  (preprocess
   (pps
-   server-reason-react.browser_ppx
+   ppx_platform
    server-reason-react.melange_ppx)))
 
 (executable
@@ -21,7 +21,7 @@
  (modes native)
  (preprocess
   (pps
-   server-reason-react.browser_ppx
+   ppx_platform
    server-reason-react.melange_ppx)))
 
 (executable
@@ -32,7 +32,7 @@
  (modes native)
  (preprocess
   (pps
-   server-reason-react.browser_ppx
+   ppx_platform
    server-reason-react.melange_ppx)))
 
 (executable
@@ -43,7 +43,7 @@
  (modes native)
  (preprocess
   (pps
-   server-reason-react.browser_ppx
+   ppx_platform
    server-reason-react.melange_ppx)))
 
 (executable
@@ -54,7 +54,7 @@
  (modes native)
  (preprocess
   (pps
-   server-reason-react.browser_ppx
+   ppx_platform
    server-reason-react.melange_ppx)))
 
 (alias

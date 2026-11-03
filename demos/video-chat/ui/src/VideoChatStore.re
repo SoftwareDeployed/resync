@@ -621,13 +621,13 @@ let applyAction = (~state: state, ~action: action) => {
   };
 };
 
-[@platform js]
+[@melange_only]
 let onActionError = message => {
   Sonner.showError(message);
   ReasonReactRouter.push("/");
 };
 
-[@platform native]
+[@native_only]
 let onActionError = _message => ();
 
 type stream_event =

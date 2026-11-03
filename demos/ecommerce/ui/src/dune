@@ -7,14 +7,14 @@
   (pps
    server-reason-react.ppx
    -melange
-   server-reason-react.browser_ppx
+   ppx_platform
    -js
    melange.ppx
    melange-json.ppx
    reason-react-ppx))
  (runtime_deps style.css)
   (libraries
-   reason-react-day-picker
+   reason_react_day_picker_js
     common_js
      universal_reason_react_components_js
      universal_reason_react_lucide_icons_js

@@ -12,8 +12,8 @@ bug-reports: "https://github.com/SoftwareDeployed/resync/issues"
 depends: [
   "dune" {>= "3.21"}
   "ocaml" {= "5.4.1"}
-  "caqti-lwt" {= "2.2.4"}
-  "lwt" {= "5.9.2"}
+  "caqti-lwt" {= "3.1.0"}
+  "lwt" {= "6.1.2"}
   "caqti-driver-postgresql"
   "dream"
   "melange"
@@ -27,8 +27,8 @@ depends: [
   "ctypes-foreign"
   "reason-react-ppx"
   "reason-react"
-  "reason-react-day-picker"
   "server-reason-react"
+  "ppx_platform"
   "uuidm"
   "alcotest" {with-test}
   "alcobar" {with-test}

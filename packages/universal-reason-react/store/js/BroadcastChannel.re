@@ -1,39 +1,39 @@
 /* BroadcastChannel API bindings - not available in melange-webapi */
 
 // On native, BroadcastChannel is just a stub type since it's a browser API
-[@platform native]
+[@native_only]
 type t = unit;
 
-[@platform native]
+[@native_only]
 let make = (_name: string) => ();
 
-[@platform native]
+[@native_only]
 let postMessage = (_t: t, _message: string) => ();
 
-[@platform native]
+[@native_only]
 let setOnmessage = (_t: t, _handler: Js.t({. data: string}) => unit) => ();
 
-[@platform native]
+[@native_only]
 let close = (_t: t) => ();
 
-[@platform native]
+[@native_only]
 let name = (_t: t) => "";
 
 // On JS, use proper Melange externals
-[@platform js]
+[@melange_only]
 type t;
 
-[@platform js]
+[@melange_only]
 [@mel.new] external make: string => t = "BroadcastChannel";
 
-[@platform js]
+[@melange_only]
 [@mel.send] external postMessage: (t, string) => unit = "postMessage";
 
-[@platform js]
+[@melange_only]
 [@mel.set] external setOnmessage: (t, Js.t({. data: string}) => unit) => unit = "onmessage";
 
-[@platform js]
+[@melange_only]
 [@mel.send] external close: t => unit = "close";
 
-[@platform js]
+[@melange_only]
 [@mel.get] external name: t => string = "name";

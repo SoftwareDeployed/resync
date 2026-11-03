@@ -108,9 +108,9 @@ module MakeStoreContext = (Runtime: StoreContextRuntime) => {
       "value": value,
       "children": children,
     };
-    [@platform js]
+    [@melange_only]
     let make = React.Context.provider(context);
-    [@platform native]
+    [@native_only]
     let make = (props: props) => React.Context.provider(context)(props);
   };
 
@@ -125,11 +125,11 @@ module StoreBroadcast = {
   let postMessage = (channel: channel, message: string) =>
     BroadcastChannel.postMessage(channel, message);
 
-  [@platform js]
+  [@melange_only]
   let setHandler = (channel: channel, handler: string => unit) =>
     BroadcastChannel.setOnmessage(channel, event => handler(event##data));
 
-  [@platform native]
+  [@native_only]
   let setHandler = (_channel, _handler) => ();
 };
 
@@ -267,8 +267,8 @@ module Local = {
     let serializeSnapshot = serializeState;
 
     let writeStateRecord = (state: state) =>
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         let _ =
           StoreRuntimeLifecycle.trackPersistenceOp(lifecycle, () => Cache.setState(
               ~storeName=Schema.storeName,
@@ -279,12 +279,12 @@ module Local = {
               },
             ),);
         ()
-      | Server => ()
+      | Native => ()
       };
 
     let broadcastState = (state: state) =>
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         switch (channelRef.contents) {
         | Some(channel) =>
           StoreBroadcast.postMessage(
@@ -300,7 +300,7 @@ module Local = {
           )
         | None => ()
         }
-      | Server => ()
+      | Native => ()
       };
 
     let setExternalState =
@@ -310,8 +310,8 @@ module Local = {
     };
 
     let persistState = (~broadcast: bool=true, state: state) =>
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         confirmedStateRef := state;
         writeStateRecord(state);
         if (broadcast) {
@@ -322,7 +322,7 @@ module Local = {
           };
         };
         ()
-      | Server => ()
+      | Native => ()
       };
 
     let refreshOptimisticState = () =>
@@ -332,8 +332,8 @@ module Local = {
       };
 
     let reconcilePersistedState = (actions: StoreSource.actions(state)) =>
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         let currentState = actions.get();
         Js.Promise.then_(
           (persistedState: option(StoreCache.state_record(state))) => {
@@ -355,13 +355,13 @@ module Local = {
             (),
           ),
         )
-      | Server => Js.Promise.resolve()
+      | Native => Js.Promise.resolve()
       };
 
     let hydrateStore = () => {
       let initialState =
-        switch%platform (Runtime.platform) {
-        | Client =>
+        switch%platform () {
+        | Melange =>
           switch (
             Hydration.parseState(
               ~stateElementId=Schema.stateElementId,
@@ -371,13 +371,13 @@ module Local = {
           | Some(state) => state
           | None => Schema.emptyState
           }
-        | Server => Schema.emptyState
+        | Native => Schema.emptyState
         };
 
       confirmedStateRef := initialState;
 
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         let source =
           StoreSource.make(
             ~afterSet=persistState,
@@ -438,7 +438,7 @@ module Local = {
             derive => Schema.makeStore(~state=source.value, ~derive, ()),
           ~server=() => Schema.makeStore(~state=initialState, ()),
         );
-      | Server => Schema.makeStore(~state=initialState, ())
+      | Native => Schema.makeStore(~state=initialState, ())
       };
     };
 
@@ -568,21 +568,21 @@ module Synced = {
 
   type broadcast_channel = StoreBroadcast.channel;
 
-  [@platform js]
+  [@melange_only]
   external setTimeout: (unit => unit, int) => int = "setTimeout";
 
-  [@platform native]
+  [@native_only]
   let setTimeout = (_callback, _timeout) => 0;
 
-  [@platform js] external clearTimeout: int => unit = "clearTimeout";
+  [@melange_only] external clearTimeout: int => unit = "clearTimeout";
 
-  [@platform native]
+  [@native_only]
   let clearTimeout = _id => ();
 
-  [@platform js]
+  [@melange_only]
   external deleteTimer: (Js.Dict.t(int), string) => unit = "delete";
 
-  [@platform native]
+  [@native_only]
   let deleteTimer = (_dict, _key) => ();
 
   /* SyncController: centralized sync state and listener management.
@@ -867,9 +867,9 @@ module Synced = {
     let queryResultListenerIdRef:
       ref(option(QueryCache.loaded_result_listener_id)) = ref(None);
     let streamingRef: ref(Schema.streaming_state) = ref(Schema.emptyStreamingState);
-    [@platform js]
+    [@melange_only]
     let streamingRevisionRef = ref(0);
-    [@platform js]
+    [@melange_only]
     let streamingRevisionSignal = Tilia.Core.signal(0);
     let suppressPublishRef: ref(bool) = ref(false);
     let replayInProgressRef: ref(bool) = ref(false);
@@ -999,14 +999,14 @@ module Synced = {
         ~currentGeneration=scopeGenerationRef.contents,
       );
 
-    [@platform js]
+    [@melange_only]
     let notifyStreamingChanged = () => {
       let (_signal, setStreamingRevisionSignal) = streamingRevisionSignal;
       streamingRevisionRef := streamingRevisionRef.contents + 1;
       setStreamingRevisionSignal(streamingRevisionRef.contents);
     };
 
-    [@platform native]
+    [@native_only]
     let notifyStreamingChanged = () => ();
 
     let updateStreamingState = reducer => {
@@ -1015,8 +1015,8 @@ module Synced = {
     };
 
     let broadcastOptimisticAction = (record: StoreActionLedger.t) =>
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         switch (Controller.getBroadcastChannel()) {
         | Some(channel) =>
           StoreBroadcast.postMessage(
@@ -1032,12 +1032,12 @@ module Synced = {
           )
         | None => ()
         }
-      | Server => ()
+      | Native => ()
       };
 
     let broadcastConfirmedState = (state: state) =>
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         switch (Controller.getBroadcastChannel()) {
         | Some(channel) =>
           StoreBroadcast.postMessage(
@@ -1054,12 +1054,12 @@ module Synced = {
           )
         | None => ()
         }
-      | Server => ()
+      | Native => ()
       };
 
     let persistConfirmedState = (~broadcast: bool=true, state: state) =>
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         let _ =
           StoreRuntimeLifecycle.trackPersistenceOp(lifecycle, () => cacheSetState({
               scopeKey: Schema.scopeKeyOfState(state),
@@ -1074,12 +1074,12 @@ module Synced = {
           };
         };
         ();
-      | Server => ()
+      | Native => ()
       };
 
     let rec refreshOptimisticState = () =>
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         if (replayInProgressRef.contents) {
           replayNeededRef := true;
           ();
@@ -1147,7 +1147,7 @@ module Synced = {
           | None => ()
           };
         }
-      | Server => ()
+      | Native => ()
       }
 
     and applyExternalConfirmedState =
@@ -1210,8 +1210,8 @@ module Synced = {
     }
 
     and handleAckTimeout = actionId =>
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         Controller.clearAckTimeout(actionId);
         let _ =
           Js.Promise.then_(
@@ -1259,7 +1259,7 @@ module Synced = {
             getActionRecord(~id=actionId, ()),
           );
         ();
-      | Server => ()
+      | Native => ()
       };
 
     /* Core dispatch implementation with ledger persistence and optimistic broadcast.
@@ -1386,8 +1386,8 @@ module Synced = {
       });
 
     let resumePendingActions = () =>
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         let _ =
           Js.Promise.then_(
             cacheRecords => {
@@ -1413,7 +1413,7 @@ module Synced = {
             ),
           );
         ();
-      | Server => ()
+      | Native => ()
       };
 
     let handleAck =
@@ -1750,8 +1750,8 @@ module Synced = {
 
     let hydrateStore = () => {
       let initialState =
-        switch%platform (Runtime.platform) {
-        | Client =>
+        switch%platform () {
+        | Melange =>
           switch (
             Hydration.parseState(
               ~stateElementId=Schema.stateElementId,
@@ -1761,7 +1761,7 @@ module Synced = {
           | Some(state) => state
           | None => Schema.emptyState
           }
-        | Server => Schema.emptyState
+        | Native => Schema.emptyState
       };
 
       confirmedStateRef := initialState;
@@ -1771,8 +1771,8 @@ module Synced = {
       Controller.setHasOpened(false);
       Controller.disposeConnectionHandle();
 
-      switch%platform (Runtime.platform) {
-      | Client =>
+      switch%platform () {
+      | Melange =>
         let source =
           StoreSource.make(
              ~afterSet=nextState => {
@@ -1860,7 +1860,7 @@ module Synced = {
             derive => Schema.makeStore(~state=source.value, ~derive, ()),
           ~server=() => Schema.makeStore(~state=initialState, ()),
         );
-      | Server => Schema.makeStore(~state=initialState, ())
+      | Native => Schema.makeStore(~state=initialState, ())
       };
     };
 
@@ -1870,7 +1870,7 @@ module Synced = {
       let unlisten = (listenerId: listener_id) => Controller.unsubscribe(listenerId);
     };
 
-    [@platform js]
+    [@melange_only]
     let useStreaming = () => {
       Tilia.React.useTilia();
       let (signal, _setSignal) = streamingRevisionSignal;
@@ -1878,7 +1878,7 @@ module Synced = {
       streamingRef.contents;
     };
 
-    [@platform native]
+    [@native_only]
     let useStreaming = () => streamingRef.contents;
 
     module Context = MakeStoreContext({

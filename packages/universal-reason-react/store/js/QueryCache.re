@@ -61,7 +61,7 @@ type t = {
 };
 
 // Platform-specific implementations
-[@platform js]
+[@melange_only]
 let make = () => {
   entries: Js.Dict.empty(),
   eventUrl: "",
@@ -70,7 +70,7 @@ let make = () => {
   loadedResultListenersRef: ref([||]),
 };
 
-[@platform native]
+[@native_only]
 let make = () => {
   entries: Js.Dict.empty(),
   eventUrl: "",
@@ -88,12 +88,12 @@ let unlistenLoadedResults = (~t: t, listenerId: loaded_result_listener_id) =>
 let shouldUseTransport = (~eventUrl: string, ~baseUrl as _: string) =>
   eventUrl != "";
 
-[@platform js]
+[@melange_only]
 external setTimeout: (unit => unit, int) => int = "setTimeout";
-[@platform js]
+[@melange_only]
 external clearTimeout: int => unit = "clearTimeout";
 
-[@platform js]
+[@melange_only]
 let clearPendingResync = (entry: cache_entry) => {
   switch (entry.resyncTimeoutId) {
   | Some(timeoutId) =>
@@ -103,7 +103,7 @@ let clearPendingResync = (entry: cache_entry) => {
   };
 };
 
-[@platform native]
+[@native_only]
 let clearPendingResync = (_entry: cache_entry) => ();
 
 module InternalForTests = {
@@ -113,7 +113,7 @@ module InternalForTests = {
   let shouldUseTransport = shouldUseTransport;
 };
 
-[@platform js]
+[@melange_only]
 let getOrCreateEntry =
     (~t: t, ~key: query_key, ~updatedAt: float=0.0, ()): cache_entry => {
   switch (t.entries->Js.Dict.get(key)) {
@@ -136,7 +136,7 @@ let getOrCreateEntry =
   };
 };
 
-[@platform native]
+[@native_only]
 let getOrCreateEntry =
     (~t: t, ~key: query_key, ~updatedAt as _: float=0.0, ()): cache_entry => {
   switch (t.entries->Js.Dict.get(key)) {
@@ -199,16 +199,16 @@ let uninitializedTransportMessage =
   "QueryCache transport is not initialized. Call UseQuery.initCache before subscribing to uncached queries.";
 
 // Configure WebSocket URLs at initialization
-[@platform js]
+[@melange_only]
 let init = (~eventUrl: string, ~baseUrl: string, t: t) => {
   t.eventUrl = eventUrl;
   t.baseUrl = baseUrl;
 };
 
-[@platform native]
+[@native_only]
 let init = (~eventUrl as _: string, ~baseUrl as _: string, _t: t) => ();
 
-[@platform js]
+[@melange_only]
 let sendSelectFrame = (~handle: subscription_handle, ~channel: string, ~updatedAt: float) =>
   switch (handle) {
   | Standalone(socketHandle) =>
@@ -223,7 +223,7 @@ let sendSelectFrame = (~handle: subscription_handle, ~channel: string, ~updatedA
     )
   };
 
-[@platform js]
+[@melange_only]
 let disposeSubscription = (handle: subscription_handle) =>
   switch (handle) {
   | Standalone(socketHandle) => RealtimeClient.Socket.disposeHandle(socketHandle)
@@ -234,7 +234,7 @@ let disposeSubscription = (handle: subscription_handle) =>
     )
   };
 
-[@platform js]
+[@melange_only]
 let subscribeTransport =
     (~t: t, ~entry: cache_entry, ~channel: string)
     : option(subscription_handle) => {
@@ -325,7 +325,7 @@ let subscribeTransport =
   };
 };
 
-[@platform js]
+[@melange_only]
 let setConnectionHandle =
     (
       ~t: t,
@@ -354,7 +354,7 @@ let setConnectionHandle =
   };
 };
 
-[@platform native]
+[@native_only]
 let setConnectionHandle =
     (
       ~t as _: t,
@@ -363,7 +363,7 @@ let setConnectionHandle =
 
 // Subscribe to a query with type-erased storage.
 // Store raw JSON directly; UseQuery decodes rows on access.
-[@platform js]
+[@melange_only]
 let subscribe =
     (
       ~t: t,
@@ -408,7 +408,7 @@ let subscribe =
   (entry.signal, unsubscribe);
 };
 
-[@platform native]
+[@native_only]
 let subscribe =
     (
       ~t as _: t,
@@ -423,7 +423,7 @@ let subscribe =
 };
 
 // Get cached result (type-erased)
-[@platform js]
+[@melange_only]
 let getResult =
     (~t: t, ~key: query_key): option(query_result(StoreJson.json)) => {
   switch (t.entries->Js.Dict.get(key)) {
@@ -432,14 +432,14 @@ let getResult =
   };
 };
 
-[@platform native]
+[@native_only]
 let getResult =
     (~t as _: t, ~key as _: query_key): option(query_result(StoreJson.json)) => {
   None;
 };
 
 // Helper to serialize a single query result to JSON (native only for SSR)
-[@platform native]
+[@native_only]
 let result_to_json = (result: query_result(StoreJson.json)): StoreJson.json => {
   switch (result) {
   | Loading => StoreJson.Object.make(dict =>
@@ -463,7 +463,7 @@ let result_to_json = (result: query_result(StoreJson.json)): StoreJson.json => {
 };
 
 // JS stub - client only decodes, doesn't encode
-[@platform js]
+[@melange_only]
 let result_to_json = (_result: query_result(StoreJson.json)): StoreJson.json => {
   Melange_json.To_json.unit();
 };
@@ -537,7 +537,7 @@ let forEachLoadedResult = (~jsonStr: string, ~f: loaded_result_listener): unit =
   );
 
 // Hydrate cache from SSR-serialized JSON
-[@platform js]
+[@melange_only]
 let hydrate = (~t: t, ~jsonStr: string): unit => {
   forEachSerializedResult(
     ~jsonStr,
@@ -554,11 +554,11 @@ let hydrate = (~t: t, ~jsonStr: string): unit => {
   );
 };
 
-[@platform native]
+[@native_only]
 let hydrate = (~t as _: t, ~jsonStr as _: string) => ();
 
 // Serialize cache to JSON string for SSR (native only - server serializes)
-[@platform native]
+[@native_only]
 let serialize = (t: t): string => {
   let dict = Js.Dict.empty();
   let entries = Js.Dict.entries(t.entries);
@@ -569,5 +569,5 @@ let serialize = (t: t): string => {
   StoreJson.stringify(json => json, StoreJson.Dict.to_json(json => json, dict));
 };
 
-[@platform js]
+[@melange_only]
 let serialize = (_t: t): string => "";

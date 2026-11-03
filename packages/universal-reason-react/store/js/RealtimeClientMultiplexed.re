@@ -25,7 +25,7 @@ let removePendingMutation =
     pendingActionId != actionId
   );
 
-[@platform js]
+[@melange_only]
 module Multiplexed = {
   type websocket = WebSocket.t;
 
@@ -621,7 +621,7 @@ module Multiplexed = {
   };
 };
 
-[@platform native]
+[@native_only]
 module Multiplexed = {
   type t = unit;
   type subscription_handle = { channel: string, id: int };

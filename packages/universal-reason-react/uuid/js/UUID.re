@@ -1,15 +1,15 @@
-[@platform js]
+[@melange_only]
 [@mel.module "uuidv7"]
 external uuidv7: unit => string = "uuidv7";
 
-[@platform js]
+[@melange_only]
 [@mel.scope "Number"]
 external parseIntBase: (string, int) => float = "parseInt";
 
-[@platform js]
+[@melange_only]
 let makeJs = () => uuidv7();
 
-[@platform js]
+[@melange_only]
 let timestampJs = (uuid: string) => {
   // UUIDv7 format: 018ff67f-07cc-7e8b-8f5e-1f8c3e5b7a9b
   // First 48 bits (12 hex chars) are the Unix timestamp in milliseconds
@@ -25,7 +25,7 @@ let timestampJs = (uuid: string) => {
   };
 };
 
-[@platform native]
+[@native_only]
 let makeJs = () => {
   let now = Unix.gettimeofday();
   let time_ms = Int64.of_float(now *. 1000.0);
@@ -37,7 +37,7 @@ let makeJs = () => {
   )->Uuidm.to_string;
 };
 
-[@platform native]
+[@native_only]
 let timestampJs = (uuid: string) => {
   switch (Uuidm.of_string(uuid)) {
   | Some(u) =>

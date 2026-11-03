@@ -1,6 +1,6 @@
 let rootElement = ReactDOM.querySelector("#root");
 
-let%browser_only _ =
+let%melange_only _ =
   switch (rootElement) {
   | Some(domNode) =>
     let store = LlmChatStore.hydrateStore();

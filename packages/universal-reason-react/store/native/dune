@@ -37,18 +37,20 @@
  (wrapped false)
  (libraries
   caqti
+  caqti.classic
   caqti-lwt
   lwt
   melange-json-native
   server-reason-react.belt
   server-reason-react.react
   server-reason-react.js
+  server-reason-react.webapi
   universal_reason_react_indexeddb_native
   universal_reason_react_uuid_native
   yojson)
  (preprocess
   (pps
-   server-reason-react.browser_ppx
+   ppx_platform
    server-reason-react.ppx
    server-reason-react.melange_ppx
    melange-json-native.ppx))

@@ -14,14 +14,14 @@ type action_record = {
   error: option(string),
 };
 
-[@platform js]
+[@melange_only]
 type database = IndexedDB.database;
 
-[@platform native]
+[@native_only]
 type database = unit;
 
 /* Open database with schema upgrade handler */
-[@platform js]
+[@melange_only]
 let openDbJs = (name: string) => {
   Js.Promise.make((~resolve, ~reject) => {
     let req = IndexedDB.openRaw(name, 2);
@@ -48,11 +48,11 @@ let openDbJs = (name: string) => {
   });
 };
 
-[@platform native]
+[@native_only]
 let openDbJs = (_name: string) => Js.Promise.resolve(());
 
 /* Get state record by scope key */
-[@platform js]
+[@melange_only]
 let getStateJs = (db: database, scopeKey: string) => {
   let tx = IndexedDB.transaction(db, [|"confirmed_state"|], "readonly");
   let store = IndexedDB.objectStore(tx, "confirmed_state");
@@ -63,11 +63,11 @@ let getStateJs = (db: database, scopeKey: string) => {
   });
 };
 
-[@platform native]
+[@native_only]
 let getStateJs = (_db, _scopeKey) => Js.Promise.resolve(Js.Nullable.null);
 
 /* Save state record */
-[@platform js]
+[@melange_only]
 let setStateJs = (db: database, record: state_record) => {
   Js.Promise.then_(
     _done => Js.Promise.resolve(),
@@ -83,11 +83,11 @@ let setStateJs = (db: database, record: state_record) => {
   );
 };
 
-[@platform native]
+[@native_only]
 let setStateJs = (_db, _record) => Js.Promise.resolve();
 
 /* Get action record by id */
-[@platform js]
+[@melange_only]
 let getActionJs = (db: database, id: string) => {
   let tx = IndexedDB.transaction(db, [|"actions"|], "readonly");
   let store = IndexedDB.objectStore(tx, "actions");
@@ -98,11 +98,11 @@ let getActionJs = (db: database, id: string) => {
   });
 };
 
-[@platform native]
+[@native_only]
 let getActionJs = (_db, _id) => Js.Promise.resolve(Js.Nullable.null);
 
 /* Save action record */
-[@platform js]
+[@melange_only]
 let putActionJs = (db: database, record: action_record) => {
   Js.Promise.then_(
     _done => Js.Promise.resolve(),
@@ -118,11 +118,11 @@ let putActionJs = (db: database, record: action_record) => {
   );
 };
 
-[@platform native]
+[@native_only]
 let putActionJs = (_db, _record) => Js.Promise.resolve();
 
 /* Get all actions for a scope */
-[@platform js]
+[@melange_only]
 let getActionsByScopeJs = (db: database, scopeKey: string) => {
   let tx = IndexedDB.transaction(db, [|"actions"|], "readonly");
   let store = IndexedDB.objectStore(tx, "actions");
@@ -139,11 +139,11 @@ let getActionsByScopeJs = (db: database, scopeKey: string) => {
   });
 };
 
-[@platform native]
+[@native_only]
 let getActionsByScopeJs = (_db, _scopeKey) => Js.Promise.resolve([||]);
 
 /* Delete multiple actions by id */
-[@platform js]
+[@melange_only]
 let deleteActionsJs = (db: database, ids: array(string)) => {
   Js.Promise.then_(
     _done => Js.Promise.resolve(),
@@ -164,7 +164,7 @@ let deleteActionsJs = (db: database, ids: array(string)) => {
   );
 };
 
-[@platform native]
+[@native_only]
 let deleteActionsJs = (_db, _ids) => Js.Promise.resolve();
 
 /* Database cache */

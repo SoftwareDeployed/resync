@@ -59,12 +59,12 @@ module Contents = {
                     | None => ""
                     };
 
-                  let%browser_only decrement_item = event => {
+                  let%melange_only decrement_item = event => {
                     event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
                     CartStore.decrement_item(cart_store, cart_item.inventory_id);
                   };
 
-                  let%browser_only increment_item = event => {
+                  let%melange_only increment_item = event => {
                     event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
                     CartStore.increment_item(
                       cart_store,
@@ -75,7 +75,7 @@ module Contents = {
                     );
                   };
 
-                  let%browser_only remove_item = event => {
+                  let%melange_only remove_item = event => {
                     event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
                     CartStore.remove_item(cart_store, cart_item.inventory_id);
                   };

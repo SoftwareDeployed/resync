@@ -2,7 +2,6 @@
  (name realtime_schema)
  (public_name resync.realtime_schema)
  (modules
-  Realtime_schema_caqti
   Realtime_schema_types
   Realtime_schema_utils
   Realtime_schema_parser

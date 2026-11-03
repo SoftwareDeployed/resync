@@ -25,7 +25,7 @@
    universal_reason_react_uuid_native)
  (preprocess
    (pps
-    server-reason-react.browser_ppx
+    ppx_platform
     server-reason-react.ppx
     server-reason-react.melange_ppx
     melange-json-native.ppx)))
@@ -37,7 +37,7 @@
  (modes native)
  (preprocess
    (pps
-    server-reason-react.browser_ppx
+    ppx_platform
     server-reason-react.ppx
     server-reason-react.melange_ppx
     melange-json-native.ppx)))
@@ -49,7 +49,7 @@
  (modes native)
  (preprocess
    (pps
-    server-reason-react.browser_ppx
+    ppx_platform
     server-reason-react.ppx
     server-reason-react.melange_ppx
     melange-json-native.ppx)))

@@ -29,13 +29,13 @@ let esome_ast ~loc expr = econstr_ast ~loc "Some" (Some expr)
 
 let ebool_ast ~loc value = econstr_ast ~loc (string_of_bool value) None
 
-let platform_attribute ~loc platform_name =
-  attribute ~loc ~name:(Located.mk ~loc "platform")
-    ~payload:(PStr [pstr_eval ~loc (eident_of_string ~loc platform_name) []])
+(* ppx_platform >= 0.3.0 expects bare attribute names: native_only *)
+let native_only_attribute ~loc =
+  attribute ~loc ~name:(Located.mk ~loc "native_only") ~payload:(PStr [])
 
 let native_value_binding ~loc name expr =
   let vb = value_binding ~loc ~pat:(pvar ~loc name) ~expr in
-  let vb = {vb with pvb_attributes = [platform_attribute ~loc "native"]} in
+  let vb = {vb with pvb_attributes = [native_only_attribute ~loc]} in
   pstr_value ~loc Nonrecursive [vb]
 
 let db_connection_pattern ~loc =
@@ -886,13 +886,8 @@ let dispatch_function_for_mutation_ast ~loc (mutation : mutation) : structure_it
         pexp_fun ~loc Nolabel None db_pat
           (pexp_fun ~loc Nolabel None (pvar ~loc "action") body)
       in
-      let platform_attr =
-        attribute ~loc
-          ~name:(Located.mk ~loc "platform")
-          ~payload:(PStr [pstr_eval ~loc (eident_of_string ~loc "native") []])
-      in
       let vb = value_binding ~loc ~pat:(pvar ~loc "dispatch") ~expr:dispatch_expr in
-      let vb = { vb with pvb_attributes = [platform_attr] } in
+      let vb = { vb with pvb_attributes = [native_only_attribute ~loc] } in
       Some (pstr_value ~loc Nonrecursive [vb])
 
 let mutation_module_declaration_ast ~loc (mutation : mutation) : structure_item list =

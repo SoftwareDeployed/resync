@@ -8,8 +8,8 @@ external textContent: element => Js.Nullable.t(string) = "textContent";
 
 let parseState =
     (~stateElementId: string, ~decodeState: StoreJson.json => 'state) =>
-  switch%platform (Runtime.platform) {
-  | Client =>
+  switch%platform () {
+  | Melange =>
     switch (stateElementId->getElementById->Js.Nullable.toOption) {
     | Some(element) =>
       switch (element->textContent->Js.Nullable.toOption) {
@@ -18,7 +18,7 @@ let parseState =
       }
     | None => None
     }
-  | Server =>
+  | Native =>
     let _ = stateElementId;
     let _ = decodeState;
     None
@@ -31,11 +31,11 @@ let hydrateStore =
       ~decodeState: StoreJson.json => 'state,
       ~stateElementId: string,
     ) =>
-  switch%platform (Runtime.platform) {
-  | Client =>
+  switch%platform () {
+  | Melange =>
     switch (parseState(~stateElementId, ~decodeState)) {
     | None => emptyStore
     | Some(state) => makeStore(state)
     }
-  | Server => emptyStore
+  | Native => emptyStore
   };

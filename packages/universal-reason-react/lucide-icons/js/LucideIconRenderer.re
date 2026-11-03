@@ -108,7 +108,7 @@ let addAttr = (resolved: resolvedAttrs, attr) =>
 
 let resolveAttrs = attrs => Array.fold_left(addAttr, emptyResolvedAttrs, attrs);
 
-[@platform native]
+[@native_only]
 module Impl = {
   let propListOfResolvedAttrs = (resolved: resolvedAttrs) => {
     let props = [];
@@ -278,7 +278,7 @@ module Impl = {
   };
 };
 
-[@platform js]
+[@melange_only]
 module Impl = {
   type jsValue;
 

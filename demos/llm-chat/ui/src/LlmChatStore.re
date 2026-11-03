@@ -176,10 +176,10 @@ module Mutations = {
   };
 };
 
-[@platform js]
+[@melange_only]
 let onActionError = message => Js.log("Action error: " ++ message);
 
-[@platform native]
+[@native_only]
 let onActionError = _message => ();
 
 let decodeStreamEvent = (json) =>

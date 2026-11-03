@@ -112,7 +112,7 @@ module type QueryModule = {
   let paramsHash: params => string;
   let decodeRow: StoreJson.json => row;
   let row_to_json: row => StoreJson.json;
-  [@platform native]
+  [@native_only]
   let execute:
     (module Caqti_lwt.CONNECTION) =>
     params =>

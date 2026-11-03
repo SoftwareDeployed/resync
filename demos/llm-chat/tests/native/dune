@@ -8,12 +8,13 @@
   universal_reason_react_uuid_native
   melange-json-native
   server-reason-react.js
+  server-reason-react.webapi
   server-reason-react.belt
   server-reason-react.react)
  (modes native)
  (preprocess
   (pps
-   server-reason-react.browser_ppx
+   ppx_platform
    server-reason-react.ppx
    server-reason-react.melange_ppx
    melange-json-native.ppx)))

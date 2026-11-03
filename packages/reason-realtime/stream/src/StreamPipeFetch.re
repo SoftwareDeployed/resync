@@ -3,7 +3,7 @@ type fetch_event =
   | Error(string)
   | Done;
 
-[@platform js]
+[@melange_only]
 let setupFetch:
     (string, string, string => unit, string => unit, unit => unit) => unit => unit =
   [%raw {|
@@ -75,7 +75,7 @@ let setupFetch:
   }
 |}];
 
-[@platform js]
+[@melange_only]
 let post = (~url: string, ~body: string) : StreamPipe.t(fetch_event) => {
   StreamPipe.make(~subscribe=(next => {
     let cleanup = setupFetch(
@@ -89,7 +89,7 @@ let post = (~url: string, ~body: string) : StreamPipe.t(fetch_event) => {
   }));
 };
 
-[@platform native]
+[@native_only]
 let post = (~url: string, ~body: string) : StreamPipe.t(fetch_event) => {
   StreamPipe.make(~subscribe=(_next => () => ()));
 };

@@ -4,7 +4,7 @@
  (wrapped false)
  (libraries reason-react melange.dom melange.js playwright_js universal_reason_react_sonner_js)
  (modes melange)
- (preprocess (pps server-reason-react.ppx -melange server-reason-react.browser_ppx -js melange.ppx reason-react-ppx)))
+ (preprocess (pps server-reason-react.ppx -melange ppx_platform -js melange.ppx reason-react-ppx)))
 
 (melange.emit
  (target dist)

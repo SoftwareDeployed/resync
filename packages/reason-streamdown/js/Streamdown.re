@@ -1,8 +1,8 @@
-[@platform js]
+[@melange_only]
 [@mel.module "streamdown"]
 external streamdownComponent: React.component(Js.t({..})) = "Streamdown";
 
-[@platform js]
+[@melange_only]
 let make =
     (
       ~isAnimating: option(bool)=?,
@@ -30,7 +30,7 @@ let make =
     }
   />;
 
-[@platform native]
+[@native_only]
 let make =
     (
       ~isAnimating: option(bool)=?,

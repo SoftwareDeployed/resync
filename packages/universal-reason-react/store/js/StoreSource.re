@@ -30,8 +30,8 @@ let make = (~afterSet=((_next: 'a) => ()), ~mount: option(actions('a) => unit)=?
   };
 
   let value =
-    switch%platform (Runtime.platform) {
-    | Client =>
+    switch%platform () {
+    | Melange =>
       Tilia.Core.source(. initial, (. _value, setValue) => {
         setValueRef := next => {
           currentValue := next;
@@ -39,16 +39,16 @@ let make = (~afterSet=((_next: 'a) => ()), ~mount: option(actions('a) => unit)=?
           afterSet(next);
         };
       })
-    | Server => initial
+    | Native => initial
     };
 
-  (switch%platform (Runtime.platform) {
-   | Client =>
+  (switch%platform () {
+   | Melange =>
      switch (mount) {
      | Some(runMount) => runMount(actions)
      | None => ()
      };
-   | Server => ()
+   | Native => ()
    });
 
   {

@@ -4,7 +4,7 @@ let str = React.string;
 let make =
   Tilia.React.leaf(() => {
     let main_store = Store.Context.useStore();
-    let%browser_only select_unit = (period: Model.Pricing.period, e) => {
+    let%melange_only select_unit = (period: Model.Pricing.period, e) => {
       let inputEl = e->React.Event.Form.currentTarget;
       if (inputEl##checked == true) {
         switch (PeriodList.Unit.tFromJs(period.unit)) {

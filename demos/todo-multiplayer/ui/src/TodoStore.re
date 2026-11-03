@@ -40,9 +40,9 @@ let customAction_of_json = (~kind, ~payload as _payload) => switch (kind) {
   | "fail_server_mutation" => FailServerMutation
   | _ => FailClientMutation
 };
-[@platform js]
+[@melange_only]
 let onActionError = message => Sonner.showError(message);
-[@platform native]
+[@native_only]
 let onActionError = _message => ();
 let applyQueryResult = (~state: state, ~channel: string, ~rows: array(StoreJson.json)) => {
   switch (channel) {

@@ -5,14 +5,16 @@
  (wrapped false)
  (libraries
    caqti
+   caqti.classic
    caqti-lwt
    melange-json-native
    server-reason-react.js
+  server-reason-react.webapi
    universal_reason_react_store_native
    str)
  (preprocess
   (pps
-   server-reason-react.browser_ppx
+   ppx_platform
    server-reason-react.melange_ppx
    melange-json-native.ppx))
  (modes native))

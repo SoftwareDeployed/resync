@@ -93,13 +93,13 @@ let compareByEnqueuedAt = (a: t, b: t) =>
     0;
   };
 
-[@platform js]
+[@melange_only]
 let sortByEnqueuedAt: array(t) => array(t) = records => {
   let copy = Js.Array.slice(~start=0, ~end_=Array.length(records), records);
   Js.Array.sortInPlaceWith(~f=compareByEnqueuedAt, copy);
 };
 
-[@platform native]
+[@native_only]
 let sortByEnqueuedAt: array(t) => array(t) = records => {
   let copy = Array.copy(records);
   Array.stable_sort(compareByEnqueuedAt, copy);

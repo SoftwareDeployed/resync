@@ -4,18 +4,18 @@ let item_url = "/item";
 
 /* Origin of the live-support chat backend (the llm-chat demo server).
    The support widget opens its own multiplexed websocket there. */
-[@platform js]
+[@melange_only]
 let llm_chat_base_url = "http://127.0.0.1:8897";
 
-[@platform native]
+[@native_only]
 let llm_chat_base_url = "";
 
 let base_url =
-  switch%platform (Runtime.platform) {
-  | Client =>
+  switch%platform () {
+  | Melange =>
     Webapi.Dom.Window.location(Webapi.Dom.window)
     ->Webapi.Dom.Location.origin
-  | Server =>
+  | Native =>
     switch (Sys.getenv_opt("API_BASE_URL")) {
     | Some(url) => url
     | None => failwith("API_BASE_URL environment variable is required")

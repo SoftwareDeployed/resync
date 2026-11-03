@@ -58,7 +58,7 @@ let decodeQueryResult =
 let queryCacheRef: ref(option(QueryCache.t)) = ref(None);
 
 // Get or create query cache
-[@platform js]
+[@melange_only]
 let getQueryCache = (): QueryCache.t => {
   switch (queryCacheRef.contents) {
   | Some(cache) => cache
@@ -69,13 +69,13 @@ let getQueryCache = (): QueryCache.t => {
   };
 };
 
-[@platform native]
+[@native_only]
 let getQueryCache = (): QueryCache.t => {
   QueryCache.make();
 };
 
 // Initialize query cache with WebSocket URLs
-[@platform js]
+[@melange_only]
 let initCache = (~eventUrl: string, ~baseUrl: string) => {
   switch (queryCacheRef.contents) {
   | Some(cache) => QueryCache.init(~eventUrl, ~baseUrl, cache)
@@ -86,58 +86,58 @@ let initCache = (~eventUrl: string, ~baseUrl: string) => {
   };
 };
 
-[@platform native]
+[@native_only]
 let initCache = (~eventUrl as _: string, ~baseUrl as _: string) => ();
 
-[@platform js]
+[@melange_only]
 let setConnectionHandle =
     (handle: option(RealtimeClientMultiplexed.Multiplexed.t)) => {
   let cache = getQueryCache();
   QueryCache.setConnectionHandle(~t=cache, handle);
 };
 
-[@platform native]
+[@native_only]
 let setConnectionHandle =
     (_handle: option(RealtimeClientMultiplexed.Multiplexed.t)) => ();
 
 // Serialize cache for SSR hydration (native only - server serializes)
-[@platform native]
+[@native_only]
 let serializeCache = (): string => QueryRegistry.serialize_for_cache();
 
-[@platform js]
+[@melange_only]
 let serializeCache = (): string => "{}";
 
 // Hydrate cache from server-rendered data
-[@platform js]
+[@melange_only]
 let hydrateCache = (jsonStr: string) => {
   let cache = getQueryCache();
   QueryCache.hydrate(~t=cache, ~jsonStr);
 };
 
-[@platform native]
+[@native_only]
 let hydrateCache = (_jsonStr: string) => ();
 
 // DOM element helpers for hydration
-[@platform js]
+[@melange_only]
 type element;
 
-[@platform js]
+[@melange_only]
 type domDocument;
 
-[@platform js]
+[@melange_only]
 [@mel.scope "globalThis"]
 external globalDocument: Js.Nullable.t(domDocument) = "document";
 
-[@platform js]
+[@melange_only]
 [@mel.send]
 external getElementById: (domDocument, string) => Js.Nullable.t(element) = "getElementById";
 
-[@platform js]
+[@melange_only]
 [@mel.get]
 external textContent: element => Js.Nullable.t(string) = "textContent";
 
 // Hydrate cache from DOM script tag
-[@platform js]
+[@melange_only]
 let hydrateCacheFromDom = (~cacheId="query-cache", ()) => {
   let cache = getQueryCache();
   switch (globalDocument->Js.Nullable.toOption) {
@@ -154,13 +154,13 @@ let hydrateCacheFromDom = (~cacheId="query-cache", ()) => {
   };
 };
 
-[@platform native]
+[@native_only]
 let hydrateCacheFromDom = (~cacheId as _unused=?, ()) => {
   let _ = _unused;
   ();
 };
 
-[@platform js]
+[@melange_only]
 let useQuerySignal = (~cache, ~key, ~channel, ~skip) => {
   let signal =
     React.useMemo1(() => QueryCache.getSignal(~t=cache, ~key), [|key|]);
@@ -189,7 +189,7 @@ let useQuerySignal = (~cache, ~key, ~channel, ~skip) => {
   signal;
 };
 
-[@platform js]
+[@melange_only]
 let useRawQueryResultForIdentity = (~channel, ~paramsHash, ~skip) => {
   let key = makeKey(~channel, ~paramsHash);
   let cache = getQueryCache();
@@ -197,7 +197,7 @@ let useRawQueryResultForIdentity = (~channel, ~paramsHash, ~skip) => {
   skip ? Loading : signal->Tilia.Core.value;
 };
 
-[@platform js]
+[@melange_only]
 let useRawQueryResult =
     (
       type p,
@@ -213,7 +213,7 @@ let useRawQueryResult =
   useRawQueryResultForIdentity(~channel, ~paramsHash, ~skip);
 };
 
-[@platform js]
+[@melange_only]
 let useRawQueryResultOption =
     (
       type p,
@@ -230,7 +230,7 @@ let useRawQueryResultOption =
 };
 
 // Main useQuery hook - JS version (client-side)
-[@platform js]
+[@melange_only]
 let useQuery =
     (
       type p,
@@ -246,7 +246,7 @@ let useQuery =
     : rawResult |> decodeQueryResult((module Q)) |> hookResultOfData;
 };
 
-[@platform js]
+[@melange_only]
 let useQueryOption =
     (
       type p,
@@ -263,7 +263,7 @@ let useQueryOption =
 };
 
 // Main useQuery hook - Native version (server-side SSR)
-[@platform native]
+[@native_only]
 let useQuery =
     (
       type p,
@@ -337,7 +337,7 @@ let useQuery =
   };
 };
 
-[@platform native]
+[@native_only]
 let useQueryOption =
     (
       type p,
@@ -352,7 +352,7 @@ let useQueryOption =
   };
 
 // Helper to check if query is loading
-[@platform js]
+[@melange_only]
 let useIsQueryLoading =
     (
       type p,
@@ -366,7 +366,7 @@ let useIsQueryLoading =
   result.loading;
 };
 
-[@platform js]
+[@melange_only]
 let useIsQueryLoadingOption =
     (
       type p,
@@ -383,7 +383,7 @@ let useIsQueryLoadingOption =
   };
 };
 
-[@platform native]
+[@native_only]
 let useIsQueryLoading =
     (
       type p,
@@ -395,7 +395,7 @@ let useIsQueryLoading =
   result.loading;
 };
 
-[@platform native]
+[@native_only]
 let useIsQueryLoadingOption =
     (
       type p,

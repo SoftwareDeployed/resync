@@ -27,11 +27,11 @@ type mutation_result('params) = {
   error: option(string),
 };
 
-[@platform js]
+[@melange_only]
 external stringOfJsValue: 'a => string = "String";
 
 // Main useMutation hook - JS version (client-side)
-[@platform js]
+[@melange_only]
 let make =
     (
       type p,
@@ -117,7 +117,7 @@ let make =
   {dispatch, mutate: dispatch, loading, error};
 };
 
-[@platform js]
+[@melange_only]
 let makeFn =
     (
       type p,
@@ -141,7 +141,7 @@ let makeFn =
 };
 
 // Main useMutation hook - Native version (server-side)
-[@platform native]
+[@native_only]
 let make =
     (
       type p,
@@ -154,7 +154,7 @@ let make =
   {dispatch, mutate: dispatch, loading: false, error: None};
 };
 
-[@platform native]
+[@native_only]
 let makeFn =
     (
       type p,

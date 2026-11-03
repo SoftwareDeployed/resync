@@ -5,7 +5,7 @@ let fail_sync name = raise (Unused_db_access name)
 
 module Fail_fast_connection = struct
   let driver_info = Caqti_driver_info.dummy
-  let dialect = Caqti_driver_info.dummy_dialect driver_info
+  let dialect = Caqti.Template.Dialect.create_unknown ~purpose:`Dummy ()
   let driver_connection = None
 
   module Response = struct

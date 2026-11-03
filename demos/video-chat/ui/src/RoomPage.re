@@ -1,6 +1,6 @@
 open Tilia.React;
 
-[@platform js]
+[@melange_only]
 let drawVideoFrame = (canvas: Dom.element, dataUrl: string) => {
   let ctx =
     MediaBindings.canvasRenderingContext2dOfDom(
@@ -26,10 +26,10 @@ let drawVideoFrame = (canvas: Dom.element, dataUrl: string) => {
   Webapi.Dom.HtmlImageElement.setSrc(htmlImage, dataUrl);
 };
 
-[@platform native]
+[@native_only]
 let drawVideoFrame = (_canvas, _data) => ();
 
-[@platform js]
+[@melange_only]
 let playAudioChunk = (chunk: string) => {
   let audio = MediaBindings.makeAudio(chunk);
   MediaBindings.playAudio(audio)
@@ -37,16 +37,16 @@ let playAudioChunk = (chunk: string) => {
   |> ignore;
 };
 
-[@platform native]
+[@native_only]
 let playAudioChunk = (_chunk: string) => ();
 
-[@platform js]
+[@melange_only]
 let getInputValue = event => React.Event.Form.target(event)##value;
 
-[@platform native]
+[@native_only]
 let getInputValue = _event => "";
 
-[@platform js]
+[@melange_only]
 let scrollToBottom = elOpt => {
   switch (elOpt) {
   | Some(el) =>
@@ -59,7 +59,7 @@ let scrollToBottom = elOpt => {
   };
 };
 
-[@platform native]
+[@native_only]
 let scrollToBottom = _elOpt => ();
 
 module View = {

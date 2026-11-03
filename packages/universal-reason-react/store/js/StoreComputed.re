@@ -1,10 +1,10 @@
 let make = (~client: Tilia.Core.deriver('a) => 'a, ~server: unit => 'a) : 'a =>
-  switch%platform (Runtime.platform) {
-  | Client => {
+  switch%platform () {
+  | Melange => {
       let _ = server;
       Tilia.Core.carve(client);
     }
-  | Server => {
+  | Native => {
       let _ = client;
       server();
     }

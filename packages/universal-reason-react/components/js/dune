@@ -20,7 +20,7 @@
   (pps
    server-reason-react.ppx
    -melange
-   server-reason-react.browser_ppx
+   ppx_platform
    -js
    melange.ppx
    reason-react-ppx)))

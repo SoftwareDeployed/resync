@@ -42,7 +42,7 @@ let make =
         item.period_list->Js.Array.filter(~f=(period: Model.Pricing.period) =>
           period.unit == selected_unit
         );
-      let%browser_only add_to_cart_click = event => {
+      let%melange_only add_to_cart_click = event => {
         event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
         CartStore.add_to_cart(
           cart_store,

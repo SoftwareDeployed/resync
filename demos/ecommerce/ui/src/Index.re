@@ -1,16 +1,16 @@
-[@platform js]
+[@melange_only]
 module Style = {
   [%%raw "import \"./style.css\""];
 };
 
-[@platform native]
+[@native_only]
 module Style = {
   let _css = ();
 };
 
 let rootElement = ReactDOM.querySelector("#root");
 
-let%browser_only _ =
+let%melange_only _ =
   switch (rootElement) {
   | Some(domNode) =>
     let store = Store.hydrateStore();

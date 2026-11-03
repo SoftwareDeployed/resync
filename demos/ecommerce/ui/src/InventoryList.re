@@ -44,7 +44,7 @@ let make =
 
   let selected_unit = PeriodList.Unit.tToJs(unit);
 
-  let%browser_only on_search_change = event => {
+  let%melange_only on_search_change = event => {
     let value = React.Event.Form.target(event)##value;
     setQuery(_previous => value);
   };

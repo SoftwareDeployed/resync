@@ -337,37 +337,37 @@ let castToUnitMatchResult = (matchResult: option(matchResult('state))) =>
 
 let hydrationScriptId = "universal-router-state";
 
-[@platform js] [@mel.scope "document"]
+[@melange_only] [@mel.scope "document"]
 external getElementById: string => Js.Nullable.t('a) = "getElementById";
 
-[@platform js] [@mel.get]
+[@melange_only] [@mel.get]
 external textContent: 'a => Js.Nullable.t(string) = "textContent";
 
-[@platform js]
+[@melange_only]
 external documentRef: 'a = "document";
 
-[@platform js] [@mel.set]
+[@melange_only] [@mel.set]
 external setDocumentTitleValue: ('a, string) => unit = "title";
 
-[@platform js] [@mel.get]
+[@melange_only] [@mel.get]
 external documentHead: 'a => 'b = "head";
 
-[@platform js] [@mel.send]
+[@melange_only] [@mel.send]
 external querySelectorAll: ('a, string) => 'b = "querySelectorAll";
 
-[@platform js] [@mel.send]
+[@melange_only] [@mel.send]
 external forEachNode: ('a, 'b => unit) => unit = "forEach";
 
-[@platform js] [@mel.send]
+[@melange_only] [@mel.send]
 external removeNode: 'a => unit = "remove";
 
-[@platform js] [@mel.scope "document"]
+[@melange_only] [@mel.scope "document"]
 external createElement: string => 'a = "createElement";
 
-[@platform js] [@mel.send]
+[@melange_only] [@mel.send]
 external setAttribute: ('a, string, string) => unit = "setAttribute";
 
-[@platform js] [@mel.send]
+[@melange_only] [@mel.send]
 external appendChild: ('a, 'b) => unit = "appendChild";
 
 let filterEmptySegments = segments =>
@@ -526,8 +526,8 @@ let parseHydrationState = value => {
 };
 
 let readHydrationState = () =>
-  switch%platform (Runtime.platform) {
-  | Client =>
+  switch%platform () {
+  | Melange =>
     switch (getElementById(hydrationScriptId)->Js.Nullable.toOption) {
     | None => None
     | Some(node) =>
@@ -539,7 +539,7 @@ let readHydrationState = () =>
         | Some(value) => parseHydrationState(ScriptJsonEscape.unescape(value))
         }
     }
-  | Server => None
+  | Native => None
   };
 
 let stripBasePath = (~basePath, ~path) => {
@@ -998,8 +998,8 @@ let mergeHeadContent = (baseHead, headTags) => {
 };
 
 let applyHeadTags = headTags =>
-  switch%platform (Runtime.platform) {
-  | Client => {
+  switch%platform () {
+  | Melange => {
       let head = documentHead(documentRef);
       head
       ->querySelectorAll("[id^='universal-router-head-']")
@@ -1035,7 +1035,7 @@ let applyHeadTags = headTags =>
 
       ();
     }
-  | Server => ()
+  | Native => ()
   };
 
 let mergeAfterMain = (afterMain, appendedElement) =>
@@ -1204,8 +1204,8 @@ module Link = {
     let routerState = useRouterState();
     let hrefValue = resolveHref(~basePath=routerState.basePath, href);
 
-    switch%platform (Runtime.platform) {
-    | Client => {
+    switch%platform () {
+    | Melange => {
         let router = useRouter();
         let handleClick = event => {
           event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
@@ -1215,7 +1215,7 @@ module Link = {
           children
         </a>;
       }
-    | Server =>
+    | Native =>
       <a id=?elementId className=?className href=hrefValue> children </a>
     };
   };
@@ -1266,8 +1266,8 @@ module RouteLink = {
     let hrefValue =
       useRouteHref(~id, ~params, ~searchParams, ()) |> Option.value(~default="#");
 
-    switch%platform (Runtime.platform) {
-    | Client => {
+    switch%platform () {
+    | Melange => {
         let router = useRouter();
         let handleClick = event => {
           event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
@@ -1279,7 +1279,7 @@ module RouteLink = {
           children
         </a>;
       }
-    | Server =>
+    | Native =>
       <a id=?elementId className=?className href=hrefValue> children </a>
     };
   };
@@ -1356,12 +1356,12 @@ let make = (
   let (url, setUrl) = React.useState(() => initialUrl);
 
   React.useEffect0(() => {
-    switch%platform (Runtime.platform) {
-    | Client =>
+    switch%platform () {
+    | Melange =>
       let watcherId =
         ReasonReactRouter.watchUrl(nextUrl => setUrl(_previous => nextUrl));
       Some(() => ReasonReactRouter.unwatchUrl(watcherId))
-     | Server => None
+     | Native => None
      }
    });
 
@@ -1393,13 +1393,13 @@ let make = (
     title ++ "\n" ++ (headTags |> List.map(serializeHeadTag) |> String.concat("|"));
 
   React.useEffect1(() => {
-    switch%platform (Runtime.platform) {
-    | Client => {
+    switch%platform () {
+    | Melange => {
         setDocumentTitleValue(documentRef, title);
         applyHeadTags(headTags);
         None;
       }
-    | Server => None
+    | Native => None
     }
   }, [|headVersion|]);
 
@@ -1418,8 +1418,8 @@ let make = (
       matchResult: castToUnitMatchResult(matchResult),
     });
 
-  switch%platform (Runtime.platform) {
-  | Client =>
+  switch%platform () {
+  | Melange =>
     React.createElement(
       provider,
       {
@@ -1427,7 +1427,7 @@ let make = (
         "children": renderedElement,
       },
     )
-  | Server =>
+  | Native =>
     React.Context.provider(
       context,
       {

@@ -1,9 +1,9 @@
-[@platform js]
+[@melange_only]
 module Style = {
   [%%raw "import \"./style.css\""];
 };
 
-[@platform native]
+[@native_only]
 module Style = {
   let _css = ();
 };
@@ -13,17 +13,17 @@ module Hooks = TodoStore.Hooks;
 open Hooks;
 
 let copyUrl = () =>
-  switch%platform (Runtime.platform) {
-  | Server => ()
-  | Client => [@platform js] ignore(Sonner.copyCurrentUrl())
+  switch%platform () {
+  | Native => ()
+  | Melange => [@melange_only] ignore(Sonner.copyCurrentUrl())
   };
 
-[@platform js]
+[@melange_only]
 let handleInputChange = (setNewTodoText, event) => {
   setNewTodoText(_ => React.Event.Form.target(event)##value);
 };
 
-[@platform native]
+[@native_only]
 let handleInputChange = (setNewTodoText, _event) => {
   setNewTodoText(_ => "");
 };

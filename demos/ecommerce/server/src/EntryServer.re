@@ -94,7 +94,7 @@ let getServerState = (context: UniversalRouterDream.serverContext(Store.t)) => {
                   start_date: orderRow.start_date,
                   end_date: orderRow.end_date,
                   status: orderRow.status,
-                  created_at: orderRow.created_at,
+                  created_at: Js.Date.fromFloat(orderRow.created_at),
                   items,
                 }: Model.Order.t),
               ),
