@@ -105,7 +105,15 @@ let run t =
             Printf.eprintf "Failed to connect notification listener: %s\n%!" msg)
    | None -> ());
   List.iter (fun f -> f ()) (List.rev t.pre_start);
-  let readyz_route = Dream.get "/readyz" (fun _ -> Dream.respond ~status:`OK "ok") in
+  (* /readyz may be probed cross-origin by widgets embedding this server's
+     realtime endpoint from another app, so allow any origin. *)
+  let readyz_route =
+    Dream.get "/readyz"
+      (fun _ ->
+         Dream.respond ~status:`OK
+           ~headers:[("Access-Control-Allow-Origin", "*")]
+           "ok")
+  in
   let middleware_routes = match t.middleware with Some m -> [ m ] | None -> [] in
   let all_routes = middleware_routes @ [ readyz_route ] @ t.extra_routes in
   let app = Dream.router all_routes in
