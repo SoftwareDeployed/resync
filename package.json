@@ -46,7 +46,7 @@
     "llm-chat-ui": "link:demos/llm-chat/ui",
     "lucide-react": "^1.66.0",
     "react": "^19.3.1",
-    "react-day-picker": "^9.14.0",
+    "react-day-picker": "^10.0.2",
     "react-dom": "^19.3.1",
     "store-backend": "link:demos/ecommerce/server",
     "streamdown": "^2.7.1",
