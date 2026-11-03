@@ -4,7 +4,11 @@ module StorefrontLayoutView = {
     let main_store = Store.Context.useStore();
 
     switch (main_store.config.premise) {
-    | Some(_) => children
+    | Some(_) =>
+      <>
+        children
+        <SupportChatWidget />
+      </>
     | None => <NotFound />
     };
   };

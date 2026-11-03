@@ -2,6 +2,14 @@ let cart_url = "/cart";
 let event_url = "/_events";
 let item_url = "/item";
 
+/* Origin of the live-support chat backend (the llm-chat demo server).
+   The support widget opens its own multiplexed websocket there. */
+[@platform js]
+let llm_chat_base_url = "http://127.0.0.1:8897";
+
+[@platform native]
+let llm_chat_base_url = "";
+
 let base_url =
   switch%platform (Runtime.platform) {
   | Client =>
