@@ -15,8 +15,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       '@tilia/react':
-        specifier: 5.0.0-beta.20251218T180640
-        version: 5.0.0-beta.20251218T180640(react@19.3.1)
+        specifier: 6.0.1
+        version: 6.0.1(react@19.3.1)
       common:
         specifier: link:demos/ecommerce/shared
         version: link:demos/ecommerce/shared
@@ -45,8 +45,8 @@ importers:
         specifier: ^2.7.1
         version: 2.7.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       tilia:
-        specifier: 5.0.0-beta.20251218T180640
-        version: 5.0.0-beta.20251218T180640
+        specifier: 6.0.1
+        version: 6.0.1
       todo-multiplayer-ui:
         specifier: link:demos/todo-multiplayer/ui
         version: link:demos/todo-multiplayer/ui
@@ -353,8 +353,8 @@ packages:
   '@tailwindcss/postcss@4.2.2':
     resolution: {integrity: sha512-n4goKQbW8RVXIbNKRB/45LzyUqN451deQK0nzIeauVEqjlI49slUlgKYJM2QyUzap/PcpnS7kzSUmPb1sCRvYQ==}
 
-  '@tilia/react@5.0.0-beta.20251218T180640':
-    resolution: {integrity: sha512-9H0h4FkeJVLvRIQJXjAnlWV2s8CpwZ9T00aNWR3XClPjpYive8CgHhO/8yOjWSkVDvKSGz0QFUg5H9vJRU35Fw==}
+  '@tilia/react@6.0.1':
+    resolution: {integrity: sha512-eao2qaThHsFY63OqrIwEoY9xS3GWA71ntJuXi3wrRKAr38JDup+31UQoPoAmTxhaE44CKlIfGcipC/P9R1z/aA==}
     peerDependencies:
       react: '*'
 
@@ -958,8 +958,8 @@ packages:
     resolution: {integrity: sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==}
     engines: {node: '>=6'}
 
-  tilia@5.0.0-beta.20251218T180640:
-    resolution: {integrity: sha512-sN+tYNkXXnRss0tWBTSnIwVa1DjY9UWVuOLtEHiSTBbPloe9EkiEPZuIok4VYmnX1VpHrZI3T/NJLKo0I8yQqw==}
+  tilia@6.0.1:
+    resolution: {integrity: sha512-Wc1ivrXjZnqyY1FD2TAhL+qV57ThqeC2Q2RcjCoYhO76zGT4YwrlT4ks1wIh4AeVlMIf+3Lta3vJhPpSKjJPUQ==}
 
   trim-lines@3.0.1:
     resolution: {integrity: sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg==}
@@ -1191,10 +1191,10 @@ snapshots:
       postcss: 8.5.8
       tailwindcss: 4.2.2
 
-  '@tilia/react@5.0.0-beta.20251218T180640(react@19.3.1)':
+  '@tilia/react@6.0.1(react@19.3.1)':
     dependencies:
       react: 19.3.1
-      tilia: 5.0.0-beta.20251218T180640
+      tilia: 6.0.1
 
   '@types/debug@4.1.13':
     dependencies:
@@ -2055,7 +2055,7 @@ snapshots:
 
   tapable@2.3.0: {}
 
-  tilia@5.0.0-beta.20251218T180640: {}
+  tilia@6.0.1: {}
 
   trim-lines@3.0.1: {}
 
