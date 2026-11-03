@@ -83,6 +83,21 @@ SELECT 'b55351b1-1b78-4b6c-bd13-6859dc9ad411', id
 FROM period;
 
 /*
+@query get_period_for_unit
+SELECT
+  p.id,
+  p.label,
+  p.min_value,
+  p.max_value,
+  p.unit::text as unit,
+  p.price
+FROM period p
+JOIN inventory_period_map pm ON pm.period_id = p.id
+WHERE pm.inventory_id = $1 AND p.unit::text = $2
+LIMIT 1;
+*/
+
+/*
 @mutation update_quantity
 UPDATE inventory SET quantity = $2 WHERE id = $1;
 */

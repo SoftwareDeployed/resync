@@ -11,6 +11,8 @@ psql_cmd=(psql -v ON_ERROR_STOP=1 "$DB_URL")
 "${psql_cmd[@]}" <<'SQL'
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+DROP TABLE IF EXISTS order_items CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
 DROP TABLE IF EXISTS inventory_period_map CASCADE;
 DROP TABLE IF EXISTS inventory CASCADE;
 DROP TABLE IF EXISTS premise_route CASCADE;
@@ -31,7 +33,7 @@ for file in \
   demos/ecommerce/server/sql/premise.sql \
   demos/ecommerce/server/sql/period.sql \
   demos/ecommerce/server/sql/inventory.sql \
-  demos/ecommerce/server/sql/cart.sql \
+  demos/ecommerce/server/sql/orders.sql \
   demos/ecommerce/server/sql/generated/realtime.sql
 do
   if [[ -s "$file" ]]; then
