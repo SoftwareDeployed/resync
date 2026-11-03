@@ -19,7 +19,11 @@ module LandingPage = {
 };
 
 module ItemPage = {
-  let make = (~params as _, ~searchParams as _, ()) => <Landing />;
+  let make = (~params as _, ~searchParams as _, ()) => <ItemPage />;
+};
+
+module OrderPage = {
+  let make = (~params as _, ~searchParams as _, ()) => <OrderPage />;
 };
 
 module CartLayout = {
@@ -33,6 +37,7 @@ module CartPage = {
       <p className="m-2 text-sm text-slate-600">
         "Review your selected equipment before booking."->React.string
       </p>
+      <CheckoutForm searchParams />
       <UniversalRouter.RouteLink
         id="home"
         searchParams
@@ -57,54 +62,38 @@ let itemNameFromState = (~params, ~state: Store.t) =>
   switch (UniversalRouter.Params.find("id", params)) {
   | None => itemIdLabel(params)
   | Some(id) =>
-    switch (
-      Js.Array.find(
-        ~f=(item: Model.InventoryItem.t) => item.id == id,
-        state.config.inventory,
-      )
-    ) {
+    switch (Store.findItem(state.config, id)) {
     | Some(item) => item.name
     | None => "Item " ++ id
     }
   };
 
-let resolveItemTitle = (~pathname as _, ~params, ~searchParams as _) =>
-  itemIdLabel(params) ++ " - Cloud Hardware Rental";
+let itemTitle = (~itemLabel) => itemLabel ++ " - Cloud Hardware Rental";
 
-let resolveItemHeadTags = (~pathname as _, ~params, ~searchParams as _) => {
-  let itemLabel = itemIdLabel(params);
-  [
-    UniversalRouter.propertyTag(
-      ~property="og:title",
-      ~content=itemLabel ++ " - Cloud Hardware Rental",
-      (),
-    ),
-    UniversalRouter.metaTag(
-      ~name="description",
-      ~content=itemLabel ++ " includes pricing and availability details before booking.",
-      (),
-    ),
-    ];
-  };
+let itemHeadTags = (~itemLabel) => [
+  UniversalRouter.propertyTag(
+    ~property="og:title",
+    ~content=itemTitle(~itemLabel),
+    (),
+  ),
+  UniversalRouter.metaTag(
+    ~name="description",
+    ~content=itemLabel ++ " includes pricing and availability details before booking.",
+    (),
+  ),
+];
+
+let resolveItemTitle = (~pathname as _, ~params, ~searchParams as _) =>
+  itemTitle(~itemLabel=itemIdLabel(params));
+
+let resolveItemHeadTags = (~pathname as _, ~params, ~searchParams as _) =>
+  itemHeadTags(~itemLabel=itemIdLabel(params));
 
 let resolveItemTitleWithState = (~pathname as _, ~params, ~searchParams as _, ~state: Store.t) =>
-  itemNameFromState(~params, ~state) ++ " - Cloud Hardware Rental";
+  itemTitle(~itemLabel=itemNameFromState(~params, ~state));
 
-let resolveItemHeadTagsWithState = (~pathname as _, ~params, ~searchParams as _, ~state: Store.t) => {
-  let itemLabel = itemNameFromState(~params, ~state);
-  [
-    UniversalRouter.propertyTag(
-      ~property="og:title",
-      ~content=itemLabel ++ " - Cloud Hardware Rental",
-      (),
-    ),
-    UniversalRouter.metaTag(
-      ~name="description",
-      ~content=itemLabel ++ " includes pricing and availability details before booking.",
-      (),
-    ),
-  ];
-};
+let resolveItemHeadTagsWithState = (~pathname as _, ~params, ~searchParams as _, ~state: Store.t) =>
+  itemHeadTags(~itemLabel=itemNameFromState(~params, ~state));
 
 let router =
   UniversalRouter.create(
@@ -189,6 +178,29 @@ let router =
         ],
         (),
       ),
+      UniversalRouter.group(
+        ~path="order",
+        ~layout=(module CartLayout),
+        [
+          UniversalRouter.route(
+            ~id="order",
+            ~path=":id",
+            ~title="Order Confirmation",
+            ~headTags=[
+              UniversalRouter.metaTag(
+                ~name="description",
+                ~content="Your reservation is confirmed.",
+                (),
+              ),
+              UniversalRouter.metaTag(~name="robots", ~content="noindex", ()),
+            ],
+            ~page=(module OrderPage),
+            [],
+            (),
+          ),
+        ],
+        (),
+      ),
     ],
   );
 
@@ -209,3 +221,13 @@ let itemPath = (~basePath="/", ~id, ()) =>
 let cartPath = (~basePath="/", ()) =>
   UniversalRouter.routeHref(~router, ~basePath, ~id="cart", ())
   |> Option.value(~default="/cart");
+
+let orderPath = (~basePath="/", ~id, ()) =>
+  UniversalRouter.routeHref(
+    ~router,
+    ~basePath,
+    ~id="order",
+    ~params=UniversalRouter.Params.ofList([("id", id)]),
+    (),
+  )
+  |> Option.value(~default=basePath);

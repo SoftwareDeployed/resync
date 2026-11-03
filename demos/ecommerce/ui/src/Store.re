@@ -25,6 +25,11 @@ let action_of_json = _json => Noop;
 let hasPeriodUnit = (periods: array(Model.Pricing.period), unit) =>
   periods->Js.Array.some(~f=(period: Model.Pricing.period) => period.unit == unit);
 
+/* Single inventory lookup used by cart lines, routes, and the item page. */
+let findItem = (config: Model.t, id: string): option(Model.InventoryItem.t) =>
+  config.inventory
+  ->Js.Array.find(~f=(item: Model.InventoryItem.t) => item.id == id);
+
 let appendUniquePeriod = (periods, period: Model.Pricing.period) =>
   if (hasPeriodUnit(periods, period.unit)) {
     periods;

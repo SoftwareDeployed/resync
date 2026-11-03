@@ -34,16 +34,29 @@ module Contents = {
                 switch (cart_store.state.items->Js.Dict.get(cart_id)) {
                 | None => React.null
                 | Some(cart_item) =>
+                  /* One inventory lookup per line: name + stock cap. */
+                  let inventory_item = Store.findItem(
+                    main_store.config,
+                    cart_item.inventory_id,
+                  );
                   let label =
-                    switch (
-                      Js.Array.find(
-                        ~f=(item: Model.InventoryItem.t) =>
-                          item.id == cart_item.inventory_id,
-                        main_store.config.inventory,
-                      )
-                    ) {
+                    switch (inventory_item) {
                     | Some(item) => item.name
                     | None => cart_item.inventory_id
+                    };
+                  let inventoryQuantity =
+                    switch (inventory_item) {
+                    | Some(item) => item.quantity
+                    | None => 9999
+                    };
+                  let reservation_label =
+                    switch ((cart_item.reservation: option(CartStore.Reservation.t))) {
+                    | Some(reservation) =>
+                      " for "
+                      ++ reservation.start_date
+                      ++ " to "
+                      ++ reservation.end_date
+                    | None => ""
                     };
 
                   let%browser_only decrement_item = event => {
@@ -51,21 +64,15 @@ module Contents = {
                     CartStore.decrement_item(cart_store, cart_item.inventory_id);
                   };
 
-                  let inventoryQuantity =
-                    switch (
-                      Js.Array.find(
-                        ~f=(item: Model.InventoryItem.t) =>
-                          item.id == cart_item.inventory_id,
-                        main_store.config.inventory,
-                      )
-                    ) {
-                    | Some(item) => item.quantity
-                    | None => 9999
-                    };
-
                   let%browser_only increment_item = event => {
                     event->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
-                    CartStore.increment_item(cart_store, cart_item.inventory_id, ~maxQuantity=inventoryQuantity, ());
+                    CartStore.increment_item(
+                      cart_store,
+                      cart_item.inventory_id,
+                      ~maxQuantity=inventoryQuantity,
+                      ~reservation=None,
+                      (),
+                    );
                   };
 
                   let%browser_only remove_item = event => {
@@ -80,6 +87,7 @@ module Contents = {
                       <span className="font-medium"> label->str </span>
                       <span className="text-xs text-slate-500">
                         {("Qty " ++ Int.to_string(cart_item.quantity))->str}
+                        {reservation_label->str}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">

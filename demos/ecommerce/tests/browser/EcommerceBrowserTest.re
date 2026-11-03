@@ -128,10 +128,95 @@ let run = () => {
                       Js.log("Updating inventory quantity back to 1 via fetch...");
                       updateQuantityViaFetch(page, ~baseUrl, ~itemId, ~quantity=1);
                     })
-                 |> then_(_ => BrowserTestUtils.sleep(500))
-                 |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Stock: 1"))
-               })
-          })
+                  |> then_(_ => BrowserTestUtils.sleep(500))
+                  |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Stock: 1"))
+                })
+             /* Search scenario */
+             |> then_(_ => {
+                  Js.log("Testing inventory search...");
+                  page->Playwright.goto(baseUrl ++ "/");
+                })
+             |> then_(_ => page->Playwright.waitForSelector("#inventory-search"))
+             |> then_(_ => page->Playwright.fill("#inventory-search", "zzz-no-such-item"))
+             |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="0 matching"))
+             |> then_(_ => page->Playwright.fill("#inventory-search", "Pop"))
+             |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="1 matching"))
+             |> then_(_ => page->Playwright.click("#inventory-search-clear"))
+             |> then_(_ => BrowserTestUtils.sleep(200))
+             |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+             |> then_(text =>
+                  BrowserTestUtils.assertNotContains(
+                    ~label="Search cleared shows items again",
+                    ~unexpected="0 matching",
+                    text,
+                  )
+                )
+             /* Item detail page scenario */
+             |> then_(_ => {
+                  Js.log("Testing item detail page...");
+                  page->Playwright.goto(baseUrl ++ "/item/" ++ itemId ++ "?start=2026-11-03&end=2026-11-05");
+                })
+             |> then_(_ => page->Playwright.waitForSelector("#item-detail-name"))
+             |> then_(_ => BrowserTestUtils.textOrEmpty(page, "#item-detail-name"))
+             |> then_(name =>
+                  BrowserTestUtils.assertContains(~label="Item page shows item name", ~expected="Pop Item", name)
+                )
+             |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+             |> then_(text => {
+                  BrowserTestUtils.assertContains(
+                    ~label="Item page shows reservation window",
+                    ~expected="Reserving for 2026-11-03",
+                    text,
+                  )
+                  |> then_(_ =>
+                       BrowserTestUtils.assertContains(
+                         ~label="Item page shows live stock",
+                         ~expected="Stock: 1",
+                         text,
+                       )
+                     )
+                })
+             |> then_(_ => page->Playwright.click("#item-detail-add-to-cart"))
+             |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Review your selected equipment"))
+             /* Checkout scenario */
+             |> then_(_ => {
+                  Js.log("Testing checkout flow...");
+                  page->Playwright.fill("#checkout-customer-name", "Ada Lovelace");
+                })
+             |> then_(_ => page->Playwright.fill("#checkout-customer-email", "ada@example.com"))
+             |> then_(_ => page->Playwright.click("#checkout-submit"))
+             |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Reservation confirmed"))
+             |> then_(_ => BrowserTestUtils.textOrEmpty(page, "body"))
+             |> then_(text =>
+                  BrowserTestUtils.assertContains(~label="Order page shows customer", ~expected="Ada Lovelace", text)
+                  |> then_(_ =>
+                       BrowserTestUtils.assertContains(
+                         ~label="Order page shows rental window",
+                         ~expected="2026-11-03 to 2026-11-05",
+                         text,
+                       )
+                     )
+                  |> then_(_ =>
+                       BrowserTestUtils.assertContains(~label="Order page shows total", ~expected="Total", text)
+                     )
+                )
+             /* Stock decremented after checkout (give the cleared-cart
+                IndexedDB write a moment to persist before reloading) */
+             |> then_(_ => BrowserTestUtils.sleep(800))
+             |> then_(_ => {
+                  Js.log("Verifying stock decremented after checkout...");
+                  page->Playwright.goto(baseUrl ++ "/");
+                })
+             |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Stock: 0"))
+             /* Cart cleared after checkout (the landing header count resets) */
+             |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Selected equipment (0)"))
+             /* Unknown order renders not-found */
+             |> then_(_ => {
+                  Js.log("Testing unknown order page...");
+                  page->Playwright.goto(baseUrl ++ "/order/00000000-0000-0000-0000-000000000000");
+                })
+             |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Order not found"))
+           })
       })
    |> then_(result =>
         cleanup(~browser=browserRef.contents, ~server=serverRef.contents)
