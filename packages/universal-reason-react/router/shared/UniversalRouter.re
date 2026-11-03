@@ -531,10 +531,13 @@ let readHydrationState = () =>
     switch (getElementById(hydrationScriptId)->Js.Nullable.toOption) {
     | None => None
     | Some(node) =>
-      switch (textContent(node)->Js.Nullable.toOption) {
-      | None => None
-      | Some(value) => parseHydrationState(value)
-      }
+        switch (textContent(node)->Js.Nullable.toOption) {
+        | None => None
+        /* The hydration script is text/plain (not evaluated as JS), so the
+           \uXXXX escapes written by ScriptJsonEscape stay literal: undo
+           them, or search strings like "a=1&b=2" arrive corrupted. */
+        | Some(value) => parseHydrationState(ScriptJsonEscape.unescape(value))
+        }
     }
   | Server => None
   };
