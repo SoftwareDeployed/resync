@@ -14,12 +14,18 @@ let make =
     let cart_store = CartStore.Context.useStore();
     let item_params = UniversalRouter.Params.ofList([("id", item.id)]);
     let searchParams = UniversalRouter.useSearchParams();
+    let reservation = CartStore.reservationFromSearchParams(searchParams);
     let image =
       "https://random.danielpetrica.com/api/random?" ++ item.id;
     let%browser_only add_to_cart_click = e => {
       e->React.Event.toSyntheticEvent->React.Event.Synthetic.preventDefault;
-      Js.log2("[cart] add button click", item.id);
-      CartStore.add_to_cart(cart_store, item, ~maxQuantity=item.quantity, ());
+      CartStore.add_to_cart(
+        cart_store,
+        item,
+        ~maxQuantity=item.quantity,
+        ~reservation,
+        (),
+      );
     };
     let add_to_cart_button =
       switch%platform (Runtime.platform) {
