@@ -27,7 +27,7 @@ services:
     command: ["/bin/bash", "/src/run-linux-demos.sh", "check"]
 
   postgres:
-    image: postgres:16
+    image: postgres:18
     restart: unless-stopped
     command: postgres -c max_connections=200
     environment:
