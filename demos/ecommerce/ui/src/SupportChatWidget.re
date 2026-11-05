@@ -67,6 +67,7 @@ module Widget = {
       let (draft, setDraft) = React.useState(() => "");
       let (streamingText, setStreamingText) = React.useState(() => "");
       let (streamingActive, setStreamingActive) = React.useState(() => false);
+      let (streamingMessageId, setStreamingMessageId) = React.useState(() => None);
       let (status, setStatus) = React.useState(() => Connecting);
       let clientRef = React.useRef(None);
       let threadIdRef = React.useRef(None);
@@ -182,11 +183,25 @@ module Widget = {
                   ~fieldName="event",
                   ~decode=string_of_json,
                 );
+              let messageId =
+                StoreJson.optionalField(
+                  ~json,
+                  ~fieldName="message_id",
+                  ~decode=string_of_json,
+                );
+              let matchesStream =
+                switch (streamingMessageId, messageId) {
+                | (Some(activeId), Some(messageId)) => activeId == messageId
+                | (Some(_), None) => false
+                | (None, _) => true
+                };
               switch (event) {
+              | Some("stream_started") when !matchesStream => ()
               | Some("stream_started") =>
                   setStreamingActive(_previous => true);
+                  setStreamingMessageId(_previous => messageId);
                   setStreamingText(_previous => "");
-              | Some("token_received") =>
+              | Some("token_received") when matchesStream =>
                   let token =
                     StoreJson.optionalField(
                       ~json,
@@ -198,10 +213,11 @@ module Widget = {
                       setStreamingText(previous => previous ++ token)
                   | None => ()
                   };
-              | Some("stream_complete") =>
+              | Some("stream_complete") when matchesStream =>
                   setStreamingActive(_previous => false);
+                  setStreamingMessageId(_previous => None);
                   setStreamingText(_previous => "");
-              | Some("stream_error") =>
+              | Some("stream_error") when matchesStream =>
                   let error =
                     StoreJson.optionalField(
                       ~json,
@@ -209,10 +225,24 @@ module Widget = {
                       ~decode=string_of_json,
                     );
                   setStreamingActive(_previous => false);
-                  setStreamingText(_previous =>
-                    switch (error) {
-                    | Some(error) => "(error: " ++ error ++ ")"
-                    | None => "(stream error)"
+                  setStreamingMessageId(_previous => None);
+                  setStreamingText(_previous => "");
+                  setMessages(previous =>
+                    switch (messageId) {
+                    | Some(id) =>
+                      upsertMessage(
+                        previous,
+                        {
+                          id,
+                          role: "assistant",
+                          content:
+                            switch (error) {
+                            | Some(error) => "(error: " ++ error ++ ")"
+                            | None => "(stream error)"
+                            },
+                        },
+                      )
+                    | None => previous
                     }
                   );
               | _ => ()
@@ -257,6 +287,9 @@ module Widget = {
                   },
                 )
               );
+              setStreamingActive(_previous => true);
+              setStreamingMessageId(_previous => Some(assistantMessageId));
+              setStreamingText(_previous => "");
               sendAction(
                 ~kind="send_prompt",
                 ~payloadFields=dict => {
@@ -309,34 +342,25 @@ module Widget = {
                          {"Ask about availability, pricing, or your reservation."->str}
                        </p>
                    | _ =>
-                       let lastMessage: ChatMessage.t = messages[Array.length(messages) - 1];
-                       let lastMessageId = lastMessage.id;
                        messages
                        ->Js.Array.map(~f=(message: ChatMessage.t) => {
                             let isUser = message.role == "user";
+                            let isActiveAssistant =
+                              message.role == "assistant"
+                              && streamingMessageId == Some(message.id);
                             let content =
-                              if (!isUser && message.content == "" && streamingActive) {
-                                streamingText == ""
+                              if (isActiveAssistant && streamingActive) {
+                                message.content == "" && streamingText == ""
                                   ? "..." : streamingText;
-                              } else if (
-                                !isUser && streamingActive && message.content != ""
-                              ) {
-                                streamingText != ""
-                                  && String.length(streamingText)
-                                    > String.length(message.content)
-                                  ? streamingText : message.content;
                               } else {
                                 message.content;
                               };
-                            let isStreaming =
-                              streamingActive
-                              && message.role == "assistant"
-                              && message.id == lastMessageId;
                             <ChatMessageView
                               key=message.id
                               role=message.role
                               content
-                              isStreaming
+                              mode="static"
+                              isStreaming={isActiveAssistant && streamingActive}
                               className={
                                 "min-w-0 max-w-[85%] rounded-md px-2 py-1 text-sm "
                                 ++ (

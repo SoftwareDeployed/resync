@@ -1149,6 +1149,7 @@ Shared message rendering for llm-chat and ecommerce Live Support, provided by
 <ChatMessageView
   role="assistant"
   content="**Hello** from the shared Markdown renderer."
+  mode="streaming"
   isStreaming=false
   className="message"
 />
@@ -1157,6 +1158,9 @@ Shared message rendering for llm-chat and ecommerce Live Support, provided by
 - `role` and `content` are required strings.
 - Assistant messages use Streamdown for Markdown, including streaming content.
 - Other roles render escaped plain text; user input is not parsed as Markdown or HTML.
+- `mode` defaults to `"streaming"`. Live Support passes `"static"` so each
+  received token updates the DOM immediately; llm-chat keeps Streamdown's
+  progressive streaming presentation.
 - `isStreaming` defaults to `false` and controls Streamdown's animation state.
 - `className` defaults to `""` and adds consumer-specific bubble styling.
 - Shared Markdown typography and Streamdown CSS are imported by the package.
