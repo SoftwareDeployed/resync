@@ -314,7 +314,10 @@ The todo-multiplayer demo uses:
 
 - inventory is rendered on the server and hydrated in the browser
 - inventory realtime updates come from PostgreSQL notifications over websockets
+- sold-out equipment shows a disabled “Out of stock” button on the listing and item pages; restocking re-enables Add to cart through realtime updates
 - the cart is client-side and persisted to IndexedDB
+- reservation type selection updates the displayed equipment rate between supported units
+- ecommerce Live Support and llm-chat share `ChatMessageView` in `packages/reason-streamdown` for assistant Markdown and plain-text user messages
 - the demo still uses `reason-react-day-picker` in the storefront UI
 
 ## Notes for contributors

@@ -1,3 +1,8 @@
+module Style = {
+  [%%raw "import \"streamdown/styles.css\""];
+  [%%raw "import \"./chat-message.css\""];
+};
+
 [@melange_only]
 [@mel.module "streamdown"]
 external streamdownComponent: React.component(Js.t({..})) = "Streamdown";

@@ -7,7 +7,7 @@ let make =
   leaf((~openDate: option(Js.Date.t)=?, ~closeDate: option(Js.Date.t)=?) => {
   let main_store = Store.Context.useStore();
   let config: Model.t = main_store.config;
-  let unit: PeriodList.Unit.t = main_store.unit;
+  let unit: PeriodList.Unit.t = PeriodList.Unit.get();
   let items = config.inventory;
   let (query, setQuery) = React.useState(() => "");
   let today = Dates.today();

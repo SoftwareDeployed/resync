@@ -4,6 +4,7 @@ let str = React.string;
 let make =
   Tilia.React.leaf(() => {
     let main_store = Store.Context.useStore();
+    let selected_unit = PeriodList.Unit.get();
     let%melange_only select_unit = (period: Model.Pricing.period, e) => {
       let inputEl = e->React.Event.Form.currentTarget;
       if (inputEl##checked == true) {
@@ -28,9 +29,9 @@ let make =
                   id={"type_" ++ period.unit}
                   name="type"
                   type_="radio"
-                  value="hour"
+                  value={period.unit}
                   onChange={select_unit(period)}
-                  checked={main_store.unit == unit}
+                  checked={selected_unit == unit}
                   autoComplete="off"
                 />
                 <span className="p-1 pl-0"> period.label->str </span>

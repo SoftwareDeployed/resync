@@ -1,7 +1,6 @@
 [@melange_only]
 module Style = {
   [%%raw "import \"./style.css\""];
-  [%%raw "import \"streamdown/styles.css\""];
 };
 
 [@native_only]
@@ -545,26 +544,19 @@ module View = {
                     let len = Array.length(renderedMessages);
                     len > 0 && renderedMessages[len - 1].id == message.id;
                   };
-                  let children =
+                  let content =
                     if (message.role == "assistant") {
-                      let content =
-                        displayAssistantContent(~message, ~streaming);
-                      [|
-                        Streamdown.make(
-                          ~isAnimating=isStreaming && isLastMessage,
-                          ~children=content,
-                          (),
-                        ),
-                      |];
+                      displayAssistantContent(~message, ~streaming);
                     } else {
-                      [|React.string(message.content)|];
+                      message.content;
                     };
-                  <div
+                  <ChatMessageView
                     key={message.id}
+                    role={message.role}
+                    content
+                    isStreaming={isStreaming && isLastMessage}
                     className={"message " ++ roleClass}
-                    role={message.role}>
-                    {React.array(children)}
-                  </div>;
+                  />;
                 })
                 ->React.array;
               }

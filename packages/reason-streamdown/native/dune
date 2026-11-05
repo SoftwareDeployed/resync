@@ -1,10 +1,12 @@
 (library
  (name reason_streamdown)
  (public_name resync.reason_streamdown)
- (modules Streamdown)
+ (modules Streamdown ChatMessageView)
  (wrapped false)
- (libraries server-reason-react.react)
+ (libraries server-reason-react.react server-reason-react.reactDom)
  (preprocess
   (pps
    server-reason-react.ppx
    melange.ppx)))
+
+(copy_files ../js/ChatMessageView.re)

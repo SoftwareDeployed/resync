@@ -5,8 +5,6 @@ let str = React.string;
 [@react.component]
 let make =
   leaf(() => {
-    let main_store = Store.Context.useStore();
-    let _unit = main_store.unit;
     let router = UniversalRouter.useRouter();
     let pathname = UniversalRouter.usePathname();
     let searchParams = UniversalRouter.useSearchParams();

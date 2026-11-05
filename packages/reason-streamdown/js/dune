@@ -1,10 +1,11 @@
 (library
  (name reason_streamdown_js)
  (public_name resync.reason_streamdown_js)
- (modules Streamdown)
+ (modules Streamdown ChatMessageView)
  (wrapped false)
  (libraries reason-react melange.js universal_reason_react_components_js)
  (modes melange)
+ (melange.runtime_deps chat-message.css)
  (preprocess
   (pps
    server-reason-react.ppx

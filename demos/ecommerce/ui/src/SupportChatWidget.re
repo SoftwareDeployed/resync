@@ -301,7 +301,7 @@ module Widget = {
                </div>
                <div
                  id="support-chat-messages"
-                 className="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
+                 className="flex min-w-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
                  {
                    switch (messages->Array.length) {
                    | 0 =>
@@ -309,6 +309,8 @@ module Widget = {
                          {"Ask about availability, pricing, or your reservation."->str}
                        </p>
                    | _ =>
+                       let lastMessage: ChatMessage.t = messages[Array.length(messages) - 1];
+                       let lastMessageId = lastMessage.id;
                        messages
                        ->Js.Array.map(~f=(message: ChatMessage.t) => {
                             let isUser = message.role == "user";
@@ -326,18 +328,24 @@ module Widget = {
                               } else {
                                 message.content;
                               };
-                            <div
+                            let isStreaming =
+                              streamingActive
+                              && message.role == "assistant"
+                              && message.id == lastMessageId;
+                            <ChatMessageView
                               key=message.id
+                              role=message.role
+                              content
+                              isStreaming
                               className={
-                                "max-w-[85%] rounded-md px-2 py-1 text-sm "
+                                "min-w-0 max-w-[85%] rounded-md px-2 py-1 text-sm "
                                 ++ (
                                   isUser
                                     ? "self-end bg-slate-600 text-white"
                                     : "self-start bg-slate-100 text-slate-800"
                                 )
-                              }>
-                              {content->str}
-                            </div>;
+                              }
+                            />;
                           })
                        |> React.array
                    }

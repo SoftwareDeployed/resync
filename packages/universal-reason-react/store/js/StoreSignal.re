@@ -11,7 +11,7 @@ let make = (initial: 'a): t('a) =>
     let (signal, setSignal) = Tilia.Core.signal(initial);
     {
       value: signal->Tilia.Core.lift,
-      get: () => signal->Tilia.Core.lift,
+      get: () => signal->Tilia.Core.value,
       set: setSignal,
       update: reducer => signal->Tilia.Core.lift |> reducer |> setSignal,
     }

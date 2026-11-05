@@ -183,6 +183,13 @@ Every store starts with `StoreBuilder.withSchema({emptyState, reduce, makeStore}
 
 The `~derive` argument lets Tilia attach reactivity on the client; on the server the `~server` branch is used to keep SSR deterministic.
 
+`StoreSignal.get()` reads the current value and records a Tilia dependency when
+called during a reactive render or computation. Its `.value` field is a lifted
+binding for insertion into a store, not an imperative snapshot. Independent UI
+state, such as ecommerce's reservation unit, is read directly with
+`PeriodList.Unit.get()` in reactive consumers rather than forwarded through the
+inventory store.
+
 ## Projection Primitives
 
 These are the building blocks used inside `makeStore`.

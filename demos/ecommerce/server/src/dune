@@ -6,6 +6,7 @@
   caqti-driver-postgresql
   common_native
   resync.realtime_schema
+  resync.reason_streamdown
   resync.universal_reason_react_intl_native
   dream
   melange-json-native

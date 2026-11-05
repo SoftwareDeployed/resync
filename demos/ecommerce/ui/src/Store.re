@@ -14,7 +14,6 @@ type store = {
   premise_id: string,
   config: Model.t,
   period_list: array(Model.Pricing.period),
-  unit: PeriodList.Unit.t,
 };
 
 let action_to_json = _action =>
@@ -101,13 +100,6 @@ module StoreDef =
                  ~serverSource=state,
                  ~fromStore=store => store.config,
                  ~select=projections => projections.period_list,
-                 (),
-               ),
-             unit:
-               StoreBuilder.current(
-                 ~derive?,
-                 ~client=PeriodList.Unit.value,
-                 ~server=() => PeriodList.Unit.defaultState,
                  (),
                ),
            };

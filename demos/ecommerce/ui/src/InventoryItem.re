@@ -12,9 +12,15 @@ let make =
           Js.Exn.raiseError("The item property is required on InventoryItem")
       };
     let cart_store = CartStore.Context.useStore();
+    let selected_unit = PeriodList.Unit.tToJs(PeriodList.Unit.get());
+    let periods =
+      item.period_list->Js.Array.filter(~f=(period: Model.Pricing.period) =>
+        period.unit == selected_unit
+      );
     let item_params = UniversalRouter.Params.ofList([("id", item.id)]);
     let searchParams = UniversalRouter.useSearchParams();
     let reservation = CartStore.reservationFromSearchParams(searchParams);
+    let out_of_stock = item.quantity <= 0;
     let image =
       "https://random.danielpetrica.com/api/random?" ++ item.id;
     let%melange_only add_to_cart_click = e => {
@@ -31,14 +37,16 @@ let make =
       switch%platform () {
       | Melange =>
         <button
-          className="mx-[1.5] mb-[1.5] rounded-sm bg-slate-500 px-3 py-2 text-sm text-white hover:bg-slate-700"
+          className="mx-[1.5] mb-[1.5] rounded-sm bg-slate-500 px-3 py-2 text-sm text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          disabled=out_of_stock
           onClick=add_to_cart_click>
-          "Add to cart"->str
+          {(out_of_stock ? "Out of stock" : "Add to cart")->str}
         </button>
       | Native =>
         <button
-          className="mx-[1.5] mb-[1.5] rounded-sm bg-slate-500 px-3 py-2 text-sm text-white hover:bg-slate-700">
-          "Add to cart"->str
+          className="mx-[1.5] mb-[1.5] rounded-sm bg-slate-500 px-3 py-2 text-sm text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          disabled=out_of_stock>
+          {(out_of_stock ? "Out of stock" : "Add to cart")->str}
         </button>
       };
     <div className="flex flex-1 flex-col grow border-2">
@@ -64,7 +72,7 @@ let make =
              className="text-xs text-slate-600 m-2">
              {("Stock: " ++ Int.to_string(item.quantity))->str}
            </span>
-           <Pricing period_list={item.period_list} />
+           <Pricing period_list={periods} />
          </div>
       </UniversalRouter.RouteLink>
       add_to_cart_button

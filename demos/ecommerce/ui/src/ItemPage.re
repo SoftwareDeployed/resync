@@ -36,8 +36,8 @@ let make =
       </Card>;
     | Some(item) => {
       let image = "https://random.danielpetrica.com/api/random?" ++ item.id;
-      let unit = main_store.unit;
-      let selected_unit = PeriodList.Unit.tToJs(unit);
+      let out_of_stock = item.quantity <= 0;
+      let selected_unit = PeriodList.Unit.tToJs(PeriodList.Unit.get());
       let periods =
         item.period_list->Js.Array.filter(~f=(period: Model.Pricing.period) =>
           period.unit == selected_unit
@@ -100,9 +100,10 @@ let make =
                }}
               <button
                 id="item-detail-add-to-cart"
-                className="rounded-sm bg-slate-500 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700"
+                className="rounded-sm bg-slate-500 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                disabled=out_of_stock
                 onClick=add_to_cart_click>
-                "Add to cart and review reservation"->str
+                {(out_of_stock ? "Out of stock" : "Add to cart and review reservation")->str}
               </button>
               <UniversalRouter.RouteLink
                 id="home"

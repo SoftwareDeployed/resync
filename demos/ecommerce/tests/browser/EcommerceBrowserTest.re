@@ -63,6 +63,28 @@ let run = () => {
                  |> then_(_ => BrowserTestUtils.assertContains(~label="SSR cart visible", ~expected="Selected equipment", text))
                  |> then_(_ => BrowserTestUtils.assertNotContains(~label="No loading placeholder on initial load", ~unexpected="Loading", text))
                )
+            /* The selected reservation unit controls the equipment's rate. */
+            |> then_(_ => page->Playwright.waitForSelector("#support-chat-toggle"))
+            |> then_(_ => page->Playwright.check("#type_hour"))
+            |> then_(_ => page->Playwright.waitForSelectorWithTimeout("#item-" ++ itemId ++ " >> text=$100.00", ~timeout=5000))
+            |> then_(_ => BrowserTestUtils.textOrEmpty(page, "#item-" ++ itemId))
+            |> then_(text =>
+                 BrowserTestUtils.assertNotContains(
+                   ~label="Hourly selection hides the monthly rate",
+                   ~unexpected="$1,000.00",
+                   text,
+                 )
+               )
+            |> then_(_ => page->Playwright.check("#type_month"))
+            |> then_(_ => page->Playwright.waitForSelectorWithTimeout("#item-" ++ itemId ++ " >> text=$1,000.00", ~timeout=5000))
+            |> then_(_ => BrowserTestUtils.textOrEmpty(page, "#item-" ++ itemId))
+            |> then_(text =>
+                 BrowserTestUtils.assertNotContains(
+                   ~label="Monthly selection hides the hourly rate",
+                   ~unexpected="$100.00",
+                   text,
+                 )
+               )
             |> then_(_ => page->Playwright.waitForSelector("text=Add to cart"))
             |> then_(_ => page->Playwright.click("text=Add to cart"))
             |> then_(_ => BrowserTestUtils.waitForIDBContent(page, ~dbName="ecommerce.cart", ~expectedText="inventory_id"))
@@ -210,6 +232,21 @@ let run = () => {
              |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Stock: 0"))
              /* Cart cleared after checkout (the landing header count resets) */
              |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Selected equipment (0)"))
+             /* Sold-out equipment cannot be added from either surface. */
+             |> then_(_ => page->Playwright.waitForSelectorWithTimeout("#item-" ++ itemId ++ " + button:disabled", ~timeout=5000))
+             |> then_(_ => {
+                  Js.log("Testing sold-out item detail...");
+                  page->Playwright.goto(baseUrl ++ "/item/" ++ itemId);
+                })
+             |> then_(_ => page->Playwright.waitForSelectorWithTimeout("#item-detail-add-to-cart:disabled", ~timeout=5000))
+             /* Restocking re-enables the existing detail page through realtime. */
+             |> then_(_ => updateQuantityViaFetch(page, ~baseUrl, ~itemId, ~quantity=1))
+             |> then_(_ => page->Playwright.waitForSelectorWithTimeout("#item-detail-add-to-cart:not(:disabled)", ~timeout=5000))
+             |> then_(_ => page->Playwright.click("#item-detail-add-to-cart"))
+             |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Selected equipment (1)"))
+             |> then_(_ => page->Playwright.waitForSelector("text=Remove"))
+             |> then_(_ => page->Playwright.click("text=Remove"))
+             |> then_(_ => BrowserTestUtils.waitForBodyContains(page, ~expectedText="Your cart is empty."))
              /* Unknown order renders not-found */
              |> then_(_ => {
                   Js.log("Testing unknown order page...");

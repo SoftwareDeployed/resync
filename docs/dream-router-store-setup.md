@@ -128,7 +128,6 @@ type store = {
   premise_id: string,
   config: state,
   period_list: array(Model.Pricing.period),
-  unit: PeriodList.Unit.t,
 };
 
 module StoreDef =
@@ -157,13 +156,6 @@ module StoreDef =
                  ~serverSource=state,
                  ~fromStore=store => store.config,
                  ~select=projections => projections.period_list,
-                 (),
-               ),
-             unit:
-               StoreBuilder.current(
-                 ~derive?,
-                 ~client=PeriodList.Unit.value,
-                 ~server=() => PeriodList.Unit.defaultState,
                  (),
                ),
            };

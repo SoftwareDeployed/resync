@@ -49,7 +49,7 @@ module Form = {
         | None => ""
         };
       let premise_id = main_store.premise_id;
-      let selected_unit = PeriodList.Unit.tToJs(main_store.unit);
+      let selected_unit = PeriodList.Unit.tToJs(PeriodList.Unit.get());
 
       React.useEffect0(() => {
         configureCheckoutForm();

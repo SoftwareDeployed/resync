@@ -1139,6 +1139,30 @@ let make: (
 
 Error boundary component.
 
+### ChatMessageView
+
+Shared message rendering for llm-chat and ecommerce Live Support, provided by
+`packages/reason-streamdown`. Add `reason_streamdown_js` to client libraries and
+`resync.reason_streamdown` to native server libraries.
+
+```reason
+<ChatMessageView
+  role="assistant"
+  content="**Hello** from the shared Markdown renderer."
+  isStreaming=false
+  className="message"
+/>
+```
+
+- `role` and `content` are required strings.
+- Assistant messages use Streamdown for Markdown, including streaming content.
+- Other roles render escaped plain text; user input is not parsed as Markdown or HTML.
+- `isStreaming` defaults to `false` and controls Streamdown's animation state.
+- `className` defaults to `""` and adds consumer-specific bubble styling.
+- Shared Markdown typography and Streamdown CSS are imported by the package.
+- Native SSR renders the wrapper and plain-text messages. Assistant Markdown mounts
+  on the client through the existing SSR-safe Streamdown boundary.
+
 ## Lucide Icons
 
 All Lucide icons are available as components with these props:

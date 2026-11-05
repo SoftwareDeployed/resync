@@ -15,6 +15,7 @@
  (runtime_deps style.css)
   (libraries
    reason_react_day_picker_js
+   reason_streamdown_js
     common_js
      universal_reason_react_components_js
      universal_reason_react_lucide_icons_js

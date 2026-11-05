@@ -23,7 +23,6 @@ module Unit = {
   // XXX: This default state should come from the server
   let defaultState: t = `Month;
   let state = StoreSignal.make(defaultState);
-  let value = state.value;
   let get = state.get;
   let set = state.set;
 };
