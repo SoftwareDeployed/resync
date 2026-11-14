@@ -97,7 +97,7 @@ let straightHigh = counts => {
 
 let descendingRanks = (cards: array(card)) => {
   let sorted = Js.Array.slice(~start=0, ~end_=Array.length(cards), cards);
-  Js.Array.sortInPlaceWith(~f=(left, right) => compare(right.rank, left.rank), sorted);
+  Belt.SortArray.stableSortInPlaceBy(sorted, (left, right) => compare(right.rank, left.rank));
   sorted->Js.Array.map(~f=card => card.rank);
 };
 

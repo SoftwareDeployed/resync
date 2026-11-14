@@ -51,6 +51,8 @@
    (= "6.1.2"))
   caqti-driver-postgresql
   dream
+  pg_query
+  cohttp-lwt-unix
   melange
   melange-json
   melange-json-native

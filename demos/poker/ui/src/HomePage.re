@@ -117,22 +117,22 @@ let make = () => {
   <div className="poker-app">
     <header className="room-header">
       <div className="brand-lockup">
-        <span className="brand-mark" aria-hidden="true"> {React.string("R")} </span>
+        <span className="brand-mark" ariaHidden="true"> {React.string("R")} </span>
         <div>
           <span className="eyebrow"> {React.string("RESYNC / TABLE 06")} </span>
           <h1> {React.string("River Room")} </h1>
         </div>
       </div>
       <div className="room-meta">
-        <span className="live-dot" aria-hidden="true" />
+        <span className="live-dot" ariaHidden="true" />
         <span> {React.string("Local table")} </span>
-        <span className="meta-divider" aria-hidden="true" />
+        <span className="meta-divider" ariaHidden="true" />
         <span> {React.string("10 / 20")} </span>
       </div>
     </header>
 
     <main>
-      <section className="game-layout" aria-label="Six-handed Texas Hold'em poker room">
+      <section className="game-layout" ariaLabel="Six-handed Texas Hold'em poker room">
         <div className="table-column">
           <div className="table-toolbar">
             <div>
@@ -145,10 +145,10 @@ let make = () => {
             </div>
           </div>
 
-          <div className="table-scroll" tabIndex=0 aria-label="Poker table; scroll horizontally on small screens">
+          <div className="table-scroll" tabIndex=0 ariaLabel="Poker table; scroll horizontally on small screens">
             <div className="table-stage">
               <div className="table-felt">
-                <div className="felt-line" aria-hidden="true" />
+                <div className="felt-line" ariaHidden="true" />
                 <div className="board-area">
                   <span className="board-label"> {React.string("COMMUNITY CARDS")} </span>
                   <div className="board-cards">
@@ -169,12 +169,12 @@ let make = () => {
             </div>
           </div>
 
-          <div className="status-bar" role="status" aria-live="polite" aria-atomic="true">
-            <span className={game.currentPlayer == Some(PokerEngine.humanIndex) ? "status-pip status-pip-active" : "status-pip"} aria-hidden="true" />
+          <div className="status-bar" role="status" ariaLive="polite" ariaAtomic="true">
+            <span className={game.currentPlayer == Some(PokerEngine.humanIndex) ? "status-pip status-pip-active" : "status-pip"} ariaHidden="true" />
             <span> {React.string(message == "" ? status : message)} </span>
           </div>
 
-          <section className="action-dock" aria-label="Poker actions">
+          <section className="action-dock" ariaLabel="Poker actions">
             <div className="action-topline">
               <div>
                 <span className="eyebrow"> {React.string("YOUR DECISION")} </span>
@@ -201,7 +201,7 @@ let make = () => {
                           </div>
                           <input
                             id="bet-size"
-                            aria-label="Bet or raise target"
+                            ariaLabel="Bet or raise target"
                             type_="range"
                             min={string_of_int(sizingMin)}
                             max={string_of_int(sizingMax)}
@@ -213,7 +213,7 @@ let make = () => {
                               | None => ()
                               }}
                           />
-                          <div className="size-presets" aria-label="Bet size presets">
+                          <div className="size-presets" ariaLabel="Bet size presets">
                             <button type_="button" onClick={_ => setBetTarget(_ => sizingMin)}> {React.string("Min")} </button>
                             <button type_="button" onClick={_ => setBetTarget(_ => halfPotTarget)}> {React.string("1/2 pot")} </button>
                             <button type_="button" onClick={_ => setBetTarget(_ => potSizedTarget)}> {React.string("Pot")} </button>
@@ -242,7 +242,7 @@ let make = () => {
           </section>
         </div>
 
-        <aside className="room-rail" aria-label="Hand information">
+        <aside className="room-rail" ariaLabel="Hand information">
           <section className="rail-card result-card">
             <span className="eyebrow"> {React.string("TABLE STATUS")} </span>
             <h2> {React.string(game.handOver ? "Result" : PokerEngine.streetName(game.street))} </h2>

@@ -320,7 +320,7 @@ and settleShowdown = (game: game) => {
       levels := Js.Array.concat(~other=[|player.committed|], levels^);
     }
   );
-  Js.Array.sortInPlaceWith(~f=(left, right) => compare(left, right), levels^);
+  Belt.SortArray.stableSortInPlaceBy(levels^, (left, right) => compare(left, right));
 
   let winnings = Array.make(playerCount, 0);
   let handValues = Array.make(playerCount, None);
