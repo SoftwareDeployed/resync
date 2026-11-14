@@ -33,8 +33,12 @@ type jevStatus =
   | Unavailable
   | Available(string);
 
-type lastJevDecision = {
+type jevLogEntry = {
+  id: int,
   seat: int,
+  handNumber: int,
+  street: street,
+  actionLabel: string,
   decision: PokerJevClient.decision,
 };
 
@@ -56,26 +60,22 @@ let actionOfDecision = (decision: PokerJevClient.decision) =>
   | _ => None
   };
 
-let percent = value => string_of_int(int_of_float(value *. 100.0 +. 0.5));
-
-let decisionLabel = (decision: PokerJevClient.decision) =>
-  switch (decision.kind) {
-  | "fold" => "fold"
-  | "check" => "check"
-  | "call" => "call"
-  | "bet" => "bet " ++ string_of_int(decision.amount)
-  | "raise" => "raise to " ++ string_of_int(decision.amount)
-  | "all_in" => "all-in"
-  | _ => "decision"
+let concreteActionLabel = (current: game, index, action) => {
+  let player = current.players[index];
+  switch (action) {
+  | Fold => "Fold"
+  | Check => "Check"
+  | Call =>
+    let toCall = max(0, current.currentBet - player.streetCommitted);
+    let amount = min(toCall, player.chips);
+    (amount < toCall ? "All-in " : "Call ") ++ string_of_int(amount);
+  | Bet(target) => "Bet " ++ string_of_int(target)
+  | RaiseTo(target) => "Raise to " ++ string_of_int(target)
+  | AllIn => "All-in " ++ string_of_int(player.chips)
   };
-
-let probabilitySummary = probabilities => {
-  let labels =
-    probabilities->Js.Array.map(~f=(probability: PokerJevClient.probability) =>
-      probability.action ++ " " ++ percent(probability.value) ++ "%"
-    );
-  labels->Js.Array.reduce(~f=(text, item) => text == "" ? item : text ++ " / " ++ item, ~init="");
 };
+
+let percent = value => string_of_int(int_of_float(value *. 100.0 +. 0.5));
 
 [@react.component]
 let make = () => {
@@ -84,9 +84,53 @@ let make = () => {
   let (message, setMessage) = React.useState(() => "");
   let (opponentMode, setOpponentMode) = React.useState(() => JevMode);
   let (jevStatus, setJevStatus) = React.useState(() => Checking);
-  let (lastJev, setLastJev) = React.useState(() => None);
+  let (jevLog, setJevLog) = React.useState(() => [||]);
+  let (soundEnabled, setSoundEnabled) = React.useState(() => false);
   let gameRef = React.useRef(game);
+  let jevLogId = React.useRef(0);
+  let soundEnabledRef = React.useRef(false);
   gameRef.current = game;
+
+  let playSound = cue =>
+    if (soundEnabledRef.current) {
+      PokerSound.play(cue);
+    };
+  let playDealSounds = () => {
+    playSound(PokerSound.Shuffle);
+    playSound(PokerSound.Deal);
+  };
+  let playTransitionSounds = (current: game, next: game, action) => {
+    switch (action) {
+    | Fold => playSound(PokerSound.Fold)
+    | Call
+    | Bet(_)
+    | RaiseTo(_)
+    | AllIn => playSound(PokerSound.Chips)
+    | Check => ()
+    };
+    if (Array.length(next.board) > Array.length(current.board)) {
+      playSound(PokerSound.Deal);
+    };
+    if (next.handOver && !current.handOver) {
+      playSound(PokerSound.Win);
+    };
+  };
+  let toggleSound = () => {
+    let nextEnabled = !soundEnabledRef.current;
+    soundEnabledRef.current = nextEnabled;
+    PokerSound.setEnabled(nextEnabled);
+    setSoundEnabled(_ => nextEnabled);
+  };
+  let logJevDecision = (seat, handNumber, street, actionLabel, decision) => {
+    let id = jevLogId.current + 1;
+    jevLogId.current = id;
+    let entry = {id, seat, handNumber, street, actionLabel, decision};
+    setJevLog(currentEntries => {
+      let entries = Js.Array.concat(~other=currentEntries, [|entry|]);
+      Js.Array.slice(~start=0, ~end_=min(8, Array.length(entries)), entries);
+    });
+  };
+
   let options = PokerEngine.legalOptions(game, PokerEngine.humanIndex);
   let sizingMin = game.currentBet == 0 ? options.minBet : options.minRaiseTo;
   let sizingMax = game.currentBet == 0 ? options.maxBet : options.maxRaiseTo;
@@ -116,8 +160,8 @@ let make = () => {
             switch (PokerEngine.applyAction(current, index, action)) {
             | Ok(next) =>
               gameRef.current = next;
+              playTransitionSounds(current, next, action);
               setGame(_ => next);
-              setLastJev(_ => None);
               if (announce) {
                 setMessage(_ => "Jev fallback | " ++ current.players[index].name ++ " used local rules");
               };
@@ -140,8 +184,9 @@ let make = () => {
                     switch (PokerEngine.applyAction(current, index, action)) {
                     | Ok(next) =>
                       gameRef.current = next;
+                      logJevDecision(index, handNumber, current.street, concreteActionLabel(current, index, action), decision);
+                      playTransitionSounds(current, next, action);
                       setGame(_ => next);
-                      setLastJev(_ => Some({seat: index, decision}));
                       setMessage(_ => "");
                     | Error(_) => applyLocal(~announce=true)
                     }
@@ -172,31 +217,74 @@ let make = () => {
     [|game|],
   );
 
+  React.useEffect1(
+    () => {
+      if (
+        game.handOver
+        && game.players[PokerEngine.humanIndex].chips > 0
+        && PokerEngine.fundedCount(game) >= 2
+      ) {
+        let handNumber = game.handNumber;
+        let timer =
+          Js.Global.setTimeout(
+            ~f=() => {
+              let current = gameRef.current;
+              if (
+                current.handOver
+                && current.handNumber == handNumber
+                && current.players[PokerEngine.humanIndex].chips > 0
+                && PokerEngine.fundedCount(current) >= 2
+              ) {
+                switch (PokerEngine.startHand(current)) {
+                | Ok(next) =>
+                  gameRef.current = next;
+                  setMessage(_ => "");
+                  playDealSounds();
+                  setGame(_ => next);
+                | Error(error) => setMessage(_ => error)
+                };
+              };
+            },
+            2800,
+          );
+        Some(() => Js.Global.clearTimeout(timer));
+      } else {
+        None;
+      };
+    },
+    [|game|],
+  );
+
   let deal = () => {
-    switch (PokerEngine.startHand(game)) {
+    let current = gameRef.current;
+    switch (PokerEngine.startHand(current)) {
     | Ok(next) =>
       setMessage(_ => "");
-      setLastJev(_ => None);
       gameRef.current = next;
+      playDealSounds();
       setGame(_ => next);
     | Error(error) => setMessage(_ => error)
     };
   };
 
   let restart = () => {
-    let next = PokerEngine.restart(~seed=game.rngSeed + 97, ());
+    let current = gameRef.current;
+    let next = PokerEngine.restart(~seed=current.rngSeed + 97, ());
     setMessage(_ => "");
-    setLastJev(_ => None);
+    setJevLog(_ => [||]);
+    jevLogId.current = 0;
     setBetTarget(_ => PokerEngine.bigBlindAmount);
     gameRef.current = next;
     setGame(_ => next);
   };
 
   let act = action => {
-    switch (PokerEngine.applyAction(game, PokerEngine.humanIndex, action)) {
+    let current = gameRef.current;
+    switch (PokerEngine.applyAction(current, PokerEngine.humanIndex, action)) {
     | Ok(next) =>
       setMessage(_ => "");
       gameRef.current = next;
+      playTransitionSounds(current, next, action);
       setGame(_ => next);
     | Error(error) => setMessage(_ => error)
     };
@@ -204,7 +292,6 @@ let make = () => {
 
   let selectMode = mode => {
     setOpponentMode(_ => mode);
-    setLastJev(_ => None);
     setMessage(_ => "");
   };
 
@@ -256,7 +343,15 @@ let make = () => {
     clamp(sizingMin, sizingMax, game.currentBet == 0 ? max(sizingMin, pot) : game.currentBet + max(game.minRaise, pot));
   let halfPotTarget =
     clamp(sizingMin, sizingMax, game.currentBet == 0 ? max(sizingMin, pot / 2) : game.currentBet + max(game.minRaise, pot / 2));
-  let canDeal = (game.handNumber == 0 || game.handOver) && game.players[PokerEngine.humanIndex].chips > 0 && PokerEngine.fundedCount(game) >= 2;
+  let canDealFirst =
+    game.handNumber == 0
+    && game.players[PokerEngine.humanIndex].chips > 0
+    && PokerEngine.fundedCount(game) >= 2;
+  let canDealNext =
+    game.handOver
+    && game.players[PokerEngine.humanIndex].chips > 0
+    && PokerEngine.fundedCount(game) >= 2;
+  let felted = game.handOver && game.players[PokerEngine.humanIndex].chips <= 0;
 
   <div className="poker-app">
     <header className="room-header">
@@ -272,6 +367,13 @@ let make = () => {
         <span> {React.string("Play chips")} </span>
         <span className="meta-divider" ariaHidden={true} />
         <span> {React.string("10 / 20")} </span>
+        <button
+          className="sound-toggle"
+          type_="button"
+          ariaPressed={string_of_bool(soundEnabled)}
+          onClick={_ => toggleSound()}>
+          {React.string(soundEnabled ? "Sound on" : "Sound off")}
+        </button>
       </div>
     </header>
 
@@ -298,7 +400,7 @@ let make = () => {
                   <div className="board-cards">
                     {Array.init(5, index =>
                        <PokerCard
-                         key={string_of_int(index)}
+                         key={string_of_int(game.handNumber) ++ PokerEngine.streetName(game.street) ++ string_of_int(index)}
                          card={index < Array.length(game.board) ? Some(game.board[index]) : None}
                        />
                      )->React.array}
@@ -327,11 +429,20 @@ let make = () => {
               <span className="your-stack"> {React.string("Your stack " ++ string_of_int(game.players[0].chips))} </span>
             </div>
 
-            {game.handOver || game.handNumber == 0
+            {game.handNumber == 0
                ? <div className="hand-flow-actions">
-                   <button className="primary-action" type_="button" onClick={_ => deal()} disabled={!canDeal}>
-                     {React.string(game.handNumber == 0 ? "Deal first hand" : "Deal next hand")}
+                   <button className="primary-action" type_="button" onClick={_ => deal()} disabled={!canDealFirst}>
+                     {React.string("Deal first hand")}
                    </button>
+                   <button className="secondary-action" type_="button" onClick={_ => restart()}>
+                     {React.string("Restart table")}
+                   </button>
+                 </div>
+               : game.handOver
+               ? <div className="hand-flow-actions">
+                   <span className="next-hand-status" role="status">
+                     {React.string(canDealNext ? "Next hand deals automatically in a moment..." : "Restart the table to play again.")}
+                   </span>
                    <button className="secondary-action" type_="button" onClick={_ => restart()}>
                      {React.string("Restart table")}
                    </button>
@@ -412,21 +523,63 @@ let make = () => {
             {opponentMode == JevMode && configuredModel != ""
                ? <span className="configured-model"> {React.string("Configured: " ++ configuredModel)} </span>
                : React.null}
-            {switch (lastJev) {
-             | Some({seat, decision}) =>
-               <div className="jev-result">
-                 <span className="eyebrow"> {React.string("LAST ACTUAL JEV DECISION")} </span>
-                 <strong> {React.string(decision.model)} </strong>
-                 <p>
-                   {React.string(
-                      game.players[seat].name ++ " | " ++ decisionLabel(decision)
-                      ++ " | confidence " ++ percent(decision.confidence) ++ "%"
-                    )}
-                 </p>
-                 <p className="jev-probabilities"> {React.string(probabilitySummary(decision.probabilities))} </p>
-               </div>
-             | None => React.null
-             }}
+          </section>
+          <section className="rail-card jev-log-card" ariaLabelledby="jev-log-title">
+            <div className="rail-heading">
+              <h2 id="jev-log-title"> {React.string("Jev decision log")} </h2>
+              <span> {React.string("Latest first")} </span>
+            </div>
+            <p className="jev-log-intro"> {React.string("Actual model responses only; local fallback decisions are not logged.")} </p>
+            {Array.length(jevLog) == 0
+               ? <p className="jev-log-empty"> {React.string("No Jev decisions yet.")} </p>
+               : <ol>
+                   {Array.init(Array.length(jevLog), index => {
+                      let entry = jevLog[index];
+                      let decision = entry.decision;
+                      let handLabel =
+                        "Hand " ++ string_of_int(entry.handNumber)
+                        ++ " | " ++ PokerJevClient.streetName(entry.street);
+                      <li key={string_of_int(entry.id)}>
+                        <article ariaLabel={game.players[entry.seat].name ++ ", " ++ handLabel ++ ", " ++ entry.actionLabel}>
+                          <header className="jev-entry-heading">
+                            <strong>
+                              {React.string(
+                                 game.players[entry.seat].name
+                                 ++ " (seat " ++ string_of_int(entry.seat + 1) ++ ") | "
+                                 ++ entry.actionLabel
+                               )}
+                            </strong>
+                            <span> {React.string(handLabel)} </span>
+                          </header>
+                          <dl className="jev-metadata">
+                            <div>
+                              <dt> {React.string("Model")} </dt>
+                              <dd> {React.string(decision.model)} </dd>
+                            </div>
+                            <div>
+                              <dt> {React.string("Confidence")} </dt>
+                              <dd> {React.string(percent(decision.confidence) ++ "%")} </dd>
+                            </div>
+                          </dl>
+                          <ul className="jev-probabilities" ariaLabel="Action probabilities">
+                            {Array.init(Array.length(decision.probabilities), probabilityIndex => {
+                               let probability = decision.probabilities[probabilityIndex];
+                               let probabilityPercent = percent(probability.value);
+                               <li key={probability.action}>
+                                 <span className="jev-probability-action"> {React.string(probability.action)} </span>
+                                 <progress
+                                   max="100"
+                                   value=probabilityPercent
+                                   ariaLabel={probability.action ++ " probability " ++ probabilityPercent ++ "%"}
+                                 />
+                                 <span className="jev-probability-value"> {React.string(probabilityPercent ++ "%")} </span>
+                               </li>;
+                             })->React.array}
+                          </ul>
+                        </article>
+                      </li>;
+                    })->React.array}
+                 </ol>}
           </section>
           <section className="rail-card result-card">
             <span className="eyebrow"> {React.string("TABLE STATUS")} </span>
@@ -459,5 +612,17 @@ let make = () => {
       <span> {React.string("UNIVERSAL REASON REACT")} </span>
       <span> {React.string("SSR lobby | browser-dealt hands | standard 52-card deck")} </span>
     </footer>
+    {felted
+       ? <div className="felted-overlay" role="dialog" ariaModal={true} ariaLabelledby="felted-title" ariaDescribedby="felted-description">
+           <div className="felted-dialog">
+             <span className="eyebrow"> {React.string("HAND COMPLETE")} </span>
+             <h2 id="felted-title"> {React.string("You are felted")} </h2>
+             <p id="felted-description"> {React.string("Your stack is empty. Restart the table for a fresh set of play chips.")} </p>
+             <button className="primary-action" type_="button" autoFocus={true} onClick={_ => restart()}>
+               {React.string("Restart table")}
+             </button>
+           </div>
+         </div>
+       : React.null}
   </div>;
 };

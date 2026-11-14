@@ -43,7 +43,7 @@ let make = (~game: game, ~index: int) => {
       {hasCards
          ? Array.init(Array.length(player.holeCards), cardIndex =>
              <PokerCard
-               key={string_of_int(cardIndex)}
+               key={string_of_int(game.handNumber) ++ "-" ++ string_of_int(cardIndex)}
                card={Some(player.holeCards[cardIndex])}
                hidden={!reveal}
                compact=true
@@ -57,7 +57,11 @@ let make = (~game: game, ~index: int) => {
       <span className="stack"> {React.string(string_of_int(player.chips) ++ " chips")} </span>
       {player.lastAction == ""
          ? React.null
-         : <span className="last-action"> {React.string(player.lastAction)} </span>}
+         : <span
+               className="last-action"
+               key={string_of_int(game.handNumber) ++ PokerEngine.streetName(game.street) ++ player.lastAction}>
+               {React.string(player.lastAction)}
+             </span>}
     </div>
     {player.streetCommitted > 0 && !game.handOver
        ? <span className="seat-bet"> {React.string("Bet " ++ string_of_int(player.streetCommitted))} </span>
