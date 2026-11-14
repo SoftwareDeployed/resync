@@ -97,8 +97,10 @@ let freshDeck = () =>
   });
 
 let nextRandom = seed => {
-  let next = seed * 48_271 mod 2_147_483_647;
-  let next = next == 0 ? 1 : next;
+  let hi = seed / 127_773;
+  let lo = seed mod 127_773;
+  let next = 16_807 * lo - 2_836 * hi;
+  let next = next <= 0 ? next + 2_147_483_647 : next;
   (next, next);
 };
 
