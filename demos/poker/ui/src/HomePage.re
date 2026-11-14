@@ -394,7 +394,7 @@ let make = () => {
                 <button
                   type_="button"
                   className={opponentMode == JevMode ? "opponent-mode-active" : ""}
-                  aria-pressed={opponentMode == JevMode}
+                  ariaPressed={opponentMode == JevMode}
                   disabled={!jevAvailable}
                   onClick={_ => selectMode(JevMode)}>
                   {React.string("Jev")}
@@ -402,7 +402,7 @@ let make = () => {
                 <button
                   type_="button"
                   className={opponentMode == LocalMode ? "opponent-mode-active" : ""}
-                  aria-pressed={opponentMode == LocalMode}
+                  ariaPressed={opponentMode == LocalMode}
                   onClick={_ => selectMode(LocalMode)}>
                   {React.string("Local")}
                 </button>
