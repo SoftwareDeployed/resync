@@ -205,7 +205,7 @@ let make = () => {
                             type_="range"
                             min={string_of_int(sizingMin)}
                             max={string_of_int(sizingMax)}
-                            step="1"
+                            step={1.0}
                             value={string_of_int(sizingTarget)}
                             onChange={event =>
                               switch (int_of_string_opt(inputValue(event))) {
