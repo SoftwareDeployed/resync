@@ -326,7 +326,7 @@ and settleShowdown = (game: game) => {
   let handValues = Array.make(playerCount, None);
   let previousLevel = ref(0);
 
-  levels^->Js.Array.forEach(~f=level => {
+  (levels^)->Js.Array.forEach(~f=level => {
     let contributors =
       game.players->Js.Array.filter(~f=player => player.committed >= level)->Array.length;
     let amount = (level - previousLevel^) * contributors;
@@ -423,7 +423,7 @@ and settleShowdown = (game: game) => {
     if (Array.length(summaries^) == 0) {
       "Showdown complete.";
     } else {
-      summaries^->Js.Array.reduce(~f=(text, item) => text == "" ? item : text ++ "; " ++ item, ~init="");
+      (summaries^)->Js.Array.reduce(~f=(text, item) => text == "" ? item : text ++ "; " ++ item, ~init="");
     };
   {
     ...game,
