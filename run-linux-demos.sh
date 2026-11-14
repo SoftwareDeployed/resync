@@ -20,7 +20,7 @@ export GIT_CONFIG_COUNT=1
 export GIT_CONFIG_KEY_0=safe.directory
 export GIT_CONFIG_VALUE_0="*"
 
-ocaml_version="${OCAML_VERSION:-5.4.0}"
+ocaml_version="${OCAML_VERSION:-5.4.1}"
 switch_name="${OPAM_SWITCH_NAME:-linux-demo}"
 command_name="${1:-check}"
 

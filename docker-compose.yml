@@ -1,8 +1,8 @@
 name: resync
 
 x-app-env: &app-env
-  OCAML_VERSION: 5.4.0
-  OPAM_SWITCH_NAME: linux-demo
+  OCAML_VERSION: 5.4.1
+  OPAM_SWITCH_NAME: linux-demo-5-4-1
   WORK_REPO_ROOT: /workspace
   ECOMMERCE_DOC_ROOT: /workspace/_build/default/demos/ecommerce/ui/src
   TODO_DOC_ROOT: /workspace/_build/default/demos/todo/ui/src
