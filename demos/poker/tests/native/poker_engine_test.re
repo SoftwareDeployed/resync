@@ -359,6 +359,41 @@ let headsUpBlindsTurnOrderAndRotation = () => {
   Alcotest.check(Alcotest.int, "next hand also conserves chips", 6000, PokerEngine.chipTotal(next));
 };
 
+let cumulativeShortAllInsReopenRaise = () => {
+  let base = PokerEngine.createGame();
+  let players = Array.init(PokerEngine.playerCount, index => {
+    ...base.players[index],
+    chips: index == 1 ? 150 : index == 2 ? 200 : 1000,
+    folded: index >= 4,
+    busted: index >= 4,
+  });
+  let game = {
+    ...base,
+    players,
+    dealer: 5,
+    smallBlind: 0,
+    bigBlind: 1,
+    currentPlayer: Some(0),
+    currentBet: 0,
+    minRaise: 100,
+    street: Preflop,
+    handNumber: 1,
+  };
+  let bet = getOk(PokerEngine.applyAction(game, 0, Bet(100)));
+  let firstShove = getOk(PokerEngine.applyAction(bet, 1, AllIn));
+  let secondShove = getOk(PokerEngine.applyAction(firstShove, 2, AllIn));
+  let called = getOk(PokerEngine.applyAction(secondShove, 3, Call));
+  Alcotest.check(Alcotest.bool, "A faces action after two short shoves and a call", true, called.currentPlayer == Some(0));
+  let options = PokerEngine.legalOptions(called, 0);
+  Alcotest.check(Alcotest.bool, "cumulative full increment reopens raise", true, options.canRaise);
+  Alcotest.check(Alcotest.bool, "cumulative full increment reopens all-in", true, options.canAllIn);
+  Alcotest.check(Alcotest.int, "minimum re-raise is current bet plus full increment", 300, options.minRaiseTo);
+  let raised = getOk(PokerEngine.applyAction(called, 0, RaiseTo(300)));
+  Alcotest.check(Alcotest.int, "re-raise deducts only the additional amount", 700, raised.players[0].chips);
+  Alcotest.check(Alcotest.int, "re-raise uses the new street target", 300, raised.currentBet);
+  Alcotest.check(Alcotest.int, "cumulative all-in sequence conserves chips", PokerEngine.chipTotal(called), PokerEngine.chipTotal(raised));
+};
+
 let tiedPotAndOddChip = () => {
   let base = PokerEngine.createGame();
   let players = [|
@@ -401,6 +436,7 @@ let () =
         Alcotest.test_case("deterministic deal and chip conservation", `Quick, deterministicDealAndConservation),
         Alcotest.test_case("calls and raises update contributions", `Quick, bettingTransitions),
         Alcotest.test_case("short all-in preserves minimum raise", `Quick, shortAllInKeepsMinimumRaise),
+        Alcotest.test_case("cumulative short all-ins reopen raise", `Quick, cumulativeShortAllInsReopenRaise),
         Alcotest.test_case("fold pays remaining contender", `Quick, foldWinPaysRemainingContender),
         Alcotest.test_case("all-in board runs out automatically", `Quick, automaticAllInRunout),
         Alcotest.test_case("six-handed fold win and next hand", `Quick, sixHandedFoldWinAndNextHand),
