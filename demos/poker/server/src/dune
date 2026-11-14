@@ -4,6 +4,7 @@
  (public_name poker_server)
  (libraries
   poker_native
+  poker_protocol
   poker_jev
   cohttp-lwt-unix
   dream

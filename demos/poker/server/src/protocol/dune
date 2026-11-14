@@ -1,0 +1,9 @@
+(include_subdirs no)
+
+(library
+ (name poker_protocol)
+ (public_name resync.poker_protocol)
+ (modules PokerProtocol)
+ (wrapped false)
+ (libraries poker_native poker_jev yojson)
+ (modes native))

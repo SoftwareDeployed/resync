@@ -64,7 +64,7 @@ let make = (~game: game, ~index: int) => {
              </span>}
     </div>
     {player.streetCommitted > 0 && !game.handOver
-       ? <span className="seat-bet"> {React.string("Bet " ++ string_of_int(player.streetCommitted))} </span>
+       ? <PokerChipStack amount=player.streetCommitted />
        : React.null}
   </div>;
 };

@@ -10,9 +10,6 @@ let configured_key () =
   | Some key when String.trim key <> "" -> Some key
   | _ -> None
 
-let json_error status message =
-  Dream.json ~status (Yojson.Safe.to_string (`Assoc [ ("error", `String message) ]))
-
 let status_handler _request =
   Dream.json
     (Yojson.Safe.to_string
@@ -46,34 +43,19 @@ let upstream_decision ~key body =
   in
   Lwt.pick [ operation; timeout ]
 
-let decision_handler request =
-  match configured_key () with
-  | None -> json_error `Service_Unavailable "Jev is not configured; use local opponents."
-  | Some key ->
-      let* body = Dream.body request in
-      (match JevDecision.parse_request body with
-       | Error message -> json_error `Bad_Request message
-       | Ok parsed ->
-           let model = configured_model () in
-           let upstream_body = JevDecision.upstream_body ~model parsed in
-           let* response = upstream_decision ~key upstream_body in
-           (match response with
-            | Error `Timeout ->
-                json_error `Gateway_Timeout "Jev did not respond; use local opponents."
-            | Error `Upstream ->
-                json_error `Bad_Gateway "Jev is unavailable; use local opponents."
-            | Ok response_body ->
-                (match JevDecision.parse_response ~request:parsed response_body with
-                 | Error message -> json_error `Bad_Gateway message
-                 | Ok decision ->
-                     Dream.json (Yojson.Safe.to_string (JevDecision.decision_to_json decision)))))
+let no_store_file root path request =
+  let* response = Dream.from_filesystem root path request in
+  Dream.set_header response "Cache-Control" "no-store";
+  Lwt.return response
 
 let ssr request =
   let* response = UniversalRouterDream.handler ~app:EntryServer.app request in
   Dream.set_header response "Content-Type" "text/html; charset=utf-8";
+  Dream.set_header response "Cache-Control" "no-store";
   Lwt.return response
 
 let () =
+  Random.self_init();
   let doc_root =
     match Sys.getenv_opt "POKER_DOC_ROOT" with
     | Some doc_root -> doc_root
@@ -86,11 +68,14 @@ let () =
     ~default_port:8090
     ()
   |> Server_builder.with_routes (
-       [Dream.get "/static/sounds/**" (Dream.static "demos/poker/ui/src/static/sounds")]
+       [ Dream.get "/app.js" (no_store_file doc_root "Index.re.js");
+         Dream.get "/style.css" (no_store_file doc_root "Index.re.css");
+         Dream.get "/static/sounds/**" (Dream.static "demos/poker/ui/src/static/sounds") ]
        @ Server_builder.ui_routes ~doc_root
        @ [
            Dream.get "/api/poker/jev/status" status_handler;
-           Dream.post "/api/poker/jev/decision" decision_handler;
+           Dream.get "/api/poker/stream"
+             (PokerStream.handler ~configured_model ~configured_key ~upstream_decision);
            Dream.get "/" (ssr);
            Dream.get "/**" (ssr);
          ]

@@ -21,6 +21,17 @@
   yojson)
  (modes native))
 
+(executable
+ (name poker_protocol_test)
+ (modules poker_protocol_test)
+ (libraries
+  alcotest
+  poker_native
+  poker_protocol
+  poker_jev
+  yojson)
+ (modes native))
+
 (alias
  (name poker-engine-tests)
- (deps poker_engine_test.exe jev_decision_test.exe))
+ (deps poker_engine_test.exe jev_decision_test.exe poker_protocol_test.exe))

@@ -39,41 +39,13 @@ type jevLogEntry = {
   handNumber: int,
   street: street,
   actionLabel: string,
-  decision: PokerJevClient.decision,
+  decision: PokerStreamClient.decision,
 };
 
-let decisionIsCurrent = (game: game, handNumber, index, body) =>
-  !game.handOver
-  && game.handNumber == handNumber
-  && game.currentPlayer == Some(index)
-  && index != PokerEngine.humanIndex
-  && PokerJevClient.snapshot(game, index) == body;
-
-let actionOfDecision = (decision: PokerJevClient.decision) =>
-  switch (decision.kind) {
-  | "fold" => Some(Fold)
-  | "check" => Some(Check)
-  | "call" => Some(Call)
-  | "bet" => Some(Bet(decision.amount))
-  | "raise" => Some(RaiseTo(decision.amount))
-  | "all_in" => Some(AllIn)
-  | _ => None
-  };
-
-let concreteActionLabel = (current: game, index, action) => {
-  let player = current.players[index];
-  switch (action) {
-  | Fold => "Fold"
-  | Check => "Check"
-  | Call =>
-    let toCall = max(0, current.currentBet - player.streetCommitted);
-    let amount = min(toCall, player.chips);
-    (amount < toCall ? "All-in " : "Call ") ++ string_of_int(amount);
-  | Bet(target) => "Bet " ++ string_of_int(target)
-  | RaiseTo(target) => "Raise to " ++ string_of_int(target)
-  | AllIn => "All-in " ++ string_of_int(player.chips)
-  };
-};
+type connectionState =
+  | Connecting
+  | Connected
+  | Disconnected(string);
 
 let percent = value => string_of_int(int_of_float(value *. 100.0 +. 0.5));
 
@@ -86,7 +58,10 @@ let make = () => {
   let (jevStatus, setJevStatus) = React.useState(() => Checking);
   let (jevLog, setJevLog) = React.useState(() => [||]);
   let (soundEnabled, setSoundEnabled) = React.useState(() => false);
+  let (connectionState, setConnectionState) = React.useState(() => Connecting);
+  let (thinkingSeat, setThinkingSeat) = React.useState(() => None);
   let gameRef = React.useRef(game);
+  let streamRef = React.useRef(None);
   let jevLogId = React.useRef(0);
   let soundEnabledRef = React.useRef(false);
   gameRef.current = game;
@@ -99,20 +74,35 @@ let make = () => {
     playSound(PokerSound.Shuffle);
     playSound(PokerSound.Deal);
   };
-  let playTransitionSounds = (current: game, next: game, action) => {
-    switch (action) {
-    | Fold => playSound(PokerSound.Fold)
-    | Call
-    | Bet(_)
-    | RaiseTo(_)
-    | AllIn => playSound(PokerSound.Chips)
-    | Check => ()
-    };
-    if (Array.length(next.board) > Array.length(current.board)) {
-      playSound(PokerSound.Deal);
-    };
-    if (next.handOver && !current.handOver) {
-      playSound(PokerSound.Win);
+  let hasPrefix = (prefix, value) =>
+    String.length(value) >= String.length(prefix)
+    && String.sub(value, 0, String.length(prefix)) == prefix;
+  let playStreamedTransition = (current: game, next: game) => {
+    if (next.handNumber > current.handNumber) {
+      playDealSounds();
+    } else if (next.handNumber == current.handNumber) {
+      next.players->Js.Array.forEach(~f=player => {
+        let before = current.players[player.id].lastAction;
+        let after = player.lastAction;
+        if (before != after) {
+          if (hasPrefix("Fold", after)) {
+            playSound(PokerSound.Fold);
+          } else if (
+            hasPrefix("Call", after)
+            || hasPrefix("Bet", after)
+            || hasPrefix("Raise", after)
+            || hasPrefix("All-in", after)
+          ) {
+            playSound(PokerSound.Chips);
+          };
+        };
+      });
+      if (Array.length(next.board) > Array.length(current.board)) {
+        playSound(PokerSound.Deal);
+      };
+      if (next.handOver && !current.handOver) {
+        playSound(PokerSound.Win);
+      };
     };
   };
   let toggleSound = () => {
@@ -139,73 +129,52 @@ let make = () => {
   let pot = PokerEngine.potTotal(game);
 
   React.useEffect0(() => {
-    let cancel =
-      PokerJevClient.getStatus(
-        (status: PokerJevClient.status) => setJevStatus(_ => status.available ? Available(status.model) : Unavailable),
-        () => setJevStatus(_ => Unavailable),
-      );
-    Some(cancel);
-  });
-
-  React.useEffect3(
-    () => {
-      switch (game.currentPlayer) {
-      | Some(index) when index != PokerEngine.humanIndex && !game.handOver =>
-        let handNumber = game.handNumber;
-        let body = PokerJevClient.snapshot(game, index);
-        let applyLocal = (~announce: bool) => {
+    let stream =
+      PokerStreamClient.connect(
+        ~onOpen=() => {
+          setConnectionState(_ => Connected);
+          setMessage(_ => "");
+        },
+        ~onState=next => {
           let current = gameRef.current;
-          if (decisionIsCurrent(current, handNumber, index, body)) {
-            let action = PokerComputer.chooseAction(current, index);
-            switch (PokerEngine.applyAction(current, index, action)) {
-            | Ok(next) =>
-              gameRef.current = next;
-              playTransitionSounds(current, next, action);
-              setGame(_ => next);
-              if (announce) {
-                setMessage(_ => "Jev fallback | " ++ current.players[index].name ++ " used local rules");
-              };
-            | Error(error) => setMessage(_ => error)
-            };
+          playStreamedTransition(current, next);
+          gameRef.current = next;
+          setGame(_ => next);
+          setThinkingSeat(_ => None);
+          if (next.handNumber > current.handNumber) {
+            setMessage(_ => "");
           };
-        };
-        switch (opponentMode, jevStatus) {
-        | (JevMode, Available(_)) =>
-          let cancel =
-            PokerJevClient.postDecision(
-              "/api/poker/jev/decision",
-              body,
-              decision => {
-                let current = gameRef.current;
-                if (decisionIsCurrent(current, handNumber, index, body)) {
-                  switch (actionOfDecision(decision)) {
-                  | None => applyLocal(~announce=true)
-                  | Some(action) =>
-                    switch (PokerEngine.applyAction(current, index, action)) {
-                    | Ok(next) =>
-                      gameRef.current = next;
-                      logJevDecision(index, handNumber, current.street, concreteActionLabel(current, index, action), decision);
-                      playTransitionSounds(current, next, action);
-                      setGame(_ => next);
-                      setMessage(_ => "");
-                    | Error(_) => applyLocal(~announce=true)
-                    }
-                  };
-                };
-              },
-              () => applyLocal(~announce=true),
-            );
-          Some(cancel);
-        | (JevMode, Checking) => None
-        | _ =>
-          let timer = Js.Global.setTimeout(~f=() => applyLocal(~announce=opponentMode == JevMode), 620);
-          Some(() => Js.Global.clearTimeout(timer));
-        };
-      | _ => None
-      };
-    },
-    (game, opponentMode, jevStatus),
-  );
+          if (next.handNumber == 0 && current.handNumber != 0) {
+            setJevLog(_ => [||]);
+            jevLogId.current = 0;
+            setBetTarget(_ => PokerEngine.bigBlindAmount);
+          };
+        },
+        ~onStatus=(status: PokerStreamClient.status) => {
+          setJevStatus(_ => status.available ? Available(status.model) : Unavailable);
+          setOpponentMode(_ => status.opponentMode == "jev" ? JevMode : LocalMode);
+          setThinkingSeat(_ => None);
+        },
+        ~onThinking=seat => setThinkingSeat(_ => Some(seat)),
+        ~onDecision=(event: PokerStreamClient.jevDecision) => {
+          logJevDecision(event.seat, event.handNumber, event.street, event.actionLabel, event.decision);
+          setMessage(_ => "");
+        },
+        ~onServerError=error => setMessage(_ => error),
+        ~onDisconnected=reason => {
+          setConnectionState(_ => Disconnected(reason));
+          setMessage(_ => reason);
+          setThinkingSeat(_ => None);
+        },
+      );
+    streamRef.current = Some(stream);
+    Some(
+      () => {
+        stream.close();
+        streamRef.current = None;
+      },
+    );
+  });
 
   React.useEffect1(
     () => {
@@ -217,116 +186,79 @@ let make = () => {
     [|game|],
   );
 
-  React.useEffect1(
-    () => {
-      if (
-        game.handOver
-        && game.players[PokerEngine.humanIndex].chips > 0
-        && PokerEngine.fundedCount(game) >= 2
-      ) {
-        let handNumber = game.handNumber;
-        let timer =
-          Js.Global.setTimeout(
-            ~f=() => {
-              let current = gameRef.current;
-              if (
-                current.handOver
-                && current.handNumber == handNumber
-                && current.players[PokerEngine.humanIndex].chips > 0
-                && PokerEngine.fundedCount(current) >= 2
-              ) {
-                switch (PokerEngine.startHand(current)) {
-                | Ok(next) =>
-                  gameRef.current = next;
-                  setMessage(_ => "");
-                  playDealSounds();
-                  setGame(_ => next);
-                | Error(error) => setMessage(_ => error)
-                };
-              };
-            },
-            2800,
-          );
-        Some(() => Js.Global.clearTimeout(timer));
-      } else {
-        None;
-      };
-    },
-    [|game|],
-  );
+  let sendIntent = send =>
+    switch (streamRef.current) {
+    | Some(stream) => send(stream)
+    | None => setMessage(_ => "Disconnected from the table. Reload to reconnect.")
+    };
 
   let deal = () => {
-    let current = gameRef.current;
-    switch (PokerEngine.startHand(current)) {
-    | Ok(next) =>
-      setMessage(_ => "");
-      gameRef.current = next;
-      playDealSounds();
-      setGame(_ => next);
-    | Error(error) => setMessage(_ => error)
-    };
+    setMessage(_ => "");
+    sendIntent(PokerStreamClient.deal);
   };
 
   let restart = () => {
-    let current = gameRef.current;
-    let next = PokerEngine.restart(~seed=current.rngSeed + 97, ());
     setMessage(_ => "");
     setJevLog(_ => [||]);
     jevLogId.current = 0;
     setBetTarget(_ => PokerEngine.bigBlindAmount);
-    gameRef.current = next;
-    setGame(_ => next);
+    sendIntent(PokerStreamClient.restart);
   };
 
   let act = action => {
-    let current = gameRef.current;
-    switch (PokerEngine.applyAction(current, PokerEngine.humanIndex, action)) {
-    | Ok(next) =>
-      setMessage(_ => "");
-      gameRef.current = next;
-      playTransitionSounds(current, next, action);
-      setGame(_ => next);
-    | Error(error) => setMessage(_ => error)
-    };
+    setMessage(_ => "");
+    sendIntent(stream => PokerStreamClient.act(stream, action));
   };
 
   let selectMode = mode => {
-    setOpponentMode(_ => mode);
     setMessage(_ => "");
+    sendIntent(stream => PokerStreamClient.selectMode(stream, mode == JevMode ? "jev" : "local"));
   };
 
   let status =
-    if (game.handNumber == 0) {
-      "Welcome in. Deal the first hand when you are ready.";
-    } else if (game.handOver) {
-      game.result;
-    } else {
-      switch (game.currentPlayer) {
-      | Some(index) when index == PokerEngine.humanIndex =>
-        let toCall = max(0, game.currentBet - game.players[index].streetCommitted);
-        toCall > 0 ? "Your turn | " ++ string_of_int(toCall) ++ " to call" : "Your turn | check or bet";
-      | Some(index) =>
-        game.players[index].name
-        ++ (
-          switch (opponentMode, jevStatus) {
-          | (JevMode, Available(_)) => " is thinking with Jev"
-          | _ => " is considering the action"
-          }
-        )
-      | None => "Completing the board"
-      };
+    switch (connectionState) {
+    | Disconnected(reason) => reason
+    | Connecting => "Connecting to the table stream..."
+    | Connected =>
+      if (game.handNumber == 0) {
+        "Welcome in. Deal the first hand when you are ready.";
+      } else if (game.handOver) {
+        game.result;
+      } else {
+        switch (game.currentPlayer) {
+        | Some(index) when index == PokerEngine.humanIndex =>
+          let toCall = max(0, game.currentBet - game.players[index].streetCommitted);
+          toCall > 0 ? "Your turn | " ++ string_of_int(toCall) ++ " to call" : "Your turn | check or bet";
+        | Some(index) =>
+          game.players[index].name
+          ++ (
+            switch (opponentMode, jevStatus) {
+            | (JevMode, Available(_)) => " is thinking with Jev"
+            | _ => " is considering the action"
+            }
+          )
+        | None => "Completing the board"
+        };
+      }
     };
 
   let opponentState =
-    switch (opponentMode, jevStatus) {
-    | (LocalMode, _) => "Local opponents"
-    | (JevMode, Checking) => "Checking Jev availability..."
-    | (JevMode, Unavailable) => "Jev unavailable | local fallback"
-    | (JevMode, Available(_)) =>
-      switch (game.currentPlayer) {
-      | Some(index) when index != PokerEngine.humanIndex && !game.handOver =>
-        "Jev thinking | " ++ game.players[index].name
-      | _ => "Jev opponents ready"
+    switch (connectionState) {
+    | Disconnected(_) => "Table disconnected"
+    | Connecting => "Connecting to table..."
+    | Connected =>
+      switch (opponentMode, jevStatus) {
+      | (LocalMode, _) => "Local opponents"
+      | (JevMode, Checking) => "Checking Jev availability..."
+      | (JevMode, Unavailable) => "Jev unavailable | local fallback"
+      | (JevMode, Available(_)) =>
+        switch (game.currentPlayer, thinkingSeat) {
+        | (Some(index), Some(thinking)) when index != PokerEngine.humanIndex && thinking == index && !game.handOver =>
+          "Jev thinking | " ++ game.players[index].name
+        | (Some(index), _) when index != PokerEngine.humanIndex && !game.handOver =>
+          "Jev preparing | " ++ game.players[index].name
+        | _ => "Jev opponents ready"
+        }
       }
     };
 
@@ -335,7 +267,8 @@ let make = () => {
     | Available(model) => model
     | _ => ""
     };
-  let jevAvailable = configuredModel != "";
+  let isConnected = connectionState == Connected;
+  let jevAvailable = isConnected && configuredModel != "";
 
   let sizingAction = game.currentBet == 0 ? Bet(sizingTarget) : RaiseTo(sizingTarget);
   let sizingLabel = game.currentBet == 0 ? "Bet" : "Raise to";
@@ -344,11 +277,13 @@ let make = () => {
   let halfPotTarget =
     clamp(sizingMin, sizingMax, game.currentBet == 0 ? max(sizingMin, pot / 2) : game.currentBet + max(game.minRaise, pot / 2));
   let canDealFirst =
-    game.handNumber == 0
+    isConnected
+    && game.handNumber == 0
     && game.players[PokerEngine.humanIndex].chips > 0
     && PokerEngine.fundedCount(game) >= 2;
   let canDealNext =
-    game.handOver
+    isConnected
+    && game.handOver
     && game.players[PokerEngine.humanIndex].chips > 0
     && PokerEngine.fundedCount(game) >= 2;
   let felted = game.handOver && game.players[PokerEngine.humanIndex].chips <= 0;
@@ -434,16 +369,16 @@ let make = () => {
                    <button className="primary-action" type_="button" onClick={_ => deal()} disabled={!canDealFirst}>
                      {React.string("Deal first hand")}
                    </button>
-                   <button className="secondary-action" type_="button" onClick={_ => restart()}>
+                   <button className="secondary-action" type_="button" disabled={!isConnected} onClick={_ => restart()}>
                      {React.string("Restart table")}
                    </button>
                  </div>
                : game.handOver
                ? <div className="hand-flow-actions">
                    <span className="next-hand-status" role="status">
-                     {React.string(canDealNext ? "Next hand deals automatically in a moment..." : "Restart the table to play again.")}
+                     {React.string(!isConnected ? "Reload to reconnect to a fresh table." : canDealNext ? "Next hand deals automatically in a moment..." : "Restart the table to play again.")}
                    </span>
-                   <button className="secondary-action" type_="button" onClick={_ => restart()}>
+                   <button className="secondary-action" type_="button" disabled={!isConnected} onClick={_ => restart()}>
                      {React.string("Restart table")}
                    </button>
                  </div>
@@ -458,6 +393,7 @@ let make = () => {
                             id="bet-size"
                             ariaLabel="Bet or raise target"
                             type_="range"
+                            disabled={!isConnected}
                             min={string_of_int(sizingMin)}
                             max={string_of_int(sizingMax)}
                             step={rangeStep}
@@ -477,19 +413,19 @@ let make = () => {
                         </div>
                       : React.null}
                    <div className="action-buttons">
-                     <button className="fold-action" type_="button" disabled={!options.canFold} onClick={_ => act(Fold)}>
+                     <button className="fold-action" type_="button" disabled={!isConnected || !options.canFold} onClick={_ => act(Fold)}>
                        {React.string("Fold")}
                      </button>
-                     <button type_="button" disabled={!options.canCheck} onClick={_ => act(Check)}>
+                     <button type_="button" disabled={!isConnected || !options.canCheck} onClick={_ => act(Check)}>
                        {React.string("Check")}
                      </button>
-                     <button type_="button" disabled={!options.canCall} onClick={_ => act(Call)}>
+                     <button type_="button" disabled={!isConnected || !options.canCall} onClick={_ => act(Call)}>
                        {React.string(options.callAmount > 0 ? "Call " ++ string_of_int(options.callAmount) : "Call")}
                      </button>
-                     <button className="raise-action" type_="button" disabled={!canSize} onClick={_ => act(sizingAction)}>
+                     <button className="raise-action" type_="button" disabled={!isConnected || !canSize} onClick={_ => act(sizingAction)}>
                        {React.string(sizingLabel ++ " " ++ string_of_int(sizingTarget))}
                      </button>
-                     <button className="allin-action" type_="button" disabled={!options.canAllIn} onClick={_ => act(AllIn)}>
+                     <button className="allin-action" type_="button" disabled={!isConnected || !options.canAllIn} onClick={_ => act(AllIn)}>
                        {React.string("All-in")}
                      </button>
                    </div>
@@ -514,6 +450,7 @@ let make = () => {
                   type_="button"
                   className={opponentMode == LocalMode ? "opponent-mode-active" : ""}
                   ariaPressed={string_of_bool(opponentMode == LocalMode)}
+                  disabled={!isConnected}
                   onClick={_ => selectMode(LocalMode)}>
                   {React.string("Local")}
                 </button>
@@ -538,7 +475,7 @@ let make = () => {
                       let decision = entry.decision;
                       let handLabel =
                         "Hand " ++ string_of_int(entry.handNumber)
-                        ++ " | " ++ PokerJevClient.streetName(entry.street);
+                        ++ " | " ++ PokerStreamClient.streetName(entry.street);
                       <li key={string_of_int(entry.id)}>
                         <article ariaLabel={game.players[entry.seat].name ++ ", " ++ handLabel ++ ", " ++ entry.actionLabel}>
                           <header className="jev-entry-heading">
@@ -610,15 +547,15 @@ let make = () => {
     </main>
     <footer className="room-footer">
       <span> {React.string("UNIVERSAL REASON REACT")} </span>
-      <span> {React.string("SSR lobby | browser-dealt hands | standard 52-card deck")} </span>
+      <span> {React.string("SSR lobby | server-streamed hands | standard 52-card deck")} </span>
     </footer>
     {felted
        ? <div className="felted-overlay" role="dialog" ariaModal={true} ariaLabelledby="felted-title" ariaDescribedby="felted-description">
            <div className="felted-dialog">
              <span className="eyebrow"> {React.string("HAND COMPLETE")} </span>
              <h2 id="felted-title"> {React.string("You are felted")} </h2>
-             <p id="felted-description"> {React.string("Your stack is empty. Restart the table for a fresh set of play chips.")} </p>
-             <button className="primary-action" type_="button" autoFocus={true} onClick={_ => restart()}>
+             <p id="felted-description"> {React.string(isConnected ? "Your stack is empty. Restart the table for a fresh set of play chips." : "Your stack is empty and the table is disconnected. Reload to reconnect.")} </p>
+             <button className="primary-action" type_="button" disabled={!isConnected} autoFocus={true} onClick={_ => restart()}>
                {React.string("Restart table")}
              </button>
            </div>

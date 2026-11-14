@@ -1,0 +1,18 @@
+Casino Chip.svg
+
+Source artwork: CellarDoor85, "Casino Chip.svg"
+https://commons.wikimedia.org/wiki/File:Casino_Chip.svg
+https://upload.wikimedia.org/wikipedia/commons/a/a6/Casino_Chip.svg
+
+License: Creative Commons Attribution-Share Alike 4.0 International (CC BY-SA 4.0)
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Author: CellarDoor85 (Wikimedia Commons user)
+
+Changes made for the Resync poker demo:
+- The circle and detailed cutout path are inlined into PokerChipStack.re.
+- Chip bodies are recolored by bet-size tier.
+- Multiple chips are stacked with numeric bet amounts underneath.
+- The source circle and detailed path remain vector geometry; no raster images are used.
+
+The modified stacked chip graphics are provided under the same CC BY-SA 4.0 license.
