@@ -76,6 +76,24 @@ let builds_request_from_native_state () =
          Alcotest.check Alcotest.bool "public player has no hole cards" true
            (member "hole_cards" player = `Null))
 
+let origin_validation () =
+  Alcotest.check Alcotest.bool "foreign origin rejected" false
+    (PokerProtocol.origin_allowed ~origin:(Some "https://evil.example") ~host:(Some "localhost:8090"));
+  Alcotest.check Alcotest.bool "loopback origin allowed" true
+    (PokerProtocol.origin_allowed ~origin:(Some "http://localhost:8090") ~host:(Some "localhost:8090"));
+  Alcotest.check Alcotest.bool "HTTPS loopback origin allowed" true
+    (PokerProtocol.origin_allowed ~origin:(Some "https://localhost:8090") ~host:(Some "localhost:8090"));
+  Alcotest.check Alcotest.bool "missing host rejected when origin present" false
+    (PokerProtocol.origin_allowed ~origin:(Some "https://evil.example") ~host:None);
+  Alcotest.check Alcotest.bool "non-browser client without Origin allowed" true
+    (PokerProtocol.origin_allowed ~origin:None ~host:None);
+  Alcotest.check Alcotest.bool "default HTTP port matches" true
+    (PokerProtocol.origin_allowed ~origin:(Some "http://localhost") ~host:(Some "localhost:80"));
+  Alcotest.check Alcotest.bool "default HTTPS port matches" true
+    (PokerProtocol.origin_allowed ~origin:(Some "https://example.com") ~host:(Some "example.com:443"));
+  Alcotest.check Alcotest.bool "trailing slash accepted" true
+    (PokerProtocol.origin_allowed ~origin:(Some "http://localhost:8090/") ~host:(Some "localhost:8090"))
+
 let () =
   Alcotest.run "poker stream protocol"
     [ ("privacy", [
@@ -85,4 +103,5 @@ let () =
       ]);
       ("intents", [Alcotest.test_case "parses versioned action intents" `Quick parses_versioned_action_intents]);
       ("Jev adapter", [Alcotest.test_case "builds request from native state" `Quick builds_request_from_native_state]);
+      ("security", [Alcotest.test_case "validates WebSocket origins" `Quick origin_validation]);
     ]

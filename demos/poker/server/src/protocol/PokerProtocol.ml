@@ -108,6 +108,24 @@ let jev_decision_message ~seat ~hand_number ~street ~action_label decision =
 
 let error_message text = message (envelope "error" [ ("message", `String text) ])
 
+let strip_trailing_slash value =
+  let length = String.length value in
+  if length > 0 && value.[length - 1] = '/' then String.sub value 0 (length - 1) else value
+
+let origin_allowed ~origin ~host =
+  match origin, host with
+  | None, _ -> true
+  | Some _, None -> false
+  | Some origin, Some host ->
+      let origin = String.lowercase_ascii (strip_trailing_slash origin) in
+      let host = String.lowercase_ascii host in
+      if origin = "http://" ^ host || origin = "https://" ^ host then true
+      else if String.ends_with ~suffix:":80" host then
+        origin = "http://" ^ String.sub host 0 (String.length host - 3)
+      else if String.ends_with ~suffix:":443" host then
+        origin = "https://" ^ String.sub host 0 (String.length host - 4)
+      else false
+
 let personality index =
   match index mod 3 with 0 -> "cautious" | 1 -> "balanced" | _ -> "assertive"
 

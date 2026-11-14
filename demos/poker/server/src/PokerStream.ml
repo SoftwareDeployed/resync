@@ -5,8 +5,13 @@ let local_delay = 0.620
 let next_hand_delay = 2.8
 let jev_thinking_minimum = 1.5
 
-let handler ~configured_model ~configured_key ~upstream_decision _request =
-  Dream.websocket (fun socket ->
+let handler ~configured_model ~configured_key ~upstream_decision request =
+  let origin = Dream.header request "origin" in
+  let host = Dream.header request "host" in
+  if not (PokerProtocol.origin_allowed ~origin ~host) then
+    Dream.respond ~status:`Forbidden "WebSocket origin is not allowed"
+  else
+    Dream.websocket (fun socket ->
       let game = ref (PokerEngine.createGame ~seed:(Random.int 1_073_741_823) ()) in
       let opponent_mode =
         ref (match configured_key () with Some _ -> PokerProtocol.Jev | None -> PokerProtocol.Local)
