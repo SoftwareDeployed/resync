@@ -71,6 +71,7 @@ function(url, body, onDecision, onError) {
   let cancelled = false;
   let settled = false;
   const controller = new AbortController();
+  let decisionTimer = null;
   const timeout = setTimeout(function() {
     if (!settled && !cancelled) {
       settled = true;
@@ -81,6 +82,10 @@ function(url, body, onDecision, onError) {
   function finish() {
     settled = true;
     clearTimeout(timeout);
+    if (decisionTimer !== null) {
+      clearTimeout(decisionTimer);
+      decisionTimer = null;
+    }
   }
   fetch(url, {
     method: "POST",
@@ -122,14 +127,18 @@ function(url, body, onDecision, onError) {
       onError();
       return;
     }
-    finish();
-    onDecision({
+    const decision = {
       kind: kind,
       amount: sized ? amount : 0,
       model: data.model,
       confidence: data.confidence,
       probabilities: summary,
-    });
+    };
+    decisionTimer = setTimeout(function() {
+      if (cancelled || settled) return;
+      finish();
+      onDecision(decision);
+    }, 1500);
   }).catch(_ => {
     if (!cancelled && !settled) {
       finish();
@@ -139,6 +148,10 @@ function(url, body, onDecision, onError) {
   return function() {
     cancelled = true;
     clearTimeout(timeout);
+    if (decisionTimer !== null) {
+      clearTimeout(decisionTimer);
+      decisionTimer = null;
+    }
     try { controller.abort(); } catch (_) {}
   };
 }

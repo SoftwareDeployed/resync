@@ -10,7 +10,7 @@ Every face-up card uses an inline, path-based SVG suit with its full card name r
 
 The **Jev decision log** keeps the eight latest actual model responses, newest first, across hand boundaries. Each entry records the opponent and seat, hand and street, concrete action and sizing, returned model, confidence, and action probabilities with accessible bars. Local-rule and fallback decisions are never logged as Jev. Switching opponent modes or starting another hand preserves the log; **Restart table** clears it.
 
-Sound is **off by default** and is enabled only with the **Sound off / Sound on** toggle. Audio objects are created lazily in the browser for deals, folds, chip actions, board cards, and wins; turning sound off pauses loaded clips. The five OGG files and their license are served locally from `ui/src/static/sounds`, with Dune copying them into the static document root.
+Sound is **off by default** and is enabled only with the **Sound off / Sound on** toggle. Audio objects are created lazily in the browser for deals, folds, chip actions, board cards, and wins; turning sound off pauses loaded clips. The five OGG files and their license are served locally from `ui/src/static/sounds` through the native `Dream.static` route.
 
 The clips come from **Kenney Casino Audio 1.1** by Kenney Vleugels, released under **Creative Commons Zero (CC0)**. See `ui/src/static/sounds/License.txt`, https://kenney.nl/assets/casino-audio, and https://opengameart.org/content/54-casino-sound-effects-cards-dice-chips. No audio is hosted externally.
 
@@ -70,6 +70,8 @@ For each computer turn, the browser sends a bounded, explicitly typed snapshot t
 The deck, undealt/future cards, the human's hole cards, every other opponent's hole cards, RNG state, and arbitrary client-supplied TypeSafe state are never accepted or transmitted. One TypeSafe request asks for a legal action Choice and a bet/raise-sizing Choice. The server validates the answer and clamps sizing to integer legal limits; the browser still applies it through `PokerEngine.applyAction`, so the engine remains authoritative.
 
 The **Jev / Local** control is always available for local play, while Jev is disabled when not configured. A missing key, network/upstream error, malformed answer, or rejected illegal action produces one clearly identified local-rule decision. Failed paid calls are not silently retried, and late responses from a changed turn or hand are discarded without acting. The rail reports the real returned model, confidence, and action probabilities only after an actual Jev answer; fallback decisions do not display fabricated Jev metadata. All chips are play chips only: there are no accounts, wagers, or cash value.
+
+Each actual Jev response is held for a cancellable 1.5-second thinking interval before its action is applied, so the active seat and decision log remain readable. Changing turns, restarting, or switching modes cancels the pending action.
 
 ## Run with Docker
 
