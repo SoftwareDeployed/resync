@@ -47,7 +47,7 @@ setup_toolchain() {
   "$repo_root/scripts/opam-pin-from-dune-project.sh" "$repo_root/dune-project"
 
   echo "==> Installing opam dependencies"
-  opam install . --deps-only --yes
+  opam install . --deps-only --with-test --yes
 
   echo "==> Installing pnpm workspace dependencies"
   pnpm install --frozen-lockfile --force
