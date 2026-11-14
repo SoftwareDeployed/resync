@@ -116,8 +116,9 @@ let maps_and_clamps_sizes () =
       { request with
         snapshot = { request.snapshot with current_bet = 100; min_raise = 50; pot = 300 };
         legal_options =
-          { request.legal_options with
-            can_bet = false; can_raise = true; min_raise_to = 150; max_raise_to = 980 } }
+          { can_fold = true; can_check = true; can_call = false; call_amount = 0;
+            can_bet = false; min_bet = 20; max_bet = 980; can_raise = true;
+            min_raise_to = 150; max_raise_to = 980; can_all_in = true } }
   in
   Alcotest.check Alcotest.int "raise half pot" 250
     (JevDecision.sized_target ~choice:"half_pot" raise_request.snapshot raise_request.legal_options);
