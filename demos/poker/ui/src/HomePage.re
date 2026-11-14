@@ -16,6 +16,12 @@ let inputValue = event => React.Event.Form.target(event)##value;
 [@native_only]
 let inputValue = _event => "";
 
+[@melange_only]
+let rangeStep = 1.0;
+
+[@native_only]
+let rangeStep = "1";
+
 let clamp = (low, high, value) => max(low, min(high, value));
 
 [@react.component]
@@ -205,7 +211,7 @@ let make = () => {
                             type_="range"
                             min={string_of_int(sizingMin)}
                             max={string_of_int(sizingMax)}
-                            step={1.0}
+                            step={rangeStep}
                             value={string_of_int(sizingTarget)}
                             onChange={event =>
                               switch (int_of_string_opt(inputValue(event))) {
