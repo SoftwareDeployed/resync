@@ -113,8 +113,7 @@ let maps_and_clamps_sizes () =
   Alcotest.check Alcotest.string "actual model" "jev-1.14.0" decision.model;
   let raise_request =
     JevDecision.
-      { request with
-        snapshot = { request.snapshot with current_bet = 100; min_raise = 50; pot = 300 };
+      { snapshot = { request.snapshot with current_bet = 100; min_raise = 50; pot = 300 };
         legal_options =
           { can_fold = true; can_check = true; can_call = false; call_amount = 0;
             can_bet = false; min_bet = 20; max_bet = 980; can_raise = true;
