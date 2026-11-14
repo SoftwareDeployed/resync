@@ -74,7 +74,7 @@ let probabilitySummary = probabilities =>
   ->Js.Array.map(~f=(probability: PokerJevClient.probability) =>
       probability.action ++ " " ++ percent(probability.value) ++ "%"
     )
-  ->Js.Array.reduce(~f=(text, item) => text == "" ? item : text ++ " · " ++ item, ~init="");
+  ->Js.Array.reduce(~f=(text, item) => text == "" ? item : text ++ " / " ++ item, ~init="");
 
 @react.component
 let make = () => {
@@ -118,7 +118,7 @@ let make = () => {
               setGame(_ => next);
               setLastJev(_ => None);
               if (announce) {
-                setMessage(_ => "Jev fallback • " ++ current.players[index].name ++ " used local rules");
+                setMessage(_ => "Jev fallback | " ++ current.players[index].name ++ " used local rules");
               };
             | Error(error) => setMessage(_ => error)
             };
@@ -216,7 +216,7 @@ let make = () => {
       switch (game.currentPlayer) {
       | Some(index) when index == PokerEngine.humanIndex =>
         let toCall = max(0, game.currentBet - game.players[index].streetCommitted);
-        toCall > 0 ? "Your turn • " ++ string_of_int(toCall) ++ " to call" : "Your turn • check or bet";
+        toCall > 0 ? "Your turn | " ++ string_of_int(toCall) ++ " to call" : "Your turn | check or bet";
       | Some(index) =>
         game.players[index].name
         ++ (
@@ -232,12 +232,12 @@ let make = () => {
   let opponentState =
     switch (opponentMode, jevStatus) {
     | (LocalMode, _) => "Local opponents"
-    | (JevMode, Checking) => "Checking Jev availability…"
-    | (JevMode, Unavailable) => "Jev unavailable • local fallback"
+    | (JevMode, Checking) => "Checking Jev availability..."
+    | (JevMode, Unavailable) => "Jev unavailable | local fallback"
     | (JevMode, Available(_)) =>
       switch (game.currentPlayer) {
       | Some(index) when index != PokerEngine.humanIndex && !game.handOver =>
-        "Jev thinking • " ++ game.players[index].name
+        "Jev thinking | " ++ game.players[index].name
       | _ => "Jev opponents ready"
       }
     };
@@ -340,7 +340,7 @@ let make = () => {
                       ? <div className="bet-sizing">
                           <div className="sizing-heading">
                             <label htmlFor="bet-size"> {React.string(sizingLabel ++ " " ++ string_of_int(sizingTarget))} </label>
-                            <span> {React.string(string_of_int(sizingMin) ++ " – " ++ string_of_int(sizingMax))} </span>
+                            <span> {React.string(string_of_int(sizingMin) ++ " - " ++ string_of_int(sizingMax))} </span>
                           </div>
                           <input
                             id="bet-size"
@@ -418,8 +418,8 @@ let make = () => {
                  <strong> {React.string(decision.model)} </strong>
                  <p>
                    {React.string(
-                      game.players[seat].name ++ " • " ++ decisionLabel(decision)
-                      ++ " • confidence " ++ percent(decision.confidence) ++ "%"
+                      game.players[seat].name ++ " | " ++ decisionLabel(decision)
+                      ++ " | confidence " ++ percent(decision.confidence) ++ "%"
                     )}
                  </p>
                  <p className="jev-probabilities"> {React.string(probabilitySummary(decision.probabilities))} </p>
@@ -449,14 +449,14 @@ let make = () => {
             </ol>
           </section>
           <p className="fair-play-note">
-            {React.string("Play chips only. Jev receives only the acting opponent’s two cards and public table state. Local rules remain available; no accounts, wagers, or tracking.")}
+            {React.string("Play chips only. Jev receives only the acting opponent's two cards and public table state. Local rules remain available; no accounts, wagers, or tracking.")}
           </p>
         </aside>
       </section>
     </main>
     <footer className="room-footer">
       <span> {React.string("UNIVERSAL REASON REACT")} </span>
-      <span> {React.string("SSR lobby • browser-dealt hands • standard 52-card deck")} </span>
+      <span> {React.string("SSR lobby | browser-dealt hands | standard 52-card deck")} </span>
     </footer>
   </div>;
 };

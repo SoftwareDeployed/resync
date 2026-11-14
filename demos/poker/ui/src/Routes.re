@@ -17,7 +17,7 @@ let router: UniversalRouter.t(unit) =
   UniversalRouter.create(
     ~document=
       UniversalRouter.document(
-        ~title="River Room — Resync Poker",
+        ~title="River Room - Resync Poker",
         ~stylesheets=[|"/style.css"|],
         ~scripts=[|"/app.js"|],
         (),
