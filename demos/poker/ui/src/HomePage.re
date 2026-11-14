@@ -117,16 +117,16 @@ let make = () => {
   <div className="poker-app">
     <header className="room-header">
       <div className="brand-lockup">
-        <span className="brand-mark" ariaHidden="true"> {React.string("R")} </span>
+        <span className="brand-mark" ariaHidden={true}> {React.string("R")} </span>
         <div>
           <span className="eyebrow"> {React.string("RESYNC / TABLE 06")} </span>
           <h1> {React.string("River Room")} </h1>
         </div>
       </div>
       <div className="room-meta">
-        <span className="live-dot" ariaHidden="true" />
+        <span className="live-dot" ariaHidden={true} />
         <span> {React.string("Local table")} </span>
-        <span className="meta-divider" ariaHidden="true" />
+        <span className="meta-divider" ariaHidden={true} />
         <span> {React.string("10 / 20")} </span>
       </div>
     </header>
@@ -148,7 +148,7 @@ let make = () => {
           <div className="table-scroll" tabIndex=0 ariaLabel="Poker table; scroll horizontally on small screens">
             <div className="table-stage">
               <div className="table-felt">
-                <div className="felt-line" ariaHidden="true" />
+                <div className="felt-line" ariaHidden={true} />
                 <div className="board-area">
                   <span className="board-label"> {React.string("COMMUNITY CARDS")} </span>
                   <div className="board-cards">
@@ -169,8 +169,8 @@ let make = () => {
             </div>
           </div>
 
-          <div className="status-bar" role="status" ariaLive="polite" ariaAtomic="true">
-            <span className={game.currentPlayer == Some(PokerEngine.humanIndex) ? "status-pip status-pip-active" : "status-pip"} ariaHidden="true" />
+          <div className="status-bar" role="status" ariaLive="polite" ariaAtomic={true}>
+            <span className={game.currentPlayer == Some(PokerEngine.humanIndex) ? "status-pip status-pip-active" : "status-pip"} ariaHidden={true} />
             <span> {React.string(message == "" ? status : message)} </span>
           </div>
 

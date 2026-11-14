@@ -27,7 +27,7 @@ let make = (~game: game, ~index: int) => {
     ++ (player.busted ? ", busted" : "");
 
   <div className=classes role="group" ariaLabel=label>
-    <div className="avatar" ariaHidden="true">
+    <div className="avatar" ariaHidden={true}>
       <span> {React.string(initials(player.name))} </span>
     </div>
     {game.handNumber > 0 && game.dealer == index && !player.busted
