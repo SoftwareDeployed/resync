@@ -25,6 +25,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
+  ARG WATCHEXEC_VERSION=2.8.0
+  RUN curl -fsSL "https://github.com/watchexec/watchexec/releases/download/v${WATCHEXEC_VERSION}/watchexec-${WATCHEXEC_VERSION}-x86_64-unknown-linux-musl.tar.xz" -o /tmp/watchexec.tar.xz \
+      && tar -xJf /tmp/watchexec.tar.xz -C /usr/local/bin --strip-components=1 \
+      && rm /tmp/watchexec.tar.xz
+
 RUN npm install --global pnpm
 
 RUN useradd --create-home --shell /bin/bash opam

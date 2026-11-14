@@ -68,6 +68,11 @@ let decision_handler request =
                  | Ok decision ->
                      Dream.json (Yojson.Safe.to_string (JevDecision.decision_to_json decision)))))
 
+let ssr request =
+  let* response = UniversalRouterDream.handler ~app:EntryServer.app request in
+  Dream.set_header response "Content-Type" "text/html; charset=utf-8";
+  Lwt.return response
+
 let () =
   let doc_root =
     match Sys.getenv_opt "POKER_DOC_ROOT" with
@@ -85,8 +90,8 @@ let () =
        @ [
            Dream.get "/api/poker/jev/status" status_handler;
            Dream.post "/api/poker/jev/decision" decision_handler;
-           Dream.get "/" (UniversalRouterDream.handler ~app:EntryServer.app);
-           Dream.get "/**" (UniversalRouterDream.handler ~app:EntryServer.app);
+           Dream.get "/" (ssr);
+           Dream.get "/**" (ssr);
          ]
      )
   |> Server_builder.run
