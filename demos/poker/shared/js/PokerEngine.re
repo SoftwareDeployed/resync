@@ -162,12 +162,15 @@ let legalOptions = (game: game, index): legalOptions => {
       empty;
     } else {
       let toCall = max(0, game.currentBet - player.streetCommitted);
+      let raiseReopened =
+        !player.hasActed && game.currentBet - player.streetCommitted >= game.minRaise;
+      let raiseRights = player.canRaise || raiseReopened;
       let maxTarget = player.streetCommitted + player.chips;
-      let canBet = game.currentBet == 0 && player.canRaise && maxTarget >= bigBlindAmount;
+      let canBet = game.currentBet == 0 && raiseRights && maxTarget >= bigBlindAmount;
       let nominalRaise = game.currentBet + game.minRaise;
       let canRaise =
         game.currentBet > 0
-        && player.canRaise
+        && raiseRights
         && player.chips > toCall
         && maxTarget >= nominalRaise;
       let allInRaises = maxTarget > game.currentBet;
@@ -175,8 +178,8 @@ let legalOptions = (game: game, index): legalOptions => {
         player.chips > 0
         && (
           player.chips <= toCall
-          || (game.currentBet == 0 && player.canRaise)
-          || (game.currentBet > 0 && allInRaises && player.canRaise)
+          || (game.currentBet == 0 && raiseRights)
+          || (game.currentBet > 0 && allInRaises && raiseRights)
         );
       {
         canFold: true,
