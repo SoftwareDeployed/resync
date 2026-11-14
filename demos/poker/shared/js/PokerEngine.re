@@ -386,7 +386,7 @@ and settleShowdown = (game: game) => {
       if (won > 0) {
         let category =
           switch (handValues[index]) {
-          | Some(value) => " • " ++ PokerHand.categoryName(value.category)
+          | Some(value) => " | " ++ PokerHand.categoryName(value.category)
           | None => ""
           };
         "Won " ++ string_of_int(won) ++ category;
@@ -412,7 +412,7 @@ and settleShowdown = (game: game) => {
     if (winnings[index] > 0) {
       let category =
         switch (handValues[index]) {
-        | Some(value) => " • " ++ PokerHand.categoryName(value.category)
+        | Some(value) => " | " ++ PokerHand.categoryName(value.category)
         | None => ""
         };
       summaries := Js.Array.concat(
@@ -635,7 +635,7 @@ let startHand = (game: game): result(game, string) => {
     let withBig = {...withBig, currentBet: max(bigBlindAmount, withBig.currentBet)};
     let blindHistory =
       "Hand " ++ string_of_int(headNumber)
-      ++ " • " ++ withBig.players[dealer].name ++ " deals; blinds "
+      ++ " | " ++ withBig.players[dealer].name ++ " deals; blinds "
       ++ string_of_int(withBig.players[smallBlind].streetCommitted) ++ "/"
       ++ string_of_int(withBig.players[bigBlind].streetCommitted);
     Ok(progress(withBig->addHistory(blindHistory)));

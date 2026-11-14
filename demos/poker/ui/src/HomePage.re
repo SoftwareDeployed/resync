@@ -106,7 +106,7 @@ let make = () => {
       switch (game.currentPlayer) {
       | Some(index) when index == PokerEngine.humanIndex =>
         let toCall = max(0, game.currentBet - game.players[index].streetCommitted);
-        toCall > 0 ? "Your turn • " ++ string_of_int(toCall) ++ " to call" : "Your turn • check or bet";
+        toCall > 0 ? "Your turn | " ++ string_of_int(toCall) ++ " to call" : "Your turn | check or bet";
       | Some(index) => game.players[index].name ++ " is considering the action"
       | None => "Completing the board"
       };
@@ -203,7 +203,7 @@ let make = () => {
                       ? <div className="bet-sizing">
                           <div className="sizing-heading">
                             <label htmlFor="bet-size"> {React.string(sizingLabel ++ " " ++ string_of_int(sizingTarget))} </label>
-                            <span> {React.string(string_of_int(sizingMin) ++ " – " ++ string_of_int(sizingMax))} </span>
+                            <span> {React.string(string_of_int(sizingMin) ++ " - " ++ string_of_int(sizingMax))} </span>
                           </div>
                           <input
                             id="bet-size"
@@ -278,7 +278,7 @@ let make = () => {
     </main>
     <footer className="room-footer">
       <span> {React.string("UNIVERSAL REASON REACT")} </span>
-      <span> {React.string("SSR lobby • browser-dealt hands • standard 52-card deck")} </span>
+      <span> {React.string("SSR lobby | browser-dealt hands | standard 52-card deck")} </span>
     </footer>
   </div>;
 };
