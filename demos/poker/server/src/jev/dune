@@ -1,0 +1,7 @@
+(library
+ (name poker_jev)
+ (public_name resync.poker_jev)
+ (modules JevDecision)
+ (wrapped false)
+ (libraries yojson)
+ (modes native))

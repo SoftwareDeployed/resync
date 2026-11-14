@@ -18,11 +18,68 @@ let inputValue = _event => "";
 
 let clamp = (low, high, value) => max(low, min(high, value));
 
-[@react.component]
+type opponentMode =
+  | JevMode
+  | LocalMode;
+
+type jevStatus =
+  | Checking
+  | Unavailable
+  | Available(string);
+
+type lastJevDecision = {
+  seat: int,
+  decision: PokerJevClient.decision,
+};
+
+let decisionIsCurrent = (game: game, handNumber, index, body) =>
+  !game.handOver
+  && game.handNumber == handNumber
+  && game.currentPlayer == Some(index)
+  && index != PokerEngine.humanIndex
+  && PokerJevClient.snapshot(game, index) == body;
+
+let actionOfDecision = (decision: PokerJevClient.decision) =>
+  switch (decision.kind) {
+  | "fold" => Some(Fold)
+  | "check" => Some(Check)
+  | "call" => Some(Call)
+  | "bet" => Some(Bet(decision.amount))
+  | "raise" => Some(RaiseTo(decision.amount))
+  | "all_in" => Some(AllIn)
+  | _ => None
+  };
+
+let percent = value => string_of_int(int_of_float(value *. 100.0 +. 0.5));
+
+let decisionLabel = (decision: PokerJevClient.decision) =>
+  switch (decision.kind) {
+  | "fold" => "fold"
+  | "check" => "check"
+  | "call" => "call"
+  | "bet" => "bet " ++ string_of_int(decision.amount)
+  | "raise" => "raise to " ++ string_of_int(decision.amount)
+  | "all_in" => "all-in"
+  | _ => "decision"
+  };
+
+let probabilitySummary = probabilities =>
+  probabilities
+  ->Js.Array.map(~f=(probability: PokerJevClient.probability) =>
+      probability.action ++ " " ++ percent(probability.value) ++ "%"
+    )
+  ->Js.Array.reduce(~f=(text, item) => text == "" ? item : text ++ " · " ++ item, ~init="");
+
+@react.component
 let make = () => {
   let (game, setGame) = React.useState(() => PokerEngine.createGame());
   let (betTarget, setBetTarget) = React.useState(() => PokerEngine.bigBlindAmount);
   let (message, setMessage) = React.useState(() => "");
+  let (opponentMode, setOpponentMode) = React.useState(() => JevMode);
+  let (jevStatus, setJevStatus) = React.useState(() => Checking);
+  let (lastJev, setLastJev) = React.useState(() => None);
+  let gameRef = React.useRef(game);
+  gameRef.current = game;
   let options = PokerEngine.legalOptions(game, PokerEngine.humanIndex);
   let sizingMin = game.currentBet == 0 ? options.minBet : options.minRaiseTo;
   let sizingMax = game.currentBet == 0 ? options.maxBet : options.maxRaiseTo;
@@ -30,31 +87,72 @@ let make = () => {
   let sizingTarget = canSize ? clamp(sizingMin, sizingMax, betTarget) : sizingMin;
   let pot = PokerEngine.potTotal(game);
 
-  React.useEffect1(
+  React.useEffect0(() => {
+    let cancel =
+      PokerJevClient.getStatus(
+        status => setJevStatus(_ => status.available ? Available(status.model) : Unavailable),
+        () => setJevStatus(_ => Unavailable),
+      );
+    Some(cancel);
+  });
+
+  React.useEffect3(
     () => {
       switch (game.currentPlayer) {
       | Some(index) when index != PokerEngine.humanIndex && !game.handOver =>
-        let timer =
-          Js.Global.setTimeout(
-            ~f=() =>
-              setGame(current => {
-                switch (current.currentPlayer) {
-                | Some(currentIndex) when currentIndex == index && currentIndex != PokerEngine.humanIndex =>
-                  let action = PokerComputer.chooseAction(current, currentIndex);
-                  switch (PokerEngine.applyAction(current, currentIndex, action)) {
-                  | Ok(next) => next
-                  | Error(_) => current
+        let handNumber = game.handNumber;
+        let body = PokerJevClient.snapshot(game, index);
+        let applyLocal = (~announce: bool) => {
+          let current = gameRef.current;
+          if (decisionIsCurrent(current, handNumber, index, body)) {
+            let action = PokerComputer.chooseAction(current, index);
+            switch (PokerEngine.applyAction(current, index, action)) {
+            | Ok(next) =>
+              gameRef.current = next;
+              setGame(_ => next);
+              setLastJev(_ => None);
+              if (announce) {
+                setMessage(_ => "Jev fallback • " ++ current.players[index].name ++ " used local rules");
+              };
+            | Error(error) => setMessage(_ => error)
+            };
+          };
+        };
+        switch (opponentMode, jevStatus) {
+        | (JevMode, Available(_)) =>
+          let cancel =
+            PokerJevClient.postDecision(
+              "/api/poker/jev/decision",
+              body,
+              decision => {
+                let current = gameRef.current;
+                if (decisionIsCurrent(current, handNumber, index, body)) {
+                  switch (actionOfDecision(decision)) {
+                  | None => applyLocal(~announce=true)
+                  | Some(action) =>
+                    switch (PokerEngine.applyAction(current, index, action)) {
+                    | Ok(next) =>
+                      gameRef.current = next;
+                      setGame(_ => next);
+                      setLastJev(_ => Some({seat: index, decision}));
+                      setMessage(_ => "");
+                    | Error(_) => applyLocal(~announce=true)
+                    }
                   };
-                | _ => current
-                }
-              }),
-            620,
-          );
-        Some(() => Js.Global.clearTimeout(timer));
+                };
+              },
+              () => applyLocal(~announce=true),
+            );
+          Some(cancel);
+        | (JevMode, Checking) => None
+        | _ =>
+          let timer = Js.Global.setTimeout(~f=() => applyLocal(~announce=opponentMode == JevMode), 620);
+          Some(() => Js.Global.clearTimeout(timer));
+        };
       | _ => None
       };
     },
-    [|game|],
+    (game, opponentMode, jevStatus),
   );
 
   React.useEffect1(
@@ -71,24 +169,36 @@ let make = () => {
     switch (PokerEngine.startHand(game)) {
     | Ok(next) =>
       setMessage(_ => "");
+      setLastJev(_ => None);
+      gameRef.current = next;
       setGame(_ => next);
     | Error(error) => setMessage(_ => error)
     };
   };
 
   let restart = () => {
+    let next = PokerEngine.restart(~seed=game.rngSeed + 97, ());
     setMessage(_ => "");
+    setLastJev(_ => None);
     setBetTarget(_ => PokerEngine.bigBlindAmount);
-    setGame(_ => PokerEngine.restart(~seed=game.rngSeed + 97, ()));
+    gameRef.current = next;
+    setGame(_ => next);
   };
 
   let act = action => {
     switch (PokerEngine.applyAction(game, PokerEngine.humanIndex, action)) {
     | Ok(next) =>
       setMessage(_ => "");
+      gameRef.current = next;
       setGame(_ => next);
     | Error(error) => setMessage(_ => error)
     };
+  };
+
+  let selectMode = mode => {
+    setOpponentMode(_ => mode);
+    setLastJev(_ => None);
+    setMessage(_ => "");
   };
 
   let status =
@@ -101,10 +211,37 @@ let make = () => {
       | Some(index) when index == PokerEngine.humanIndex =>
         let toCall = max(0, game.currentBet - game.players[index].streetCommitted);
         toCall > 0 ? "Your turn • " ++ string_of_int(toCall) ++ " to call" : "Your turn • check or bet";
-      | Some(index) => game.players[index].name ++ " is considering the action"
+      | Some(index) =>
+        game.players[index].name
+        ++ (
+          switch (opponentMode, jevStatus) {
+          | (JevMode, Available(_)) => " is thinking with Jev"
+          | _ => " is considering the action"
+          }
+        )
       | None => "Completing the board"
       };
     };
+
+  let opponentState =
+    switch (opponentMode, jevStatus) {
+    | (LocalMode, _) => "Local opponents"
+    | (JevMode, Checking) => "Checking Jev availability…"
+    | (JevMode, Unavailable) => "Jev unavailable • local fallback"
+    | (JevMode, Available(_)) =>
+      switch (game.currentPlayer) {
+      | Some(index) when index != PokerEngine.humanIndex && !game.handOver =>
+        "Jev thinking • " ++ game.players[index].name
+      | _ => "Jev opponents ready"
+      }
+    };
+
+  let configuredModel =
+    switch (jevStatus) {
+    | Available(model) => model
+    | _ => ""
+    };
+  let jevAvailable = configuredModel != "";
 
   let sizingAction = game.currentBet == 0 ? Bet(sizingTarget) : RaiseTo(sizingTarget);
   let sizingLabel = game.currentBet == 0 ? "Bet" : "Raise to";
@@ -125,7 +262,7 @@ let make = () => {
       </div>
       <div className="room-meta">
         <span className="live-dot" ariaHidden={true} />
-        <span> {React.string("Local table")} </span>
+        <span> {React.string("Play chips")} </span>
         <span className="meta-divider" ariaHidden={true} />
         <span> {React.string("10 / 20")} </span>
       </div>
@@ -243,6 +380,47 @@ let make = () => {
         </div>
 
         <aside className="room-rail" ariaLabel="Hand information">
+          <section className="rail-card opponent-card" ariaLabel="Opponent engine">
+            <div className="opponent-heading">
+              <span className="eyebrow"> {React.string("OPPONENTS")} </span>
+              <div className="opponent-modes" role="group" ariaLabel="Opponent decision engine">
+                <button
+                  type_="button"
+                  className={opponentMode == JevMode ? "opponent-mode-active" : ""}
+                  aria-pressed={opponentMode == JevMode}
+                  disabled={!jevAvailable}
+                  onClick={_ => selectMode(JevMode)}>
+                  {React.string("Jev")}
+                </button>
+                <button
+                  type_="button"
+                  className={opponentMode == LocalMode ? "opponent-mode-active" : ""}
+                  aria-pressed={opponentMode == LocalMode}
+                  onClick={_ => selectMode(LocalMode)}>
+                  {React.string("Local")}
+                </button>
+              </div>
+            </div>
+            <span className="opponent-state" role="status"> {React.string(opponentState)} </span>
+            {opponentMode == JevMode && configuredModel != ""
+               ? <span className="configured-model"> {React.string("Configured: " ++ configuredModel)} </span>
+               : React.null}
+            {switch (lastJev) {
+             | Some({seat, decision}) =>
+               <div className="jev-result">
+                 <span className="eyebrow"> {React.string("LAST ACTUAL JEV DECISION")} </span>
+                 <strong> {React.string(decision.model)} </strong>
+                 <p>
+                   {React.string(
+                      game.players[seat].name ++ " • " ++ decisionLabel(decision)
+                      ++ " • confidence " ++ percent(decision.confidence) ++ "%"
+                    )}
+                 </p>
+                 <p className="jev-probabilities"> {React.string(probabilitySummary(decision.probabilities))} </p>
+               </div>
+             | None => React.null
+             }}
+          </section>
           <section className="rail-card result-card">
             <span className="eyebrow"> {React.string("TABLE STATUS")} </span>
             <h2> {React.string(game.handOver ? "Result" : PokerEngine.streetName(game.street))} </h2>
@@ -265,7 +443,7 @@ let make = () => {
             </ol>
           </section>
           <p className="fair-play-note">
-            {React.string("Play chips only. Five deterministic local opponents; no accounts, wagers, tracking, or external card data.")}
+            {React.string("Play chips only. Jev receives only the acting opponent’s two cards and public table state. Local rules remain available; no accounts, wagers, or tracking.")}
           </p>
         </aside>
       </section>

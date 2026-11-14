@@ -12,6 +12,15 @@
    ppx_platform
    server-reason-react.melange_ppx)))
 
+(executable
+ (name jev_decision_test)
+ (modules jev_decision_test)
+ (libraries
+  alcotest
+  poker_jev
+  yojson)
+ (modes native))
+
 (alias
  (name poker-engine-tests)
- (deps poker_engine_test.exe))
+ (deps poker_engine_test.exe jev_decision_test.exe))

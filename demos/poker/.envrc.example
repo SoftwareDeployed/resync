@@ -2,3 +2,8 @@
 export POKER_DOC_ROOT="./_build/default/demos/poker/ui/src"
 export POKER_SERVER_PORT="8090"
 export SERVER_INTERFACE="127.0.0.1"
+
+# Optional: enable TypeSafe Jev opponents. Keep the real key in your local,
+# untracked environment; never commit it. Without a key, local rules are used.
+# export TYPESAFE_API_KEY="replace-with-your-local-key"
+export JEV_MODEL="jev-latest"

@@ -238,6 +238,18 @@ main { width: min(1480px, calc(100% - 48px)); margin: 0 auto; }
 .rail-card { border: 1px solid #29372f; border-radius: 14px; background: #101713; padding: 18px; }
 .rail-card h2 { margin: 5px 0 8px; font-family: Georgia, serif; font-size: 22px; font-weight: 500; }
 .rail-card p { margin: 0; color: #a7b7ac; font-size: 12px; line-height: 1.6; }
+.opponent-card { display: flex; flex-direction: column; gap: 10px; }
+.opponent-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.opponent-modes { display: flex; padding: 2px; border: 1px solid #304137; border-radius: 7px; background: #0b120e; }
+.opponent-modes button { min-width: 49px; padding: 4px 8px; border: 0; border-radius: 4px; background: transparent; color: #8fa398; font-size: 10px; font-weight: 700; }
+.opponent-modes button:not(:disabled):hover { color: #e3c57d; background: #1c2921; }
+.opponent-modes .opponent-mode-active { background: #2a3a30; color: #f2c66d; }
+.opponent-state { color: #c8d5cb; font-size: 11px; line-height: 1.45; }
+.configured-model { overflow: hidden; color: #71877a; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.jev-result { padding-top: 10px; border-top: 1px solid #29372f; }
+.jev-result strong { display: block; overflow: hidden; margin-top: 4px; color: #e3c57d; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.jev-result p { margin-top: 4px; font-size: 10px; line-height: 1.45; }
+.rail-card .jev-result .jev-probabilities { color: #82968a; font-size: 9px; overflow-wrap: anywhere; }
 .hand-facts { margin: 18px 0 0; }
 .hand-facts div { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid #26332c; font-size: 11px; }
 .hand-facts dt { color: #82968a; }

@@ -40,8 +40,8 @@ demos/
     shared/                Shared schema + model types
     ui/                    Realtime todo frontend
   poker/
-    server/                Deterministic SSR lobby and native Dream server
-    shared/                Hold'em engine, evaluator, and local computer rules
+    server/                Deterministic SSR lobby, native Dream server, and Jev API
+    shared/                Hold'em engine, evaluator, and computer rules
     ui/                    Responsive six-handed single-player table
 ```
 
@@ -231,7 +231,7 @@ http://localhost:8080
 
 ### Poker demo
 
-River Room is a six-handed single-player Texas Hold'em game with five local rule-based opponents. The SSR lobby is deterministic; shuffling starts only after an explicit deal action in the browser. No database is needed.
+River Room is a six-handed single-player Texas Hold'em game with five computer opponents. Opponents can use TypeSafe Jev decision models or deterministic local rules. The SSR lobby is deterministic; shuffling starts only after an explicit deal action in the browser. No database is needed, and all chips are play chips only.
 
 Run the demo (requires two terminals):
 
@@ -251,6 +251,8 @@ pnpm poker:serve
 ```
 
 > **Note:** Set `POKER_DOC_ROOT` in `.envrc` as shown above. `POKER_SERVER_PORT` defaults to `8090`. See `demos/poker/README.md` and `demos/poker/.envrc.example` for the complete setup and Docker instructions.
+
+Jev is the default opponent mode when configured. Set `TYPESAFE_API_KEY` in the native server's untracked environment and optionally set `JEV_MODEL` (default `jev-latest`). The browser only learns availability, the configured model name, and metadata from actual model answers; it never receives the API key. Each upstream request contains only the acting opponent's two hole cards plus public cards, betting/stack state, position, personality, public action history, and legal options. It never contains the deck, future cards, human hole cards, or another opponent's hole cards. With no key or on a request failure, the table clearly falls back once to local rules without retrying the paid request. The **Local** selector always works.
 
 Open http://localhost:8090. Run the focused native engine suite with `pnpm poker:test:unit`.
 

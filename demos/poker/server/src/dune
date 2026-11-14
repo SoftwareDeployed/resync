@@ -4,6 +4,8 @@
  (public_name poker_server)
  (libraries
   poker_native
+  poker_jev
+  cohttp-lwt-unix
   dream
   reason_realtime_dream_middleware
   server-reason-react.react
