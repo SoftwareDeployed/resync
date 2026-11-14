@@ -80,7 +80,7 @@ services:
       JEV_MODEL: "${JEV_MODEL:-jev-latest}"
     command: ["/bin/bash", "/src/run-linux-demos.sh", "poker"]
     ports:
-      - "8090:8090"
+      - "127.0.0.1:8090:8090"
 
 volumes:
   opam-root:
