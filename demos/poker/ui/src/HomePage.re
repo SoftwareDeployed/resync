@@ -29,6 +29,42 @@ let make = () => {
   let (game, setGame) = React.useState(() => PokerEngine.createGame());
   let (betTarget, setBetTarget) = React.useState(() => PokerEngine.bigBlindAmount);
   let (message, setMessage) = React.useState(() => "");
+  let (soundEnabled, setSoundEnabled) = React.useState(() => false);
+  let gameRef = React.useRef(game);
+  let soundEnabledRef = React.useRef(false);
+  gameRef.current = game;
+
+  let playSound = cue =>
+    if (soundEnabledRef.current) {
+      PokerSound.play(cue);
+    };
+  let playDealSounds = () => {
+    playSound(PokerSound.Shuffle);
+    playSound(PokerSound.Deal);
+  };
+  let playTransitionSounds = (current: game, next: game, action) => {
+    switch (action) {
+    | Fold => playSound(PokerSound.Fold)
+    | Call
+    | Bet(_)
+    | RaiseTo(_)
+    | AllIn => playSound(PokerSound.Chips)
+    | Check => ()
+    };
+    if (Array.length(next.board) > Array.length(current.board)) {
+      playSound(PokerSound.Deal);
+    };
+    if (next.handOver && !current.handOver) {
+      playSound(PokerSound.Win);
+    };
+  };
+  let toggleSound = () => {
+    let nextEnabled = !soundEnabledRef.current;
+    soundEnabledRef.current = nextEnabled;
+    PokerSound.setEnabled(nextEnabled);
+    setSoundEnabled(_ => nextEnabled);
+  };
+
   let options = PokerEngine.legalOptions(game, PokerEngine.humanIndex);
   let sizingMin = game.currentBet == 0 ? options.minBet : options.minRaiseTo;
   let sizingMax = game.currentBet == 0 ? options.maxBet : options.maxRaiseTo;
@@ -40,20 +76,28 @@ let make = () => {
     () => {
       switch (game.currentPlayer) {
       | Some(index) when index != PokerEngine.humanIndex && !game.handOver =>
+        let handNumber = game.handNumber;
         let timer =
           Js.Global.setTimeout(
-            ~f=() =>
-              setGame(current => {
-                switch (current.currentPlayer) {
-                | Some(currentIndex) when currentIndex == index && currentIndex != PokerEngine.humanIndex =>
-                  let action = PokerComputer.chooseAction(current, currentIndex);
-                  switch (PokerEngine.applyAction(current, currentIndex, action)) {
-                  | Ok(next) => next
-                  | Error(_) => current
-                  };
-                | _ => current
-                }
-              }),
+            ~f=() => {
+              let current = gameRef.current;
+              switch (current.currentPlayer) {
+              | Some(currentIndex)
+                  when currentIndex == index
+                    && current.handNumber == handNumber
+                    && currentIndex != PokerEngine.humanIndex
+                    && !current.handOver =>
+                let action = PokerComputer.chooseAction(current, currentIndex);
+                switch (PokerEngine.applyAction(current, currentIndex, action)) {
+                | Ok(next) =>
+                  gameRef.current = next;
+                  playTransitionSounds(current, next, action);
+                  setGame(_ => next);
+                | Error(_) => ()
+                };
+              | _ => ()
+              };
+            },
             620,
           );
         Some(() => Js.Global.clearTimeout(timer));
@@ -73,25 +117,72 @@ let make = () => {
     [|game|],
   );
 
+  React.useEffect1(
+    () => {
+      if (
+        game.handOver
+        && game.players[PokerEngine.humanIndex].chips > 0
+        && PokerEngine.fundedCount(game) >= 2
+      ) {
+        let handNumber = game.handNumber;
+        let timer =
+          Js.Global.setTimeout(
+            ~f=() => {
+              let current = gameRef.current;
+              if (
+                current.handOver
+                && current.handNumber == handNumber
+                && current.players[PokerEngine.humanIndex].chips > 0
+                && PokerEngine.fundedCount(current) >= 2
+              ) {
+                switch (PokerEngine.startHand(current)) {
+                | Ok(next) =>
+                  gameRef.current = next;
+                  setMessage(_ => "");
+                  playDealSounds();
+                  setGame(_ => next);
+                | Error(error) => setMessage(_ => error)
+                };
+              };
+            },
+            2800,
+          );
+        Some(() => Js.Global.clearTimeout(timer));
+      } else {
+        None;
+      };
+    },
+    [|game|],
+  );
+
   let deal = () => {
-    switch (PokerEngine.startHand(game)) {
+    let current = gameRef.current;
+    switch (PokerEngine.startHand(current)) {
     | Ok(next) =>
+      gameRef.current = next;
       setMessage(_ => "");
+      playDealSounds();
       setGame(_ => next);
     | Error(error) => setMessage(_ => error)
     };
   };
 
   let restart = () => {
+    let current = gameRef.current;
+    let next = PokerEngine.restart(~seed=current.rngSeed + 97, ());
     setMessage(_ => "");
     setBetTarget(_ => PokerEngine.bigBlindAmount);
-    setGame(_ => PokerEngine.restart(~seed=game.rngSeed + 97, ()));
+    gameRef.current = next;
+    setGame(_ => next);
   };
 
   let act = action => {
-    switch (PokerEngine.applyAction(game, PokerEngine.humanIndex, action)) {
+    let current = gameRef.current;
+    switch (PokerEngine.applyAction(current, PokerEngine.humanIndex, action)) {
     | Ok(next) =>
+      gameRef.current = next;
       setMessage(_ => "");
+      playTransitionSounds(current, next, action);
       setGame(_ => next);
     | Error(error) => setMessage(_ => error)
     };
@@ -118,7 +209,15 @@ let make = () => {
     clamp(sizingMin, sizingMax, game.currentBet == 0 ? max(sizingMin, pot) : game.currentBet + max(game.minRaise, pot));
   let halfPotTarget =
     clamp(sizingMin, sizingMax, game.currentBet == 0 ? max(sizingMin, pot / 2) : game.currentBet + max(game.minRaise, pot / 2));
-  let canDeal = (game.handNumber == 0 || game.handOver) && game.players[PokerEngine.humanIndex].chips > 0 && PokerEngine.fundedCount(game) >= 2;
+  let canDealFirst =
+    game.handNumber == 0
+    && game.players[PokerEngine.humanIndex].chips > 0
+    && PokerEngine.fundedCount(game) >= 2;
+  let canDealNext =
+    game.handOver
+    && game.players[PokerEngine.humanIndex].chips > 0
+    && PokerEngine.fundedCount(game) >= 2;
+  let felted = game.handOver && game.players[PokerEngine.humanIndex].chips <= 0;
 
   <div className="poker-app">
     <header className="room-header">
@@ -134,6 +233,13 @@ let make = () => {
         <span> {React.string("Local table")} </span>
         <span className="meta-divider" ariaHidden={true} />
         <span> {React.string("10 / 20")} </span>
+        <button
+          className="sound-toggle"
+          type_="button"
+          ariaPressed={string_of_bool(soundEnabled)}
+          onClick={_ => toggleSound()}>
+          {React.string(soundEnabled ? "Sound on" : "Sound off")}
+        </button>
       </div>
     </header>
 
@@ -160,7 +266,7 @@ let make = () => {
                   <div className="board-cards">
                     {Array.init(5, index =>
                        <PokerCard
-                         key={string_of_int(index)}
+                         key={string_of_int(game.handNumber) ++ PokerEngine.streetName(game.street) ++ string_of_int(index)}
                          card={index < Array.length(game.board) ? Some(game.board[index]) : None}
                        />
                      )->React.array}
@@ -189,11 +295,20 @@ let make = () => {
               <span className="your-stack"> {React.string("Your stack " ++ string_of_int(game.players[0].chips))} </span>
             </div>
 
-            {game.handOver || game.handNumber == 0
+            {game.handNumber == 0
                ? <div className="hand-flow-actions">
-                   <button className="primary-action" type_="button" onClick={_ => deal()} disabled={!canDeal}>
-                     {React.string(game.handNumber == 0 ? "Deal first hand" : "Deal next hand")}
+                   <button className="primary-action" type_="button" onClick={_ => deal()} disabled={!canDealFirst}>
+                     {React.string("Deal first hand")}
                    </button>
+                   <button className="secondary-action" type_="button" onClick={_ => restart()}>
+                     {React.string("Restart table")}
+                   </button>
+                 </div>
+               : game.handOver
+               ? <div className="hand-flow-actions">
+                   <span className="next-hand-status" role="status">
+                     {React.string(canDealNext ? "Next hand deals automatically in a moment..." : "Restart the table to play again.")}
+                   </span>
                    <button className="secondary-action" type_="button" onClick={_ => restart()}>
                      {React.string("Restart table")}
                    </button>
@@ -280,5 +395,17 @@ let make = () => {
       <span> {React.string("UNIVERSAL REASON REACT")} </span>
       <span> {React.string("SSR lobby | browser-dealt hands | standard 52-card deck")} </span>
     </footer>
+    {felted
+       ? <div className="felted-overlay" role="dialog" ariaModal={true} ariaLabelledby="felted-title" ariaDescribedby="felted-description">
+           <div className="felted-dialog">
+             <span className="eyebrow"> {React.string("HAND COMPLETE")} </span>
+             <h2 id="felted-title"> {React.string("You are felted")} </h2>
+             <p id="felted-description"> {React.string("Your stack is empty. Restart the table for a fresh set of play chips.")} </p>
+             <button className="primary-action" type_="button" autoFocus={true} onClick={_ => restart()}>
+               {React.string("Restart table")}
+             </button>
+           </div>
+         </div>
+       : React.null}
   </div>;
 };

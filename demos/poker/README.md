@@ -1,8 +1,18 @@
 # River Room poker demo
 
-A six-handed, single-player Texas Hold'em table built with universal Reason React. The native Dream server renders a deterministic lobby; cards are shuffled and dealt only after the player presses **Deal first hand** in the browser.
+A six-handed, single-player Texas Hold'em table built with universal Reason React. The native Dream server renders a deterministic lobby; the first hand is shuffled and dealt only after the player presses **Deal first hand** in the browser. Later hands deal automatically after a 2.8-second result pause when the human and at least one opponent still have chips.
 
 The table supports preflop, flop, turn, and river betting; fold, check, call, bet, raise, and all-in actions; short and full all-ins; side pots; seven-card hand evaluation; split pots and odd chips; dealer and blind rotation; busted seats; repeated hands; and a full table restart. All five opponents use deterministic local rules in `shared/js/PokerComputer.re`. There is no network decision service or Jev integration in this demo branch.
+
+## Presentation and sound
+
+Every face-up card uses an inline, path-based SVG suit with its full card name retained for assistive technology. Hole cards, card backs, and community cards have staggered deal-in motion; the active avatar has a subtle ring and changed actions have a brief highlight. These animations use opacity and transforms without moving seat anchors, and `prefers-reduced-motion` selects static content.
+
+Sound is **off by default** and is enabled only with the **Sound off / Sound on** toggle. Audio objects are created lazily in the browser for deals, folds, chip actions, board cards, and wins; turning sound off pauses loaded clips. The five OGG files and their license are served locally from `ui/src/static/sounds`, with Dune copying them into the static document root.
+
+The clips come from **Kenney Casino Audio 1.1** by Kenney Vleugels, released under **Creative Commons Zero (CC0)**. See `ui/src/static/sounds/License.txt`, https://kenney.nl/assets/casino-audio, and https://opengameart.org/content/54-casino-sound-effects-cards-dice-chips. No audio is hosted externally.
+
+When a hand leaves the human at zero chips, an accessible **You are felted** dialog appears. Its autofocused **Restart table** button resets the game and dismisses the dialog. Restarting also cancels pending hand timers.
 
 ## Run locally
 

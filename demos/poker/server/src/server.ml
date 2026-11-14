@@ -18,7 +18,8 @@ let () =
     ~default_port:8090
     ()
   |> Server_builder.with_routes (
-       Server_builder.ui_routes ~doc_root
+       [Dream.get "/static/sounds/**" (Dream.static "demos/poker/ui/src/static/sounds")]
+       @ Server_builder.ui_routes ~doc_root
        @ [
            Dream.get "/" (ssr);
            Dream.get "/**" (ssr);
