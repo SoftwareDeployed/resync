@@ -26,6 +26,7 @@ command_name="${1:-check}"
 
 export ECOMMERCE_DOC_ROOT="${ECOMMERCE_DOC_ROOT:-$repo_root/_build/default/demos/ecommerce/ui/src}"
 export TODO_DOC_ROOT="${TODO_DOC_ROOT:-$repo_root/_build/default/demos/todo/ui/src}"
+export POKER_DOC_ROOT="${POKER_DOC_ROOT:-$repo_root/_build/default/demos/poker/ui/src}"
 
 setup_toolchain() {
   echo "==> Ensuring opam switch: $switch_name"
@@ -91,6 +92,19 @@ run_todo() {
   exit $EXIT_CODE
 }
 
+run_poker() {
+  echo "==> Starting poker demo with hot reload"
+  dune build @poker-app @poker-server
+  pnpm run poker:dune:watch &
+  BUILD_PID=$!
+  pnpm run poker:watch &
+  WATCH_PID=$!
+  wait -n $BUILD_PID $WATCH_PID
+  EXIT_CODE=$?
+  kill $BUILD_PID $WATCH_PID 2>/dev/null || true
+  exit $EXIT_CODE
+}
+
 setup_toolchain
 
 case "$command_name" in
@@ -102,6 +116,9 @@ case "$command_name" in
     ;;
   todo)
     run_todo
+    ;;
+  poker)
+    run_poker
     ;;
   shell)
     exec bash

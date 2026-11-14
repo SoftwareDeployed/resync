@@ -2,7 +2,7 @@
 
 `resync` is an early alpha monorepo for building universal Reason React applications with synchronized store state, realtime delivery, JSON websocket actions, and IndexedDB-backed browser persistence on top of a Dream server.
 
-The repository currently ships with ecommerce, todo, and todo-multiplayer demos that exercise the shared packages.
+The repository currently ships with ecommerce, todo, todo-multiplayer, and poker demos that exercise the shared packages.
 
 Note: parts of this README and `docs/` are AI-generated drafts. Human review and editing are required before treating them as finalized documentation.
 
@@ -39,6 +39,10 @@ demos/
     server/                PostgreSQL-backed realtime todo demo
     shared/                Shared schema + model types
     ui/                    Realtime todo frontend
+  poker/
+    server/                Deterministic SSR lobby and native Dream server
+    shared/                Hold'em engine, evaluator, and local computer rules
+    ui/                    Responsive six-handed single-player table
 ```
 
 ## What is in the store package?
@@ -146,6 +150,7 @@ To run the demos in Linux containers:
 ```bash
 docker compose up ecommerce-demo
 docker compose up todo-demo
+docker compose up poker-demo
 ```
 
 The root `docker-compose.yml` provisions a Debian-based image with opam, pnpm,
@@ -178,6 +183,8 @@ export API_BASE_URL="http://localhost:8899"
 export ECOMMERCE_DOC_ROOT="./_build/default/demos/ecommerce/ui/src"
 export TODO_DOC_ROOT="./_build/default/demos/todo/ui/src"
 export TODO_MP_DOC_ROOT="./_build/default/demos/todo-multiplayer/ui/src"
+export POKER_DOC_ROOT="./_build/default/demos/poker/ui/src"
+export POKER_SERVER_PORT="8090"
 ```
 
 The server fails fast unless `DB_URL` and `ECOMMERCE_DOC_ROOT` are set.
@@ -221,6 +228,31 @@ Open:
 ```text
 http://localhost:8080
 ```
+
+### Poker demo
+
+River Room is a six-handed single-player Texas Hold'em game with five local rule-based opponents. The SSR lobby is deterministic; shuffling starts only after an explicit deal action in the browser. No database is needed.
+
+Run the demo (requires two terminals):
+
+```bash
+# Terminal 1: Build watch
+pnpm poker:dune:watch
+
+# Terminal 2: Run server (restarts on UI changes)
+pnpm poker:watch
+```
+
+For a one-time build and server run:
+
+```bash
+pnpm poker:build
+pnpm poker:serve
+```
+
+> **Note:** Set `POKER_DOC_ROOT` in `.envrc` as shown above. `POKER_SERVER_PORT` defaults to `8090`. See `demos/poker/README.md` and `demos/poker/.envrc.example` for the complete setup and Docker instructions.
+
+Open http://localhost:8090. Run the focused native engine suite with `pnpm poker:test:unit`.
 
 ### Todo multiplayer demo
 
@@ -269,6 +301,11 @@ http://localhost:8898
 | `ecommerce:watch` | Run ecommerce server, restart on .build_stamp changes |
 | `todo:dune:watch` | Dune build watch for todo |
 | `todo:watch` | Run todo server, restart on .build_stamp changes |
+| `poker:build` | Build poker browser assets and native server |
+| `poker:dune:watch` | Dune build watch for poker |
+| `poker:serve` | Run the poker server after a build |
+| `poker:watch` | Run poker server, restart on .build_stamp changes |
+| `poker:test:unit` | Run native Alcotest poker engine tests |
 | `todo-mp:schema:generate` | Generate todo-multiplayer realtime SQL artifacts |
 | `todo-mp:db:init` | Apply todo-multiplayer schema and generated realtime triggers |
 | `todo-mp:dune:watch` | Dune build watch for todo-multiplayer |
@@ -281,6 +318,7 @@ Build specific demos from the repo root:
 ```bash
 dune build @ecommerce-app @ecommerce-server
 dune build @todo-app @todo-server
+dune build @poker-app @poker-server
 dune build demos/todo-multiplayer/ui/src/.build_stamp demos/todo-multiplayer/server/src/server.exe
 ```
 
@@ -310,8 +348,15 @@ The todo-multiplayer demo uses:
 - `DB_URL=postgres://executor:executor-password@localhost:5432/executor_db`
 - server port `8898`
 
+The poker demo uses:
+
+- `POKER_DOC_ROOT=./_build/default/demos/poker/ui/src`
+- server interface `127.0.0.1` (Docker overrides it to `0.0.0.0`)
+- server port `8090`
+
 ## Demo behavior
 
+- the poker server renders only the deterministic lobby; explicit browser actions deal and play complete local hands with side pots, split-pot settlement, busted seats, and table restart
 - inventory is rendered on the server and hydrated in the browser
 - inventory realtime updates come from PostgreSQL notifications over websockets
 - sold-out equipment shows a disabled “Out of stock” button on the listing and item pages; restocking re-enables Add to cart through realtime updates

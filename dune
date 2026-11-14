@@ -22,18 +22,31 @@
  (deps
   (file demos/todo/server/src/server.exe)))
 
+; === POKER DEMO ===
+(alias
+ (name poker-app)
+ (deps
+  (alias_rec demos/poker/ui/app)))
+
+(alias
+ (name poker-server)
+ (deps
+  (file demos/poker/server/src/server.exe)))
+
 ; === CONVENIENCE ALIASES ===
 (alias
  (name all-apps)
  (deps
   (alias ecommerce-app)
-  (alias todo-app)))
+  (alias todo-app)
+  (alias poker-app)))
 
 (alias
  (name all-servers)
  (deps
   (alias ecommerce-server)
-  (alias todo-server)))
+  (alias todo-server)
+  (alias poker-server)))
 
 ; Default still points to ecommerce (backward compat)
 (alias

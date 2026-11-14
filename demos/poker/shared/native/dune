@@ -1,0 +1,16 @@
+(library
+ (name poker_native)
+ (public_name resync.poker_native)
+ (modules PokerTypes PokerHand PokerEngine PokerComputer)
+ (wrapped false)
+ (libraries
+  server-reason-react.belt
+  server-reason-react.js)
+ (modes native)
+ (preprocess
+  (pps
+   ppx_platform
+   server-reason-react.melange_ppx)))
+
+(copy_files
+ (files ../js/*.re))

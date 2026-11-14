@@ -1,0 +1,17 @@
+(executable
+ (name poker_engine_test)
+ (modules poker_engine_test)
+ (libraries
+  alcotest
+  poker_native
+  server-reason-react.belt
+  server-reason-react.js)
+ (modes native)
+ (preprocess
+  (pps
+   ppx_platform
+   server-reason-react.melange_ppx)))
+
+(alias
+ (name poker-engine-tests)
+ (deps poker_engine_test.exe))

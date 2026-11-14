@@ -6,6 +6,7 @@ x-app-env: &app-env
   WORK_REPO_ROOT: /workspace
   ECOMMERCE_DOC_ROOT: /workspace/_build/default/demos/ecommerce/ui/src
   TODO_DOC_ROOT: /workspace/_build/default/demos/todo/ui/src
+  POKER_DOC_ROOT: /workspace/_build/default/demos/poker/ui/src
 
 x-app-base: &app-base
   build:
@@ -69,6 +70,15 @@ services:
     command: ["/bin/bash", "/src/run-linux-demos.sh", "todo"]
     ports:
       - "8080:8080"
+
+  poker-demo:
+    <<: *app-base
+    environment:
+      <<: *app-env
+      SERVER_INTERFACE: "0.0.0.0"
+    command: ["/bin/bash", "/src/run-linux-demos.sh", "poker"]
+    ports:
+      - "8090:8090"
 
 volumes:
   opam-root:

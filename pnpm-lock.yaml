@@ -29,6 +29,9 @@ importers:
       lucide-react:
         specifier: ^1.67.0
         version: 1.67.0(react@19.3.1)
+      poker-ui:
+        specifier: link:demos/poker/ui
+        version: link:demos/poker/ui
       react:
         specifier: ^19.3.1
         version: 19.3.1
