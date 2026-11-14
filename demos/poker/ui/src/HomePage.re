@@ -97,7 +97,7 @@ let make = () => {
   React.useEffect0(() => {
     let cancel =
       PokerJevClient.getStatus(
-        status => setJevStatus(_ => status.available ? Available(status.model) : Unavailable),
+        (status: PokerJevClient.status) => setJevStatus(_ => status.available ? Available(status.model) : Unavailable),
         () => setJevStatus(_ => Unavailable),
       );
     Some(cancel);
@@ -394,7 +394,7 @@ let make = () => {
                 <button
                   type_="button"
                   className={opponentMode == JevMode ? "opponent-mode-active" : ""}
-                  ariaPressed={opponentMode == JevMode}
+                  ariaPressed={string_of_bool(opponentMode == JevMode)}
                   disabled={!jevAvailable}
                   onClick={_ => selectMode(JevMode)}>
                   {React.string("Jev")}
@@ -402,7 +402,7 @@ let make = () => {
                 <button
                   type_="button"
                   className={opponentMode == LocalMode ? "opponent-mode-active" : ""}
-                  ariaPressed={opponentMode == LocalMode}
+                  ariaPressed={string_of_bool(opponentMode == LocalMode)}
                   onClick={_ => selectMode(LocalMode)}>
                   {React.string("Local")}
                 </button>
