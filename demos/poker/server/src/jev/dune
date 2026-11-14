@@ -1,3 +1,5 @@
+(include_subdirs no)
+
 (library
  (name poker_jev)
  (public_name resync.poker_jev)

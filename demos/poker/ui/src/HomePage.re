@@ -69,14 +69,15 @@ let decisionLabel = (decision: PokerJevClient.decision) =>
   | _ => "decision"
   };
 
-let probabilitySummary = probabilities =>
-  probabilities
-  ->Js.Array.map(~f=(probability: PokerJevClient.probability) =>
+let probabilitySummary = probabilities => {
+  let labels =
+    probabilities->Js.Array.map(~f=(probability: PokerJevClient.probability) =>
       probability.action ++ " " ++ percent(probability.value) ++ "%"
-    )
-  ->Js.Array.reduce(~f=(text, item) => text == "" ? item : text ++ " / " ++ item, ~init="");
+    );
+  labels->Js.Array.reduce(~f=(text, item) => text == "" ? item : text ++ " / " ++ item, ~init="");
+};
 
-@react.component
+[@react.component]
 let make = () => {
   let (game, setGame) = React.useState(() => PokerEngine.createGame());
   let (betTarget, setBetTarget) = React.useState(() => PokerEngine.bigBlindAmount);
